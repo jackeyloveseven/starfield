@@ -620,7 +620,7 @@ void main(){
  vec3 col=plasma(m0,gl_FragCoord.xy,side)
         + trans*(plasma(m1,gl_FragCoord.xy,side)*0.86+plasma(m2,gl_FragCoord.xy,side)*0.55);
  // the plasma only exists inside the disc annulus and along the thin plane
- float radius=length(p)*27.5;
+ float radius=length(p);
  vec2 q=mat2(cos(uTilt),-sin(uTilt),sin(uTilt),cos(uTilt))*p;
  col*=max(smoothstep(2.61,2.68,radius),1.0-smoothstep(0.040,0.058,abs(q.y)));
  float az=atan(q.y,q.x)/TAU;
@@ -643,7 +643,7 @@ void main(){
  // the grade even ran, so the whole thing came out as a white sheet.
  vec3 tone=1.0-exp(-col*0.62);
  float lum=max(tone.r,max(tone.g,tone.b));
- float shadow=1.0-smoothstep(0.093,0.102,length(p));
+ float shadow=1.0-smoothstep(2.55,2.80,length(p));
  float alpha=max(shadow,clamp(lum*2.2,0.0,1.0));
  fragColor=vec4(tone*alpha,alpha);
 }`;
@@ -777,6 +777,13 @@ function drawHole(m,q,p,t,rad){
  const G=holeGL,DRAW=rad*5.27;holeDraws++;holeLastRad=Math.round(rad);
  queue.push({type:4,d:q[2],alpha:1,fn:()=>{
   const g=G.gl;
+  // 1:1 with the screen, in 128 px steps so the drawing buffer is not
+  // reallocated every frame. Below this the plasma's noise aliases into blocks:
+  // radius = length(p) spans 0..13.75 over half the sprite, so a 512 buffer
+  // samples it at 18.6 px per unit and the 2.1x upscale leaves 8.8 - under the
+  // noise frequency, which is why it read as a field of dots rather than a blur.
+  const want=clamp(Math.round(DRAW*2/128)*128,256,1536);
+  if(G.cv.width!==want){G.cv.width=want;G.cv.height=want;g.viewport(0,0,want,want);G.S=want;}
   g.uniform2f(G.u.res,G.S,G.S);
   g.uniform1f(G.u.tilt,lensRoll);
   // Near edge-on, not overhead. inclination is the angle off the disc plane:
@@ -796,6 +803,7 @@ function drawHole(m,q,p,t,rad){
   g.uniform1f(G.u.time,t);
   g.uniform3f(G.u.tint,tintHole[0]/255,tintHole[1]/255,tintHole[2]/255);
   g.drawArrays(g.TRIANGLES,0,3);
+  ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
   ctx.drawImage(G.cv,cx-DRAW,cy-DRAW,DRAW*2,DRAW*2);
  }});
 }
