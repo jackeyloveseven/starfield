@@ -57,7 +57,7 @@ if '</body>' not in src: sys.exit('no </body>')
 out = a.html.replace('.html', '.orbitprobe.html')
 open(out, 'w', encoding='utf-8', newline='').write(src.replace('</body>', probe + '</body>', 1))
 url = 'file:///' + os.path.abspath(out).replace('\\', '/') + query
-base = [CHROME, '--headless=new', '--disable-gpu', '--no-sandbox', '--mute-audio',
+base = [CHROME, '--headless=new', '--disable-gpu','--use-angle=swiftshader','--enable-unsafe-swiftshader','--disable-gpu-compositing', '--no-sandbox', '--mute-audio',
         '--hide-scrollbars', '--no-first-run', '--disable-extensions',
         '--disable-background-networking', f'--window-size={W},{H}']
 with tempfile.TemporaryDirectory(prefix='orb-') as prof:

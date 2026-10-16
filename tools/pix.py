@@ -27,7 +27,7 @@ src = open(HTML, encoding='utf-8').read()
 out = os.path.abspath('pix.probe.html')
 open(out, 'w', encoding='utf-8', newline='').write(src.replace('</body>', probe + '</body>', 1))
 with tempfile.TemporaryDirectory(prefix='pix-') as prof:
-    r = subprocess.run([CHROME, '--headless=new', '--disable-gpu', '--no-sandbox', '--mute-audio',
+    r = subprocess.run([CHROME, '--headless=new', '--disable-gpu','--use-angle=swiftshader','--enable-unsafe-swiftshader','--disable-gpu-compositing', '--no-sandbox', '--mute-audio',
                         '--no-first-run', f'--user-data-dir={prof}', '--window-size=1280,720',
                         '--dump-dom',
                         'file:///' + out.replace(os.sep, '/') + f'?seed={SEED}'],

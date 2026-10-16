@@ -21,7 +21,7 @@ open(out, 'w', encoding='utf-8', newline='').write(src.replace('</body>', probe 
 
 url = 'file:///' + out.replace(os.sep, '/') + '?seed=1a2b'
 with tempfile.TemporaryDirectory(prefix='smoke-') as prof:
-    r = subprocess.run([CHROME, '--headless=new', '--disable-gpu', '--no-sandbox',
+    r = subprocess.run([CHROME, '--headless=new', '--disable-gpu','--use-angle=swiftshader','--enable-unsafe-swiftshader','--disable-gpu-compositing', '--no-sandbox',
                         '--mute-audio', '--no-first-run', f'--user-data-dir={prof}',
                         '--window-size=1280,720', '--dump-dom', url],
                        capture_output=True, text=True, encoding='utf-8',

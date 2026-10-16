@@ -34,7 +34,7 @@ os.makedirs(os.path.dirname(out), exist_ok=True)
 open(out, 'w', encoding='utf-8', newline='').write(src.replace('</body>', probe + '</body>', 1))
 url = 'file:///' + out.replace('\\', '/') + f'?seed={a.seed}'
 
-base = [CHROME, '--headless=new', '--disable-gpu', '--no-sandbox', '--mute-audio',
+base = [CHROME, '--headless=new', '--disable-gpu','--use-angle=swiftshader','--enable-unsafe-swiftshader','--disable-gpu-compositing', '--no-sandbox', '--mute-audio',
         '--hide-scrollbars', '--no-first-run', '--disable-extensions',
         '--disable-background-networking', '--window-size=1600,900']
 with tempfile.TemporaryDirectory(prefix='wp-') as profile:

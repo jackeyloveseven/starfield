@@ -50,7 +50,7 @@ out = os.path.abspath('feel.probe.html')
 open(out, 'w', encoding='utf-8', newline='').write(src.replace('</body>', probe + '</body>', 1))
 
 with tempfile.TemporaryDirectory(prefix='feel-') as profile:
-    r = subprocess.run([CHROME, '--headless=new', '--disable-gpu', '--no-sandbox',
+    r = subprocess.run([CHROME, '--headless=new', '--disable-gpu','--use-angle=swiftshader','--enable-unsafe-swiftshader','--disable-gpu-compositing', '--no-sandbox',
                         '--mute-audio', '--no-first-run', f'--user-data-dir={profile}',
                         '--window-size=900,560', '--dump-dom',
                         'file:///' + out.replace('\\', '/') + f'?seed={SEED}'],

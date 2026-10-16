@@ -60,7 +60,7 @@ out = os.path.abspath('flash.probe.html')
 open(out, 'w', encoding='utf-8', newline='').write(src.replace('</body>', probe + '</body>', 1))
 
 with tempfile.TemporaryDirectory(prefix='flash-') as profile:
-    r = subprocess.run([CHROME, '--headless=new', '--disable-gpu', '--no-sandbox',
+    r = subprocess.run([CHROME, '--headless=new', '--disable-gpu','--use-angle=swiftshader','--enable-unsafe-swiftshader','--disable-gpu-compositing', '--no-sandbox',
                         '--mute-audio', '--no-first-run', f'--user-data-dir={profile}',
                         '--window-size=1280,720', f'--virtual-time-budget={BUDGET}',
                         '--dump-dom',

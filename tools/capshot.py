@@ -43,7 +43,7 @@ src = open(HTML, encoding='utf-8').read()
 out = os.path.abspath('capshot.probe.html')
 open(out, 'w', encoding='utf-8', newline='').write(src.replace('</body>', probe + '</body>', 1))
 url = 'file:///' + out.replace('\\', '/') + f'?seed={SEED}'
-base = [CHROME, '--headless=new', '--disable-gpu', '--no-sandbox', '--mute-audio',
+base = [CHROME, '--headless=new', '--disable-gpu','--use-angle=swiftshader','--enable-unsafe-swiftshader','--disable-gpu-compositing', '--no-sandbox', '--mute-audio',
         '--hide-scrollbars', '--no-first-run', '--window-size=1600,900']
 
 
