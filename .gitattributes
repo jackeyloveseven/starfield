@@ -1,0 +1,4 @@
+# 成品是带 BOM 的单文件，必须字节精确，不能让 git 碰它的换行
+*.html -text
+*.md text
+*.py text

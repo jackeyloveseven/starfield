@@ -1,0 +1,6 @@
+shots/
+*.probe.html
+starfield.js
+work-*.html
+tmp-*
+__pycache__/
