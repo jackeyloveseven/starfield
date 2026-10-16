@@ -142,7 +142,7 @@ const manual={yaw:camera.yaw,pitch:camera.pitch,distance:camera.distance,aimY:0,
 const observation={distance:0,pitch:0,last:-10};
 let lookTarget=[0,224,travel];
 let activeMasses=[],sling=0,slingPrev=1e9,slingHold=0,warp=0;
-let capturePhase=0,captureT=0,captureTotal=0,captureMass=null,captureFlash=0,captureJumped=false;
+let capturePhase=0,captureT=0,captureTotal=0,captureMass=null,captureFlash=0,captureJumped=false,captureGrip=0,captureDive=0,captureGear=0,captureCamPose=null;
 const GRAV=1.6e7,MASS_KIND=[.35,.7,1,1.6,2.4,12,5,22,1.2],LEAD=2;
 
 /* Six beats, sixteen lenses. The next variation exists before the preceding
@@ -199,10 +199,13 @@ function updateDirector(dt){
  if(time-observation.last>2){observation.distance*=Math.exp(-dt*.8);observation.pitch*=Math.exp(-dt*.8);}
  if(!autoCamera)goal={...manual,roll:0};
  else{goal.distance+=observation.distance;goal.pitch=clamp(goal.pitch+observation.pitch,-.16,1.48);}
+ captureCamPose=capturePhase&&captureMass?captureCam():null;
+ if(captureCamPose){const c=captureCamPose;goal.distance=mix(goal.distance,c.distance,c.blend);goal.pitch=mix(goal.pitch,c.pitch,c.blend);goal.roll=mix(goal.roll||0,c.roll,c.blend);}
  const rate=autoCamera?2.2:7;
  camera.yaw+=angleDelta(camera.yaw,goal.yaw)*(1-Math.exp(-dt*rate));
  for(const k of ['pitch','distance','aimY','lane','roll'])camera[k]=expStep(camera[k],goal[k]||0,rate,dt);
  lookTarget=[routeX(travel),courseY(travel)+camera.aimY,travel];
+ if(captureCamPose){const c=captureCamPose;lookTarget=[mix(lookTarget[0],c.tx,c.blend),mix(lookTarget[1],c.ty,c.blend),mix(lookTarget[2],c.tz,c.blend)];}
  const horizontal=Math.cos(camera.pitch)*camera.distance;
  let eye=[lookTarget[0]+Math.sin(camera.yaw)*horizontal,Math.max(34,lookTarget[1]+Math.sin(camera.pitch)*camera.distance),travel-Math.cos(camera.yaw)*horizontal];
  eye[0]=mix(eye[0],laneX(eye[2]),camera.lane*.90);
@@ -211,7 +214,7 @@ function updateDirector(dt){
  let r=[f[2],0,-f[0]];len=Math.hypot(...r);r=r.map(v=>v/len);
  let u=[f[1]*r[2],f[2]*r[0]-f[0]*r[2],-f[1]*r[0]];
  if(camera.roll){const co=Math.cos(camera.roll),si=Math.sin(camera.roll),rr=r.map((v,i)=>v*co+u[i]*si);u=u.map((v,i)=>v*co-r[i]*si);r=rr;}
- camera.forward=f;camera.right=r;camera.up=u;camera.cx=W*.385;camera.cy=H*.465;camera.focal=H*1.12;
+ camera.forward=f;camera.right=r;camera.up=u;camera.cx=W*.385;camera.cy=H*.465;camera.focal=H*1.12*(captureCamPose?mix(1,captureCamPose.focal,captureCamPose.blend):1);
 }
 
 /* A compact painter's renderer, with near-plane clipping and distance haze. */
@@ -311,8 +314,11 @@ function chunk(k){
             :kind===1?95+r()*r()*265
             :kind===0?55+r()*r()*215
             :48+r()*r()*185;
-   a+=rad*.8+110+r()*160;                       // each orbit clears the last
-   fam.push({kind,rad,a,b:a*(.76+.24*r()),inc:(r()-.5)*.7,nod:r()*TAU,ph:r()*TAU,
+   a=Math.min(a+rad*.8+110+r()*160,950);        // each orbit clears the last, then stops
+   // inc near +-pi/2: the family orbits in a plane roughly parallel to the
+   // corridor, so a member stays near the family's height instead of swinging a
+   // full semi-major axis above and below the frame. b still squashes the ellipse.
+   fam.push({kind,rad,a,b:a*(.76+.24*r()),inc:(r()>.5?1:-1)*(Math.PI/2-(r()-.5)*.55),nod:r()*TAU,ph:r()*TAU,
              spd:spin*(.05+.22*Math.pow(700/a,.9))});
   }
   // The system is set as far off the lane as its widest orbit needs, so no world
@@ -323,21 +329,32 @@ function chunk(k){
   // never comes closer than 8000 units is a speck.
   const aMax=fam.reduce((m,f)=>Math.max(m,Math.hypot(f.a,f.b*Math.sin(f.inc))),0);
   const radMax=fam.reduce((m,f)=>Math.max(m,f.rad),0);
-  const z=z0+CHUNK*.5+(r()-.5)*CHUNK*.25;
-  const off=aMax+radMax+520+Math.floor(r()*3)*380+r()*160;
-  const y=150+Math.floor(r()*3)*180+r()*80;
+  // A family now spans about +/-1500 along z on its own (see the per-world cz
+  // below), so the system itself only needs a small jitter: a wide one pushed
+  // members past the chunk edge and into the next chunk's worlds, which is a
+  // short z gap of exactly the kind this is meant to remove.
+  const z=z0+CHUNK*.5+(r()-.5)*CHUNK*.18;
+  // aMax+radMax+420 is what the widest orbit plus the biggest world needs to stay
+  // clear of the corridor; the clamp keeps a family at a size you can watch.
+  const off=clamp(aMax+radMax+420,900,2100)+r()*180;
+  const y=courseY(z)+(Math.floor(r()*3)-1)*420+(r()-.5)*180;
   const side=(k&1)?1:-1,sx=laneX(z)+side*off;
   masses.push({x:sx,y,z,kind:skind,r:srad,axis:[r()-.5,r()-.5,r()-.5],phase:r()*TAU});
-  for(const f of fam)masses.push({x:sx+f.a,y,z,kind:f.kind,r:f.rad,
+  for(const f of fam){const mz=z+(r()-.5)*1400;masses.push({x:sx+f.a,y,z:mz,kind:f.kind,r:f.rad,
    axis:[r()-.5,r()-.5,r()-.5],phase:r()*TAU,
-   orb:{cx:sx,cy:y,cz:z,a:f.a,b:f.b,inc:f.inc,nod:f.nod,spd:f.spd,ph:f.ph}});
+   orb:{cx:sx,cy:y,cz:mz,a:f.a,b:f.b,inc:f.inc,nod:f.nod,spd:f.spd,ph:f.ph}});}
  }else{
-  // Bodies sit on a regular lattice with a small jitter rather than anywhere in
-  // the chunk: three distance bands and three height bands, walked in step with
-  // the index, so consecutive bodies never pile up or all vanish off the same way.
-  const n=2+(k&1);
+  // Bodies sit on a regular lattice along z with a small jitter rather than
+  // anywhere in the chunk, so consecutive bodies never pile up. The lateral
+  // offset and the height are walked in step with the index (see below): the
+  // offset is continuous and skewed, the height runs over five bands centred on
+  // the corridor.
+  const n=3+(k&1);
   for(let i=0;i<n;i++){
-   const z=z0+CHUNK*((i+.5)/n)+(r()-.5)*CHUNK*.20;
+   // The jitter stays inside half a slot, so three or four worlds in a chunk are
+   // never closer along z than half their own spacing; .20 of a whole chunk could
+   // put two of them on top of each other.
+   const z=z0+CHUNK*((i+.5)/n)+(r()-.5)*CHUNK*.10;
    const side=((k+i)&1)?1:-1;
    const roll=r();
    let kind=roll<.30?0:roll<.55?1:roll<.76?2:roll<.88?3:roll<.95?8:4;
@@ -347,13 +364,22 @@ function chunk(k){
    // by a factor of twenty now, and a small world can be a speck.
    const rad=kind===0?55+r()*r()*215:kind===1?95+r()*r()*265
             :kind===2?380+r()*620:kind===3?48+r()*r()*185
-            :kind===8?200+r()*280:1100;
+            :kind===8?200+r()*280:2200;
    // A horizon sits well off to the side: scenery with gravity, not a roadblock.
-   // On the course it swallowed the fleet every ~200 seconds. Its 1100 and its
-   // offset are untouched: the capture radius was tuned against them.
+   // On the course it swallowed the fleet every ~200 seconds. Its offset is
+   // untouched. Its 1100 became 2200 (the user: "the event horizon could be more
+   // exaggerated") - the drawn shadow and the lensing radius both scale with it,
+   // so the lens warp stays registered with the disc. The capture factor moved
+   // with it, .60 -> .30, which leaves the capture distance at exactly 660.
    const band=(i+(k%3))%3;
-   const off=kind===4?760+band*150+r()*90:Math.max(620+band*430,rad+700)+r()*150;
-   const y=150+((i+(k%2))%3)*180+r()*80;
+   const off=kind===4?760+band*150+r()*90:Math.max(rad+520,620+Math.pow(r(),1.6)*1800);
+   // Five height bands centred on the corridor plane, not three bands sitting on
+   // top of it: the camera looks down at the corridor, so the frame's lower half
+   // is the world below courseY and there has to be something there. Biased a
+   // little below the plane, because the top of the frame was the crowded half.
+   // mod() and not %: k is negative for the first chunks of the run.
+   const hb=mod(i*2+mod(k,5),5);
+   const y=kind===4?150+((i+(k%2))%3)*180+r()*80:courseY(z)+(hb-2)*600-200+(r()-.5)*180;
    masses.push({x:laneX(z)+side*off,y,z,kind,r:rad,axis:[r()-.5,r()-.5,r()-.5],phase:r()*TAU});
   }
  }
@@ -424,6 +450,19 @@ function drawPlate(pl,p,t){
  * well itself — an opaque disc that takes part in the depth sort. */
 /* Screen-space, because a world is a sphere: a flat disc in the XY plane
  * collapsed to a sliver and popped whenever the corridor passed one edge-on. */
+/* The four ring families of a ringed giant: [main tone, division tone, outer
+ * tone, the body's own tint]. The reference is Saturn - a dark-gold ring on a tan
+ * world - but the same code has to make a Neptune with an ice-blue ring and an ice
+ * world with a pale cyan or violet one, so the family is picked once per body from
+ * its phase and stays with it as it crosses regions. The body's tint comes out of
+ * the same entry: a violet ring on a tan planet is a colour clash, not a Neptune. */
+const RINGFAM=[
+ {t:[218,182,106],d:[146,112, 58],o:[244,222,166],body:[206,176,140]}, // dark gold
+ {t:[132,190,232],d:[ 70,128,188],o:[198,230,248],body:[150,170,200]}, // ice blue
+ {t:[168,218,216],d:[100,168,176],o:[216,244,240],body:[176,204,200]}, // pale cyan
+ {t:[180,156,218],d:[114, 92,166],o:[222,208,244],body:[186,174,212]}  // violet
+];
+const ringFam=h=>(h>>>0)%RINGFAM.length;
 function massTint(m,p){
  // The tint has to survive the palette shift. A region's sun runs from a cold
  // blue-white to amber, and every tint used to be built mostly from it, so in any
@@ -438,7 +477,7 @@ function massTint(m,p){
   case 5:return blackbody(5200);                 // a sun is its own light
   case 6:return [255,104,72];                    // red dwarf: deep red
   case 7:return [214,234,255];                   // neutron star: blue-white
-  case 8:return blend([206,176,140],p.sun,.22);  // ringed giant
+  case 8:return blend(RINGFAM[ringFam((m.phase*4096)|0)].body,p.sun,.22); // ringed giant
  }
  return blend([196,214,255],p.sun,.25);
 }
@@ -599,13 +638,23 @@ function kindSurface(m,cx,cy,rad,l,hb,tint){
   ctx.globalCompositeOperation='multiply';
   ctx.fillStyle=css([150,188,250]);ctx.fillRect(cx-rad,cy-rad,rad*2,rad*2);
   ctx.globalCompositeOperation='source-over';
-  for(let j=0;j<6;j++){
-   const a=hash(hb,60+j,91)*TAU, rr=Math.sqrt(hash(hb,60+j,92))*rad*.80;
-   const bx=cx+Math.cos(a)*rr, by=cy+Math.sin(a)*rr, br=rad*(.16+.30*hash(hb,60+j,93));
-   const al=lit(bx,by); if(al<.15)continue;
-   ctx.save();ctx.translate(bx,by);ctx.rotate(hash(hb,60+j,94)*TAU);ctx.scale(1,.42);ctx.translate(-bx,-by);
+  // The patches have to stay WELL INSIDE the disc. They used to be placed up to
+  // .80 of the radius out and could be .46 of it across, so a patch's body could
+  // reach 1.26 rad - past the limb, where the disc clip slices a bright patch into
+  // a straight-edged chord. Several of those merging into one connected white
+  // mass with a chopped edge is what read as broken. Now the centre sits within
+  // .46 rad and the patch is at most .26 across, so nothing reaches past .72, and
+  // the direction is anchored to the sub-solar point so a patch is either in real
+  // sunlight or not drawn at all.
+  const sa=Math.atan2(l[1],l[0]);
+  for(let j=0;j<5;j++){
+   const a=sa+(hash(hb,60+j,91)-.5)*2.8;
+   const rr=rad*(.14+.44*hash(hb,60+j,92));
+   const bx=cx+Math.cos(a)*rr, by=cy+Math.sin(a)*rr, br=rad*(.10+.12*hash(hb,60+j,93));
+   const al=lit(bx,by); if(al<.72)continue;
+   ctx.save();ctx.translate(bx,by);ctx.rotate(hash(hb,60+j,94)*TAU);ctx.scale(1,.46);ctx.translate(-bx,-by);
    ctx.beginPath();ctx.arc(bx,by,br,0,TAU);
-   ctx.fillStyle=css(blend(tint,[255,255,255],.90),.52*al);ctx.fill();ctx.restore();
+   ctx.fillStyle=css(blend(tint,[255,255,255],.78+.12*hash(hb,60+j,95)),.40*al);ctx.fill();ctx.restore();
   }
   return;
  }
@@ -634,11 +683,22 @@ function kindSurface(m,cx,cy,rad,l,hb,tint){
 /* The ring system of a ringed giant, split into the half behind the planet and
  * the half in front of it so the planet really does sit inside its rings. The two
  * halves are separate depth-sorted draws at q[2]+/-1, so the sort puts the far
- * half down first, the planet over it, and the near half on top. */
+ * half down first, the planet over it, and the near half on top.
+ *
+ * FLAT GRAPHIC ART: three flat toned annuli, hard edges, two clean divisions -
+ * nothing soft anywhere. Everything is drawn inside one rolled-and-squashed
+ * frame, which is what makes it read as a ring seen at an angle rather than as an
+ * ellipse sticker: the far half sits visibly higher on screen than the near half,
+ * and both are the same projected annulus, so the planet is threaded through it.
+ * The inner edge stops at 1.20 rad, well clear of the limb, so the gap between
+ * the world and its rings stays open and the disc does not grow a rim. */
 function ringHalf(m,q,rad,back){
- const hb=(m.phase*4096)|0, squash=.20+.30*hash(hb,7,61), roll=(hash(hb,8,62)-.5)*.7;
- const col=blend(massTint(m,currentPalette),[232,220,202],.30);
- const bands=[[1.10,1.32,.24],[1.44,1.96,.18]];
+ const hb=(m.phase*4096)|0;
+ const squash=.24+.20*hash(hb,7,61), roll=(hash(hb,8,62)-.5)*.9;
+ const pal=RINGFAM[ringFam(hb)];
+ // [inner, outer, tone, alpha] in planet radii. The divisions at 1.46..1.55 and
+ // 1.82..1.88 are the Cassini-style gaps; the thin outer band fades first.
+ const bands=[[1.20,1.46,pal.t,.70],[1.55,1.82,pal.d,.60],[1.88,2.00,pal.o,.38]];
  queue.push({type:4,d:q[2]+(back?1:-1),alpha:1,fn:()=>{
   ctx.save();ctx.translate(q[0],q[1]);ctx.rotate(roll);ctx.scale(1,squash);
   const a0=back?Math.PI:0, a1=back?TAU:Math.PI;
@@ -647,7 +707,7 @@ function ringHalf(m,q,rad,back){
    ctx.arc(0,0,rad*b[1],a0,a1,false);
    ctx.arc(0,0,rad*b[0],a1,a0,true);
    ctx.closePath();
-   ctx.fillStyle=css(col,b[2]);
+   ctx.fillStyle=css(b[2],b[3]);
    ctx.fill();
   }
   ctx.restore();
@@ -685,7 +745,7 @@ function blackbody(kelvin){
 const GLSL_HOLE = `#version 300 es
 precision highp float;
 uniform vec2 uRes;
-uniform float uTilt,uIncl,uScale,uInner,uTime;
+uniform float uTilt,uIncl,uScale,uInner,uTime,uAA;
 uniform vec3 uTint;
 out vec4 fragColor;
 const float TAU=6.28318530718;
@@ -741,17 +801,24 @@ const vec3 GRAZING[PROFILE_N]=vec3[PROFILE_N](
  vec3(0.660000,0.720000,0.960000),vec3(0.660000,0.720000,0.960000));
 vec3 fittedRadiance(float radius,float incidence,bool upper){
  if(radius<RADII[0]||radius>RADII[PROFILE_N-1])return vec3(0.0);
- int k=0;
- for(int i=0;i<PROFILE_N-2;i++) if(radius>RADII[i+1]) k=i+1;
- // Flat art, not a volume. The 18 fitted stops collapse to four flat tones,
- // sampled at their heads with no interpolation between them: the reference's
- // crispness is four tone steps with hard boundaries, not a smooth radial ramp.
- int band=min(k/4,PROFILE_N/4-1),kk=band*4;
- vec3 a=upper?UPPER[kk]:LOWER[kk];
- vec3 b=GRAZING[kk];
- // A hard threshold, not a cross-fade: a grazing crossing and a steep one are
- // two different tones, and blending them is what manufactured the gradient.
- return incidence<0.22?b:a;}
+ // Flat art, not a volume: four flat tones whose boundaries sit at RADII[4],
+ // RADII[8], RADII[12] = 2.7 / 4.3 / 7.6. The BANDS are still flat - every stop
+ // of a band is one colour - but a boundary is no longer a hard integer step.
+ // A hard step has no width, so it rasterises at sprite-pixel granularity, and
+ // this sprite is drawn at 2*DRAW (up to ~2x its buffer): one sprite pixel
+ // becomes two screen pixels, which is the staircase. The step is uAA wide
+ // now; the tone either side of it is exactly what it was.
+ float w=uAA;
+ vec3 a=mix(mix(mix(upper?UPPER[0]:LOWER[0],upper?UPPER[4]:LOWER[4],
+          smoothstep(RADII[4]-w,RADII[4]+w,radius)),upper?UPPER[8]:LOWER[8],
+          smoothstep(RADII[8]-w,RADII[8]+w,radius)),upper?UPPER[12]:LOWER[12],
+          smoothstep(RADII[12]-w,RADII[12]+w,radius));
+ // GRAZING is byte-identical to UPPER and LOWER, so the grazing/steep split is
+ // invisible today; the smoothstep keeps it a clean edge if the tables diverge.
+ vec3 b=mix(mix(mix(GRAZING[0],GRAZING[4],smoothstep(RADII[4]-w,RADII[4]+w,radius)),
+          GRAZING[8],smoothstep(RADII[8]-w,RADII[8]+w,radius)),GRAZING[12],
+          smoothstep(RADII[12]-w,RADII[12]+w,radius));
+ return mix(a,b,smoothstep(0.22-w,0.22+w,incidence));}
 vec3 plasma(vec4 d,vec2 fc,float side){
  float r=d.x; if(r<0.1)return vec3(0.0);
  float phi=d.y,a=phi/TAU;
@@ -803,7 +870,7 @@ void main(){
  // Grazing, cooler foreground plasma also absorbs the secondary image.
  // A hard shoulder, not a gaussian: the secondary image should appear at a
  // radius, not fade in through a 280 px veil.
- float opacity=0.72*step(9.0,m0.x)*(1.0-smoothstep(0.16,0.22,m0.z));
+ float opacity=0.72*smoothstep(9.0-uAA,9.0+uAA,m0.x)*(1.0-smoothstep(0.16,0.22,m0.z));
  float trans=exp(-opacity);
  float side=(-sin(uTilt)*p.x+cos(uTilt)*p.y);
  vec3 col=plasma(m0,gl_FragCoord.xy,side)
@@ -811,22 +878,32 @@ void main(){
  // the plasma only exists inside the disc annulus and along the thin plane
  float radius=length(p);
  vec2 q=mat2(cos(uTilt),-sin(uTilt),sin(uTilt),cos(uTilt))*p;
- col*=max(smoothstep(2.61,2.68,radius),1.0-step(0.052,abs(q.y)));
+ // The plane band is 0.052 either side of the disc plane - about 6 sprite px -
+ // so its AA is capped at a fraction of its own half-width: uAA would soften a
+ // line that thin into nothing. Its edges are near-diagonal, which is the worst
+ // case for a hard step.
+ float pw=min(uAA,0.019);
+ col*=max(smoothstep(2.61,2.68,radius),1.0-smoothstep(0.052-pw,0.052+pw,abs(q.y)));
  float az=atan(q.y,q.x)/TAU;
  float stream=noiseP(vec2(radius*2.2,az*20.0-uTime/8.0*5.0),5.0);
  float silk=fbmP(vec2(radius*12.0+(stream-0.5)*0.6,az*32.0-uTime/8.0*8.0),8.0,
                  27.5/uRes.y*12.0);
  // Three flat steps, not a continuous +/-42% multiplier: a continuous one is
- // texture, three steps are tone.
- float silkQ=floor(silk*3.0)/3.0;
+ // texture, three steps are tone. A floor() quantiser puts a 1-px staircase on
+ // every step edge; each edge is now spread over 0.3 of a level instead.
+ float s3=silk*3.0,qf=floor(s3);
+ float silkQ=(qf+smoothstep(0.35,0.65,s3-qf))/3.0;
  col*=mix(1.0,0.78+0.44*silkQ,smoothstep(0.018,0.030,abs(q.y)));
  // The photon ring, at the critical impact parameter sqrt(27)/2 - a STROKE.
  // Flat top, hard shoulders, painted with mix rather than added, so the tonemap
  // cannot flatten it into a gradient.
  float px=27.5/uRes.y, d=abs(radius-2.598);
- float hw=px*2.2;
- float ring=0.54*(1.0-smoothstep(hw*0.75,hw,d));
- ring*=mix(0.42,1.0,step(-0.01,p.y));
+ // Flat top, hard shoulders - but the shoulder has to be at least a sprite
+ // pixel wide, or the rasteriser throws it away and the brightest thing in the
+ // frame is also the raggedest. 0.55 px -> 1.2 px at the same stroke width.
+ float hw=px*2.4;
+ float ring=0.54*(1.0-smoothstep(hw*0.50,hw,d));
+ ring*=mix(0.42,1.0,smoothstep(-0.01-uAA,-0.01+uAA,p.y));
  col=mix(col,vec3(3.400000,3.500000,3.800000),ring);
  // Belong to the region rather than to the reference render.
  col=mix(col,col*uTint*1.35,0.22);
@@ -841,7 +918,10 @@ void main(){
  // radius, so no plasma leaks in to light it from inside; the only thing within
  // is the near-side disc band crossing the front, which the lum gate preserves.
  float rp=length(p);
- float shadow=1.0-smoothstep(2.57,2.66,rp);
+ // Was 0.09 wide - five sprite px, which the upscale smeared into a ~10 px
+ // halo around a shape the reference draws crisp. 2*uAA keeps it crisp while
+ // still stepping over more than one sprite pixel.
+ float shadow=1.0-smoothstep(2.61-uAA,2.61+uAA,rp);
  vec3 shadowCol=mix(vec3(0.045000,0.060000,0.172000),vec3(0.033000,0.045000,0.120000),step(2.05,rp));
  vec3 outc=tone+shadowCol*shadow*(1.0-clamp(lum*3.0,0.0,1.0));
  float alpha=max(shadow,clamp(lum*2.2,0.0,1.0));
@@ -868,7 +948,7 @@ const holeGL=(()=>{
   gl.useProgram(pr);
   const U=n=>gl.getUniformLocation(pr,n);
   const u={res:U('uRes'),tilt:U('uTilt'),incl:U('uIncl'),scale:U('uScale'),
-           inner:U('uInner'),time:U('uTime'),tint:U('uTint')};
+           inner:U('uInner'),time:U('uTime'),tint:U('uTint'),aa:U('uAA')};
   const S=512;cv.width=S;cv.height=S;
   gl.viewport(0,0,S,S);
   gl.enable(gl.BLEND);
@@ -982,9 +1062,20 @@ function drawHole(m,q,p,t,rad){
   // radius = length(p) spans 0..13.75 over half the sprite, so a 512 buffer
   // samples it at 18.6 px per unit and the 2.1x upscale leaves 8.8 - under the
   // noise frequency, which is why it read as a field of dots rather than a blur.
-  const want=clamp(Math.round(DRAW*2/128)*128,256,1536);
+  const want=clamp(Math.round(DRAW*2/128)*128,256,SPRITE_CAP);
   if(G.cv.width!==want){G.cv.width=want;G.cv.height=want;g.viewport(0,0,want,want);G.S=want;}
   g.uniform2f(G.u.res,G.S,G.S);
+  // One AA half-width for every hard boundary in the sprite, in the shader's
+  // radius units. Two floors, because neither alone is enough:
+  //   - 1.2 SPRITE pixels: a transition narrower than a sprite pixel is
+  //     discarded by the rasteriser, so the boundary would be a hard step again.
+  //   - 1.5 SCREEN pixels, but ONLY while the sprite is being upscaled. The
+  //     sprite is drawn at 2*DRAW, and an upscale that lands between sprite
+  //     pixels is the staircase. When the sprite is drawn SMALLER than its
+  //     buffer the bilinear filter already smooths it, and asking for 1.5
+  //     screen pixels there would smear a small hole into a blob.
+  const aaUp=Math.max(1,(DRAW*2)/G.S);
+  g.uniform1f(G.u.aa,Math.max(1.2,1.5/aaUp)*27.5/G.S);
   g.uniform1f(G.u.tilt,lensRoll);
   // Near edge-on, not overhead. inclination is the angle off the disc plane:
   // 0 is exactly edge-on and pi/2 is looking straight down at it. The first
@@ -1010,6 +1101,9 @@ function drawHole(m,q,p,t,rad){
 /* The disc's roll on screen. A fixed angle rather than 0: a perfectly level disc
  * reads as a diagram, and the reference is never level. */
 const lensRoll=0.34;
+// The sprite buffer cap. 1536 was sized for a shadow of ~300 px; the shadow can
+// now reach ~600 px, and a buffer that does not grow with it turns into upscale.
+const SPRITE_CAP=2048;
 let holeDraws=0,holeLastRad=0;
 let tintHole=[255,236,214];
 function drawMass(m,p,t){
@@ -1172,7 +1266,7 @@ function updateWind(dt){
  wind.speed*=Math.exp(-dt*2.8);
  const input=(v)=>{const a=Math.abs(v);if(a<.075)return 0;return Math.sign(v)*Math.pow(clamp((a-.075)/.925),1.62);};
  const age=time-wind.last,energy=wind.active?Math.exp(-Math.max(0,age-1.35)*.75):Math.exp(-Math.max(0,age)*1.35);
- if(capturePhase){wind.x=expStep(wind.x,0,3,dt);wind.y=expStep(wind.y,0,3,dt);return;}
+ if(capturePhase>1){wind.x=expStep(wind.x,0,3,dt);wind.y=expStep(wind.y,0,3,dt);return;}
  const targetX=input((wind.filteredX-.42)/.55)*energy,targetY=input((wind.filteredY-.5)/.5)*energy;
  wind.x=expStep(wind.x,autoCamera?targetX:0,1.4,dt);wind.y=expStep(wind.y,autoCamera?targetY:0,1.4,dt);
 }
@@ -1228,9 +1322,47 @@ function reseedFlock(){
   b.x=b.bx;b.y=b.by;b.z=b.bz;b.vx=b.vy=b.vz=0;
  }
 }
-/* FREE -> DRAWN -> SPIRAL -> FLASH -> RELEASE. The lead crane is the body we
- * author; the flock follows on its own springs, which is what draws the
- * stretched paper ribbon for free. */
+/* FREE -> GRIP -> DRAWN -> FLASH -> DIVE -> RECOVER. The lead crane is the body
+ * we author; the flock follows on its own springs, which is what draws the
+ * stretched paper ribbon for free.
+ *
+ * GRIP is the inescapable part: the well has hold, the flock is dragged off the
+ * corridor, and steering away only slows the tide - the ring closes either way.
+ * DRAWN is the last orbit. FLASH is the punch through. Then the piece does not
+ * release: DIVE is the sixth act, 深空漂移 / DEEP DRIFT, a fall that keeps
+ * descending, and RECOVER is the one ending in the piece that does not reset the
+ * flock - it eases it home, so the journey is left deeper than it began. */
+function captureCam(){
+ const m=captureMass,r=(m&&m.r)||1100;
+ if(capturePhase===1){
+  // Lean in until the well spills past every edge. You never see it whole.
+  const g=smoother(clamp(captureGrip,0,1));
+  return {blend:g*.95,tx:m.x,ty:m.y,tz:m.z,distance:mix(3.60,2.45,g)*r,pitch:mix(.34,.16,g),roll:.02*g,focal:mix(1.12,1.30,g)};
+ }
+ if(capturePhase===2){
+  const g=clamp(captureT/6.5,0,1);
+  return {blend:1,tx:m.x,ty:m.y,tz:m.z,distance:mix(2.45,2.30,g)*r,pitch:mix(.16,.34,g),roll:mix(.02,.06,g),focal:mix(1.30,1.20,g)};
+ }
+ if(capturePhase===3)return {blend:1,tx:m.x,ty:m.y,tz:m.z,distance:2.24*r,pitch:.34,roll:.06,focal:1.20};
+ if(capturePhase===4){
+  // The fall: move off the well and let the corridor stretch away ahead. The
+  // focal is widened so the space in front compresses - the raymarcher is not
+  // touched; this is the projection doing it.
+  const out=smoother(clamp(captureT/3.5,0,1)),g=smoother(clamp(captureDive,0,1)),fz=travel+520;
+  return {blend:1,tx:mix(m.x,routeX(fz),out),ty:mix(m.y,courseY(fz),out),tz:mix(m.z,fz,out),
+   distance:mix(2.24*r,mix(2200,4300,g),out),pitch:mix(.34,mix(.10,-.22,g),out),
+   roll:mix(.06,.06+.46*g,out),focal:mix(1.20,mix(1.05,.66,g),out)};
+ }
+ const g=clamp(captureT/6,0,1),fz=travel+520;
+ return {blend:1-g,tx:routeX(fz),ty:courseY(fz),tz:fz,distance:mix(4300,1600,g),pitch:mix(-.22,.10,g),roll:.52*(1-g),focal:mix(.66,1.12,g)};
+}
+/* Where the flock sits during the fall, as a pure function of the bird and of
+ * how deep the dive has gone - so DIVE and RECOVER agree exactly at the seam
+ * and the flock never has to be teleported. */
+function divePose(b,dd){
+ const k=(b.bold*.37)%1,edge=1-dd*.55;
+ return [b.bx*edge*(.55+.9*k),b.by*edge*.75,mix(700,1900,dd)*(.35+.65*k)];
+}
 function updateCapture(dt){
  if(capturePhase===0){
   if(!started||!activeMasses.length)return;
@@ -1238,7 +1370,7 @@ function updateCapture(dt){
   for(const m of activeMasses){
    if(m.kind!==4||m.z<travel-500)continue;
    const dx=m.x-lw[0],dy=m.y-lw[1],dz=m.z-lw[2],dist=Math.hypot(dx,dy,dz);
-   if(dist<m.r*.60){
+   if(dist<m.r*.30){
     // Close enough is not enough: the hand has to be flying. If the horizon is
     // off to a side, the steering must point that way; if it is nearly dead
     // ahead there is no lateral steering to ask for, so any committed input
@@ -1248,7 +1380,7 @@ function updateCapture(dt){
      ?(Math.abs(wind.x)>.18&&Math.sign(wind.x)===Math.sign(toward))
      :(Math.abs(wind.x)+Math.abs(wind.y)>.30);
     if(deliberate){
-     capturePhase=1;captureT=0;captureTotal=0;captureMass=m;toast('引力捕获 · GRAVITY CAPTURE',6);break;
+     capturePhase=1;captureT=0;captureTotal=0;captureGrip=0;captureDive=0;captureGear=0;captureMass=m;toast('引力捕获 · GRAVITY CAPTURE',6);break;
     }
    }
   }
@@ -1256,12 +1388,33 @@ function updateCapture(dt){
  }
  captureT+=dt;captureTotal+=dt;
  // A capture is an authored interlude, never a trap: bail out if it runs long.
- if(captureTotal>26){capturePhase=0;captureFlash=0;captureMass=null;captureTotal=0;reseedFlock();return;}
- if(capturePhase===1){if(captureT>4){capturePhase=2;captureT=0;}}
+ if(captureTotal>50){capturePhase=0;captureFlash=0;captureMass=null;captureTotal=0;captureGrip=0;captureDive=0;captureGear=0;captureCamPose=null;reseedFlock();return;}
+ const m=captureMass;
+ if(capturePhase===1){
+  // GRIP. The well has hold. Steering away from it is read and it stretches the
+  // tide from eight seconds toward thirteen - a fight that always loses. The
+  // ring closes from 0.60 to 0.22 horizon radii; the camera closes with it.
+  const lw=craftWorld(fleet[LEAD]);
+  const dx=m.x-lw[0],dz=m.z-lw[2];
+  const away=clamp(-Math.sign(dx*camera.right[0]+dz*camera.right[2]||1)*wind.x,0,1);
+  captureGrip=clamp(captureGrip+dt/(8+5*away),0,1);
+  const g=smoother(captureGrip),rad=mix(m.r*.60,m.r*.22,g);
+  for(const b of fleet){
+   const wx=routeX(travel)+b.x,wy=courseY(travel)+b.y,wz=travel+b.z;
+   b.x=mix(wx,m.x+rad+b.bx*.68,g)-routeX(travel);
+   b.y=mix(wy,m.y+b.by*.55,g)-courseY(travel);
+   b.z=mix(wz,m.z+b.bz*.68,g)-travel;
+   b.vx*=.34;b.vy*=.34;b.vz*=.34;
+  }
+  if(captureGrip>=1||captureT>14){capturePhase=2;captureT=0;}
+ }
  else if(capturePhase===2){
-  const m=captureMass,r=m.r*3.2*Math.exp(-captureT/2.0),th=captureT*3.0;
+  // The last orbit: the ring closes from the point of no return, and the flock
+  // is spread wider as it tightens, so it goes down around the shadow rather
+  // than into a point.
+  const k=clamp(captureT/6.5,0,1),r=m.r*mix(.22,.045,k),th=captureT*3.0;
   const lx=m.x+Math.cos(th)*r,ly=m.y+Math.sin(th)*r*.62,lz=m.z+Math.sin(th*.5)*r*.5;
-  const ox=routeX(travel),oy=courseY(travel),k=r/(m.r*3.2),stretch=1.1+1.7*(1-k);
+  const ox=routeX(travel),oy=courseY(travel),stretch=1.1+1.7*k;
   for(const b of fleet){
    b.x=lx-ox+b.bx*stretch*.62;b.y=ly-oy+b.by*.55;b.z=lz-travel+b.bz*stretch*.62;
    b.vx=b.vy=b.vz=0;
@@ -1273,11 +1426,37 @@ function updateCapture(dt){
   if(captureT>.7&&!captureJumped){
    captureJumped=true;warp=28;reseedFlock();
   }
-  if(captureT>1.4){capturePhase=4;captureT=0;}
+  if(captureT>1.4){capturePhase=4;captureT=0;captureDive=0;captureGear=0;toast('第六幕 · 深空漂移 / ACT VI · DEEP DRIFT',7);}
+ }
+ else if(capturePhase===4){
+  // DIVE - the sixth act. A surge, a hard brake, a surge: the gear is chained
+  // deterministically (a hash of the segment, never Math.random, because seek()
+  // has to replay), so the fall keeps being re-lit and never arrives.
+  captureDive=clamp(captureDive+dt/15,0,1);
+  const gh=hash(Math.floor(captureT/2.4)*13+7),surge=gh<.58;
+  captureGear=expStep(captureGear,surge?5+gh*11:.35,surge?1.6:5.2,dt);
+  warp=captureGear;
+  const dd=smoother(captureDive);
+  for(const b of fleet){
+   const p=divePose(b,dd);
+   b.x=p[0];b.y=p[1];b.z=p[2];b.vx=b.vy=b.vz=0;
+  }
+  if(captureDive>=1){capturePhase=5;captureT=0;}
  }
  else{
-  captureFlash=Math.max(0,captureFlash-dt*1.5);
-  if(captureT>1.5){capturePhase=0;captureFlash=0;captureMass=null;slingPrev=1e9;}
+  // RECOVER - the ending that is different. No reseedFlock(): the flock is eased
+  // home on a smoothstep and the surge bleeds away over six seconds, so the
+  // corridor resumes from deeper than it left and the fall is never undone.
+  captureFlash=Math.max(0,captureFlash-dt*1.2);
+  captureGear=expStep(captureGear,0,1.1,dt);warp=captureGear;
+  captureDive=clamp(captureDive-dt/6,0,1);
+  const back=smoother(clamp(captureT/6,0,1));
+  for(const b of fleet){
+   const p=divePose(b,1);
+   b.x=mix(p[0],b.bx,back);b.y=mix(p[1],b.by,back);b.z=mix(p[2],b.bz,back);
+   b.vx*=.86;b.vy*=.86;b.vz*=.86;
+  }
+  if(captureT>6){capturePhase=0;captureFlash=0;captureMass=null;captureGrip=0;captureDive=0;captureGear=0;captureCamPose=null;slingPrev=1e9;}
  }
 }
 function updateBirds(dt){
