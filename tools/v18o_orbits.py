@@ -34,14 +34,16 @@ Four changes:
    updateBirds now lets the stars bend the flock, not just the ink well.
 
 Reads the artwork, asserts each replaced string occurs exactly once, writes a
-working copy (never the original).
+working copy. Two explicit paths are required: a bare run must not be able to
+touch the shared original.
 
-Run:  python -I v18o_orbits.py [<in.html> [<out.html>]]
+Run:  python -I v18o_orbits.py <in.html> <out.html>
 """
 import sys
 
-src_p = sys.argv[1] if len(sys.argv) > 1 else r"C:\Users\machine\Downloads\starfield.html"
-out_p = sys.argv[2] if len(sys.argv) > 2 else src_p
+if len(sys.argv) != 3:
+    sys.exit("usage: python -I v18o_orbits.py <in.html> <out.html>")
+src_p, out_p = sys.argv[1], sys.argv[2]
 s = open(src_p, encoding="utf-8").read()
 
 

@@ -143,7 +143,7 @@ const observation={distance:0,pitch:0,last:-10};
 let lookTarget=[0,224,travel];
 let activeMasses=[],sling=0,slingPrev=1e9,slingHold=0,warp=0;
 let capturePhase=0,captureT=0,captureTotal=0,captureMass=null,captureFlash=0,captureJumped=false;
-const GRAV=1.6e7,MASS_KIND=[.35,.7,1,1.6,2.4],LEAD=2;
+const GRAV=1.6e7,MASS_KIND=[.35,.7,1,1.6,2.4,12,5,22,1.2],LEAD=2;
 
 /* Six beats, sixteen lenses. The next variation exists before the preceding
  * one ends, so the final interpolation crosses the cycle boundary seamlessly. */
@@ -289,22 +289,71 @@ function chunk(k){
  // none at all - which reads as "the black holes are unevenly distributed".
  // Every seventh chunk is a rhythm you can feel instead.
  const horizon=(k%7===0);
- // Bodies sit on a regular lattice with a small jitter rather than anywhere in
- // the chunk: three distance bands and three height bands, walked in step with
- // the index, so consecutive bodies never pile up or all vanish off the same way.
- const n=2+(k&1);
- for(let i=0;i<n;i++){
-  const z=z0+CHUNK*((i+.5)/n)+(r()-.5)*CHUNK*.20;
-  const side=((k+i)&1)?1:-1;
-  const roll=r();
-  let kind=roll<.34?0:roll<.62?1:roll<.84?2:roll<.95?3:4;
-  if(horizon&&i===0)kind=4;
-  // A horizon sits well off to the side: scenery with gravity, not a roadblock.
-  // On the course it swallowed the fleet every ~200 seconds.
-  const band=(i+(k%3))%3;
-  const off=kind===4?760+band*150+r()*90:620+band*430+r()*150;
-  const y=150+((i+(k%2))%3)*180+r()*80;
-  masses.push({x:laneX(z)+side*off,y,z,kind,r:[110,150,200,260,1100][kind],axis:[r()-.5,r()-.5,r()-.5],phase:r()*TAU});
+ // One chunk in three carries a system: a primary with a family on real orbits.
+ // That is the whole complaint answered at once - a hierarchy of sizes, bodies
+ // that do not all sit the same distance off the lane, and motion you can watch.
+ // A horizon chunk is never a system, so the ink well keeps its every-seventh
+ // rhythm and its offset.
+ const system=!horizon&&(k%3===1);
+ if(system){
+  const sr=r();
+  const skind=sr<.62?5:sr<.88?6:7;              // sun / red dwarf / neutron star
+  const srad=skind===5?320+r()*380:skind===6?110+r()*130:14+r()*10;
+  const dwarf=skind>=6;                         // a small star can hold a giant
+  const spin=r()>.5?1:-1;                       // the family's common direction
+  const fam=[];let a=srad+240;
+  for(let i=0,n=2+Math.floor(r()*4);i<n;i++){   // two to five worlds
+   const kid=r();
+   const kind=kid<.20?0:kid<.38?1:kid<.60?2:kid<.74?3:kid<.86?8:kid<.96?1:0;
+   const rad=kind===2?(dwarf?380+r()*520:150+r()*190)
+            :kind===8?(dwarf?420+r()*480:200+r()*220)
+            :kind===1?95+r()*r()*265
+            :kind===0?55+r()*r()*215
+            :48+r()*r()*185;
+   a+=rad*.8+110+r()*160;                       // each orbit clears the last
+   fam.push({kind,rad,a,b:a*(.76+.24*r()),inc:(r()-.5)*.7,nod:r()*TAU,ph:r()*TAU,
+             spd:spin*(.05+.22*Math.pow(700/a,.9))});
+  }
+  // The system is set as far off the lane as its widest orbit needs, so no world
+  // ever swings across the corridor and pops when the camera enters its sphere.
+  // The bound is the orbit's own x-extent: |x| <= hypot(a, b*sin inc), since
+  // x = a cosT cosN + b sinT sin(inc) sinN. Using a+b here (the first cut) set
+  // every system twice as far off the lane as it needed to be, and a sun that
+  // never comes closer than 8000 units is a speck.
+  const aMax=fam.reduce((m,f)=>Math.max(m,Math.hypot(f.a,f.b*Math.sin(f.inc))),0);
+  const radMax=fam.reduce((m,f)=>Math.max(m,f.rad),0);
+  const z=z0+CHUNK*.5+(r()-.5)*CHUNK*.25;
+  const off=aMax+radMax+520+Math.floor(r()*3)*380+r()*160;
+  const y=150+Math.floor(r()*3)*180+r()*80;
+  const side=(k&1)?1:-1,sx=laneX(z)+side*off;
+  masses.push({x:sx,y,z,kind:skind,r:srad,axis:[r()-.5,r()-.5,r()-.5],phase:r()*TAU});
+  for(const f of fam)masses.push({x:sx+f.a,y,z,kind:f.kind,r:f.rad,
+   axis:[r()-.5,r()-.5,r()-.5],phase:r()*TAU,
+   orb:{cx:sx,cy:y,cz:z,a:f.a,b:f.b,inc:f.inc,nod:f.nod,spd:f.spd,ph:f.ph}});
+ }else{
+  // Bodies sit on a regular lattice with a small jitter rather than anywhere in
+  // the chunk: three distance bands and three height bands, walked in step with
+  // the index, so consecutive bodies never pile up or all vanish off the same way.
+  const n=2+(k&1);
+  for(let i=0;i<n;i++){
+   const z=z0+CHUNK*((i+.5)/n)+(r()-.5)*CHUNK*.20;
+   const side=((k+i)&1)?1:-1;
+   const roll=r();
+   let kind=roll<.34?0:roll<.62?1:roll<.84?2:roll<.95?3:4;
+   if(horizon&&i===0)kind=4;
+   // One radius per kind out of a five-entry table was the "all the same size"
+   // complaint: a rock and a gas giant differed by a factor of two. They differ
+   // by a factor of twenty now, and a small world can be a speck.
+   const rad=kind===0?55+r()*r()*215:kind===1?95+r()*r()*265
+            :kind===2?380+r()*620:kind===3?48+r()*r()*185:1100;
+   // A horizon sits well off to the side: scenery with gravity, not a roadblock.
+   // On the course it swallowed the fleet every ~200 seconds. Its 1100 and its
+   // offset are untouched: the capture radius was tuned against them.
+   const band=(i+(k%3))%3;
+   const off=kind===4?760+band*150+r()*90:Math.max(620+band*430,rad+700)+r()*150;
+   const y=150+((i+(k%2))%3)*180+r()*80;
+   masses.push({x:laneX(z)+side*off,y,z,kind,r:rad,axis:[r()-.5,r()-.5,r()-.5],phase:r()*TAU});
+  }
  }
  // `plates` and `shards` used to be generated here: printed atlas pages and
  // torn-paper scraps, scenery inherited from the MIGRATION sister piece where
@@ -325,8 +374,11 @@ function courseBend(z){
  let sum=0;
  const k0=Math.floor(z/CHUNK);
  for(let k=k0-1;k<=k0+1;k++)for(const m of chunk(k).masses){
-  if(m.kind<2)continue;
-  const dz=z-m.z,rr=m.kind===4?900:700,amp=m.kind===4?90:120;
+  if(m.kind<2||m.orb)continue;
+  // A star bends the lane wide, the ink well bends it hard. A body on an orbit
+  // is left out: it can cross the lane line, and the sign of the bend would flip
+  // with it - a 240-unit lurch of the whole corridor, once per orbit.
+  const dz=z-m.z,rr=m.kind===4?900:m.kind>=5?1500:700,amp=m.kind===4?90:m.kind>=5?150:120;
   sum+=(m.x>=laneX(m.z)?1:-1)*amp*rr*rr/(dz*dz+rr*rr);
  }
  return sum;
@@ -818,6 +870,32 @@ function drawMass(m,p,t){
  const rad=m.r*q[3];
  if(m.kind===4){if(rad<1)return;drawHole(m,q,p,t,rad);return;}
  const tint=massTint(m,p);
+ // A star is not a lit ball: it is the light. Colour from the blackbody ramp
+ // the horizon already uses, not from the region's palette - a sun that turns
+ // from gold to blue-grey when the sky changes is not a sun - and drawn here
+ // rather than through drawWorld: a world's ramp is built to sit under the
+ // grade as a lit body, so a sun at that brightness comes out the same grey as
+ // a moon. A radial falloff is the right shape for a source (it is only wrong
+ // on a planet, where concentric rings read as a specular highlight).
+ if(m.kind>=5&&m.kind<=7){
+  const cx=q[0],cy=q[1];
+  const lit=m.kind===7?blackbody(14000):m.kind===6?blackbody(3000):blackbody(4800);
+  // A neutron star is twenty units of matter carrying the light of a sun: its
+  // bloom is deliberately far larger than its disc, which is the only thing that
+  // makes a 3-pixel object read as a neutron star rather than as a dust speck.
+  const halo=m.kind===7?11:m.kind===6?2.6:2.0;
+  queue.push({type:4,d:q[2],alpha:1,fn:()=>{
+   const R=Math.max(m.kind===7?2.4:1.6,rad),g=ctx.createRadialGradient(cx,cy,0,cx,cy,R*1.06);
+   g.addColorStop(0,css(blend(lit,[255,255,255],.70),.98));
+   g.addColorStop(.52,css(lit,.96));
+   g.addColorStop(.86,css(blend(lit,[255,255,255],.16),.70));
+   g.addColorStop(1,css(lit,0));
+   ctx.beginPath();ctx.arc(cx,cy,R*1.06,0,TAU);ctx.fillStyle=g;ctx.fill();
+  }});
+  glow([m.x,m.y,m.z],m.r*halo,lit,m.kind===7?.46:.24,2.2);
+  glow([m.x,m.y,m.z],m.r*halo*.36,blend(lit,[255,255,255],.55),m.kind===7?.85:.52,2.4);
+  return;
+ }
  if(m.kind===4)tintHole=blend(tint,[255,236,214],.5);
  if(rad<6)glow([m.x,m.y,m.z],m.r*.85,tint,.55,2.8);
  drawWorld(m,q,p,t,rad,tint);
@@ -890,8 +968,25 @@ function updateWind(dt){
  wind.x=expStep(wind.x,autoCamera?targetX:0,1.4,dt);wind.y=expStep(wind.y,autoCamera?targetY:0,1.4,dt);
 }
 function craftWorld(b){return [routeX(travel)+b.x,courseY(travel)+b.y,travel+b.z];}
+/* Orbits. A body's place is a pure function of its own orbit and the world
+ * clock - never of the last frame - so a seek lands on the same sky a flight of
+ * the same length would have made, and a chunk that scrolls out and is rebuilt
+ * puts its family back exactly where it belongs. updateGravity() steps them
+ * before anything reads m.x/m.z, so the course bend, the ship gravity, the
+ * capture test and the draw all see the same positions. */
+function stepOrbits(){
+ const t=time;
+ for(const c of chunks.values())for(const m of c.masses){
+  if(!m.orb)continue;
+  const o=m.orb,th=o.ph+o.spd*t,x=Math.cos(th)*o.a,y=Math.sin(th)*o.b;
+  const ci=Math.cos(o.inc),si=Math.sin(o.inc),cn=Math.cos(o.nod),sn=Math.sin(o.nod);
+  const y1=y*ci,z1=y*si;
+  m.x=o.cx+x*cn+z1*sn;m.y=o.cy+y1;m.z=o.cz-x*sn+z1*cn;
+ }
+}
 function updateGravity(){
  activeMasses.length=0;
+ stepOrbits();
  const k0=Math.floor(travel/CHUNK);
  for(let k=k0-2;k<=k0+2;k++)for(const m of chunk(k).masses){
   if(Math.abs(m.z-travel)>7200)continue;
@@ -989,7 +1084,7 @@ function updateBirds(dt){
    const ty=b.by+Math.sin(time*.71+b.phase)*6-wind.y*(22+b.bold*28);
    b.fx=(tx-b.x)*b.k;b.fy=(ty-b.y)*(b.k*.78);b.fz=(tz-b.z)*(b.k*.83);
    for(const m of activeMasses){
-    if(m.kind!==4)continue;   // worlds are scenery; only the ink well pulls a ship
+    if(m.kind!==4&&!(m.kind>=5&&m.kind<=7))continue;   // worlds are scenery; the ink well and the stars pull a ship
     const gx=wp[0]-m.x,gy=wp[1]-m.y,gz=wp[2]-m.z;
     const r2=gx*gx+gy*gy+gz*gz+57600,f=GRAV*MASS_KIND[m.kind]/(r2*Math.sqrt(r2));
     b.fx-=f*gx;b.fy-=f*gy;b.fz-=f*gz;
@@ -1106,48 +1201,135 @@ const bandStars=Array.from({length:coarse?4200:9000},(_,i)=>{
 /* Ink washes for the deep field. Each is rendered once into an offscreen
  * canvas and then only scaled; the tint is quantised so the cache stays tiny
  * while the palette blends continuously. */
-const nebulae=Array.from({length:coarse?20:34},(_,i)=>{
+const nebulae=Array.from({length:coarse?26:44},(_,i)=>{
  const a=hash(i,210)*TAU,y=hash(i,211)*2-1,r=Math.sqrt(Math.max(0,1-y*y));
- return {x:Math.cos(a)*r,y,z:Math.sin(a)*r,size:.30+hash(i,212)*.58,seed:1+Math.floor(hash(i,213)*6),rot:hash(i,214)*TAU,alpha:.17+hash(i,215)*.38};
+ // Was .30...88 of the focal length: a nebula was routinely wider than the whole
+ // frame, so the camera sat inside one and read a 192px texture blown up ten
+ // times - a wash with no structure in it, however good the texture. .22...68
+ // and six more of them, so you meet distinct nebulae instead of one flood.
+ return {x:Math.cos(a)*r,y,z:Math.sin(a)*r,size:.22+hash(i,212)*.46,seed:1+Math.floor(hash(i,213)*6),rot:hash(i,214)*TAU,alpha:.17+hash(i,215)*.38};
 });
 const nebCache=new Map();let nebGens=0;
 /* Keyed by region index, not by the live blended colour: keying on a colour
  * that changes every frame meant building a 34-gradient canvas inside the
  * render loop and caching it forever. Five tints x six seeds is the ceiling. */
+/* Emission colours, one pair per region: [warm rim, cool core]. The reference
+ * photographs are high-saturation emission nebulae, and the old single flat
+ * tint could not say that - it was blend(tree, water|sun|craft, .38) pulled 14%
+ * toward white, a muted navy-grey, and the same navy-grey in every region. Each
+ * region now gets a warm rim and a cool core that sit inside its own palette
+ * instead of fighting it. Every channel is capped at 192: the grade maps 210 to
+ * white, so anything brighter loses its hue to the bloom rather than reading as
+ * colour. */
+const NEB_PAL=[
+ [[186,88,94],[84,124,178]],   // 素纸 PAPER   rose over steel
+ [[176,80,156],[90,100,192]],  // 墨海 INKWASH magenta over indigo
+ [[192,146,62],[70,146,174]],  // 箔野 FOIL    gold over cyan
+ [[192,128,78],[170,86,148]],  // 星核 CORE    amber over magenta
+ [[170,60,58],[92,102,148]]    // 深渊 ABYSS   ember over slate
+];
 function nebulaTex(seed,idx){
- // Was 42% toward white, which washed the ink toward grey; and every wash in a
- // region was the same flat colour. Vary the second colour by the nebula's own
- // seed - the cache key already carries that seed, so the texture count is
- // unchanged at 6 x 5.
- const st=styles[idx],alt=seed%3===0?st.water:seed%3===1?st.sun:st.craft;
- const tint=blend(blend(st.tree,alt,.38),[255,255,255],.14).map(v=>Math.round(v/24)*24);
+ const pal=NEB_PAL[idx]||NEB_PAL[0];
  const key=seed+'|'+idx;
  if(nebCache.has(key))return nebCache.get(key);
- const N=192,c=document.createElement('canvas');c.width=c.height=N;
- const g=c.getContext('2d'),r=rng((SEED^Math.imul(seed,0x9e3779b1))>>>0);
- for(let i=0;i<34;i++){
-  const x=N*.5+(r()-.5)*N*.86,y=N*.5+(r()-.5)*N*.86,rad=N*(.10+r()*.30);
+ // 384 rather than 192: the camera can sit inside one of these, and a dust lane
+ // that is meant to have a hard edge does not survive a 10x upscale. The blob
+ // fills are clipped to their own bounding box, so the extra pixels are cheap.
+ const N=384,c=document.createElement('canvas');c.width=c.height=N;
+ const g=c.getContext('2d'),r=rng((SEED^Math.imul(seed,0x9e3779b1)^Math.imul(idx+1,0x85ebca6b))>>>0);
+ const cx=N*.5,cy=N*.5;
+ // Two or three nuclei near the middle; the blobs gather around them, so the
+ // gas has knots and arms instead of being spread evenly over the square.
+ const nn=2+(r()*2|0),nuc=[];
+ for(let i=0;i<nn;i++){const a=r()*TAU,d=N*(.03+r()*.16);nuc.push([cx+Math.cos(a)*d,cy+Math.sin(a)*d]);}
+ g.globalCompositeOperation='source-over';
+ for(let i=0;i<44;i++){
+  const k=nuc[i%nn],a=r()*TAU,d=N*(.02+r()*.30);
+  const x=k[0]+Math.cos(a)*d,y=k[1]+Math.sin(a)*d,rad=N*(.05+r()*.17);
   const gr=g.createRadialGradient(x,y,0,x,y,rad);
-  gr.addColorStop(0,`rgba(255,255,255,${(.15+r()*.32).toFixed(3)})`);
+  gr.addColorStop(0,`rgba(255,255,255,${(.24+r()*.56).toFixed(3)})`);
   gr.addColorStop(1,'rgba(255,255,255,0)');
-  g.fillStyle=gr;g.fillRect(0,0,N,N);
+  g.fillStyle=gr;
+  const bx=Math.max(0,x-rad),by=Math.max(0,y-rad);
+  g.fillRect(bx,by,Math.min(N,x+rad)-bx,Math.min(N,y+rad)-by);
+ }
+ // Filaments. Short quadratic strokes accumulated under `lighter`, so the gas
+ // goes to full alpha along ridges rather than as a plateau - this is the
+ // structure the eye reads as "nebula" and the old flat wash never had. Half of
+ // them run around the gas and half run out of it, which is what the reference
+ // photographs do; all of them bow, because a straight stroke reads as a rule.
+ g.globalCompositeOperation='lighter';g.lineCap='round';
+ for(let i=0;i<130;i++){
+  // Two thirds run AROUND the gas and one third runs out of it. Half and half
+  // was tried first and the radial third was enough to read as a starburst -
+  // an emission nebula has ridges, but it does not have rays.
+  const around=i%3!==0,a0=r()*TAU;
+  let a1,r0,r1;
+  if(around){a1=a0+.5+r()*1.5;r0=N*(.05+r()*.30);r1=r0*(1+(r()-.5)*.24);}
+  else{a1=a0+(r()-.5)*.55;r0=N*(.03+r()*.26);r1=r0+N*(.10+r()*.26);}
+  const x0=cx+Math.cos(a0)*r0,y0=cy+Math.sin(a0)*r0;
+  const x1=cx+Math.cos(a1)*r1,y1=cy+Math.sin(a1)*r1;
+  const nx=-(y1-y0),ny=x1-x0,nl=Math.hypot(nx,ny)||1,bow=(r()-.5)*N*(around?.05:.10);
+  g.strokeStyle=`rgba(255,255,255,${(.08+r()*.30).toFixed(3)})`;
+  g.lineWidth=N*(.003+r()*.011);
+  g.beginPath();g.moveTo(x0,y0);
+  g.quadraticCurveTo((x0+x1)*.5+nx/nl*bow,(y0+y1)*.5+ny/nl*bow,x1,y1);g.stroke();
  }
  // Dark dust in front of the lit gas: a nebula reads as gas only when something
- // occludes it. Pure additive glow with no dark structure is just a smudge.
- g.globalCompositeOperation='destination-out';
+ // occludes it. Hard edge, soft shoulder - one wide faint stroke under one
+ // narrow opaque stroke - because a soft radial hole reads as a smudge and an
+ // even softness all over reads as nothing at all.
+ g.globalCompositeOperation='destination-out';g.lineCap='round';
+ const lane=(x0,y0,mx,my,x1,y1,w,a)=>{
+  g.strokeStyle=`rgba(0,0,0,${(a*.55).toFixed(3)})`;g.lineWidth=w*3.1;
+  g.beginPath();g.moveTo(x0,y0);g.quadraticCurveTo(mx,my,x1,y1);g.stroke();
+  g.strokeStyle=`rgba(0,0,0,${a.toFixed(3)})`;g.lineWidth=w;
+  g.beginPath();g.moveTo(x0,y0);g.quadraticCurveTo(mx,my,x1,y1);g.stroke();
+ };
+ // Arcs: they curve along the gas rather than pointing at its middle, which is
+ // the difference between a dust lane and a starburst. (The radius is `rr`, not
+ // `r`: `r` is the rng, and shadowing it in the same declaration list is a
+ // temporal-dead-zone ReferenceError that kills every frame.)
  for(let i=0;i<8;i++){
-  const x=N*.5+(r()-.5)*N*.80,y=N*.5+(r()-.5)*N*.80,rad=N*(.07+r()*.24);
-  const gr=g.createRadialGradient(x,y,0,x,y,rad);
-  gr.addColorStop(0,`rgba(0,0,0,${(.30+r()*.50).toFixed(3)})`);
-  gr.addColorStop(1,'rgba(0,0,0,0)');
-  g.fillStyle=gr;g.fillRect(0,0,N,N);
+  const a0=r()*TAU,a1=a0+1.0+r()*1.8,rr=N*(.14+r()*.30);
+  const x0=cx+Math.cos(a0)*rr,y0=cy+Math.sin(a0)*rr;
+  const x1=cx+Math.cos(a1)*rr,y1=cy+Math.sin(a1)*rr;
+  const nx=-(y1-y0),ny=x1-x0,nl=Math.hypot(nx,ny)||1,bow=(r()<.5?-1:1)*N*(.08+r()*.14);
+  lane(x0,y0,(x0+x1)*.5+nx/nl*bow,(y0+y1)*.5+ny/nl*bow,x1,y1,N*(.008+r()*.020),.40+r()*.45);
+ }
+ // Fingers: the short opaque tongues that hang off the edge of the gas.
+ for(let i=0;i<5;i++){
+  const a0=r()*TAU,r0=N*(.05+r()*.18),a1=a0+(r()-.5)*1.0,r1=r0+N*(.14+r()*.22);
+  const x0=cx+Math.cos(a0)*r0,y0=cy+Math.sin(a0)*r0;
+  const x1=cx+Math.cos(a1)*r1,y1=cy+Math.sin(a1)*r1;
+  lane(x0,y0,(x0+x1)*.5+(r()-.5)*N*.09,(y0+y1)*.5+(r()-.5)*N*.09,x1,y1,N*(.010+r()*.022),.50+r()*.42);
+ }
+ // Two lanes that cut right across the body. They bow hard, because a straight
+ // bar across the gas reads as a rule laid on top of the picture.
+ for(let i=0;i<2;i++){
+  const a0=r()*TAU,a1=a0+Math.PI+(r()-.5)*.7,r0=N*(.28+r()*.18),r1=N*(.28+r()*.18);
+  const x0=cx+Math.cos(a0)*r0,y0=cy+Math.sin(a0)*r0;
+  const x1=cx+Math.cos(a1)*r1,y1=cy+Math.sin(a1)*r1;
+  lane(x0,y0,(x0+x1)*.5+(r()-.5)*N*.22,(y0+y1)*.5+(r()-.5)*N*.22,x1,y1,N*(.010+r()*.024),.45+r()*.40);
  }
  g.globalCompositeOperation='source-over';
+ // The old mask was 1.00 at the centre and .82 at half the radius: a plateau of
+ // alpha one under a soft edge, which is why every nebula printed as a flat
+ // pale disc. This falls away fast, so the gas has a body and a halo.
  g.globalCompositeOperation='destination-in';
- const m=g.createRadialGradient(N*.5,N*.5,0,N*.5,N*.5,N*.5);
- m.addColorStop(0,'rgba(0,0,0,1)');m.addColorStop(.5,'rgba(0,0,0,.82)');m.addColorStop(1,'rgba(0,0,0,0)');
+ const m=g.createRadialGradient(cx,cy,0,cx,cy,N*.5);
+ m.addColorStop(0,'rgba(0,0,0,1)');m.addColorStop(.26,'rgba(0,0,0,.92)');
+ m.addColorStop(.52,'rgba(0,0,0,.50)');m.addColorStop(.78,'rgba(0,0,0,.14)');
+ m.addColorStop(1,'rgba(0,0,0,0)');
  g.fillStyle=m;g.fillRect(0,0,N,N);
- g.globalCompositeOperation='source-in';g.fillStyle=css(tint);g.fillRect(0,0,N,N);
+ // Two-tone: a cool core inside a warm rim, or the reverse by seed, so the
+ // same region does not print six identical nebulae. A single flat fill here
+ // is what made them all look alike.
+ const A=seed%2?pal[0]:pal[1],B=seed%2?pal[1]:pal[0];
+ g.globalCompositeOperation='source-in';
+ const cg=g.createRadialGradient(cx,cy,0,cx,cy,N*.5);
+ cg.addColorStop(0,css(A));cg.addColorStop(.46,css(blend(A,B,.55)));cg.addColorStop(1,css(B));
+ g.fillStyle=cg;g.fillRect(0,0,N,N);
  g.globalCompositeOperation='source-over';
  if(nebCache.size>40)nebCache.clear();
  nebCache.set(key,c);nebGens++;return c;
@@ -1204,7 +1386,9 @@ function drawSky(){
    if(q[0]<-pad||q[0]>W+pad||q[1]<-pad||q[1]>H+pad)continue;
    const a=p.t,a0=p.a,b0=p.b,tw=p.t<1;
    ctx.save();ctx.translate(q[0],q[1]);ctx.rotate(n.rot);
-   const al=clamp(n.alpha*wash,0,.86);
+   // .86 buried the lane cuts under their own wash; the dust and the stars
+   // behind it only read below about .78.
+   const al=clamp(n.alpha*wash,0,.78);
    if(tw){ctx.globalAlpha=al*(1-a);ctx.drawImage(nebulaTex(n.seed,a0),-rad,-rad,rad*2,rad*2);
           ctx.globalAlpha=al*a;ctx.drawImage(nebulaTex(n.seed,b0),-rad,-rad,rad*2,rad*2);}
    else{ctx.globalAlpha=al;ctx.drawImage(nebulaTex(n.seed,p.index),-rad,-rad,rad*2,rad*2);}
