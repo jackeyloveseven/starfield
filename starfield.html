@@ -206,6 +206,43 @@ function updateDirector(dt){
  for(const k of ['pitch','distance','aimY','lane','roll'])camera[k]=expStep(camera[k],goal[k]||0,rate,dt);
  lookTarget=[routeX(travel),courseY(travel)+camera.aimY,travel];
  if(captureCamPose){const c=captureCamPose;lookTarget=[mix(lookTarget[0],c.tx,c.blend),mix(lookTarget[1],c.ty,c.blend),mix(lookTarget[2],c.tz,c.blend)];}
+ // The encounter shot. An ink well is scenery with gravity, not a roadblock, so
+ // when one is close and ahead the camera slides sideways off the fleet: the aim
+ // - and with it the eye - trucks perpendicular to the view, which moves the
+ // fleet further than the well (the fleet is nearer, so its screen scale is
+ // larger) and pushes it out of the middle of the frame while the well is left
+ // whole and to one side. The truck is perpendicular only, so the depth to the
+ // well never changes and the well's size is untouched - this can only move the
+ // well across the frame, never lose it. The weight eases to zero with distance
+ // and with how far the well is off the bow, so an ordinary stretch of corridor
+ // is untouched, and a capture is skipped: that pose is the capture's own.
+ if(started&&autoCamera&&!captureCamPose){
+  const lw=craftWorld(fleet[LEAD]);
+  let well=null,wd=1e9;
+  for(const m of activeMasses){
+   if(m.kind!==4)continue;
+   const d=Math.hypot(m.x-lw[0],m.y-lw[1],m.z-lw[2]);
+   if(d<wd){wd=d;well=m;}
+  }
+  if(well){
+   const dx=well.x-lw[0],dy=well.y-lw[1],dz=well.z-lw[2];
+   const fwd=dx*camera.forward[0]+dy*camera.forward[1]+dz*camera.forward[2];
+   const w=smoother(clamp((2400-wd)/1400,0,1))*smoother(clamp(fwd/900,0,1));
+   if(w>.002){
+    const lat=dx*camera.right[0]+dz*camera.right[2];
+    const hi=dx*camera.up[0]+dy*camera.up[1]+dz*camera.up[2];
+    // Sized in SCREEN px, not world units: the fleet sits at the aim, so its
+    // slide is truck*k and k = focal/distance - measure it and ask for the slide
+    // directly, so the framing does not change with the lens distance.
+    const kf=camera.focal/Math.max(1,camera.distance);
+    const off=Math.sign(lat||1)*Math.min(520/kf,1800)*w;
+    const offv=Math.sign(hi||1)*Math.min(210/kf,750)*w;
+    lookTarget=[lookTarget[0]+camera.right[0]*off+camera.up[0]*offv,
+                lookTarget[1]+camera.up[1]*offv,
+                lookTarget[2]+camera.right[2]*off+camera.up[2]*offv];
+   }
+  }
+ }
  const horizontal=Math.cos(camera.pitch)*camera.distance;
  let eye=[lookTarget[0]+Math.sin(camera.yaw)*horizontal,Math.max(34,lookTarget[1]+Math.sin(camera.pitch)*camera.distance),travel-Math.cos(camera.yaw)*horizontal];
  eye[0]=mix(eye[0],laneX(eye[2]),camera.lane*.90);
@@ -364,13 +401,17 @@ function chunk(k){
    // by a factor of twenty now, and a small world can be a speck.
    const rad=kind===0?55+r()*r()*215:kind===1?95+r()*r()*265
             :kind===2?380+r()*620:kind===3?48+r()*r()*185
-            :kind===8?200+r()*280:2200;
+            :kind===8?200+r()*280:1100;
    // A horizon sits well off to the side: scenery with gravity, not a roadblock.
    // On the course it swallowed the fleet every ~200 seconds. Its offset is
-   // untouched. Its 1100 became 2200 (the user: "the event horizon could be more
-   // exaggerated") - the drawn shadow and the lensing radius both scale with it,
-   // so the lens warp stays registered with the disc. The capture factor moved
-   // with it, .60 -> .30, which leaves the capture distance at exactly 660.
+   // untouched. Its radius went to 2200 last round and that was a mistake: the
+   // free-flight camera distance comes from the lens table and is NOT a multiple
+   // of m.r, so doubling the radius doubled the hole's apparent size straight
+   // through and the encounter became a sliver of photon ring. It is back at
+   // 1100, the value the capture multiples below were written against. The
+   // drawn shadow, the lensing radius and the flash bloom all read m.r*q[3], so
+   // they stay registered with each other; the capture factor goes .30 -> .60
+   // with it, which leaves the capture distance at exactly 660.
    const band=(i+(k%3))%3;
    const off=kind===4?760+band*150+r()*90:Math.max(rad+520,620+Math.pow(r(),1.6)*1800);
    // Five height bands centred on the corridor plane, not three bands sitting on
@@ -757,14 +798,6 @@ float noiseP(vec2 p,float period){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);
  vec2 i0=vec2(i.x,mod(i.y,period)),i1=vec2(i.x,mod(i.y+1.0,period));
  return mix(mix(hash21(i0),hash21(i0+vec2(1,0)),f.x),
             mix(hash21(i1),hash21(i1+vec2(1,0)),f.x),f.y);}
-float fbmP(vec2 p,float period,float footprint){float n=0.0,amp=0.52;
- // Period >= 4 px kept whole, <= 2 px dropped whole. The old (0.65,2.1) window
- // was the inverse of the period, so 1.54 px still passed at full amplitude and
- // only 0.48 px was culled: a full octave of sub-Nyquist detail, which cannot be
- // imaged and can only alias into the screen-scale dots.
- for(int i=0;i<5;i++){float aa=1.0-smoothstep(0.25,0.50,footprint);
-  n+=amp*mix(0.5,noiseP(p,period),aa);p*=2.0;period*=2.0;footprint*=2.0;amp*=0.49;}
- return n;}
 const int PROFILE_N=18;
 const float RADII[PROFILE_N]=float[PROFILE_N](1.600000,1.850000,2.100000,2.400000,
  2.700000,3.000000,3.400000,3.800000,4.300000,4.900000,5.600000,6.500000,7.600000,
@@ -884,16 +917,15 @@ void main(){
  // case for a hard step.
  float pw=min(uAA,0.019);
  col*=max(smoothstep(2.61,2.68,radius),1.0-smoothstep(0.052-pw,0.052+pw,abs(q.y)));
- float az=atan(q.y,q.x)/TAU;
- float stream=noiseP(vec2(radius*2.2,az*20.0-uTime/8.0*5.0),5.0);
- float silk=fbmP(vec2(radius*12.0+(stream-0.5)*0.6,az*32.0-uTime/8.0*8.0),8.0,
-                 27.5/uRes.y*12.0);
- // Three flat steps, not a continuous +/-42% multiplier: a continuous one is
- // texture, three steps are tone. A floor() quantiser puts a 1-px staircase on
- // every step edge; each edge is now spread over 0.3 of a level instead.
- float s3=silk*3.0,qf=floor(s3);
- float silkQ=(qf+smoothstep(0.35,0.65,s3-qf))/3.0;
- col*=mix(1.0,0.78+0.44*silkQ,smoothstep(0.018,0.030,abs(q.y)));
+ // No surface texture. A quantised fbm used to sit here ("silk": three flat
+ // steps of +/-22%), on the argument that three steps are tone and not texture.
+ // They are not: the field being quantised is noise at 6.2 and 3.1 SPRITE px per
+ // cell, so every step boundary is a noisy curve and the whole disc came out
+ // mottled - measured at 3.4 sd against the reference's 1.8, and plainly visible
+ // as 8-15 px blobs once the sprite is drawn at 2.88x. The disc's tone structure
+ // is the four flat bands in fittedRadiance, whose boundaries are anti-aliased
+ // and wobbled by the warp term; that is the flat art the reference has, and it
+ // enough on its own.
  // The photon ring, at the critical impact parameter sqrt(27)/2 - a STROKE.
  // Flat top, hard shoulders, painted with mix rather than added, so the tonemap
  // cannot flatten it into a gradient.
@@ -1335,22 +1367,26 @@ function reseedFlock(){
 function captureCam(){
  const m=captureMass,r=(m&&m.r)||1100;
  if(capturePhase===1){
-  // Lean in until the well spills past every edge. You never see it whole.
-  const g=smoother(clamp(captureGrip,0,1));
-  return {blend:g*.95,tx:m.x,ty:m.y,tz:m.z,distance:mix(3.60,2.45,g)*r,pitch:mix(.34,.16,g),roll:.02*g,focal:mix(1.12,1.30,g)};
+  // GRIP holds the whole well in shot: the camera pulls back off the fleet and
+  // the horizon is small and complete instead of spilling past every edge. e is
+  // the pull-back, fast; g is the slow lean that turns the view over onto the
+  // disc as the ring closes.
+  const g=smoother(clamp(captureGrip,0,1)),e=smoother(clamp(captureGrip*2.6,0,1));
+  return {blend:e*.95,tx:m.x,ty:m.y,tz:m.z,distance:mix(6.00,5.20,e)*r,pitch:mix(.34,.16,g),roll:.02*g,focal:mix(1.12,1.30,g)};
  }
  if(capturePhase===2){
+  // The last orbit, still whole: the ring closes, the frame does not.
   const g=clamp(captureT/6.5,0,1);
-  return {blend:1,tx:m.x,ty:m.y,tz:m.z,distance:mix(2.45,2.30,g)*r,pitch:mix(.16,.34,g),roll:mix(.02,.06,g),focal:mix(1.30,1.20,g)};
+  return {blend:1,tx:m.x,ty:m.y,tz:m.z,distance:mix(5.20,4.90,g)*r,pitch:mix(.16,.34,g),roll:mix(.02,.06,g),focal:mix(1.30,1.20,g)};
  }
- if(capturePhase===3)return {blend:1,tx:m.x,ty:m.y,tz:m.z,distance:2.24*r,pitch:.34,roll:.06,focal:1.20};
+ if(capturePhase===3)return {blend:1,tx:m.x,ty:m.y,tz:m.z,distance:4.70*r,pitch:.34,roll:.06,focal:1.20};
  if(capturePhase===4){
   // The fall: move off the well and let the corridor stretch away ahead. The
   // focal is widened so the space in front compresses - the raymarcher is not
   // touched; this is the projection doing it.
   const out=smoother(clamp(captureT/3.5,0,1)),g=smoother(clamp(captureDive,0,1)),fz=travel+520;
   return {blend:1,tx:mix(m.x,routeX(fz),out),ty:mix(m.y,courseY(fz),out),tz:mix(m.z,fz,out),
-   distance:mix(2.24*r,mix(2200,4300,g),out),pitch:mix(.34,mix(.10,-.22,g),out),
+   distance:mix(4.70*r,mix(2200,4300,g),out),pitch:mix(.34,mix(.10,-.22,g),out),
    roll:mix(.06,.06+.46*g,out),focal:mix(1.20,mix(1.05,.66,g),out)};
  }
  const g=clamp(captureT/6,0,1),fz=travel+520;
@@ -1370,7 +1406,7 @@ function updateCapture(dt){
   for(const m of activeMasses){
    if(m.kind!==4||m.z<travel-500)continue;
    const dx=m.x-lw[0],dy=m.y-lw[1],dz=m.z-lw[2],dist=Math.hypot(dx,dy,dz);
-   if(dist<m.r*.30){
+   if(dist<m.r*.60){
     // Close enough is not enough: the hand has to be flying. If the horizon is
     // off to a side, the steering must point that way; if it is nearly dead
     // ahead there is no lateral steering to ask for, so any committed input
