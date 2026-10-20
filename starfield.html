@@ -187,7 +187,7 @@ const camera={yaw:-29*DEG,pitch:1.10,distance:1490,aimY:0,lane:0,roll:0,eye:[0,0
 const manual={yaw:camera.yaw,pitch:camera.pitch,distance:camera.distance,aimY:0,lane:0};
 const observation={distance:0,pitch:0,last:-10};
 let lookTarget=[0,224,travel];
-let activeMasses=[],sling=0,slingPrev=1e9,slingHold=0,warp=0;
+let activeMasses=[],activeShips=[],sling=0,slingPrev=1e9,slingHold=0,warp=0;
 let capturePhase=0,captureT=0,captureTotal=0,captureMass=null,captureFlash=0,captureJumped=false,captureGrip=0,captureDive=0,captureGear=0,captureCamPose=null;
 const GRAV=1.6e7,MASS_KIND=[.35,.7,1,1.6,2.4,12,5,22,1.2],LEAD=2;
 
@@ -324,6 +324,11 @@ function updateDirector(dt){
  // lane, so it is a glance and not a detour.
  if(autoCamera&&activeMasses.length){
   let gm=null,gd=1e9;
+  for(const m of activeShips){
+   const dx=m.x-lookTarget[0],dy=m.y-lookTarget[1],dz=m.z-lookTarget[2];
+   const d=Math.hypot(dx,dy,dz);
+   if(d<gd&&d<9000){gd=d;gm=m;}
+  }
   for(const m of activeMasses){
    if(m.kind>=5&&m.kind<=7)continue; // a star is a light, not a place
    const dx=m.x-lookTarget[0],dy=m.y-lookTarget[1],dz=m.z-lookTarget[2];
@@ -438,7 +443,7 @@ const chunks=new Map(),CHUNK=3200;
  * torn paper, and a couple of pages from a printed atlas. */
 function chunk(k){
  if(chunks.has(k))return chunks.get(k);
- const r=rng((hash(k,71)*4294967295)>>>0),z0=k*CHUNK,masses=[],shards=[],plates=[],galaxies=[];
+ const r=rng((hash(k,71)*4294967295)>>>0),z0=k*CHUNK,masses=[],shards=[],plates=[],galaxies=[],ships=[];
  const zc=z0+CHUNK*.5;
  // Every 37 chunks, plus the k=12 showpiece: that is the chunk the
  // 事件视界 departure lands on, and it is the ABYSS plate. 19 + this same
@@ -472,9 +477,11 @@ function chunk(k){
    const dist = 1600 + r() * 4000;
    const y = courseY(z) + (r() - 0.5) * 1900;
    const x = laneX(z) + side * dist;
-   const kindPool = [1, 8, 3, 0];
+   // Every fourth encounter is a giant: the only thing in the piece that is
+   // bigger than a planet is the horizon, and it should not be alone.
+   const kindPool = [(k/6|0)%4===3?6:1, 8, 3, 0];
    const kKind = kindPool[((k / 7)|0) % kindPool.length];
-   const pRad = kKind === 8 ? 520 + r() * 380 : 360 + r() * 300;
+   const pRad = kKind === 8 ? 520 + r() * 380 : kKind === 6 ? 900 + r() * 600 : 360 + r() * 300;
    masses.push({
     x, y, z, kind: kKind, r: pRad,
     axis: [r() - 0.5, r() - 0.5, r() - 0.5], phase: r() * TAU,
@@ -482,7 +489,15 @@ function chunk(k){
    });
   }
  }
- const c={masses,shards,plates,galaxies,k};chunks.set(k,c);return c;
+ // A capital ship every fifth chunk: the scale ladder had a gap between a
+ // 40-unit crane and a 400-unit world.
+ if(k>0&&k%5===2){
+  const z=z0+CHUNK*(.30+.40*r()),side=r()<.5?-1:1;
+  ships.push({x:laneX(z)+side*(2200+r()*2600),y:courseY(z)+(r()-.5)*2600,z,
+   len:1400+r()*1800,roll:(r()-.5)*.55,ph:r()*TAU,drift:.55+r()*.9,
+   hull:r(),lights:r()});
+ }
+ const c={masses,shards,plates,galaxies,ships,k};chunks.set(k,c);return c;
 }
 function courseBend(z){
  let sum=0;
@@ -1253,6 +1268,66 @@ const SPRITE_CAP=2048;
 let massVis=1; // set by bodies() so a mass can fade in
 let holeDraws=0,holeLastRad=0;
 let tintHole=[255,236,214];
+
+/* A capital ship, printed rather than modelled: one tapered plate, a
+ * superstructure, two rows of windows and a running light. Its length is in
+ * world units, so it shrinks honestly with distance - which is the whole point
+ * of putting it here. */
+function drawShip(s,q,t){
+ const k=q[3],L=s.len*k;if(L<9)return;
+ const Wd=L*.115,Ht=L*.052;
+ queue.push({type:4,d:q[2],alpha:massVis,fn:()=>{
+  const cx=q[0],cy=q[1],rot=s.roll+Math.sin(t*.10+s.ph)*.015;
+  const p=currentPalette;
+  const hull=blend(p.craft,p.paper,.22),hullDark=blend(p.craft,p.ink,.28);
+  const rim=blend(p.ink,[255,255,255],.35);
+  ctx.save();ctx.translate(cx,cy);ctx.rotate(rot);
+  // hull: nose right, long tail left
+  ctx.beginPath();
+  ctx.moveTo(L*.50,0);ctx.lineTo(L*.30,-Wd*.62);ctx.lineTo(-L*.34,-Wd);
+  ctx.lineTo(-L*.50,-Wd*.55);ctx.lineTo(-L*.50,Wd*.55);ctx.lineTo(-L*.34,Wd);
+  ctx.lineTo(L*.30,Wd*.62);ctx.closePath();
+  ctx.fillStyle=css(hull,.94);ctx.fill();
+  ctx.strokeStyle=css(rim,.55);ctx.lineWidth=Math.max(.6,L*.0022);ctx.stroke();
+  // a shadow plate under the nose, so the silhouette has two tones
+  ctx.beginPath();
+  ctx.moveTo(L*.50,0);ctx.lineTo(L*.30,Wd*.62);ctx.lineTo(-L*.10,Wd*.72);
+  ctx.lineTo(-L*.10,0);ctx.closePath();
+  ctx.fillStyle=css(hullDark,.55);ctx.fill();
+  // superstructure
+  ctx.beginPath();
+  ctx.moveTo(-L*.02,-Ht*.5);ctx.lineTo(L*.20,-Ht*.5);ctx.lineTo(L*.14,Ht*1.3);
+  ctx.lineTo(-L*.08,Ht*1.3);ctx.closePath();
+  ctx.fillStyle=css(blend(hull,p.ink,.14),.9);ctx.fill();
+  ctx.strokeStyle=css(rim,.40);ctx.lineWidth=Math.max(.5,L*.0016);ctx.stroke();
+  // window rows
+  if(L>60){
+   const win=css(blend(p.sun,[255,255,255],.45),.62);
+   ctx.fillStyle=win;
+   const rows=3,col=Math.max(4,Math.min(26,Math.round(L*.020)));
+   for(let rI=0;rI<rows;rI++){
+    for(let i=0;i<col;i++){
+     const x=-L*.44+i*(L*.86/col),y=-Wd*.10+rI*(Wd*.19);
+     const on=hash(Math.round(s.ph*100)+i,rI,7)>.22;
+     if(!on)continue;
+     ctx.fillRect(x,y,Math.max(1,L*.0042),Math.max(.8,L*.0026));
+    }
+   }
+  }
+  // engine glow at the tail
+  if(L>30){
+   const g=ctx.createRadialGradient(-L*.52,0,0,-L*.52,0,Math.max(6,L*.10));
+   g.addColorStop(0,css(blend(p.sun,[255,255,255],.5),.55));
+   g.addColorStop(1,css(p.sun,0));
+   ctx.fillStyle=g;ctx.beginPath();ctx.arc(-L*.52,0,Math.max(6,L*.10),0,TAU);ctx.fill();
+  }
+  // running light
+  const blink=.5+.5*Math.sin(t*2.6+s.lights*TAU);
+  ctx.fillStyle=css([255,120,90],.35+.55*blink);
+  ctx.beginPath();ctx.arc(L*.46,-Wd*.58,Math.max(1,L*.006),0,TAU);ctx.fill();
+  ctx.restore();
+ }});
+}
 function drawMass(m,p,t){
  const q=project([m.x,m.y,m.z]);
  if(!q||q[2]<=30)return;
@@ -1388,6 +1463,7 @@ function drawGalaxy(g,p,t){
  ribbon(bsm,g.rad*.020,.62,dust);
 }
 function bodies(){
+ activeShips.length=0;
  const k0=Math.floor(camera.eye[2]/CHUNK),radius=lowQuality?9:13,active=[];
  for(let k=k0-radius;k<=k0+radius;k++)active.push(chunk(k));
  for(const [k] of chunks)if(Math.abs(k-k0)>radius+2)chunks.delete(k);
@@ -1398,6 +1474,10 @@ function bodies(){
   for(const g of c.galaxies){const pj=project([g.x,g.y,g.z]);if(!pj||pj[2]>34000)continue;drawGalaxy(g,region(g.x,g.z),time);}
   // A body held at full alpha until a cutoff appears in one frame. Keep
  // them much longer and fade them in over the last 12,000 units.
+ for(const s of c.ships){const pj=project([s.x,s.y,s.z]);if(!pj||pj[2]>52000)continue;
+  if(pj[2]<18000&&activeShips.length<8)activeShips.push(s);
+  massVis=clamp((52000-pj[2])/18000);if(massVis<=0)continue;
+  drawShip(s,pj,time);massVis=1;}
  for(const m of c.masses){const pj=project([m.x,m.y,m.z]);if(!pj||pj[2]>70000)continue;
   massVis=clamp((70000-pj[2])/45000);if(massVis<=0)continue;
   drawMass(m,region(m.x,m.z),time);massVis=1;}
