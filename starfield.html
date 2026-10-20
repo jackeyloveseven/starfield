@@ -272,7 +272,10 @@ const LENSES=[
 const plans=new Map();let cycle=0,shot=0,shotTime=0,totalCycleTime=0;
 function makePlan(c,prevYaw){
  const r=rng((SEED^Math.imul(c+1,0x73a49b51))>>>0), high=c%2===0;
- const groups=(currentPalette&&currentPalette.index===4)?[[14],[14],[14],[14],[14],[14]]:[[0,1],[2,3,4],[5,6,12,14],[7,8,12],c%2===0?[9]:[10],[11,13,15]];
+ // ABYSS used to be pinned to six copies of one side-on lens. The stay is
+ // about 40 s and the plan is built a cycle ahead from the CURRENT palette,
+ // so the plan played across the region boundary. It draws normally now.
+ const groups=[[0,1],[2,3,4],[5,6,12,14],[7,8,12],c%2===0?[9]:[10],[11,13,15]];
  const result=[];let previous=prevYaw;
  for(let i=0;i<6;i++){
   let candidates=groups[i].filter(id=>previous==null||Math.abs(angleDelta(previous,LENSES[id].yaw*DEG))>=38*DEG);
@@ -304,7 +307,10 @@ function updateDirector(dt){
  if(!autoCamera)goal={...manual,roll:0};
  else{goal.distance+=observation.distance;goal.pitch=clamp(goal.pitch+observation.pitch,-.16,1.48);}
  captureCamPose=capturePhase&&captureMass?captureCam():null;
- if(captureCamPose){const c=captureCamPose;goal.distance=mix(goal.distance,c.distance,c.blend);goal.pitch=mix(goal.pitch,c.pitch,c.blend);goal.roll=mix(goal.roll||0,c.roll,c.blend);}
+ if(captureCamPose){const c=captureCamPose;goal.distance=mix(goal.distance,c.distance,c.blend);goal.pitch=mix(goal.pitch,c.pitch,c.blend);goal.roll=mix(goal.roll||0,c.roll,c.blend);
+  // Azimuth too, when the capture asks for one: without it the camera
+  // orbits to whatever side the shot was on and the flock falls behind it.
+  if(c.yaw!=null)goal.yaw=mix(goal.yaw,c.yaw,c.blend);}
  const rate=autoCamera?2.2:7;
  camera.yaw+=angleDelta(camera.yaw,goal.yaw)*(1-Math.exp(-dt*rate));
  for(const k of ['pitch','distance','aimY','lane','roll'])camera[k]=expStep(camera[k],goal[k]||0,rate,dt);
@@ -324,6 +330,24 @@ function updateDirector(dt){
   if(gm){const w=clamp((7000-gd)/5000,0,1)*.32;
    lookTarget=[mix(lookTarget[0],gm.x,w),mix(lookTarget[1],gm.y,w),
     mix(lookTarget[2],gm.z,w)];}
+ }
+ // A horizon is the set piece, so it gets its own framing: from 26,000
+ // units in the look target leans to it and the orbit pulls in. Without
+ // this the disc arrives already wider than the frame.
+ if(autoCamera&&!capturePhase&&activeMasses.length){
+  let hm=null,hd=1e9;
+  for(const m of activeMasses){
+   if(m.kind!==4||m.z<travel-2500||m.z>travel+42000)continue;
+   const d=Math.hypot(m.x-camera.eye[0],m.y-camera.eye[1],m.z-camera.eye[2]);
+   if(d<hd){hd=d;hm=m;}
+  }
+  if(hm){
+   const w=clamp((26000-hd)/20000,0,1)*.85;
+   lookTarget=[mix(lookTarget[0],hm.x,w),mix(lookTarget[1],hm.y,w),
+    mix(lookTarget[2],hm.z,w)];
+   goal.distance=mix(goal.distance,clamp(hd*.90,2600,9000),w*.55);
+   goal.pitch=mix(goal.pitch,clamp(.22,0,1.4),w*.45);
+  }
  }
  if(captureCamPose){const c=captureCamPose;lookTarget=[mix(lookTarget[0],c.tx,c.blend),mix(lookTarget[1],c.ty,c.blend),mix(lookTarget[2],c.tz,c.blend)];}
  const horizontal=Math.cos(camera.pitch)*camera.distance;
@@ -1464,15 +1488,25 @@ function reseedFlock(){
 function captureCam(){
  const m=captureMass,r=(m&&m.r)||1100;
  if(capturePhase===1){
-  // Lean in until the well spills past every edge. You never see it whole.
-  const g=smoother(clamp(captureGrip,0,1));
-  return {blend:g*.95,tx:m.x,ty:m.y,tz:m.z,distance:mix(3.60,2.45,g)*r,pitch:mix(.34,.16,g),roll:.02*g,focal:mix(1.12,1.30,g)};
+  // Lean in until the well spills past every edge - but from the flock's
+  // side of it. At 3.60 r the camera sat past the horizon and the cranes
+  // were behind the lens; the plate was empty.
+  const g=smoother(clamp(captureGrip,0,1)),fw=craftWorld(fleet[LEAD]);
+  const hd=Math.hypot(fw[0]-m.x,fw[2]-m.z)||1;
+  return {blend:g*.95,tx:m.x,ty:m.y,tz:m.z,yaw:Math.atan2(fw[0]-m.x,-(fw[2]-m.z)),
+   distance:hd*(1.30-.12*g),pitch:mix(.06,.03,g),roll:.02*g,focal:mix(1.12,1.30,g)};
  }
  if(capturePhase===2){
-  const g=clamp(captureT/6.5,0,1);
-  return {blend:1,tx:m.x,ty:m.y,tz:m.z,distance:mix(2.45,2.30,g)*r,pitch:mix(.16,.34,g),roll:mix(.02,.06,g),focal:mix(1.30,1.20,g)};
+  const g=clamp(captureT/6.5,0,1),fw=craftWorld(fleet[LEAD]);
+  const hd=Math.hypot(fw[0]-m.x,fw[2]-m.z)||1;
+  return {blend:1,tx:m.x,ty:m.y,tz:m.z,yaw:Math.atan2(fw[0]-m.x,-(fw[2]-m.z)),
+   distance:hd*(1.18-.06*g),pitch:mix(.03,.06,g),
+   roll:mix(.02,.06,g),focal:mix(1.30,1.20,g)};
  }
- if(capturePhase===3)return {blend:1,tx:m.x,ty:m.y,tz:m.z,distance:2.24*r,pitch:.34,roll:.06,focal:1.20};
+ if(capturePhase===3){const fw=craftWorld(fleet[LEAD]);
+  const hd=Math.hypot(fw[0]-m.x,fw[2]-m.z)||1;
+  return {blend:1,tx:m.x,ty:m.y,tz:m.z,yaw:Math.atan2(fw[0]-m.x,-(fw[2]-m.z)),
+  distance:hd*1.14,pitch:.05,roll:.06,focal:1.20};}
  if(capturePhase===4){
   // The fall: move off the well and let the corridor stretch away ahead. The
   // focal is widened so the space in front compresses - the raymarcher is not
@@ -1499,16 +1533,12 @@ function updateCapture(dt){
   for(const m of activeMasses){
    if(m.kind!==4||m.z<travel-500)continue;
    const dx=m.x-lw[0],dy=m.y-lw[1],dz=m.z-lw[2],dist=Math.hypot(dx,dy,dz);
-   if(dist<m.r*.30){
-    // Close enough is not enough: the hand has to be flying. If the horizon is
-    // off to a side, the steering must point that way; if it is nearly dead
-    // ahead there is no lateral steering to ask for, so any committed input
-    // counts. Proximity alone let the fleet be swallowed while drifting.
-    const toward=dx*camera.right[0]+dz*camera.right[2];
-    const deliberate=Math.abs(toward)>dist*.25
-     ?(Math.abs(wind.x)>.18&&Math.sign(wind.x)===Math.sign(toward))
-     :(Math.abs(wind.x)+Math.abs(wind.y)>.30);
-    if(deliberate){
+   // It used to take r*0.30 = 720 units AND a steering input, but the fleet's
+   // closest pass is about 2,000: the act the piece was built around never
+   // ran. It is an authored set piece on a horizon that comes every 37
+   // chunks, not a hazard that ambushes a drifting flock.
+   if(dist<m.r*1.15){
+    {
      capturePhase=1;captureT=0;captureTotal=0;captureGrip=0;captureDive=0;captureGear=0;captureMass=m;toast('引力捕获 · GRAVITY CAPTURE',6);break;
     }
    }
