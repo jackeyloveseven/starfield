@@ -451,7 +451,7 @@ function chunk(k){
  // 事件视界 departure lands on, and it is the ABYSS plate. 19 + this same
  // special put two horizons seven chunks apart; 37 puts the nearest one
  // twenty-five chunks away.
- const horizon=(k!==0 && k%37===0) || (k===12);
+ const horizon=(k!==0 && k%71===0) || (k===12);
 
  if(horizon){
   // Gargantua Supermassive Black Hole (Towering cinematic presence)
@@ -471,7 +471,10 @@ function chunk(k){
   });
  } else {
   // Solitary grand planet encounter every 7 chunks (walk for a long time across deep space)
-  const hasEncounter = (k % 11 === 5);
+  // Near a horizon the field thins to one chance in five, so the thing the
+  // piece is built around is never crowded.
+  const nearHole=Math.abs(k-12)<3||(k%71<3);
+  const hasEncounter = (k % 11 === 5) && (!nearHole || hash(k,909)<.20);
   if(hasEncounter){
    const z = z0 + CHUNK * (0.35 + r() * 0.30);
    const side = (r() < 0.5) ? -1 : 1;
@@ -487,7 +490,8 @@ function chunk(k){
    // The offset is in radii, so the corridor never runs through the body.
    // In radii, and close: further than ~2 r above the lane and the body
    // falls outside the field of view, which is why it was never seen.
-   const reach = pRad * (1.35 + r() * 0.90);
+   const sep = (Math.abs(k-12)<3||(k%71<3)) ? 2.4 : 1;
+   const reach = pRad * (1.80 + r() * 0.60) * sep;
    const y = courseY(z) + (upDown ? sgn * reach : (r() - .5) * pRad * .7);
    const x = laneX(z) + (upDown ? side * (r() * .8 - .4) * pRad : sgn * reach);
    masses.push({
@@ -502,11 +506,11 @@ function chunk(k){
  if(k>0&&k%5===2){
   const z=z0+CHUNK*(.30+.40*r()),side=r()<.5?-1:1;
   ships.push({x:laneX(z)+side*(2800+r()*3200),y:courseY(z)+(r()-.5)*2600,z,
-   len:900+r()*1100,roll:(r()-.5)*.55,ph:r()*TAU,drift:.55+r()*.9,
+   len:900+r()*1100,roll:(r()-.5)*.18,ph:r()*TAU,drift:.55+r()*.9,
    hull:r(),lights:r()});
  }
  // One gate, and the battle that happened around it.
- if(k>0&&k%23===11){
+ if(k>0&&k%61===17){
   const z=z0+CHUNK*.55;
   gates.push({x:laneX(z),y:courseY(z)+40,z,r:150+r()*90,ph:r()*TAU,used:false});
   for(let i=0;i<5;i++){
@@ -735,7 +739,9 @@ function drawWorld(m, q, p, t, rad, tint) {
       ctx.drawImage(worldShade(), cx - rad, cy - rad, rad * 2, rad * 2);
 
       ctx.globalCompositeOperation = 'multiply';
-      ctx.fillStyle = css(blend(tint, [255, 255, 255], 0.38));
+      // Fixed at 0.38 this bleached any world large enough to fill the plate.
+      const lift = 0.38 * clamp(1 - rad / (H * 0.75), 0.22, 1);
+      ctx.fillStyle = css(blend(tint, [255, 255, 255], lift));
       ctx.fillRect(cx - rad, cy - rad, rad * 2, rad * 2);
       ctx.globalCompositeOperation = 'source-over';
 
