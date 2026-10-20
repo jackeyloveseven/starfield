@@ -1811,148 +1811,334 @@ const nebCache=new Map();let nebGens=0;
  * tint could not say that - it was blend(tree, water|sun|craft, .38) pulled 14%
  * toward white, a muted navy-grey, and the same navy-grey in every region. Each
  * region now gets a warm rim and a cool core that sit inside its own palette
- * instead of fighting it. Every channel is capped at 192: the grade maps 210 to
+ * instead of fighting it. Every channel stays under 240: the grade maps 210 to
  * white, so anything brighter loses its hue to the bloom rather than reading as
  * colour. */
 const NEB_PAL=[
- [[225, 95, 110],[60, 140, 220]],  // 素纸 PAPER: rose emission over deep celestial blue
- [[205, 75, 180],[70, 90, 230]],   // 墨海 INKWASH: ethereal magenta over deep indigo
- [[235, 175, 60],[40, 170, 205]],  // 箔野 FOIL: stellar solar gold over ionized cyan
- [[240, 130, 70],[190, 75, 165]],  // 星核 CORE: searing amber over violet nebulosity
- [[210, 65, 55],[80, 105, 165]]    // 深渊 ABYSS: volcanic ember over deep slate
+ [[224, 38, 80],[ 18,190,200]],  // 素纸 PAPER: crimson emission against ionized cyan
+ [[214, 34,138],[ 16,190,200]],  // 墨海 INKWASH: magenta against ionized cyan
+ [[230, 64, 44],[ 16,192,204]],  // 箔野 FOIL: vermilion against ionized cyan
+ [[228, 46, 40],[ 24,182,206]],  // 星核 CORE: scarlet against ionized cyan
+ [[214, 38, 64],[ 20,172,184]]   // 深渊 ABYSS: ember crimson against teal
 ];
 function nebulaTex(seed,idx){
  const pal=NEB_PAL[idx]||NEB_PAL[0];
  const key=seed+'|'+idx;
  if(nebCache.has(key))return nebCache.get(key);
  // 384 rather than 192: the camera can sit inside one of these, and a dust lane
- // that is meant to have a hard edge does not survive a 10x upscale. The blob
- // fills are clipped to their own bounding box, so the extra pixels are cheap.
+ // that is meant to have a hard edge does not survive a 10x upscale. The fills
+ // are clipped to their own bounding box, so the extra pixels are cheap.
  const N=384,c=document.createElement('canvas');c.width=c.height=N;
  const g=c.getContext('2d'),r=rng((SEED^Math.imul(seed,0x9e3779b1)^Math.imul(idx+1,0x85ebca6b))>>>0);
  const cx=N*.5,cy=N*.5;
- // Two or three nuclei near the middle; the blobs gather around them, so the
- // gas has knots and arms instead of being spread evenly over the square.
- const nn=2+(r()*2|0),nuc=[];
- for(let i=0;i<nn;i++){const a=r()*TAU,d=N*(.03+r()*.16);nuc.push([cx+Math.cos(a)*d,cy+Math.sin(a)*d]);}
- g.globalCompositeOperation='source-over';
- for(let i=0;i<44;i++){
-  const k=nuc[i%nn],a=r()*TAU,d=N*(.02+r()*.30);
-  const x=k[0]+Math.cos(a)*d,y=k[1]+Math.sin(a)*d,rad=N*(.05+r()*.17);
-  const gr=g.createRadialGradient(x,y,0,x,y,rad);
-  gr.addColorStop(0,`rgba(255,255,255,${(.24+r()*.56).toFixed(3)})`);
+ /* Two surfaces. The warm emission is a REGION of the gas, not a 50/50 blend
+  * with the cool body: crimson lerped halfway to cyan is grey, and that grey is
+  * the fog this replaces. Both surfaces are painted in white alpha first, tinted
+  * independently, then composited by alpha, so a pixel keeps one hue and the
+  * handover is a narrow front. */
+ const wc=document.createElement('canvas');wc.width=wc.height=N;
+ const wg=wc.getContext('2d');
+ const puff=(ctx,x,y,rr,al)=>{
+  const gr=ctx.createRadialGradient(x,y,0,x,y,rr);
+  gr.addColorStop(0,`rgba(255,255,255,${al.toFixed(3)})`);
+  gr.addColorStop(.55,`rgba(255,255,255,${(al*.55).toFixed(3)})`);
   gr.addColorStop(1,'rgba(255,255,255,0)');
-  g.fillStyle=gr;
-  const bx=Math.max(0,x-rad),by=Math.max(0,y-rad);
-  g.fillRect(bx,by,Math.min(N,x+rad)-bx,Math.min(N,y+rad)-by);
+  ctx.fillStyle=gr;ctx.fillRect(x-rr,y-rr,rr*2,rr*2);
+ };
+ // ---- gas body: three stretched lobes, tied by faint bridges ---------------
+ // Each lobe is an ellipse (1.50 x .78) so the gas has a direction. The knots
+ // on its rim keep the boundary from printing as a drawn oval.
+ const base=r()*TAU,lobes=[];
+ for(let i=0;i<3;i++){
+  const a=base+i*TAU/3+(r()-.5)*.6,d=i?N*(.09+r()*.09):N*(.02+r()*.04);
+  lobes.push({x:cx+Math.cos(a)*d,y:cy+Math.sin(a)*d,rot:a+(r()-.5)*1.1,
+              rad:N*(i?.23+r()*.07:.26+r()*.05)});
  }
- // Filaments. Short quadratic strokes accumulated under `lighter`, so the gas
- // goes to full alpha along ridges rather than as a plateau - this is the
- // structure the eye reads as "nebula" and the old flat wash never had. Half of
- // them run around the gas and half run out of it, which is what the reference
- // photographs do; all of them bow, because a straight stroke reads as a rule.
- g.globalCompositeOperation='lighter';g.lineCap='round';
- for(let i=0;i<130;i++){
-  // Two thirds run AROUND the gas and one third runs out of it. Half and half
-  // was tried first and the radial third was enough to read as a starburst -
-  // an emission nebula has ridges, but it does not have rays.
-  const around=i%3!==0,a0=r()*TAU;
-  let a1,r0,r1;
-  if(around){a1=a0+.5+r()*1.5;r0=N*(.05+r()*.30);r1=r0*(1+(r()-.5)*.24);}
-  else{a1=a0+(r()-.5)*.55;r0=N*(.03+r()*.26);r1=r0+N*(.10+r()*.26);}
+ for(const L of lobes){
+  g.save();g.translate(L.x,L.y);g.rotate(L.rot);g.scale(1.50,.78);
+  const gr=g.createRadialGradient(0,0,0,0,0,L.rad);
+  gr.addColorStop(0,'rgba(255,255,255,.96)');
+  gr.addColorStop(.34,'rgba(255,255,255,.82)');
+  gr.addColorStop(.60,'rgba(255,255,255,.50)');
+  gr.addColorStop(.82,'rgba(255,255,255,.18)');
+  gr.addColorStop(1,'rgba(255,255,255,0)');
+  g.fillStyle=gr;g.beginPath();g.arc(0,0,L.rad,0,TAU);g.fill();
+  g.restore();
+  for(let i=0;i<9;i++){
+   const aa=r()*TAU,dd=L.rad*(.46+r()*.40);
+   puff(g,L.x+Math.cos(aa)*dd,L.y+Math.sin(aa)*dd*.66,
+        L.rad*(.11+r()*.14),.16+r()*.22);
+  }
+ }
+ for(let i=0;i<3;i++){
+  const A=lobes[i],B=lobes[(i+1)%3];
+  puff(g,(A.x+B.x)*.5+(r()-.5)*N*.05,(A.y+B.y)*.5+(r()-.5)*N*.05,
+       N*(.12+r()*.08),.20+r()*.14);
+ }
+ // A thin base field under the lobes. Without it the three stretched ellipses
+ // leave empty wedges between their arms and the texture reads as three
+ // stickers; it is deliberately pale, because the structure comes from the dust
+ // stamped over it, not from this fill.
+ for(let i=0;i<3;i++){
+  const a=base+i*TAU/3+.6,d=N*(.05+r()*.10);
+  puff(g,cx+Math.cos(a)*d,cy+Math.sin(a)*d,N*(.30+r()*.08),.18+r()*.08);
+ }
+ // Fine knots, clustered on the lobes. The big gradients alone are an airbrush;
+ // these are the granularity that reads as gas rather than a tint.
+ for(let i=0;i<70;i++){
+  const L=lobes[i%3],a=r()*TAU,d=L.rad*(.25+r()*.85);
+  puff(g,L.x+Math.cos(a)*d,L.y+Math.sin(a)*d*.86,
+       N*(.012+r()*.045),.10+r()*.28);
+ }
+ // Fine curved wisps through the body. They are one tone lighter than the gas,
+ // so after the tint they read as streaks inside it rather than as another fill.
+ g.lineCap='round';
+ for(let i=0;i<80;i++){
+  const L=lobes[i%3],a0=r()*TAU,rr=L.rad*(.30+r()*.75);
+  const x0=L.x+Math.cos(a0)*rr,y0=L.y+Math.sin(a0)*rr*.82;
+  const a1=a0+(r()-.5)*.75,rr1=rr*(.85+r()*.30);
+  const x1=L.x+Math.cos(a1)*rr1,y1=L.y+Math.sin(a1)*rr1*.82;
+  g.strokeStyle=`rgba(255,255,255,${(.05+r()*.13).toFixed(3)})`;
+  g.lineWidth=.7+r()*2.0;
+  g.beginPath();g.moveTo(x0,y0);
+  g.quadraticCurveTo((x0+x1)*.5+(r()-.5)*N*.05,
+                     (y0+y1)*.5+(r()-.5)*N*.05,x1,y1);g.stroke();
+ }
+ // ---- the warm half ---------------------------------------------------------
+ // A hard-edged linear front puts the two hues side by side with a ~20 px
+ // handover at N=384. The nucleus stays warm whichever side of the front it is
+ // on, so there is always a hot core inside the cool body.
+ const wa=r()*TAU;
+ const lg=wg.createLinearGradient(cx-Math.cos(wa)*N*.55,cy-Math.sin(wa)*N*.55,
+                                  cx+Math.cos(wa)*N*.55,cy+Math.sin(wa)*N*.55);
+ lg.addColorStop(0,'rgba(255,255,255,0)');
+ lg.addColorStop(.46,'rgba(255,255,255,0)');
+ lg.addColorStop(.49,'rgba(255,255,255,.18)');
+ lg.addColorStop(.525,'rgba(255,255,255,.90)');
+ lg.addColorStop(1,'rgba(255,255,255,.96)');
+ wg.fillStyle=lg;wg.fillRect(0,0,N,N);
+ // Two warm lobes pushed past the front, so the handover is a scalloped edge
+ // rather than a ruler-straight bisector. The stops are near-binary on purpose:
+ // a wide ramp between amber and cyan passes through olive, which is the same
+ // desaturated middle the two-surface split exists to avoid.
+ const warmBlob=(x,y,rr,al)=>{
+  const gr=wg.createRadialGradient(x,y,0,x,y,rr);
+  gr.addColorStop(0,`rgba(255,255,255,${al.toFixed(3)})`);
+  gr.addColorStop(.78,`rgba(255,255,255,${al.toFixed(3)})`);
+  gr.addColorStop(.92,`rgba(255,255,255,${(al*.30).toFixed(3)})`);
+  gr.addColorStop(1,'rgba(255,255,255,0)');
+  wg.fillStyle=gr;wg.fillRect(x-rr,y-rr,rr*2,rr*2);
+ };
+ warmBlob(cx+Math.cos(wa+2.4)*N*.16,cy+Math.sin(wa+2.4)*N*.16,N*.18,.50);
+ warmBlob(cx+Math.cos(wa-2.6)*N*.13,cy+Math.sin(wa-2.6)*N*.13,N*.13,.36);
+ wg.save();wg.translate(lobes[0].x,lobes[0].y);wg.rotate(lobes[0].rot);
+ wg.scale(1.50,.72);
+ const cgr=wg.createRadialGradient(0,0,0,0,0,N*.17);
+ cgr.addColorStop(0,'rgba(255,255,255,1)');
+ cgr.addColorStop(.50,'rgba(255,255,255,.86)');
+ cgr.addColorStop(.80,'rgba(255,255,255,.34)');
+ cgr.addColorStop(1,'rgba(255,255,255,0)');
+ wg.fillStyle=cgr;wg.beginPath();wg.arc(0,0,N*.17,0,TAU);wg.fill();wg.restore();
+ // ---- dust bands ------------------------------------------------------------
+ // Wide, forking, and coherent: the spine wobbles on two low harmonics and the
+ // width breathes, so the band is a body with a lumpy edge, not a constant-width
+ // stroke (a crack) and not random stamps (a spray).
+ const curve=(L,t)=>{
+  const it=1-t;
+  const x=it*it*L.x0+2*it*t*L.mx+t*t*L.x1;
+  const y=it*it*L.y0+2*it*t*L.my+t*t*L.y1;
+  const dx=2*it*(L.mx-L.x0)+2*t*(L.x1-L.mx);
+  const dy=2*it*(L.my-L.y0)+2*t*(L.y1-L.my);
+  const nl=Math.hypot(dx,dy)||1;
+  return [x,y,-dy/nl,dx/nl];
+ };
+ const bands=[];
+ for(let i=0;i<2;i++){
+  const a0=r()*TAU,a1=a0+(r()<.5?-1:1)*(1.1+r()*1.7);
+  const r0=N*(.02+r()*.11),r1=N*(.30+r()*.15);
   const x0=cx+Math.cos(a0)*r0,y0=cy+Math.sin(a0)*r0;
   const x1=cx+Math.cos(a1)*r1,y1=cy+Math.sin(a1)*r1;
-  const nx=-(y1-y0),ny=x1-x0,nl=Math.hypot(nx,ny)||1,bow=(r()-.5)*N*(around?.05:.10);
-  g.strokeStyle=`rgba(255,255,255,${(.08+r()*.30).toFixed(3)})`;
-  g.lineWidth=N*(.003+r()*.011);
-  g.beginPath();g.moveTo(x0,y0);
-  g.quadraticCurveTo((x0+x1)*.5+nx/nl*bow,(y0+y1)*.5+ny/nl*bow,x1,y1);g.stroke();
+  const mx=(x0+x1)*.5,my=(y0+y1)*.5,dx=x1-x0,dy=y1-y0,dl=Math.hypot(dx,dy)||1;
+  const bow=(r()<.5?-1:1)*N*(.05+r()*.10);
+  bands.push({x0,y0,x1,y1,mx:mx-dy/dl*bow,my:my+dx/dl*bow,
+              w:N*(.019+r()*.011),hot:r()<.5?-1:1,ph:r()*TAU});
  }
- // Dark dust in front of the lit gas: a nebula reads as gas only when something
- // occludes it. It must not be a stroke, though. A constant-width curve with a
- // clean edge prints as a crack - regular, thin, the same width the whole way -
- // and that is what the reference photographs do not have. So a lane is a CHAIN
- // of overlapping discs stamped along its bowed path: each disc is wider or
- // narrower than its neighbours and its centre is nudged off the spine, so the
- // band breathes and wanders, and the discs accumulate under destination-out.
- // The overlap does the shading for free - the spine of the chain is cut
- // deepest, the fringe only feathered. Each disc is a soft halo plus a small
- // FLAT disc on top, so the lane's body is one flat tone (the paper showing
- // through the cut) with a short ragged shoulder - not a gradient all the way
- // through, which would be an airbrush, and not a clean constant stroke, which
- // is the crack being removed.
- g.globalCompositeOperation='destination-out';
- const lane=(x0,y0,mx,my,x1,y1,w,a)=>{
-  const K=18;
-  for(let i=0;i<=K;i++){
-   const t=i/K,it=1-t;
-   const bx=it*it*x0+2*it*t*mx+t*t*x1;
-   const by=it*it*y0+2*it*t*my+t*t*y1;
-   const dx=2*it*(mx-x0)+2*t*(x1-mx),dy=2*it*(my-y0)+2*t*(y1-my);
-   const nl=Math.hypot(dx,dy)||1,ox=-dy/nl,oy=dx/nl;
-   // Taper to nothing at both ends and breathe in between: a lane that keeps its
-   // width end to end is a rule, not dust.
-   const env=.28+.72*Math.pow(Math.sin(Math.PI*t),.50);
-   const rr=w*env*(.50+r()*1.35);
-   const wd=(r()-.5)*w*1.05;              // the spine wanders across the path
-   const px=bx+ox*wd,py=by+oy*wd,R=rr*2.0,al=a*(.24+r()*.30);
-   // Flat tone to half the radius, then a short ragged shoulder: the body of the
-   // lane is one tone and only its edge is a gradient, which is what keeps this
-   // flat graphic art instead of an airbrush.
-   const gr=g.createRadialGradient(px,py,0,px,py,R);
-   gr.addColorStop(0,`rgba(0,0,0,${al.toFixed(3)})`);
-   gr.addColorStop(.50,`rgba(0,0,0,${al.toFixed(3)})`);
-   gr.addColorStop(.82,`rgba(0,0,0,${(al*.30).toFixed(3)})`);
-   gr.addColorStop(1,'rgba(0,0,0,0)');
-   g.fillStyle=gr;
-   const bx0=px-R,by0=py-R;
-   g.fillRect(bx0,by0,R*2,R*2);
+ // A short branch hung off the longest band, so the dark structure forks.
+ {
+  const L=bands[0],q=curve(L,.55),side=r()<.5?-1:1;
+  const len=N*(.14+r()*.10),aa=r()*TAU;
+  bands.push({x0:q[0],y0:q[1],
+              x1:q[0]+Math.cos(aa)*len*side,y1:q[1]+Math.sin(aa)*len*side,
+              mx:q[0]+Math.cos(aa)*len*.5+q[2]*N*.05,
+              my:q[1]+Math.sin(aa)*len*.5+q[3]*N*.05,
+              w:L.w*(.60+r()*.20),hot:r()<.5?-1:1,ph:r()*TAU});
+ }
+ // ---- ridge filaments, drawn BEFORE the dust -------------------------------
+ // Each band gets four strands on ONE side, gated into groups along it. The
+ // dust then eats their inner edge, so what survives is a lit gas edge hugging
+ // an absorption lane - the reference's signature - instead of a line beside it.
+ const ridge=(ctx,L,amp)=>{
+  ctx.lineCap='round';ctx.lineJoin='round';
+  for(let s=0;s<4;s++){
+   const off=L.w*(1.10+s*.30)*L.hot;
+   // Three overlapping spans per strand instead of one stroke per segment: a
+   // stroke per segment with a per-segment alpha prints as a bead chain.
+   for(let span=0;span<3;span++){
+    const t0=.05+span*.28,t1=t0+.34;
+    ctx.beginPath();
+    for(let i=0;i<=10;i++){
+     const t=t0+(t1-t0)*i/10,q=curve(L,t);
+     const j=(Math.sin(t*12.0+L.ph*1.3+s*2.1)*.30+
+              Math.sin(t*27.0+L.ph)*.14)*L.w;
+     const x=q[0]+q[2]*(off+j),y=q[1]+q[3]*(off+j);
+     if(i)ctx.lineTo(x,y);else ctx.moveTo(x,y);
+    }
+    const gate=Math.pow(.5+.5*Math.sin((t0+t1)*.5*8.4+L.ph+s*.9),1.3);
+    const a=amp*(.25+.75*gate)*Math.pow(Math.sin(Math.PI*(t0+t1)*.5),.40);
+    ctx.strokeStyle=`rgba(255,255,255,${a.toFixed(3)})`;
+    ctx.lineWidth=L.w*(.14+.06*s);
+    ctx.stroke();
+   }
   }
  };
- // Arcs: they curve along the gas rather than pointing at its middle, which is
- // the difference between a dust lane and a starburst. (The radius is `rr`, not
- // `r`: `r` is the rng, and shadowing it in the same declaration list is a
- // temporal-dead-zone ReferenceError that kills every frame.)
- for(let i=0;i<8;i++){
-  const a0=r()*TAU,a1=a0+1.0+r()*1.8,rr=N*(.14+r()*.30);
-  const x0=cx+Math.cos(a0)*rr,y0=cy+Math.sin(a0)*rr;
-  const x1=cx+Math.cos(a1)*rr,y1=cy+Math.sin(a1)*rr;
-  const nx=-(y1-y0),ny=x1-x0,nl=Math.hypot(nx,ny)||1,bow=(r()<.5?-1:1)*N*(.08+r()*.14);
-  lane(x0,y0,(x0+x1)*.5+nx/nl*bow,(y0+y1)*.5+ny/nl*bow,x1,y1,N*(.008+r()*.017),.40+r()*.45);
+ for(const L of bands){ridge(g,L,.14);ridge(wg,L,.30);}
+ // ---- fractal mottling ------------------------------------------------------
+ // Three octaves of value noise multiply the gas alpha. This is the one thing
+ // the fills cannot give: variation at every scale, which is what reads as gas
+ // instead of as a tinted gradient. The ridged octave supplies thin dark veins;
+ // the broad one supplies the light and dark patches between the dust lanes.
+ const nc=document.createElement('canvas');nc.width=nc.height=N;
+ const ng=nc.getContext('2d'),ni=ng.createImageData(N,N),nd=ni.data;
+ const h2=(x,y)=>{
+  let n=Math.imul(x|0,374761393)^Math.imul(y|0,668265263)^Math.imul(seed+idx*7+11,1442695041);
+  n=Math.imul(n^(n>>>13),1274126177);
+  return ((n^(n>>>16))>>>0)/4294967296;
+ };
+ const vn=(x,y)=>{
+  const ix=Math.floor(x),iy=Math.floor(y),fx=x-ix,fy=y-iy;
+  const ux=fx*fx*(3-2*fx),uy=fy*fy*(3-2*fy);
+  const a=h2(ix,iy),b=h2(ix+1,iy),c2=h2(ix,iy+1),d2=h2(ix+1,iy+1);
+  return a+(b-a)*ux+(c2-a)*uy+(a-b-c2+d2)*ux*uy;
+ };
+ const fbm=(x,y)=>{
+  let s=0,a=1,t=0;
+  for(let o=0;o<3;o++){s+=a*vn(x,y);t+=a;a*=.5;x=x*2.07+13.1;y=y*2.03+7.7;}
+  return s/t;
+ };
+ for(let y=0;y<N;y++)for(let x=0;x<N;x++){
+  const m=fbm(x/58,y/58),f=1-Math.abs(2*fbm(x/13+31.7,y/13+9.2)-1);
+  const a=clamp((.56+.44*m)*(.78+.22*f),0,1);
+  const i=(y*N+x)*4;
+  nd[i]=nd[i+1]=nd[i+2]=255;nd[i+3]=(a*255)|0;
  }
- // Fingers: the short opaque tongues that hang off the edge of the gas.
- for(let i=0;i<5;i++){
-  const a0=r()*TAU,r0=N*(.05+r()*.18),a1=a0+(r()-.5)*1.0,r1=r0+N*(.14+r()*.22);
-  const x0=cx+Math.cos(a0)*r0,y0=cy+Math.sin(a0)*r0;
-  const x1=cx+Math.cos(a1)*r1,y1=cy+Math.sin(a1)*r1;
-  lane(x0,y0,(x0+x1)*.5+(r()-.5)*N*.09,(y0+y1)*.5+(r()-.5)*N*.09,x1,y1,N*(.010+r()*.019),.50+r()*.42);
+ ng.putImageData(ni,0,0);
+ g.globalCompositeOperation='destination-in';g.drawImage(nc,0,0);
+ // ---- tint each surface, then composite ------------------------------------
+ // The warm surface is NOT masked by the gas alpha here: source-atop at the
+ // composite below already clips it to the gas, and multiplying by gas alpha
+ // first only produced a half-strength warm that the sky then pulled back to
+ // blue. At full alpha the warm half stays warm even at the screen's .3-.4
+ // composite weight.
+ g.globalCompositeOperation='source-in';g.fillStyle=css(pal[1]);
+ g.fillRect(0,0,N,N);
+ wg.globalCompositeOperation='source-in';wg.fillStyle=css(pal[0]);
+ wg.fillRect(0,0,N,N);
+ g.globalCompositeOperation='source-atop';g.drawImage(wc,0,0);
+ // ---- dust on top of the tinted gas ----------------------------------------
+ g.globalCompositeOperation='destination-out';
+ const dust=(L,alpha)=>{
+  for(let i=0;i<=46;i++){
+   const t=i/46,q=curve(L,t);
+   const env=.16+.84*Math.pow(Math.sin(Math.PI*t),.45);
+   const lump=.70+.34*Math.sin(t*6.2+L.ph)+.16*Math.sin(t*15.7+L.ph*1.7);
+   // Two high harmonics make the edge frayed rather than an airbrushed sausage;
+   // the low ones keep the whole lane coherent.
+   const fray=(Math.sin(t*47.0+L.ph*3.1)+.6*Math.sin(t*89.0+L.ph))*.38*L.w;
+   const jit=1+.30*Math.sin(t*37.0+L.ph*2.2)+.16*Math.sin(t*61.0+L.ph);
+   const rr=Math.max(L.w*.40,L.w*env*lump*jit);
+   const wob=(.55*Math.sin(t*8.3+L.ph)+.28*Math.sin(t*19.1+L.ph*2.3))*L.w;
+   const px=q[0]+q[2]*(wob+fray),py=q[1]+q[3]*(wob+fray);
+   const R=rr*2.0,al=clamp(alpha*(.78+.14*Math.sin(t*10.3+L.ph))*
+                          Math.pow(Math.sin(Math.PI*t),.28),0,.94);
+   const gr=g.createRadialGradient(px,py,0,px,py,R);
+   gr.addColorStop(0,`rgba(0,0,0,${al.toFixed(3)})`);
+   gr.addColorStop(.62,`rgba(0,0,0,${al.toFixed(3)})`);
+   gr.addColorStop(.86,`rgba(0,0,0,${(al*.22).toFixed(3)})`);
+   gr.addColorStop(1,'rgba(0,0,0,0)');
+   g.fillStyle=gr;g.fillRect(px-R,py-R,R*2,R*2);
+  }
+ };
+ for(const L of bands)dust(L,.84+r()*.08);
+ // The lit edge, after the dust, so it sits ON the Lane's rim. Under `lighter`
+ // it raises value without changing the gas alpha, which is what makes the rim
+ // read as illuminated rather than as a line drawn beside the dark.
+ g.globalCompositeOperation='lighter';
+ const glow=(L)=>{
+  for(let s=0;s<2;s++){
+   const off=L.w*(1.20+s*.38)*L.hot;
+   for(let pass=0;pass<2;pass++){
+    g.beginPath();
+    for(let i=0;i<=26;i++){
+     const t=.12+.76*i/26,q=curve(L,t);
+     const x=q[0]+q[2]*off,y=q[1]+q[3]*off;
+     if(i)g.lineTo(x,y);else g.moveTo(x,y);
+    }
+    // A wide, very faint pass and a narrow, slightly stronger one. A single
+    // thin bright stroke reads as wire laid on the picture; the pair reads as
+    // gas that is being lit from behind.
+    g.strokeStyle=`rgba(255,250,240,${(pass ? .07 : .035).toFixed(3)})`;
+    g.lineWidth=L.w*(pass ? .30 : 1.25)*(1+s*.45);
+    g.stroke();
+   }
+  }
+ };
+ for(const L of bands)glow(L);
+ g.globalCompositeOperation='destination-out';
+ // One cavity, so the gas has a hole instead of an even fill.
+ for(let i=0;i<1;i++){
+  const a=r()*TAU,d=N*(.16+r()*.14),rr=N*(.08+r()*.07);
+  const x=cx+Math.cos(a)*d,y=cy+Math.sin(a)*d;
+  const gr=g.createRadialGradient(x,y,0,x,y,rr);
+  gr.addColorStop(0,'rgba(0,0,0,.46)');
+  gr.addColorStop(.55,'rgba(0,0,0,.30)');
+  gr.addColorStop(1,'rgba(0,0,0,0)');
+  g.fillStyle=gr;g.fillRect(x-rr,y-rr,rr*2,rr*2);
  }
- // Two lanes that cut right across the body. They bow hard, because a straight
- // bar across the gas reads as a rule laid on top of the picture.
- for(let i=0;i<2;i++){
-  const a0=r()*TAU,a1=a0+Math.PI+(r()-.5)*.7,r0=N*(.28+r()*.18),r1=N*(.28+r()*.18);
-  const x0=cx+Math.cos(a0)*r0,y0=cy+Math.sin(a0)*r0;
-  const x1=cx+Math.cos(a1)*r1,y1=cy+Math.sin(a1)*r1;
-  lane(x0,y0,(x0+x1)*.5+(r()-.5)*N*.22,(y0+y1)*.5+(r()-.5)*N*.22,x1,y1,N*(.009+r()*.019),.45+r()*.40);
- }
- g.globalCompositeOperation='source-over';
+ // ---- core-to-edge mask -----------------------------------------------------
  // The old mask was 1.00 at the centre and .82 at half the radius: a plateau of
- // alpha one under a soft edge, which is why every nebula printed as a flat
- // pale disc. This falls away fast, so the gas has a body and a halo.
+ // alpha one under a soft edge, which is why every nebula printed as a flat pale
+ // disc. This has a body out to .34 and then falls fast.
  g.globalCompositeOperation='destination-in';
  const m=g.createRadialGradient(cx,cy,0,cx,cy,N*.5);
- m.addColorStop(0,'rgba(0,0,0,1)');m.addColorStop(.26,'rgba(0,0,0,.92)');
- m.addColorStop(.52,'rgba(0,0,0,.50)');m.addColorStop(.78,'rgba(0,0,0,.14)');
- m.addColorStop(1,'rgba(0,0,0,0)');
+ m.addColorStop(0,'rgba(0,0,0,1)');m.addColorStop(.18,'rgba(0,0,0,1)');
+ m.addColorStop(.30,'rgba(0,0,0,.92)');m.addColorStop(.42,'rgba(0,0,0,.60)');
+ m.addColorStop(.54,'rgba(0,0,0,.24)');m.addColorStop(.66,'rgba(0,0,0,.05)');
+ m.addColorStop(.78,'rgba(0,0,0,0)');
  g.fillStyle=m;g.fillRect(0,0,N,N);
- // Two-tone: a cool core inside a warm rim, or the reverse by seed, so the
- // same region does not print six identical nebulae. A single flat fill here
- // is what made them all look alike.
- const A=seed%2?pal[0]:pal[1],B=seed%2?pal[1]:pal[0];
- g.globalCompositeOperation='source-in';
- const cg=g.createRadialGradient(cx,cy,0,cx,cy,N*.5);
- cg.addColorStop(0,css(A));cg.addColorStop(.46,css(blend(A,B,.55)));cg.addColorStop(1,css(B));
- g.fillStyle=cg;g.fillRect(0,0,N,N);
+ // Three bites out of the rim, so the boundary is not a stamped circle.
+ g.globalCompositeOperation='destination-out';
+ for(let i=0;i<3;i++){
+  const a=r()*TAU,d=N*(.36+r()*.07),rr=N*(.09+r()*.05);
+  const x=cx+Math.cos(a)*d,y=cy+Math.sin(a)*d;
+  const gr=g.createRadialGradient(x,y,0,x,y,rr);
+  gr.addColorStop(0,'rgba(0,0,0,.58)');gr.addColorStop(.60,'rgba(0,0,0,.30)');
+  gr.addColorStop(1,'rgba(0,0,0,0)');
+  g.fillStyle=gr;g.fillRect(x-rr,y-rr,rr*2,rr*2);
+ }
+ // ---- hot nucleus and a few stars inside it --------------------------------
+ g.globalCompositeOperation='lighter';
+ const core=lobes[0];
+ const hg=g.createRadialGradient(core.x,core.y,0,core.x,core.y,N*.060);
+ hg.addColorStop(0,'rgba(255,246,238,.50)');
+ hg.addColorStop(.30,'rgba(255,220,200,.22)');
+ hg.addColorStop(.60,'rgba(255,200,180,.10)');
+ hg.addColorStop(1,'rgba(255,190,170,0)');
+ g.fillStyle=hg;g.fillRect(core.x-N*.060,core.y-N*.060,N*.12,N*.12);
+ for(let i=0;i<8;i++){
+  const a=r()*TAU,d=N*(.012+r()*.075),rr=.55+r()*1.1;
+  g.fillStyle=`rgba(255,252,246,${(.55+r()*.40).toFixed(3)})`;
+  g.beginPath();g.arc(core.x+Math.cos(a)*d,core.y+Math.sin(a)*d*.85,rr,0,TAU);g.fill();
+ }
  g.globalCompositeOperation='source-over';
  if(nebCache.size>40)nebCache.clear();
  nebCache.set(key,c);nebGens++;return c;
@@ -2008,18 +2194,18 @@ function drawSky(){
    const rad = n.size * camera.focal, pad = rad * 0.62;
    if (q[0] < -pad || q[0] > W + pad || q[1] < -pad || q[1] > H + pad) continue;
    const a = p.t, a0 = p.a, b0 = p.b, tw = p.t < 1;
-   const ng = novaGas(n, nova), al = clamp(n.alpha * wash * ng, 0, 0.85);
+   const ng = novaGas(n, nova), al = clamp(n.alpha * wash * 2.9 * ng, 0, 0.94);
 
    // Pass 1: Luminous stellar core emission & ionized gas halo (additive)
-   const coreRad = rad * 0.72;
+   const coreRad = rad * 0.46;
    const pal = NEB_PAL[p.index] || NEB_PAL[0];
    ctx.save();
    ctx.translate(q[0], q[1]);
    ctx.globalCompositeOperation = 'lighter';
    const nGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, coreRad);
-   nGrad.addColorStop(0, css(blend(pal[0], [255, 255, 255], 0.65), al * 0.40));
-   nGrad.addColorStop(0.35, css(pal[0], al * 0.18));
-   nGrad.addColorStop(0.70, css(pal[1], al * 0.06));
+   nGrad.addColorStop(0, css(blend(pal[0], [255, 255, 255], 0.20), al * 0.26));
+   nGrad.addColorStop(0.30, css(pal[0], al * 0.14));
+   nGrad.addColorStop(0.66, css(pal[1], al * 0.10));
    nGrad.addColorStop(1, 'rgba(0,0,0,0)');
    ctx.fillStyle = nGrad;
    ctx.beginPath(); ctx.arc(0, 0, coreRad, 0, TAU); ctx.fill();
