@@ -397,7 +397,9 @@ function chunk(k){
  if(chunks.has(k))return chunks.get(k);
  const r=rng((hash(k,71)*4294967295)>>>0),z0=k*CHUNK,masses=[],shards=[],plates=[],galaxies=[];
  const zc=z0+CHUNK*.5;
- const horizon=(k!==0 && k%19===0) || (k===12);
+ // Every 37 chunks, and one early gate at 7 so the first encounter is
+ // reachable. 19 + a special at 12 put two horizons seven chunks apart.
+ const horizon=(k!==0 && k%37===0) || (k===7);
 
  if(horizon){
   // Gargantua Supermassive Black Hole (Towering cinematic presence)
@@ -915,22 +917,24 @@ vec3 shadeDisk(vec4 hitData, float t, bool isFront) {
   float ang = phi - t * rotRate * 0.05;
 
   // Polar coordinates for organic texture sampling
-  float angF = 0.7 + 1.3 * smoothstep(2.62, 9.0, r);
+  float angF = 0.45 + 0.55 * smoothstep(2.62, 10.0, r);
   vec2 polarUV = vec2(ang / TAU * angF, (r - 2.62) / 11.0);
   vec3 organic = texture(uTexOrganic, polarUV).rgb;
-  organic = pow(organic, vec3(1.8)) * 3.2;
+  organic = pow(organic, vec3(1.15)) * 2.1;
 
   // Concentric Keplerian micro-striations
   float rLog = log(r / 2.62);
-  float s1 = sin(rLog * 48.0);
-  float s2 = sin(rLog * 80.0 + 1.2);
-  float s3 = sin(rLog * 140.0 - 0.6);
-  float striations = 0.5 + 0.5 * (s1 * 0.58 + s2 * 0.30 + s3 * 0.06);
+  float s1 = sin(rLog * 21.0);
+  float s2 = sin(rLog * 44.0 + 1.2);
+  float s3 = 0.0;
+  // Two wide bands, low amplitude. Anything faster, seen edge-on, reads
+  // as mesh.
+  float striations = 0.5 + 0.5 * (s1 * 0.30 + s2 * 0.12);
 
   // Band-limited procedural turbulence from noise texture
   vec2 noiseUV = vec2(r * 0.15, ang / TAU * 4.0);
   vec3 nSample = texture(uTexNoise, noiseUV).rgb;
-  float turb = 0.75 + 0.25 * nSample.r + 0.15 * nSample.g;
+  float turb = 0.88 + 0.10 * nSample.r + 0.04 * nSample.g;
 
   float filament = organic.r * striations * turb;
 
