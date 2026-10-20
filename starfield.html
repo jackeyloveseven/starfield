@@ -100,7 +100,7 @@
 <button class="control" id="pause-toggle" aria-pressed="true" title="暂停 / 继续（空格）" aria-label="暂停飞行"><i class="icon pause-icon" aria-hidden="true"></i></button>
 <button class="control" id="fullscreen-toggle" title="全屏（F）" aria-label="切换全屏"><i class="icon fullscreen-icon" aria-hidden="true"></i></button>
 </nav>
-<div id="hint">移动光标引航 &nbsp; · &nbsp; 滚轮轻探远方 &nbsp; · &nbsp; C 自主运镜</div><div id="toast" role="status" aria-live="polite"></div><div id="pause-label" class="serif">星光在等你</div>
+<div id="hint">移动光标引航 &nbsp; · &nbsp; 滚轮轻探远方 &nbsp; · &nbsp; C 自主运镜 &nbsp; · &nbsp; V 驾驶舱</div><div id="toast" role="status" aria-live="polite"></div><div id="pause-label" class="serif">星光在等你</div>
 </main>
 <script>
 'use strict';
@@ -178,6 +178,8 @@ const canGrade=typeof CanvasRenderingContext2D!=='undefined'&&
 const coarse=matchMedia('(pointer:coarse)').matches;
 const FLEET_COUNT=coarse?10:14;
 let started=false,paused=false,autoCamera=true,poemsEnabled=true,soundEnabled=true;
+// A third place to stand. Not a camera behaviour: a seat.
+let cockpitMode=false,cockpitBlend=0;
 let travel=SEGMENT*.5,departure=travel,time=0,flightTime=0,previewTime=0,frameCount=0,last=performance.now(),currentPalette=region(0,travel);
 let toastUntil=0,uiAccumulator=0,wakeLock=null,lowQuality=coarse;
 const reducedMotion=matchMedia('(prefers-reduced-motion:reduce)').matches;
@@ -292,6 +294,7 @@ function makePlan(c,prevYaw){
 makePlan(0,null);makePlan(1,plans.get(0)[5].yaw);
 function poseAt(p,t){return {...p,yaw:p.yaw+Math.sin(t*.047+p.id)*p.drift,pitch:p.pitch+Math.sin(t*.039+p.id*.5)*.007};}
 function updateDirector(dt){
+ if(cockpitMode){cockpitPose();captureCamPose=null;return;}
  if(started&&!paused){
   shotTime+=dt;totalCycleTime+=dt;
   while(shotTime>=plans.get(cycle)[shot].duration){
@@ -2839,7 +2842,104 @@ canvas.addEventListener('wheel',e=>{
  if(autoCamera){observation.distance=clamp(observation.distance+delta*.52,-170,540);observation.pitch=clamp(observation.pitch+delta*.000075,-.06,.14);observation.last=time;}
  else manual.distance=clamp(manual.distance*Math.exp(delta*.0012),360,4400);
 },{passive:false});
+
+/* ---- The cockpit ---------------------------------------------------------
+ * The camera sits behind and above the lead crane, aimed down the corridor, so
+ * the flock is under the glass and the paper hood is at the edges of the plate.
+ *
+ * Everything here is deliberately slow: a breath in the eye height, a bank that
+ * follows the lane, and a hand tremor that is small enough to be felt rather
+ * than seen. A cockpit that moves like a camera reads as a chase view; one that
+ * moves like a body reads as a person.
+ * -------------------------------------------------------------------------*/
+function cockpitPose(){
+ const lead=fleet[LEAD]||fleet[0],p=craftWorld(lead);
+ const back=340,rise=96;
+ const yawToLane=Math.atan(laneD(travel)*.68);
+ const breath=Math.sin(time*.82)*1.9+Math.sin(time*1.31)*.7;
+ const tremor=Math.sin(time*2.3)*.35+Math.sin(time*3.7)*.18;
+ const eye=[p[0],p[1]+rise+breath,p[2]-back];
+ const look=[routeX(travel+900),courseY(travel+900)+26,travel+900];
+ let f=[look[0]-eye[0],look[1]-eye[1],look[2]-eye[2]];
+ const fl=Math.hypot(f[0],f[1],f[2])||1;f=[f[0]/fl,f[1]/fl,f[2]/fl];
+ let r=[f[2],0,-f[0]];const rl=Math.hypot(r[0],r[2])||1;r=[r[0]/rl,0,r[2]/rl];
+ let u=[f[1]*r[2]-f[2]*r[1],f[2]*r[0]-f[0]*r[2],f[0]*r[1]-f[1]*r[0]];
+ const roll=yawToLane*.55+tremor*.004;
+ const co=Math.cos(roll),si=Math.sin(roll);
+ const rr=[r[0]*co+u[0]*si,r[1]*co+u[1]*si,r[2]*co+u[2]*si];
+ u=[u[0]*co-r[0]*si,u[1]*co-r[1]*si,u[2]*co-r[2]*si];
+ camera.eye=eye;camera.forward=f;camera.right=rr;camera.up=u;
+ camera.roll=roll;camera.cx=W*.5;camera.cy=H*.46;
+ camera.focal=H*1.12;
+}
+function drawCockpit(t){
+ const k=cockpitBlend;if(k<=.01)return;
+ const ink=currentPalette.ink,paper=currentPalette.paper;
+ ctx.save();ctx.globalAlpha=k;
+ // Condensation: the warm breath of the pilot, in the two bottom corners.
+ const cw=Math.min(W,H)*.55;
+ for(const sx of [0,W]){
+  const g=ctx.createRadialGradient(sx,H,0,sx,H,cw);
+  g.addColorStop(0,css(blend(ink,[255,255,255],.30),.10));
+  g.addColorStop(.55,css(blend(ink,[255,255,255],.30),.035));
+  g.addColorStop(1,css(blend(ink,[255,255,255],.30),0));
+  ctx.fillStyle=g;ctx.fillRect(0,H-cw,cw*1.6,cw);
+ }
+ // Two canopy panels. Narrow on purpose: a hood that covers a third of the
+ // plate is a frame, one that covers two thirds is a blindfold.
+ const pw=W*.115,ph=H*.78;
+ ctx.fillStyle=css(blend(paper,ink,.11),.93);
+ ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(pw,0);ctx.lineTo(pw*.72,ph);ctx.lineTo(0,H);ctx.closePath();ctx.fill();
+ ctx.beginPath();ctx.moveTo(W,0);ctx.lineTo(W-pw,0);ctx.lineTo(W-pw*.72,ph);ctx.lineTo(W,H);ctx.closePath();ctx.fill();
+ // The fold catches the light.
+ ctx.strokeStyle=css(blend(ink,[255,255,255],.45),.30);ctx.lineWidth=1.1;
+ ctx.beginPath();ctx.moveTo(pw,0);ctx.lineTo(pw*.72,ph);ctx.stroke();
+ ctx.beginPath();ctx.moveTo(W-pw,0);ctx.lineTo(W-pw*.72,ph);ctx.stroke();
+ // Stitching. A machine-perfect edge is a bezel; a row of stitches is made.
+ ctx.fillStyle=css(blend(ink,[255,255,255],.25),.34);
+ for(let y=H*.05;y<ph*.92;y+=13){
+  const x=pw-(y/ph)*(pw-pw*.72)-5;
+  ctx.fillRect(x-1.2,y,2.2,4.5);
+  ctx.fillRect(W-x-1,y,2.2,4.5);
+ }
+ // Top strut, and the two handholds under it.
+ ctx.fillStyle=css(blend(paper,ink,.14),.90);
+ ctx.fillRect(pw*.86,0,W-2*pw*.86,H*.028);
+ ctx.strokeStyle=css(blend(ink,[255,255,255],.4),.22);ctx.lineWidth=1;
+ ctx.beginPath();ctx.moveTo(pw*.86,H*.028);ctx.lineTo(W-pw*.86,H*.028);ctx.stroke();
+ // Dust on the glass: fixed to the canopy, not to the sky.
+ ctx.fillStyle=css(blend(ink,[255,255,255],.55),.16);
+ for(const d of [[.22,.31,1.6],[.68,.19,1.1],[.78,.52,2.0],[.31,.66,1.2]]){
+  ctx.beginPath();ctx.arc(W*d[0],H*d[1],d[2],0,TAU);ctx.fill();
+ }
+ // A note taped to the right panel. The one thing in here that is not a machine.
+ ctx.save();
+ ctx.translate(W-W*.030,H*.78);ctx.rotate(-.06);
+ const nw=W*.072,nh=nw*.62;
+ ctx.fillStyle=css(blend(ink,[255,255,255],.72),.90);
+ ctx.fillRect(-nw/2,-nh/2,nw,nh);
+ ctx.fillStyle=css(blend(paper,[180,60,50],.45),.55);
+ ctx.fillRect(-nw/2,-nh/2,nw,3.2);           // the tape
+ ctx.strokeStyle=css(paper,.42);ctx.lineWidth=.8;
+ ctx.beginPath();ctx.moveTo(-nw*.36,-nh*.06);ctx.lineTo(nw*.10,-nh*.14);ctx.stroke();
+ ctx.beginPath();ctx.moveTo(-nw*.36,nh*.12);ctx.lineTo(nw*.24,nh*.05);ctx.stroke();
+ ctx.beginPath();ctx.moveTo(-nw*.36,nh*.26);ctx.lineTo(-nw*.06,nh*.22);ctx.stroke();
+ ctx.restore();
+ ctx.restore();
+ ctx.globalAlpha=1;
+}
+function toggleCockpit(){
+ cockpitMode=!cockpitMode;
+ if(cockpitMode)cockpitBlend=Math.max(cockpitBlend,.55);
+ if(cockpitMode){autoCamera=false;wind.active=false;manual.yaw=camera.yaw;manual.pitch=camera.pitch;manual.distance=Math.max(600,manual.distance);}
+ else{autoCamera=true;}
+ canvas.classList.toggle('manual',!autoCamera);
+ $('camera-toggle').setAttribute('aria-pressed',String(autoCamera));
+ $('camera-button-name').textContent=cockpitMode?'驾驶舱':autoCamera?'自动运镜':'自主镜头';
+ toast(cockpitMode?'驾驶舱视角 · 按 V 回到外部镜头':'回到外部镜头');
+}
 function toggleCamera(){
+ if(cockpitMode){cockpitMode=false;toast('回到外部镜头');}
  autoCamera=!autoCamera;
  if(!autoCamera){manual.yaw=camera.yaw;manual.pitch=camera.pitch;manual.distance=camera.distance;manual.aimY=camera.aimY;manual.lane=camera.lane;wind.active=false;}
  canvas.classList.toggle('manual',!autoCamera);$('camera-toggle').setAttribute('aria-pressed',String(autoCamera));$('camera-button-name').textContent=autoCamera?'自动运镜':'自主镜头';
@@ -2891,6 +2991,7 @@ $('camera-toggle').addEventListener('click',toggleCamera);$('sound-toggle').addE
 window.addEventListener('keydown',e=>{
  if(!started||e.ctrlKey||e.metaKey||e.altKey)return;
  if(e.code==='Space'){if(e.target instanceof HTMLButtonElement)return;e.preventDefault();togglePause();}
+ else if(e.key.toLowerCase()==='v')toggleCockpit();
  else if(e.key.toLowerCase()==='c')toggleCamera();else if(e.key.toLowerCase()==='m')toggleSound();else if(e.key.toLowerCase()==='p')togglePoem();else if(e.key.toLowerCase()==='f')fullscreen(true);
  else if(e.key.toLowerCase()==='h')toast('移动光标引航 · Shift/W 曲速加速 · G 切挡 · C 镜头 · M 声音 · P 手记 · 空格暂停 · F 全屏',6);
 });
@@ -2905,7 +3006,7 @@ function resize(){
 }
 window.addEventListener('resize',resize);document.addEventListener('fullscreenchange',resize);
 $('edition-seed').textContent=`FIELD ${SEED.toString(16).toUpperCase().slice(0,6)}`;
-if(coarse){document.querySelector('.intro-footer').textContent='22 CRAFT.  ONE OPEN SKY.';document.querySelector('.intro-note').innerHTML='触摸屏幕，让风带路。<br>建议开启声音 · 无终点，无需抵达';$('hint').textContent='触摸引航 · 切换自主镜头后，可拖拽与双指缩放';}
+if(coarse){document.querySelector('.intro-footer').textContent='22 CRAFT.  ONE OPEN SKY.';document.querySelector('.intro-note').innerHTML='触摸屏幕，让风带路。<br>建议开启声音 · 无终点，无需抵达';$('hint').textContent='触摸引航 · 切换自主镜头后，可拖拽与双指缩放 · 驾驶舱见 V';}
 resize();updateUI();
 let lastFillPx=0,fps=60,framesInWindow=0,measureStart=performance.now(),slowWindows=0;
 function frame(now){
@@ -2920,7 +3021,9 @@ function frame(now){
  currentPalette=region(routeX(travel),travel);
  if(dt){updateWind(dt);updateGravity();updateBirds(dt);updateCapture(dt);updateSling(dt);updateParticles(dt);updatePoem(dt);}
  ctx.setTransform(DPR,0,0,DPR,0,0);drawCalls=0;queue.length=0;holeDraws=0;
- drawSky();deepfield();drawCraftShadows();bodies();drawFleet();drawParticles();flush();paperFinish();postPass();
+ drawSky();deepfield();drawCraftShadows();bodies();drawFleet();drawParticles();flush();
+ cockpitBlend+=((cockpitMode?1:0)-cockpitBlend)*Math.min(1,realDt*3.2);
+ drawCockpit(time);paperFinish();postPass();
  uiAccumulator+=realDt;if(uiAccumulator>.12){uiAccumulator=0;updateUI();}
  frameCount++;framesInWindow++;lastFillPx=fillPx;fillPx=0;
  if(now-measureStart>3000){fps=framesInWindow*1000/(now-measureStart);framesInWindow=0;measureStart=now;if(fps<25)slowWindows++;else slowWindows=Math.max(0,slowWindows-1);if(slowWindows>2)lowQuality=true;}
