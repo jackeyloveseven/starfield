@@ -476,7 +476,9 @@ const W_TYPES = [
  {n:'城',  c:[ 46, 46, 54], f:'city'},
  {n:'冰',  c:[128,168,196], f:'ice'},
  {n:'沙',  c:[150,112, 62], f:'desert'},
- {n:'气',  c:[132, 96, 74], f:'gas'}
+ {n:'气',  c:[132, 96, 74], f:'gas'},
+ // Dealt rarely; see worldFor().
+ {n:'地球',c:[ 52,112,176], f:'earth'}
 ];
 const W_SHAPES = ['round','ringed','oblate','fractured'];
 function shuffleDeck(n, seed) {
@@ -490,6 +492,9 @@ function worldFor(e) {
  const cyc = Math.floor(e / 7), idx = e % 7;
  const td = shuffleDeck(7, (SEED ^ Math.imul(cyc + 3, 0x9e3779b1)) >>> 0);
  const sd = shuffleDeck(4, (SEED ^ Math.imul(cyc + 11, 0x85ebca6b)) >>> 0);
+ // One cycle in eight deals the earth instead of the seventh surface.
+ const r = rng((SEED ^ Math.imul(cyc + 29, 0x27d4eb2f)) >>> 0);
+ if (r() < .125) td[6] = 7;
  return { t: td[idx], s: sd[(idx + (cyc & 3)) % 4] };
 }
 function chunk(k){
@@ -829,7 +834,83 @@ function drawWorld(m, q, p, t, rad, tint) {
       // read as something ON the world.
       if (rad > 70 && m.w) {
         const hb = (m.phase * 4096) | 0, fe = (W_TYPES[m.w.t] || W_TYPES[0]).f;
-        if (fe === 'lava') {
+        if (fe === 'earth') {
+          // ---- ocean shading, then land, then weather ----------------------
+          // Continents: a few irregular lobes, squashed toward the limb.
+          const lobes = 4 + (hash(hb, 71, 1) * 3 | 0);
+          for (let i = 0; i < lobes; i++) {
+            const a0 = hash(hb, 72 + i, 1) * TAU;
+            const rr = rad * (.18 + .48 * hash(hb, 72 + i, 2));
+            const px = cx + Math.cos(a0) * rr, py = cy + Math.sin(a0) * rr * .92;
+            const sq = Math.sqrt(Math.max(.12, 1 - (rr / rad) * (rr / rad)));
+            const w = rad * (.22 + .20 * hash(hb, 72 + i, 3));
+            const h = w * (.55 + .55 * hash(hb, 72 + i, 4)) * sq;
+            ctx.beginPath();
+            ctx.ellipse(px, py, w, h, a0 + .4 * hash(hb, 72 + i, 5), 0, TAU);
+            ctx.fillStyle = 'rgba(74,116,62,' + (0.55 + .22 * hash(hb, 72 + i, 6)).toFixed(3) + ')';
+            ctx.fill();
+            // the coast: a lighter rim and a wet dark line
+            ctx.strokeStyle = 'rgba(206,214,180,.34)';
+            ctx.lineWidth = Math.max(1, rad * .006);
+            ctx.stroke();
+            ctx.strokeStyle = 'rgba(18,44,58,.40)';
+            ctx.lineWidth = Math.max(1, rad * .0035);
+            ctx.stroke();
+          }
+          // polar ice
+          for (const sy of [-1, 1]) {
+            const g = ctx.createLinearGradient(cx, cy + sy * rad * .58, cx, cy + sy * rad);
+            g.addColorStop(0, 'rgba(244,250,255,0)');
+            g.addColorStop(1, 'rgba(244,250,255,.80)');
+            ctx.fillStyle = g;
+            ctx.beginPath();
+            ctx.ellipse(cx, cy + sy * rad * .88, rad * .92, rad * .26, 0, 0, TAU);
+            ctx.fill();
+          }
+          // cloud bands, with one vortex
+          for (let i = 0; i < 5; i++) {
+            const yy = cy + rad * ((i - 2) * .34 + (hash(hb, 80 + i, 1) - .5) * .12);
+            const ww = rad * (.62 + .34 * hash(hb, 80 + i, 2));
+            ctx.beginPath();
+            ctx.ellipse(cx + rad * (hash(hb, 80 + i, 3) - .5) * .5, yy, ww,
+                        rad * (.045 + .045 * hash(hb, 80 + i, 4)),
+                        hash(hb, 80 + i, 5) * .5, 0, TAU);
+            ctx.fillStyle = 'rgba(250,253,255,' + (0.20 + .16 * hash(hb, 80 + i, 6)).toFixed(3) + ')';
+            ctx.fill();
+          }
+          {
+            const va = hash(hb, 90, 1) * TAU, vr = rad * (.30 + .30 * hash(hb, 90, 2));
+            const vx = cx + Math.cos(va) * vr, vy = cy + Math.sin(va) * vr;
+            for (let i = 0; i < 3; i++) {
+              ctx.beginPath();
+              ctx.arc(vx, vy, rad * (.10 + .07 * i), va + i, va + i + 2.2);
+              ctx.strokeStyle = 'rgba(252,254,255,.26)';
+              ctx.lineWidth = Math.max(1, rad * .012);
+              ctx.stroke();
+            }
+          }
+          // the sun glint, on the lit side of the ocean only
+          const gx = cx + lx * rad * .46, gy = cy - ly * rad * .46;
+          const gl = ctx.createRadialGradient(gx, gy, 0, gx, gy, rad * .26);
+          gl.addColorStop(0, 'rgba(255,255,255,.42)');
+          gl.addColorStop(.5, 'rgba(210,236,255,.16)');
+          gl.addColorStop(1, 'rgba(255,255,255,0)');
+          ctx.fillStyle = gl; ctx.fillRect(cx - rad, cy - rad, rad * 2, rad * 2);
+          // night side: city lights, clustered where the land meets the sea
+          const dark = 1 - clamp(.5 + .5 * (lx * 0 + ly * 0), 0, 1);
+          for (let i = 0; i < 46; i++) {
+            const a0 = hash(hb, 100 + i, 1) * TAU;
+            const rr = rad * Math.sqrt(hash(hb, 100 + i, 2)) * .88;
+            const px = cx + Math.cos(a0) * rr, py = cy + Math.sin(a0) * rr;
+            // keep them on the side away from the light
+            if (((px - cx) * lx + (py - cy) * (-ly)) > 0) continue;
+            if (hash(hb, 100 + i, 7) > .42) continue;
+            ctx.fillStyle = 'rgba(255,214,150,' + (0.45 + .45 * hash(hb, 100 + i, 3)).toFixed(3) + ')';
+            const s2 = Math.max(1.2, rad * .008);
+            ctx.fillRect(px, py, s2, s2 * .8);
+          }
+          void dark;
+        } else if (fe === 'lava') {
           ctx.strokeStyle = 'rgba(255,130,44,.62)';
           ctx.lineWidth = Math.max(1.6, rad * .020);
           for (let i = 0; i < 7; i++) {
