@@ -182,6 +182,8 @@ const FLEET_COUNT=coarse?10:14;
 let started=false,paused=false,autoCamera=true,poemsEnabled=true,soundEnabled=true;
 // A third place to stand. Not a camera behaviour: a seat.
 let cockpitMode=false,cockpitBlend=0;
+// The target may switch instantly; the camera may not.
+const lookSmooth=[0,0,0];let lookInit=false;
 // The jump: 0 = no gate in progress. t runs 0..6.2 s.
 let gateT=0,gateTo=0,gateMass=null,gateFlash=0;
 let travel=SEGMENT*.5,departure=travel,time=0,flightTime=0,previewTime=0,frameCount=0,last=performance.now(),currentPalette=region(0,travel);
@@ -362,6 +364,11 @@ function updateDirector(dt){
   }
  }
  if(captureCamPose){const c=captureCamPose;lookTarget=[mix(lookTarget[0],c.tx,c.blend),mix(lookTarget[1],c.ty,c.blend),mix(lookTarget[2],c.tz,c.blend)];}
+ // Integrate the look target: ~0.4 s to settle, so a change of subject is a
+ // turn and not a cut.
+ if(!lookInit){lookSmooth[0]=lookTarget[0];lookSmooth[1]=lookTarget[1];lookSmooth[2]=lookTarget[2];lookInit=true;}
+ else{const kk=Math.min(1,dt*2.4);
+  for(let i=0;i<3;i++){lookSmooth[i]+=(lookTarget[i]-lookSmooth[i])*kk;lookTarget[i]=lookSmooth[i];}}
  const horizontal=Math.cos(camera.pitch)*camera.distance;
  let eye=[lookTarget[0]+Math.sin(camera.yaw)*horizontal,Math.max(34,lookTarget[1]+Math.sin(camera.pitch)*camera.distance),travel-Math.cos(camera.yaw)*horizontal];
  eye[0]=mix(eye[0],laneX(eye[2]),camera.lane*.90);
@@ -445,6 +452,38 @@ function deepfield(){
 const chunks=new Map(),CHUNK=3200;
 /* Space is sparse and large: one chunk of sky holds a few masses, a scatter of
  * torn paper, and a couple of pages from a printed atlas. */
+
+/* ---- The world deck -------------------------------------------------------
+ * Seven surfaces, four silhouettes. Each cycle deals both decks with a shuffle
+ * seeded from the cycle index, so consecutive encounters never share a look and
+ * nothing repeats until the deck is exhausted.
+ *
+ *   type : ocean, lava, forest, city, ice, desert, gas
+ *   shape: round, ringed, oblate, fractured
+ * -------------------------------------------------------------------------*/
+const W_TYPES = [
+ {n:'海',  c:[ 36, 92,158], f:'ocean'},
+ {n:'熔岩',c:[104, 42, 26], f:'lava'},
+ {n:'林',  c:[ 52, 96, 56], f:'forest'},
+ {n:'城',  c:[ 46, 46, 54], f:'city'},
+ {n:'冰',  c:[128,168,196], f:'ice'},
+ {n:'沙',  c:[150,112, 62], f:'desert'},
+ {n:'气',  c:[132, 96, 74], f:'gas'}
+];
+const W_SHAPES = ['round','ringed','oblate','fractured'];
+function shuffleDeck(n, seed) {
+ const r = rng(seed >>> 0), a = [];
+ for (let i = 0; i < n; i++) a.push(i);
+ for (let i = n - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); const t = a[i]; a[i] = a[j]; a[j] = t; }
+ return a;
+}
+/* Which deck entry does encounter `e` get? */
+function worldFor(e) {
+ const cyc = Math.floor(e / 7), idx = e % 7;
+ const td = shuffleDeck(7, (SEED ^ Math.imul(cyc + 3, 0x9e3779b1)) >>> 0);
+ const sd = shuffleDeck(4, (SEED ^ Math.imul(cyc + 11, 0x85ebca6b)) >>> 0);
+ return { t: td[idx], s: sd[(idx + (cyc & 3)) % 4] };
+}
 function chunk(k){
  if(chunks.has(k))return chunks.get(k);
  const r=rng((hash(k,71)*4294967295)>>>0),z0=k*CHUNK,masses=[],shards=[],plates=[],galaxies=[],ships=[],gates=[];
@@ -477,6 +516,7 @@ function chunk(k){
   // piece is built around is never crowded.
   const nearHole=Math.abs(k-12)<3||(k%71<3);
   const hasEncounter = (k % 11 === 5) && (!nearHole || hash(k,909)<.20);
+  const encIndex = Math.floor(k / 11);
   if(hasEncounter){
    const z = z0 + CHUNK * (0.35 + r() * 0.30);
    const side = (r() < 0.5) ? -1 : 1;
@@ -486,7 +526,8 @@ function chunk(k){
    const slot=(k/11|0)%4,sgn=(slot===0||slot===1)?1:-1,upDown=(slot===0||slot===2);
    // Every fourth encounter is a giant.
    const kindPool = [(k/11|0)%4===3?6:1, 8, 3, 0];
-   const kKind = kindPool[((k / 11)|0) % kindPool.length];
+   const wD = worldFor(encIndex);
+   const kKind = (wD.s === 1) ? 8 : kindPool[((k / 11)|0) % kindPool.length];
    const pRad = kKind === 8 ? 3200 + r() * 2000 : kKind === 6 ? 3000 + r() * 1800
     : 2400 + r() * 1800;
    // The offset is in radii, so the corridor never runs through the body.
@@ -499,7 +540,7 @@ function chunk(k){
    masses.push({
     x, y, z, kind: kKind, r: pRad,
     // One world in sixteen is the easter egg.
-    bio: (hash(k, 78) < .065) ? 4 : (hash(k, 77) * 4 | 0),
+    w: wD,
     axis: [r() - 0.5, r() - 0.5, r() - 0.5], phase: r() * TAU,
     orb: null
    });
@@ -778,11 +819,10 @@ function drawWorld(m, q, p, t, rad, tint) {
 
       // Archetype marks. Clipped to the disc, drawn after the surface so they
       // read as something ON the world.
-      if (rad > 40 && m.bio != null) {
-        const hb = (m.phase * 4096) | 0;
-        if (m.bio === 1) {
-          // lava: cracks on the night side, where they would glow
-          ctx.strokeStyle = 'rgba(255,120,40,' + (0.20 + 0.18 * hash(hb, 1, 3)).toFixed(3) + ')';
+      if (rad > 40 && m.w) {
+        const hb = (m.phase * 4096) | 0, fe = (W_TYPES[m.w.t] || W_TYPES[0]).f;
+        if (fe === 'lava') {
+          ctx.strokeStyle = 'rgba(255,120,40,.34)';
           ctx.lineWidth = Math.max(1, rad * .012);
           for (let i = 0; i < 7; i++) {
             const a0 = hash(hb, 10 + i, 1) * TAU, r0 = rad * (.25 + .55 * hash(hb, 10 + i, 2));
@@ -792,31 +832,46 @@ function drawWorld(m, q, p, t, rad, tint) {
                        y0 + (hash(hb, 10 + i, 4) - .5) * rad * .30);
             ctx.stroke();
           }
-        } else if (m.bio === 3) {
-          // city: warm points clustered on the dark side
+        } else if (fe === 'city') {
           for (let i = 0; i < 26; i++) {
-            const a0 = hash(hb, 30 + i, 1) * TAU, r0 = Math.sqrt(hash(hb, 30 + i, 2)) * rad * .86;
-            const x0 = cx + Math.cos(a0) * r0, y0 = cy + Math.sin(a0) * r0;
             if (hash(hb, 30 + i, 5) > .55) continue;
+            const a0 = hash(hb, 30 + i, 1) * TAU, r0 = Math.sqrt(hash(hb, 30 + i, 2)) * rad * .86;
             ctx.fillStyle = 'rgba(255,206,140,' + (0.30 + .40 * hash(hb, 30 + i, 6)).toFixed(3) + ')';
-            ctx.fillRect(x0, y0, Math.max(1, rad * .010), Math.max(1, rad * .010));
+            ctx.fillRect(cx + Math.cos(a0) * r0, cy + Math.sin(a0) * r0,
+                         Math.max(1, rad * .010), Math.max(1, rad * .010));
           }
-        } else if (m.bio === 4) {
-          // earth: cloud bands and two landmasses
-          for (let i = 0; i < 3; i++) {
-            const yy = cy + rad * ((i - 1) * .42 + (hash(hb, i, 7) - .5) * .12);
+        } else if (fe === 'ocean' || fe === 'ice') {
+          // a hard specular glint where the light lands
+          const gx = cx + lx * rad * .42, gy = cy - ly * rad * .42;
+          const g = ctx.createRadialGradient(gx, gy, 0, gx, gy, rad * .30);
+          g.addColorStop(0, 'rgba(255,255,255,' + (fe === 'ice' ? .30 : .22) + ')');
+          g.addColorStop(1, 'rgba(255,255,255,0)');
+          ctx.fillStyle = g; ctx.fillRect(cx - rad, cy - rad, rad * 2, rad * 2);
+        } else if (fe === 'forest') {
+          for (let i = 0; i < 14; i++) {
+            const a0 = hash(hb, 50 + i, 1) * TAU, r0 = Math.sqrt(hash(hb, 50 + i, 2)) * rad * .82;
             ctx.beginPath();
-            ctx.ellipse(cx, yy, rad * (.70 + .18 * hash(hb, i, 8)), rad * .12, hash(hb, i, 9) * .3, 0, TAU);
-            ctx.fillStyle = 'rgba(248,252,255,' + (0.13 + .10 * hash(hb, i, 11)).toFixed(3) + ')';
+            ctx.ellipse(cx + Math.cos(a0) * r0, cy + Math.sin(a0) * r0,
+                        rad * (.08 + .10 * hash(hb, 50 + i, 3)), rad * .06, a0, 0, TAU);
+            ctx.fillStyle = 'rgba(24,58,30,' + (0.22 + .20 * hash(hb, 50 + i, 4)).toFixed(3) + ')';
             ctx.fill();
           }
-          for (let i = 0; i < 2; i++) {
-            const a0 = hash(hb, 40 + i, 1) * TAU, r0 = rad * (.30 + .35 * hash(hb, 40 + i, 2));
+        } else if (fe === 'desert') {
+          ctx.strokeStyle = 'rgba(210,170,110,.20)';
+          ctx.lineWidth = Math.max(1, rad * .02);
+          for (let i = 0; i < 5; i++) {
+            const yy = cy + rad * ((i - 2) * .30);
             ctx.beginPath();
-            ctx.ellipse(cx + Math.cos(a0) * r0, cy + Math.sin(a0) * r0, rad * .30, rad * .18, a0, 0, TAU);
-            ctx.fillStyle = 'rgba(74,120,64,' + (0.30 + .18 * hash(hb, 40 + i, 3)).toFixed(3) + ')';
-            ctx.fill();
+            ctx.ellipse(cx, yy, rad * .95, rad * .10, 0, 0, TAU);
+            ctx.stroke();
           }
+        }
+        // silhouette: a fractured world loses a wedge
+        if (m.w.s === 2 || (m.w && W_SHAPES[m.w.s] === 'fractured')) {
+          const a0 = hash(hb, 61, 1) * TAU, spr = .12 + .10 * hash(hb, 61, 2);
+          ctx.beginPath(); ctx.moveTo(cx, cy);
+          ctx.arc(cx, cy, rad * 1.02, a0, a0 + spr); ctx.closePath();
+          ctx.fillStyle = 'rgba(4,6,10,.92)'; ctx.fill();
         }
       }
       if (rad > 12) {
@@ -1287,7 +1342,9 @@ const holeGL=(()=>{
 
 function drawHole(m,q,p,t,rad){
   const cx=q[0],cy=q[1];
-  if(!holeGL||rad<3){return;}
+  // Any positive radius draws: the fade belongs to the far cull, not the near
+  // one, and a 2 px return was the blink.
+  if(!holeGL||rad<1){return;}
   const G=holeGL,DRAW=rad*5.27;
   holeDraws++;holeLastRad=Math.round(rad);
   glow([m.x,m.y,m.z],rad*5.2,[255,180,85],0.24,2.5);
@@ -1476,8 +1533,7 @@ function drawMass(m,p,t){
  let tint=massTint(m,p);
  // The archetype is the difference the eye actually looks for: same ball,
  // four different worlds.
- const BIO=[[36,86,150],[46,26,22],[54,92,58],[38,38,44],[42,96,168]];
- if(m.bio!=null){const b=BIO[m.bio]||BIO[0];tint=blend(tint,b,.55);}
+ if(m.w){const wt=W_TYPES[m.w.t]||W_TYPES[0];tint=blend(tint,wt.c,.62);}
  // A star is not a lit ball: it is the light. Colour from the blackbody ramp
  // the horizon already uses, not from the region's palette - a sun that turns
  // from gold to blue-grey when the sky changes is not a sun - and drawn here
