@@ -370,7 +370,7 @@ function flush(){
    else if(o.kind==='firefly'){const g=ctx.createRadialGradient(x,y,0,x,y,s*4);g.addColorStop(0,o.c);g.addColorStop(.23,css([218,232,153],.3));g.addColorStop(1,'rgba(218,232,153,0)');ctx.fillStyle=g;ctx.beginPath();ctx.arc(x,y,s*4,0,TAU);ctx.fill();}
    else{ctx.beginPath();ctx.ellipse(x,y,s,o.kind==='smoke'?s*.75:s,0,0,TAU);ctx.fill();}
   }
-  else if(o.type===4){o.fn();}
+  else if(o.type===4){if(o.alpha<1){ctx.save();ctx.globalAlpha=o.alpha;o.fn();ctx.restore();}else o.fn();}
   else if(o.type===3){const g=ctx.createRadialGradient(o.p[0],o.p[1],0,o.p[0],o.p[1],o.s*o.spread);fillPx+=o.s*o.spread*2*(o.s*o.spread*2);g.addColorStop(0,css(o.c,.95));g.addColorStop(.28,css(o.c,.40));g.addColorStop(.62,css(o.c,.11));g.addColorStop(1,css(o.c,0));ctx.fillStyle=g;ctx.fillRect(o.p[0]-o.s*o.spread,o.p[1]-o.s*o.spread,o.s*o.spread*2,o.s*o.spread*2);}
  }
  drawCalls+=queue.length;queue.length=0;ctx.globalAlpha=1;
@@ -425,8 +425,9 @@ function chunk(k){
   if(hasEncounter){
    const z = z0 + CHUNK * (0.35 + r() * 0.30);
    const side = (r() < 0.5) ? -1 : 1;
-   const dist = 1400 + r() * 900;
-   const y = courseY(z) + (r() - 0.5) * 420;
+   // Wide enough to be off to the side, shallow enough to still be met.
+   const dist = 1600 + r() * 4000;
+   const y = courseY(z) + (r() - 0.5) * 1900;
    const x = laneX(z) + side * dist;
    const kindPool = [1, 8, 3, 0];
    const kKind = kindPool[((k / 7)|0) % kindPool.length];
@@ -608,7 +609,7 @@ function drawWorld(m, q, p, t, rad, tint) {
   const lx = l[0] / ln, ly = l[1] / ln, lz = l[2] / ln;
 
   queue.push({
-    type: 4, d: q[2], alpha: 1, fn: () => {
+    type: 4, d: q[2], alpha: massVis, fn: () => {
       if (rad < 2.0) {
         ctx.beginPath(); ctx.arc(cx, cy, Math.max(.6, rad), 0, TAU);
         ctx.fillStyle = css(tint, .85); ctx.fill();
@@ -805,7 +806,7 @@ function ringHalf(m, q, rad, back) {
   ];
 
   queue.push({
-    type: 4, d: q[2] + (back ? 1 : -1), alpha: 1, fn: () => {
+    type: 4, d: q[2] + (back ? 1 : -1), alpha: massVis, fn: () => {
       ctx.save();
       ctx.translate(q[0], q[1]);
       ctx.rotate(roll);
@@ -1163,6 +1164,7 @@ function drawHole(m,q,p,t,rad){
   const pw = Math.max(1, Math.round(pw0 * sc));
   const ph = Math.max(1, Math.round(ph0 * sc));
 
+  const va=massVis;
   queue.push({
     type: 4, d: q[2], alpha: 1, fn: () => {
       const g = G.gl;
@@ -1191,7 +1193,7 @@ function drawHole(m,q,p,t,rad){
 
       g.drawArrays(g.TRIANGLES, 0, 3);
 
-      ctx.save();
+      ctx.save();ctx.globalAlpha=va;
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.drawImage(G.cv, Math.round(left * dpr), Math.round(top * dpr),
        Math.round(visW * dpr), Math.round(visH * dpr));
@@ -1205,6 +1207,7 @@ const lensRoll=0.34;
 // The sprite buffer cap. 1536 was sized for a shadow of ~300 px; the shadow can
 // now reach ~600 px, and a buffer that does not grow with it turns into upscale.
 const SPRITE_CAP=2048;
+let massVis=1; // set by bodies() so a mass can fade in
 let holeDraws=0,holeLastRad=0;
 let tintHole=[255,236,214];
 function drawMass(m,p,t){
@@ -1349,8 +1352,12 @@ function bodies(){
   // The shard and plate draw loops were here. drawShard/drawPlate are now
   // unreferenced; left in place rather than deleted blind.
 
-  for(const g of c.galaxies){const pj=project([g.x,g.y,g.z]);if(!pj||pj[2]>26000)continue;drawGalaxy(g,region(g.x,g.z),time);}
-  for(const m of c.masses){const pj=project([m.x,m.y,m.z]);if(!pj||pj[2]>18000)continue;drawMass(m,region(m.x,m.z),time);}
+  for(const g of c.galaxies){const pj=project([g.x,g.y,g.z]);if(!pj||pj[2]>34000)continue;drawGalaxy(g,region(g.x,g.z),time);}
+  // A body held at full alpha until a cutoff appears in one frame. Keep
+ // them much longer and fade them in over the last 12,000 units.
+ for(const m of c.masses){const pj=project([m.x,m.y,m.z]);if(!pj||pj[2]>40000)continue;
+  massVis=clamp((40000-pj[2])/12000);if(massVis<=0)continue;
+  drawMass(m,region(m.x,m.z),time);massVis=1;}
  }
  flush();
 }
