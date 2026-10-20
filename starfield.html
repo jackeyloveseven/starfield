@@ -180,6 +180,8 @@ const FLEET_COUNT=coarse?10:14;
 let started=false,paused=false,autoCamera=true,poemsEnabled=true,soundEnabled=true;
 // A third place to stand. Not a camera behaviour: a seat.
 let cockpitMode=false,cockpitBlend=0;
+// The jump: 0 = no gate in progress. t runs 0..6.2 s.
+let gateT=0,gateTo=0,gateMass=null,gateFlash=0;
 let travel=SEGMENT*.5,departure=travel,time=0,flightTime=0,previewTime=0,frameCount=0,last=performance.now(),currentPalette=region(0,travel);
 let toastUntil=0,uiAccumulator=0,wakeLock=null,lowQuality=coarse;
 const reducedMotion=matchMedia('(prefers-reduced-motion:reduce)').matches;
@@ -443,7 +445,7 @@ const chunks=new Map(),CHUNK=3200;
  * torn paper, and a couple of pages from a printed atlas. */
 function chunk(k){
  if(chunks.has(k))return chunks.get(k);
- const r=rng((hash(k,71)*4294967295)>>>0),z0=k*CHUNK,masses=[],shards=[],plates=[],galaxies=[],ships=[];
+ const r=rng((hash(k,71)*4294967295)>>>0),z0=k*CHUNK,masses=[],shards=[],plates=[],galaxies=[],ships=[],gates=[];
  const zc=z0+CHUNK*.5;
  // Every 37 chunks, plus the k=12 showpiece: that is the chunk the
  // 事件视界 departure lands on, and it is the ABYSS plate. 19 + this same
@@ -493,11 +495,21 @@ function chunk(k){
  // 40-unit crane and a 400-unit world.
  if(k>0&&k%5===2){
   const z=z0+CHUNK*(.30+.40*r()),side=r()<.5?-1:1;
-  ships.push({x:laneX(z)+side*(2200+r()*2600),y:courseY(z)+(r()-.5)*2600,z,
-   len:1400+r()*1800,roll:(r()-.5)*.55,ph:r()*TAU,drift:.55+r()*.9,
+  ships.push({x:laneX(z)+side*(2800+r()*3200),y:courseY(z)+(r()-.5)*2600,z,
+   len:900+r()*1100,roll:(r()-.5)*.55,ph:r()*TAU,drift:.55+r()*.9,
    hull:r(),lights:r()});
  }
- const c={masses,shards,plates,galaxies,ships,k};chunks.set(k,c);return c;
+ // One gate, and the battle that happened around it.
+ if(k>0&&k%23===11){
+  const z=z0+CHUNK*.55;
+  gates.push({x:laneX(z),y:courseY(z)+40,z,r:150+r()*90,ph:r()*TAU,used:false});
+  for(let i=0;i<5;i++){
+   const a=r()*TAU,d=700+r()*2400;
+   ships.push({x:laneX(z)+Math.cos(a)*d,y:courseY(z)+(r()-.5)*1500,z:z+Math.sin(a)*d,
+    len:500+r()*900,roll:r()*TAU,ph:r()*TAU,drift:0,hull:r(),lights:r(),wreck:true});
+  }
+ }
+ const c={masses,shards,plates,galaxies,ships,gates,k};chunks.set(k,c);return c;
 }
 function courseBend(z){
  let sum=0;
@@ -1273,13 +1285,41 @@ let tintHole=[255,236,214];
  * superstructure, two rows of windows and a running light. Its length is in
  * world units, so it shrinks honestly with distance - which is the whole point
  * of putting it here. */
+
+/* A paper ring standing on the corridor. Everything about it is flat except the
+ * light: a toned annulus with a crisp edge, three shivering arcs inside, and one
+ * soft bloom - the same grammar as the supernova's shells. */
+function drawGate(g,q,t){
+ const R=Math.max(6,g.r*q[3]);if(R<5)return;
+ queue.push({type:4,d:q[2],alpha:massVis,fn:()=>{
+  const cx=q[0],cy=q[1],p=currentPalette;
+  const rim=blend(p.ink,[255,255,255],.55),body=blend(p.paper,p.ink,.16);
+  ctx.save();ctx.translate(cx,cy);
+  ctx.beginPath();ctx.arc(0,0,R,0,TAU);ctx.arc(0,0,R*.74,TAU,0,true);
+  ctx.fillStyle=css(body,.55);ctx.fill();
+  ctx.strokeStyle=css(rim,.85);ctx.lineWidth=Math.max(1,R*.018);ctx.stroke();
+  // the throat: three arcs drifting out of phase, so it reads as moving
+  for(let i=0;i<3;i++){
+   const ph=t*.55+i*TAU/3;
+   ctx.beginPath();ctx.arc(0,0,R*(.80+i*.05),ph,ph+2.1);
+   ctx.strokeStyle=css(blend(p.sun,[255,255,255],.5),.20-.04*i);ctx.lineWidth=Math.max(.8,R*.012);ctx.stroke();
+  }
+  ctx.beginPath();ctx.arc(0,0,R*.70,0,TAU);
+  ctx.fillStyle=css(blend(p.paper,[0,0,0],.35),.42);ctx.fill();
+  ctx.restore();
+ }});
+ glow([g.x,g.y,g.z],g.r*1.5,blend(currentPalette.sun,[255,255,255],.4),.22,2.2);
+}
 function drawShip(s,q,t){
  const k=q[3],L=s.len*k;if(L<9)return;
  const Wd=L*.115,Ht=L*.052;
  queue.push({type:4,d:q[2],alpha:massVis,fn:()=>{
   const cx=q[0],cy=q[1],rot=s.roll+Math.sin(t*.10+s.ph)*.015;
   const p=currentPalette;
-  const hull=blend(p.craft,p.paper,.22),hullDark=blend(p.craft,p.ink,.28);
+  // A ship is not a light source. Near-white read as a slab; middle paper
+  // with a shaded half reads as a hull.
+  const dead=!!s.wreck;
+  const hull=shade(blend(p.paper,dead?p.paper:p.craft,.46),1.0),hullDark=shade(hull,.58);
   const rim=blend(p.ink,[255,255,255],.35);
   ctx.save();ctx.translate(cx,cy);ctx.rotate(rot);
   // hull: nose right, long tail left
@@ -1289,6 +1329,15 @@ function drawShip(s,q,t){
   ctx.lineTo(L*.30,Wd*.62);ctx.closePath();
   ctx.fillStyle=css(hull,.94);ctx.fill();
   ctx.strokeStyle=css(rim,.55);ctx.lineWidth=Math.max(.6,L*.0022);ctx.stroke();
+  // panel seams and a spine: something for the eye to measure the hull by
+  if(L>90){
+   ctx.strokeStyle=css(p.ink,.22);ctx.lineWidth=Math.max(.5,L*.0014);
+   for(let i=1;i<=5;i++){
+    const x=-L*.46+i*(L*.88/6);
+    ctx.beginPath();ctx.moveTo(x,-Wd*.92);ctx.lineTo(x,Wd*.92);ctx.stroke();
+   }
+   ctx.beginPath();ctx.moveTo(-L*.46,0);ctx.lineTo(L*.42,0);ctx.stroke();
+  }
   // a shadow plate under the nose, so the silhouette has two tones
   ctx.beginPath();
   ctx.moveTo(L*.50,0);ctx.lineTo(L*.30,Wd*.62);ctx.lineTo(-L*.10,Wd*.72);
@@ -1300,8 +1349,8 @@ function drawShip(s,q,t){
   ctx.lineTo(-L*.08,Ht*1.3);ctx.closePath();
   ctx.fillStyle=css(blend(hull,p.ink,.14),.9);ctx.fill();
   ctx.strokeStyle=css(rim,.40);ctx.lineWidth=Math.max(.5,L*.0016);ctx.stroke();
-  // window rows
-  if(L>60){
+  // window rows - a wreck has none, and that absence is what reads as dead
+  if(L>60&&!dead){
    const win=css(blend(p.sun,[255,255,255],.45),.62);
    ctx.fillStyle=win;
    const rows=3,col=Math.max(4,Math.min(26,Math.round(L*.020)));
@@ -1310,18 +1359,19 @@ function drawShip(s,q,t){
      const x=-L*.44+i*(L*.86/col),y=-Wd*.10+rI*(Wd*.19);
      const on=hash(Math.round(s.ph*100)+i,rI,7)>.22;
      if(!on)continue;
-     ctx.fillRect(x,y,Math.max(1,L*.0042),Math.max(.8,L*.0026));
+     ctx.fillRect(x,y,Math.max(1.4,L*.0078),Math.max(1.1,L*.0044));
     }
    }
   }
   // engine glow at the tail
-  if(L>30){
+  if(L>30&&!dead){
    const g=ctx.createRadialGradient(-L*.52,0,0,-L*.52,0,Math.max(6,L*.10));
    g.addColorStop(0,css(blend(p.sun,[255,255,255],.5),.55));
    g.addColorStop(1,css(p.sun,0));
    ctx.fillStyle=g;ctx.beginPath();ctx.arc(-L*.52,0,Math.max(6,L*.10),0,TAU);ctx.fill();
   }
   // running light
+  if(dead){ctx.restore();return;}
   const blink=.5+.5*Math.sin(t*2.6+s.lights*TAU);
   ctx.fillStyle=css([255,120,90],.35+.55*blink);
   ctx.beginPath();ctx.arc(L*.46,-Wd*.58,Math.max(1,L*.006),0,TAU);ctx.fill();
@@ -1474,6 +1524,9 @@ function bodies(){
   for(const g of c.galaxies){const pj=project([g.x,g.y,g.z]);if(!pj||pj[2]>34000)continue;drawGalaxy(g,region(g.x,g.z),time);}
   // A body held at full alpha until a cutoff appears in one frame. Keep
  // them much longer and fade them in over the last 12,000 units.
+ for(const g of (c.gates||[])){const pj=project([g.x,g.y,g.z]);if(!pj||pj[2]>52000)continue;
+  massVis=clamp((52000-pj[2])/18000);if(massVis<=0)continue;
+  drawGate(g,pj,time);massVis=1;}
  for(const s of c.ships){const pj=project([s.x,s.y,s.z]);if(!pj||pj[2]>52000)continue;
   if(pj[2]<18000&&activeShips.length<8)activeShips.push(s);
   massVis=clamp((52000-pj[2])/18000);if(massVis<=0)continue;
@@ -1608,6 +1661,50 @@ function captureCam(){
 function divePose(b,dd){
  const k=(b.bold*.37)%1,edge=1-dd*.55;
  return [b.bx*edge*(.55+.9*k),b.by*edge*.75,mix(700,1900,dd)*(.35+.65*k)];
+}
+
+/* Six seconds: two of acceleration, two and a half inside the throat, the rest
+ * coming out. `travel` steps once, at the darkest frame, so nothing in between
+ * ever sees a teleport.
+ */
+function updateGate(dt){
+ if(!started)return;
+ if(gateT>0){
+  const before=gateT;gateT+=dt;
+  if(before<3.0&&gateT>=3.0){
+   travel=gateTo;chunks.clear();gateFlash=1;
+  }
+  if(gateT>6.2){gateT=0;gateFlash=0;}
+  return;
+ }
+ const k0=Math.floor(travel/CHUNK);
+ for(let k=k0-1;k<=k0+1;k++){
+  const c=chunks.get(k);if(!c||!c.gates)continue;
+  for(const g of c.gates){
+   if(g.used)continue;
+   const dz=g.z-travel;
+   if(dz>-130&&dz<160){
+    g.used=true;gateT=1e-4;gateTo=travel+CHUNK*(15+Math.floor(hash(k,505)*9));gateMass=g;
+    toast('虫洞 · WORMHOLE',4);break;
+   }
+  }
+ }
+}
+/* Receding paper frames: the corridor of time. Amount 0..1. */
+function drawTunnel(amount){
+ if(amount<=.01)return;
+ const cx=W*.5,cy=H*.46,p=currentPalette;
+ const rim=blend(p.ink,[255,255,255],.55);
+ ctx.save();
+ for(let i=0;i<16;i++){
+  const t=((i+ (time*.55)%1)/16),s=Math.pow(t,2.1);
+  const w=W*(.03+1.35*s),h=H*(.03+1.35*s);
+  const a=amount*(1-s)*.42;
+  if(a<=.004)continue;
+  ctx.strokeStyle=css(rim,a);ctx.lineWidth=.7+2.2*s*amount;
+  ctx.strokeRect(cx-w,cy-h,w*2,h*2);
+ }
+ ctx.restore();
 }
 function updateCapture(dt){
  if(capturePhase===0){
@@ -3099,9 +3196,15 @@ function frame(now){
    flightTime += dt;}else{previewTime+=dt;travel+=SPEED*.15*dt;}}
  updateDirector(realDt);
  currentPalette=region(routeX(travel),travel);
- if(dt){updateWind(dt);updateGravity();updateBirds(dt);updateCapture(dt);updateSling(dt);updateParticles(dt);updatePoem(dt);}
+ if(dt){updateWind(dt);updateGravity();updateBirds(dt);updateGate(dt);updateCapture(dt);updateSling(dt);updateParticles(dt);updatePoem(dt);}
  ctx.setTransform(DPR,0,0,DPR,0,0);drawCalls=0;queue.length=0;holeDraws=0;
  drawSky();deepfield();drawCraftShadows();bodies();drawFleet();drawParticles();flush();
+ // The throat: a bell around the two seconds either side of the step.
+ if(gateT>0){const b=gateT<3.0?clamp((gateT-.7)/2.3,0,1):clamp((6.2-gateT)/2.6,0,1);
+  drawTunnel(b);}
+ if(gateFlash>.01){ctx.save();ctx.globalCompositeOperation='lighter';
+  ctx.fillStyle=css([255,250,240],gateFlash*.55);ctx.fillRect(0,0,W,H);ctx.restore();
+  gateFlash*=Math.max(0,1-realDt*2.2);}
  cockpitBlend+=((cockpitMode?1:0)-cockpitBlend)*Math.min(1,realDt*3.2);
  drawCockpit(time);paperFinish();postPass();
  uiAccumulator+=realDt;if(uiAccumulator>.12){uiAccumulator=0;updateUI();}
