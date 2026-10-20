@@ -2367,6 +2367,26 @@ function drawSky(){
    fillPx+=250*250*4;
   }
   ctx.restore();
+  // Glints along the band. The sister piece's river has three moving
+  // highlights a segment and that is what makes it read as water; the band
+  // had none, so it read as paint. Same trick, same great circle as the
+  // strokes above, so they curve with the lens.
+  {
+   const GK=lowQuality?34:70,gCol=css(blend(p.craft,[255,255,255],.55),1);
+   ctx.strokeStyle=gCol;ctx.lineWidth=1.6;ctx.lineCap='round';
+   for(let i=0;i<GK;i++){
+    const a2=(i/GK)*TAU+time*.011+hash(i,77)*.04,sp=.020+hash(i,78)*.014;
+    const d1=bdir(Math.cos(a2),Math.sin(a2),0),d2=bdir(Math.cos(a2+sp),Math.sin(a2+sp),0);
+    const q1=skyPoint(d1),q2=skyPoint(d2);
+    if(!q1||!q2)continue;
+    const w1=lensWarp(q1[0],q1[1]),w2=lensWarp(q2[0],q2[1]);
+    // A dash that crosses a seam is a scratch, not a glint.
+    if(Math.hypot(w2[0]-w1[0],w2[1]-w1[1])>70)continue;
+    ctx.globalAlpha=clamp((.16+.26*bw)*(.55+.45*Math.sin(time*.63+i*1.7)),0,.55);
+    ctx.beginPath();ctx.moveTo(w1[0],w1[1]);ctx.lineTo(w2[0],w2[1]);ctx.stroke();
+   }
+   ctx.globalAlpha=1;
+  }
   const bink=css(blend(p.craft,[255,255,255],.34));
   if(eps>0){
    const bb=[];
