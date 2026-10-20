@@ -1361,7 +1361,7 @@ function drawGalaxy(g,p,t){
  ribbon(bsm,g.rad*.020,.62,dust);
 }
 function bodies(){
- const k0=Math.floor(camera.eye[2]/CHUNK),radius=lowQuality?7:9,active=[];
+ const k0=Math.floor(camera.eye[2]/CHUNK),radius=lowQuality?9:13,active=[];
  for(let k=k0-radius;k<=k0+radius;k++)active.push(chunk(k));
  for(const [k] of chunks)if(Math.abs(k-k0)>radius+2)chunks.delete(k);
  for(const c of active){
@@ -1371,11 +1371,13 @@ function bodies(){
   for(const g of c.galaxies){const pj=project([g.x,g.y,g.z]);if(!pj||pj[2]>34000)continue;drawGalaxy(g,region(g.x,g.z),time);}
   // A body held at full alpha until a cutoff appears in one frame. Keep
  // them much longer and fade them in over the last 12,000 units.
- for(const m of c.masses){const pj=project([m.x,m.y,m.z]);if(!pj||pj[2]>40000)continue;
-  massVis=clamp((40000-pj[2])/12000);if(massVis<=0)continue;
+ for(const m of c.masses){const pj=project([m.x,m.y,m.z]);if(!pj||pj[2]>70000)continue;
+  massVis=clamp((70000-pj[2])/45000);if(massVis<=0)continue;
   drawMass(m,region(m.x,m.z),time);massVis=1;}
  }
- flush();
+ // No flush here: bodies used to empty the queue before drawFleet() and
+ // drawParticles() ran, so the cranes and the dust were painted over every
+ // world regardless of depth. The frame's last flush sorts them together.
 }
 /* Every craft owns its spring, phase, damping and power-law boldness. Pairwise
  * repulsion is capped, inverse-square and heavily damped: sliding, not impacts. */
@@ -1778,8 +1780,10 @@ function drawParticles(){
  for(const p of particles){
   const pal=region(p.x,p.z),alpha=smooth(p.life/3)*smooth((p.ttl-p.life)/5),q=[p.x+Math.sin(time*.8+p.phase)*6,p.y*(1-pal.void*.68),p.z];
   const cr=pal.core,sh=pal.shimmer,vd=pal.void,dust=clamp(1-cr-sh,.02,1);
-  if(dust>.02)sprite(q,p.size*.54,blend(pal.paper,pal.sun,.16),'dust',alpha*dust*.47);
-  if(cr>.02)sprite(q,p.size*1.05,pal.paper,'snow',alpha*cr*.72,time*.35+p.phase);
+  // pal.paper is the dark one by definition; a dark dust mote on a dark sky
+  // is nothing. Light comes from ink, tinted toward the region's sun.
+  if(dust>.02)sprite(q,p.size*.54,blend(pal.ink,pal.sun,.45),'dust',alpha*dust*.60);
+  if(cr>.02)sprite(q,p.size*1.05,pal.ink,'snow',alpha*cr*.82,time*.35+p.phase);
   if(sh>.02)sprite(q,p.size*.86,blend([226,238,248],pal.paper,.30),'petal',alpha*sh*.66,time*.6+p.phase);
   if(vd>.02)sprite(q,p.size*.48,[214,226,240],'firefly',alpha*vd*(.38+.48*Math.sin(time*1.6+p.phase)**2));
  }
