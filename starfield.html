@@ -471,23 +471,23 @@ function chunk(k){
   });
  } else {
   // Solitary grand planet encounter every 7 chunks (walk for a long time across deep space)
-  const hasEncounter = (k % 6 === 3);
+  const hasEncounter = (k % 7 === 3);
   if(hasEncounter){
    const z = z0 + CHUNK * (0.35 + r() * 0.30);
    const side = (r() < 0.5) ? -1 : 1;
-   // Wide enough to be off to the side, shallow enough to still be met.
-   // Far enough that the corridor never runs through the body itself.
-   const dist = 7000 + r() * 7000;
-   const y = courseY(z) + (r() - 0.5) * 3000;
-   const x = laneX(z) + side * dist;
-   // Every fourth encounter is a giant: the only thing in the piece that is
-   // bigger than a planet is the horizon, and it should not be alone.
-   const kindPool = [(k/6|0)%4===3?6:1, 8, 3, 0];
+   // One of four directions per encounter, in a fixed rotation: consecutive
+   // worlds do not stack on one axis, and the plate gets something above,
+   // below and to the sides instead of everything at the vanishing point.
+   const slot=(k/7|0)%4,sgn=(slot===0||slot===1)?1:-1,upDown=(slot===0||slot===2);
+   // Every fourth encounter is a giant.
+   const kindPool = [(k/7|0)%4===3?6:1, 8, 3, 0];
    const kKind = kindPool[((k / 7)|0) % kindPool.length];
-   // A world is not a marble: 2,400-5,200 units across, about seven times
-   // the old range, so that at 9,000 units it is a third of the plate.
    const pRad = kKind === 8 ? 3200 + r() * 2000 : kKind === 6 ? 3000 + r() * 1800
     : 2400 + r() * 1800;
+   // The offset is in radii, so the corridor never runs through the body.
+   const reach = pRad * (1.9 + r() * 1.6);
+   const y = courseY(z) + (upDown ? sgn * reach : (r() - .5) * pRad * .7);
+   const x = laneX(z) + (upDown ? side * (r() * .8 - .4) * pRad : sgn * reach);
    masses.push({
     x, y, z, kind: kKind, r: pRad,
     axis: [r() - 0.5, r() - 0.5, r() - 0.5], phase: r() * TAU,
