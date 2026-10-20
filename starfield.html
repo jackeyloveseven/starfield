@@ -309,6 +309,22 @@ function updateDirector(dt){
  camera.yaw+=angleDelta(camera.yaw,goal.yaw)*(1-Math.exp(-dt*rate));
  for(const k of ['pitch','distance','aimY','lane','roll'])camera[k]=expStep(camera[k],goal[k]||0,rate,dt);
  lookTarget=[routeX(travel),courseY(travel)+camera.aimY,travel];
+ // The camera watches the road. A world 4,000 units off the lane is then
+ // never in frame, which is why the encounters read as nothing happening.
+ // Lean the look target toward the nearest big body; the eye stays on the
+ // lane, so it is a glance and not a detour.
+ if(autoCamera&&activeMasses.length){
+  let gm=null,gd=1e9;
+  for(const m of activeMasses){
+   if(m.kind>=5&&m.kind<=7)continue; // a star is a light, not a place
+   const dx=m.x-lookTarget[0],dy=m.y-lookTarget[1],dz=m.z-lookTarget[2];
+   const d=Math.hypot(dx,dy,dz);
+   if(d<gd&&d<7000){gd=d;gm=m;}
+  }
+  if(gm){const w=clamp((7000-gd)/5000,0,1)*.32;
+   lookTarget=[mix(lookTarget[0],gm.x,w),mix(lookTarget[1],gm.y,w),
+    mix(lookTarget[2],gm.z,w)];}
+ }
  if(captureCamPose){const c=captureCamPose;lookTarget=[mix(lookTarget[0],c.tx,c.blend),mix(lookTarget[1],c.ty,c.blend),mix(lookTarget[2],c.tz,c.blend)];}
  const horizontal=Math.cos(camera.pitch)*camera.distance;
  let eye=[lookTarget[0]+Math.sin(camera.yaw)*horizontal,Math.max(34,lookTarget[1]+Math.sin(camera.pitch)*camera.distance),travel-Math.cos(camera.yaw)*horizontal];
@@ -421,7 +437,7 @@ function chunk(k){
   });
  } else {
   // Solitary grand planet encounter every 7 chunks (walk for a long time across deep space)
-  const hasEncounter = (k % 7 === 3);
+  const hasEncounter = (k % 6 === 3);
   if(hasEncounter){
    const z = z0 + CHUNK * (0.35 + r() * 0.30);
    const side = (r() < 0.5) ? -1 : 1;
@@ -431,7 +447,7 @@ function chunk(k){
    const x = laneX(z) + side * dist;
    const kindPool = [1, 8, 3, 0];
    const kKind = kindPool[((k / 7)|0) % kindPool.length];
-   const pRad = kKind === 8 ? 380 + r() * 220 : 280 + r() * 180;
+   const pRad = kKind === 8 ? 520 + r() * 380 : 360 + r() * 300;
    masses.push({
     x, y, z, kind: kKind, r: pRad,
     axis: [r() - 0.5, r() - 0.5, r() - 0.5], phase: r() * TAU,
