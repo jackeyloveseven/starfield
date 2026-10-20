@@ -476,14 +476,18 @@ function chunk(k){
    const z = z0 + CHUNK * (0.35 + r() * 0.30);
    const side = (r() < 0.5) ? -1 : 1;
    // Wide enough to be off to the side, shallow enough to still be met.
-   const dist = 1600 + r() * 4000;
-   const y = courseY(z) + (r() - 0.5) * 1900;
+   // Far enough that the corridor never runs through the body itself.
+   const dist = 7000 + r() * 7000;
+   const y = courseY(z) + (r() - 0.5) * 3000;
    const x = laneX(z) + side * dist;
    // Every fourth encounter is a giant: the only thing in the piece that is
    // bigger than a planet is the horizon, and it should not be alone.
    const kindPool = [(k/6|0)%4===3?6:1, 8, 3, 0];
    const kKind = kindPool[((k / 7)|0) % kindPool.length];
-   const pRad = kKind === 8 ? 520 + r() * 380 : kKind === 6 ? 900 + r() * 600 : 360 + r() * 300;
+   // A world is not a marble: 2,400-5,200 units across, about seven times
+   // the old range, so that at 9,000 units it is a third of the plate.
+   const pRad = kKind === 8 ? 3200 + r() * 2000 : kKind === 6 ? 3000 + r() * 1800
+    : 2400 + r() * 1800;
    masses.push({
     x, y, z, kind: kKind, r: pRad,
     axis: [r() - 0.5, r() - 0.5, r() - 0.5], phase: r() * TAU,
@@ -1514,7 +1518,7 @@ function drawGalaxy(g,p,t){
 }
 function bodies(){
  activeShips.length=0;
- const k0=Math.floor(camera.eye[2]/CHUNK),radius=lowQuality?9:13,active=[];
+ const k0=Math.floor(camera.eye[2]/CHUNK),radius=lowQuality?14:22,active=[];
  for(let k=k0-radius;k<=k0+radius;k++)active.push(chunk(k));
  for(const [k] of chunks)if(Math.abs(k-k0)>radius+2)chunks.delete(k);
  for(const c of active){
@@ -1717,9 +1721,11 @@ function updateCapture(dt){
    // closest pass is about 2,000: the act the piece was built around never
    // ran. It is an authored set piece on a horizon that comes every 37
    // chunks, not a hazard that ambushes a drifting flock.
-   if(dist<m.r*1.15){
+   // 7,200 units of radius cannot reach an 11,000-unit gap on proximity
+   // alone, so passing the horizon's plane also counts: it is a set piece.
+   if(dist<m.r*1.6||Math.abs(m.z-travel)<2400){
     {
-     capturePhase=1;captureT=0;captureTotal=0;captureGrip=0;captureDive=0;captureGear=0;captureMass=m;toast('引力捕获 · GRAVITY CAPTURE',6);break;
+     capturePhase=1;captureT=0;captureTotal=0;captureGrip=0;captureDive=0;captureGear=0;captureMass=m;sound.setTension(true);toast('引力捕获 · GRAVITY CAPTURE',6);break;
     }
    }
   }
@@ -1727,7 +1733,7 @@ function updateCapture(dt){
  }
  captureT+=dt;captureTotal+=dt;
  // A capture is an authored interlude, never a trap: bail out if it runs long.
- if(captureTotal>50){capturePhase=0;captureFlash=0;captureMass=null;captureTotal=0;captureGrip=0;captureDive=0;captureGear=0;captureCamPose=null;reseedFlock();return;}
+ if(captureTotal>50){sound.setTension(false);capturePhase=0;captureFlash=0;captureMass=null;captureTotal=0;captureGrip=0;captureDive=0;captureGear=0;captureCamPose=null;reseedFlock();return;}
  const m=captureMass;
  if(capturePhase===1){
   // GRIP. The well has hold. Steering away from it is read and it stretches the
@@ -2921,6 +2927,28 @@ class Soundscape {
   this.wind.filter.frequency.setTargetAtTime(260+speed*160+currentPalette.shimmer*100,now,.8);
   this.water.gain.gain.setTargetAtTime(water*.050,now,.8);
   this.wings.gain.gain.setTargetAtTime(close*close*(.003+flutter*.027),now,.09);
+ }
+ /* The horizon's score. Same media elements, same graph: swap the track and
+  * lift the master, then put it back. A capture that sounds like the cruise
+  * is the one thing that could make the set piece feel like nothing. */
+ setTension(on){
+  on=!!on;if(this.tense===on)return;this.tense=on;
+  if(!this.ready||!this.enabled)return;
+  try{
+   const ac=this.ac,t=ac.currentTime;
+   if(on){this.prior=this.index;this.switchTo(5);
+    this.master.gain.setTargetAtTime(.92,t,.5);
+    this.wings.gain.setTargetAtTime(.032,t,.4);}
+   else{this.switchTo(this.prior==null?0:this.prior);
+    this.master.gain.setTargetAtTime(.78,t,1.6);}
+  }catch(_){}
+ }
+ switchTo(i){
+  const el=this.media[i];if(!el||i===this.index)return;
+  try{this.media[this.index].pause();}catch(_){}
+  this.index=i;this.gapUntil=0;
+  try{el.currentTime=0;}catch(_){}
+  el.play().catch(()=>{});
  }
  setEnabled(value){this.enabled=value;if(!this.ready){if(value&&started)this.init();return;}clearTimeout(this.fadeTimer);if(value)this.resume();else{const t=this.ac.currentTime;this.master.gain.cancelScheduledValues(t);this.master.gain.setTargetAtTime(0,t,.12);this.fadeTimer=setTimeout(()=>{if(!this.enabled)this.suspend();},600);}}
  suspend(){if(!this.ready)return;this.media[this.index].pause();this.ac.suspend().catch(()=>{});}
