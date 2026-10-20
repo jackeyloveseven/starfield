@@ -471,21 +471,23 @@ function chunk(k){
   });
  } else {
   // Solitary grand planet encounter every 7 chunks (walk for a long time across deep space)
-  const hasEncounter = (k % 7 === 3);
+  const hasEncounter = (k % 11 === 5);
   if(hasEncounter){
    const z = z0 + CHUNK * (0.35 + r() * 0.30);
    const side = (r() < 0.5) ? -1 : 1;
    // One of four directions per encounter, in a fixed rotation: consecutive
    // worlds do not stack on one axis, and the plate gets something above,
    // below and to the sides instead of everything at the vanishing point.
-   const slot=(k/7|0)%4,sgn=(slot===0||slot===1)?1:-1,upDown=(slot===0||slot===2);
+   const slot=(k/11|0)%4,sgn=(slot===0||slot===1)?1:-1,upDown=(slot===0||slot===2);
    // Every fourth encounter is a giant.
-   const kindPool = [(k/7|0)%4===3?6:1, 8, 3, 0];
-   const kKind = kindPool[((k / 7)|0) % kindPool.length];
+   const kindPool = [(k/11|0)%4===3?6:1, 8, 3, 0];
+   const kKind = kindPool[((k / 11)|0) % kindPool.length];
    const pRad = kKind === 8 ? 3200 + r() * 2000 : kKind === 6 ? 3000 + r() * 1800
     : 2400 + r() * 1800;
    // The offset is in radii, so the corridor never runs through the body.
-   const reach = pRad * (1.9 + r() * 1.6);
+   // In radii, and close: further than ~2 r above the lane and the body
+   // falls outside the field of view, which is why it was never seen.
+   const reach = pRad * (1.35 + r() * 0.90);
    const y = courseY(z) + (upDown ? sgn * reach : (r() - .5) * pRad * .7);
    const x = laneX(z) + (upDown ? side * (r() * .8 - .4) * pRad : sgn * reach);
    masses.push({
@@ -1323,7 +1325,9 @@ function drawShip(s,q,t){
   // A ship is not a light source. Near-white read as a slab; middle paper
   // with a shaded half reads as a hull.
   const dead=!!s.wreck;
-  const hull=shade(blend(p.paper,dead?p.paper:p.craft,.46),1.0),hullDark=shade(hull,.58);
+  // A warmer paper than the shadowed plate, and only slightly darker on the
+  // underside: an ink seam over grey reads as charred wood at close range.
+  const hull=blend(p.wall,dead?p.paper:p.craft,.42),hullDark=shade(hull,.76);
   const rim=blend(p.ink,[255,255,255],.35);
   ctx.save();ctx.translate(cx,cy);ctx.rotate(rot);
   // hull: nose right, long tail left
@@ -1335,7 +1339,7 @@ function drawShip(s,q,t){
   ctx.strokeStyle=css(rim,.55);ctx.lineWidth=Math.max(.6,L*.0022);ctx.stroke();
   // panel seams and a spine: something for the eye to measure the hull by
   if(L>90){
-   ctx.strokeStyle=css(p.ink,.22);ctx.lineWidth=Math.max(.5,L*.0014);
+   ctx.strokeStyle=css(blend(p.ink,p.craft,.55),.16);ctx.lineWidth=Math.max(.5,L*.0012);
    for(let i=1;i<=5;i++){
     const x=-L*.46+i*(L*.88/6);
     ctx.beginPath();ctx.moveTo(x,-Wd*.92);ctx.lineTo(x,Wd*.92);ctx.stroke();
@@ -1537,6 +1541,9 @@ function bodies(){
   drawShip(s,pj,time);massVis=1;}
  for(const m of c.masses){const pj=project([m.x,m.y,m.z]);if(!pj||pj[2]>70000)continue;
   massVis=clamp((70000-pj[2])/45000);if(massVis<=0)continue;
+  // A world that fills the plate blows out: its lit side and its atmosphere were
+  // tuned for a 100 px disc. Dim it as it grows, the way the eye would.
+  {const rp=m.r*pj[3];if(rp>H*.42)massVis*=clamp(H*.42/rp,.30,1);}
   drawMass(m,region(m.x,m.z),time);massVis=1;}
  }
  // No flush here: bodies used to empty the queue before drawFleet() and
