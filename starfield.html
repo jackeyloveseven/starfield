@@ -893,7 +893,7 @@ vec3 interstellarSpectrum(float r, float doppler) {
   vec3 c4 = vec3(0.38, 0.14, 0.02); // Dark terracotta smoke dust
   
   vec3 col;
-  if (u < 0.06) {
+  if (u < 0.14) {
     col = mix(c0, c1, u / 0.06);
   } else if (u < 0.25) {
     col = mix(c1, c2, (u - 0.06) / 0.19);
@@ -936,7 +936,10 @@ vec3 shadeDisk(vec4 hitData, float t, bool isFront) {
   vec3 nSample = texture(uTexNoise, noiseUV).rgb;
   float turb = 0.88 + 0.10 * nSample.r + 0.04 * nSample.g;
 
-  float filament = organic.r * striations * turb;
+  // Long strands along the flow. Low enough in frequency that it reads as
+  // motion, not as a mesh - the mesh was 140 cycles, this is six.
+  float strands = 0.88 + 0.12 * sin(rLog * 6.0 + ang * 3.0);
+  float filament = organic.r * striations * turb * strands;
 
   // Relativistic Keplerian Doppler beaming
   float v_orb = sqrt(1.0 / r);
