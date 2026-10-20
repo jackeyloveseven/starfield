@@ -1337,6 +1337,17 @@ function drawShip(s,q,t){
   ctx.lineTo(L*.30,Wd*.62);ctx.closePath();
   ctx.fillStyle=css(hull,.94);ctx.fill();
   ctx.strokeStyle=css(rim,.55);ctx.lineWidth=Math.max(.6,L*.0022);ctx.stroke();
+  // Engineering section: a block at the tail, taller than the plate, so the
+  // silhouette has three heights instead of one.
+  ctx.beginPath();
+  ctx.moveTo(-L*.50,-Wd*.58);ctx.lineTo(-L*.30,-Wd*.70);
+  ctx.lineTo(-L*.28,Wd*.70);ctx.lineTo(-L*.50,Wd*.58);ctx.closePath();
+  ctx.fillStyle=css(hullDark,.92);ctx.fill();
+  ctx.strokeStyle=css(rim,.42);ctx.lineWidth=Math.max(.5,L*.0018);ctx.stroke();
+  // The waterline: one dark line the whole length, the oldest trick there is
+  // for telling a hull from a splinter.
+  ctx.beginPath();ctx.moveTo(-L*.47,Wd*.34);ctx.lineTo(L*.34,Wd*.24);
+  ctx.strokeStyle=css(p.ink,.30);ctx.lineWidth=Math.max(.6,L*.0026);ctx.stroke();
   // panel seams and a spine: something for the eye to measure the hull by
   if(L>90){
    ctx.strokeStyle=css(blend(p.ink,p.craft,.55),.16);ctx.lineWidth=Math.max(.5,L*.0012);
@@ -3084,6 +3095,71 @@ function cockpitPose(){
  camera.roll=roll;camera.cx=W*.5;camera.cy=H*.46;
  camera.focal=H*1.12;
 }
+
+/* The dash. Three dials that read the running simulation, a compass ribbon, and
+ * a trip line - all flat, printed, and low enough that they sit under the sky
+ * rather than over it. */
+function drawDash(k){
+ const ink=currentPalette.ink,paper=currentPalette.paper;
+ const y0=H*.905,bw=Math.min(W*.42,620),bx=W*.5-bw/2,bh=Math.min(H*.085,72);
+ ctx.save();ctx.globalAlpha=k;
+ // the plate
+ ctx.fillStyle=css(blend(paper,ink,.12),.90);
+ ctx.beginPath();
+ ctx.moveTo(bx,y0);
+ ctx.lineTo(bx+bw*.06,y0-bh);
+ ctx.lineTo(bx+bw*.94,y0-bh);
+ ctx.lineTo(bx+bw,y0);
+ ctx.closePath();ctx.fill();
+ ctx.strokeStyle=css(blend(ink,[255,255,255],.35),.22);ctx.lineWidth=1;ctx.stroke();
+ // three dials
+ const speed=Math.hypot(wind.x,wind.y)*1.4+
+   Math.max(warp,WarpDrive.currentWarp)*1.1+1;
+ const vals=[
+  {v:clamp(speed/16,0,1),lab:'速'},
+  {v:clamp((travel-departure)/240000,0,1),lab:'程'},
+  {v:clamp((camera.eye[1]-60)/2400,0,1),lab:'高'}
+ ];
+ for(let i=0;i<3;i++){
+  const cx=bx+bw*(.17+i*.145),cy=y0-bh*.52,R=bh*.34;
+  ctx.beginPath();ctx.arc(cx,cy,R,Math.PI*.78,Math.PI*.22,false);
+  ctx.strokeStyle=css(ink,.16);ctx.lineWidth=1;ctx.stroke();
+  // ticks
+  for(let t=0;t<7;t++){
+   const a=Math.PI*.78+(Math.PI*1.44)*(t/6);
+   ctx.beginPath();
+   ctx.moveTo(cx+Math.cos(a)*R*.82,cy-Math.sin(a)*R*.82);
+   ctx.lineTo(cx+Math.cos(a)*R*.96,cy-Math.sin(a)*R*.96);
+   ctx.strokeStyle=css(ink,.22);ctx.lineWidth=.8;ctx.stroke();
+  }
+  // needle
+  const a=Math.PI*.78+(Math.PI*1.44)*vals[i].v;
+  ctx.beginPath();ctx.moveTo(cx,cy);
+  ctx.lineTo(cx+Math.cos(a)*R*.74,cy-Math.sin(a)*R*.74);
+  ctx.strokeStyle=css(blend(ink,[200,80,60],.45),.72);ctx.lineWidth=1.5;ctx.stroke();
+  ctx.beginPath();ctx.arc(cx,cy,Math.max(1.4,R*.10),0,TAU);
+  ctx.fillStyle=css(ink,.5);ctx.fill();
+ }
+ // compass ribbon on the right of the plate
+ const rx=bx+bw*.62,rw=bw*.33;
+ ctx.strokeStyle=css(ink,.14);ctx.lineWidth=1;
+ ctx.beginPath();ctx.moveTo(rx,y0-bh*.52);ctx.lineTo(rx+rw,y0-bh*.52);ctx.stroke();
+ for(let i=0;i<=12;i++){
+  const x=rx+rw*(i/12),tall=i%3===0;
+  ctx.beginPath();ctx.moveTo(x,y0-bh*.52);ctx.lineTo(x,y0-bh*(tall?.72:.60));
+  ctx.strokeStyle=css(ink,.20);ctx.lineWidth=tall?1:.7;ctx.stroke();
+ }
+ const hdg=((camera.yaw*180/Math.PI)%360+360)%360/360;
+ ctx.fillStyle=css(blend(ink,[200,80,60],.4),.8);
+ ctx.fillRect(rx+rw*hdg-1,y0-bh*.78,2,bh*.30);
+ // trip line
+ ctx.fillStyle=css(ink,.34);
+ ctx.font=`${Math.max(9,Math.round(bh*.17))}px "Songti SC","Noto Serif SC",serif`;
+ ctx.textAlign='right';ctx.textBaseline='alphabetic';
+ ctx.fillText('航程 '+(travel-departure).toFixed(0)+' · 第 '+((cycle|0)+1)+' 段',bx+bw*.58,y0-bh*.12);
+ ctx.restore();
+ ctx.globalAlpha=1;
+}
 function drawCockpit(t){
  const k=cockpitBlend;if(k<=.01)return;
  const ink=currentPalette.ink,paper=currentPalette.paper;
@@ -3139,6 +3215,7 @@ function drawCockpit(t){
  ctx.restore();
  ctx.restore();
  ctx.globalAlpha=1;
+ drawDash(k);
 }
 function toggleCockpit(){
  cockpitMode=!cockpitMode;
