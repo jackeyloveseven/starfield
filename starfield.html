@@ -1718,13 +1718,32 @@ function drawTunnel(amount){
  const cx=W*.5,cy=H*.46,p=currentPalette;
  const rim=blend(p.ink,[255,255,255],.55);
  ctx.save();
- for(let i=0;i<16;i++){
-  const t=((i+ (time*.55)%1)/16),s=Math.pow(t,2.1);
-  const w=W*(.03+1.35*s),h=H*(.03+1.35*s);
-  const a=amount*(1-s)*.42;
+ // The plate the shelf hangs in.
+ ctx.fillStyle=css(blend(p.paper,[0,0,0],.60),amount*.74);
+ ctx.fillRect(0,0,W,H);
+ for(let i=0;i<18;i++){
+  const t=((i+(time*.42)%1)/18),s=Math.pow(t,2.0);
+  const w=W*(.05+1.24*s),h=H*(.05+1.24*s);
+  const a=amount*(1-s)*.60;
   if(a<=.004)continue;
-  ctx.strokeStyle=css(rim,a);ctx.lineWidth=.7+2.2*s*amount;
+  // Nine cells per ring: the one we are flying through, and the shelf around
+  // it. A single receding frame is a zoom; a grid of them is a place.
+  for(let gx=-1;gx<=1;gx++)for(let gy=-1;gy<=1;gy++){
+   if(gx===0&&gy===0)continue;
+   const ox=gx*w*1.02,oy=gy*h*1.02;
+   ctx.strokeStyle=css(rim,a*.28);ctx.lineWidth=.5+1.5*s*amount;
+   ctx.strokeRect(cx+ox-w,cy+oy-h,w*2,h*2);
+  }
+  ctx.strokeStyle=css(rim,a);ctx.lineWidth=.8+2.4*s*amount;
   ctx.strokeRect(cx-w,cy-h,w*2,h*2);
+  // a page mark inside the near cells, so the frames read as paper
+  if(s<.55){
+   ctx.strokeStyle=css(rim,a*.22);ctx.lineWidth=.8;
+   for(let l=1;l<=3;l++){
+    const yy=cy-h+l*(h*.5);
+    ctx.beginPath();ctx.moveTo(cx-w*.72,yy);ctx.lineTo(cx+w*.72,yy);ctx.stroke();
+   }
+  }
  }
  ctx.restore();
 }
