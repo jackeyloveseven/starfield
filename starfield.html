@@ -397,9 +397,11 @@ function chunk(k){
  if(chunks.has(k))return chunks.get(k);
  const r=rng((hash(k,71)*4294967295)>>>0),z0=k*CHUNK,masses=[],shards=[],plates=[],galaxies=[];
  const zc=z0+CHUNK*.5;
- // Every 37 chunks, and one early gate at 7 so the first encounter is
- // reachable. 19 + a special at 12 put two horizons seven chunks apart.
- const horizon=(k!==0 && k%37===0) || (k===7);
+ // Every 37 chunks, plus the k=12 showpiece: that is the chunk the
+ // 事件视界 departure lands on, and it is the ABYSS plate. 19 + this same
+ // special put two horizons seven chunks apart; 37 puts the nearest one
+ // twenty-five chunks away.
+ const horizon=(k!==0 && k%37===0) || (k===12);
 
  if(horizon){
   // Gargantua Supermassive Black Hole (Towering cinematic presence)
@@ -1787,9 +1789,9 @@ const BAND_BASIS=(()=>{
 })();
 /* a is fixed per star, so its sine and cosine are precomputed; only the basis
  * changes per frame. */
-const bandStars=Array.from({length:coarse?4200:9000},(_,i)=>{
- const a=hash(i,410)*TAU,g=(hash(i,411)+hash(i,412)+hash(i,413)-1.5)*.085,mag=Math.pow(hash(i,414),2.4);
- return {ca:Math.cos(a),sa:Math.sin(a),g,size:.34+mag*2.4,mag,phase:hash(i,415)*TAU};
+const bandStars=Array.from({length:coarse?1800:3200},(_,i)=>{
+ const a=hash(i,410)*TAU,g=(hash(i,411)+hash(i,412)+hash(i,413)-1.5)*.050,mag=Math.pow(hash(i,414),2.4);
+ return {ca:Math.cos(a),sa:Math.sin(a),g,size:.32+mag*1.0,mag,phase:hash(i,415)*TAU};
 });
 /* Ink washes for the deep field. Each is rendered once into an offscreen
  * canvas and then only scaled; the tint is quantised so the cache stays tiny
@@ -1816,7 +1818,7 @@ const nebCache=new Map();let nebGens=0;
  * colour. */
 const NEB_PAL=[
  [[224, 38, 80],[ 18,190,200]],  // 素纸 PAPER: crimson emission against ionized cyan
- [[214, 34,138],[ 16,190,200]],  // 墨海 INKWASH: magenta against ionized cyan
+ [[198, 56,132],[ 16,190,200]],  // 墨海 INKWASH: magenta against ionized cyan
  [[230, 64, 44],[ 16,192,204]],  // 箔野 FOIL: vermilion against ionized cyan
  [[228, 46, 40],[ 24,182,206]],  // 星核 CORE: scarlet against ionized cyan
  [[214, 38, 64],[ 20,172,184]]   // 深渊 ABYSS: ember crimson against teal
@@ -2063,12 +2065,12 @@ function nebulaTex(seed,idx){
    const gr=g.createRadialGradient(px,py,0,px,py,R);
    gr.addColorStop(0,`rgba(0,0,0,${al.toFixed(3)})`);
    gr.addColorStop(.62,`rgba(0,0,0,${al.toFixed(3)})`);
-   gr.addColorStop(.86,`rgba(0,0,0,${(al*.22).toFixed(3)})`);
+   gr.addColorStop(.84,`rgba(0,0,0,${(al*.34).toFixed(3)})`);
    gr.addColorStop(1,'rgba(0,0,0,0)');
    g.fillStyle=gr;g.fillRect(px-R,py-R,R*2,R*2);
   }
  };
- for(const L of bands)dust(L,.84+r()*.08);
+ for(const L of bands)dust(L,.74+r()*.06);
  // The lit edge, after the dust, so it sits ON the Lane's rim. Under `lighter`
  // it raises value without changing the gas alpha, which is what makes the rim
  // read as illuminated rather than as a line drawn beside the dark.
@@ -2157,7 +2159,7 @@ function updateLens(){
  for(let k=k0-2;k<=k0+2;k++)for(const m of chunk(k).masses){
   if(m.kind!==4)continue;
   const q=project([m.x,m.y,m.z]);
-  if(q&&q[2]>40&&q[2]<14000&&q[0]>-900&&q[0]<W+900&&q[1]>-900&&q[1]<H+900)lensSources.push([q[0],q[1],clamp(m.r*q[3],4,Math.max(W,H))]);
+  if(q&&q[2]>40&&q[2]<14000&&q[0]>-900&&q[0]<W+900&&q[1]>-900&&q[1]<H+900)lensSources.push([q[0],q[1],clamp(m.r*q[3],4,Math.min(W,H)*.45)]);
  }
 }
 /* Displace a screen point radially away from a horizon. A star 40px out is
@@ -2166,10 +2168,14 @@ function lensWarp(x,y){
  if(!lensSources.length)return [x,y];
  let dx=0,dy=0;
  for(const L of lensSources){
-  const rE=L[2]*1.35,ex=x-L[0],ey=y-L[1],r2=ex*ex+ey*ey;
-  const rmax=rE*6;
+  const rE=Math.min(L[2]*1.35,Math.min(W,H)*.42),ex=x-L[0],ey=y-L[1],r2=ex*ex+ey*ey;
+  const rmax=rE*4;
   if(r2>rmax*rmax||r2<1)continue;
-  const r=Math.sqrt(r2),pull=Math.min(rE*rE/r,r*2.4);
+  const r=Math.sqrt(r2);
+  // Bounded pull (never past ~1 r) and a fade to zero at the edge of the
+  // support, so a star crossing it does not jump.
+  const fall=1-smooth((r-rE*1.1)/(rmax-rE*1.1));
+  const pull=Math.min(rE*rE/r,r*1.05)*fall;
   if(pull<=0)continue;
   dx+=ex/r*pull;dy+=ey/r*pull;
  }
@@ -2330,7 +2336,7 @@ function drawSky(){
   ctx.save();ctx.lineCap='round';ctx.lineJoin='round';
   for(const seg of segs){
    if(seg.length<6)continue;
-   for(const L of [[300,.020],[232,.025],[172,.031],[122,.038],[80,.047],[46,.058],[22,.072]]){
+   for(const L of [[300,.012],[120,.024],[40,.050]]){
     ctx.beginPath();ctx.moveTo(seg[0],seg[1]);
     for(let j=2;j<seg.length;j+=2)ctx.lineTo(seg[j],seg[j+1]);
     ctx.strokeStyle=css(col,clamp(L[1]*bw*1.6,0,.34));ctx.lineWidth=L[0];ctx.stroke();
@@ -2352,7 +2358,7 @@ function drawSky(){
     const w2=lensWarp(q2[0],q2[1]);bb.push(x,y,w2[0],w2[1]);
    }
    if(bb.length){
-    const a0=clamp(.62*bw,0,.80);
+    const a0=clamp(.42*bw,0,.80);
     ctx.strokeStyle=bink;
     ctx.globalAlpha=a0*.48;ctx.lineWidth=.5;
     ctx.beginPath();for(let j=0;j<bb.length;j+=4){ctx.moveTo(bb[j],bb[j+1]);ctx.lineTo(bb[j+2],bb[j+3]);}ctx.stroke();
@@ -2370,7 +2376,7 @@ function drawSky(){
    ctx.fillStyle=bink;
    for(let phase=0;phase<2;phase++){
     const b2=bb[phase];if(!b2.length)continue;
-    ctx.globalAlpha=clamp(.62*bw,0,.80)*(phase?.74:1);
+    ctx.globalAlpha=clamp(.42*bw,0,.80)*(phase?.74:1);
     ctx.beginPath();let any=false;
     for(let j=0;j<b2.length;j+=3){ctx.moveTo(b2[j]+b2[j+2],b2[j+1]);ctx.arc(b2[j],b2[j+1],b2[j+2],0,TAU);any=true;}
     if(any)ctx.fill();
