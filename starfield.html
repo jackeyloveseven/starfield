@@ -3652,7 +3652,10 @@ function updateGate(dt){
   const c=chunks.get(k);if(!c||!c.gates)continue;
    for(const b of (c.battles||[])){
     if(b.notified)continue;
-    if(Math.abs(b.z-travel)<5200){b.notified=true;toast('遭遇战 · SKIRMISH',5);}
+    const bq=project([b.x,b.y,b.z]);
+    if(bq&&bq[2]<22000&&bq[0]>-160&&bq[0]<W+160&&bq[1]>-160&&bq[1]<H+160&&Math.abs(b.z-travel)<5200){
+     b.notified=true;toast('遭遇战 · SKIRMISH',5);
+    }
    }
    for(const g of c.gates){
    if(g.used)continue;
