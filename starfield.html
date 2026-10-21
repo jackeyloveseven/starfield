@@ -144,7 +144,8 @@ function rng(seed){let a=seed>>>0;return ()=>{a=(a+0x6D2B79F5)>>>0;let t=Math.im
 const phase=hash(98)*TAU;
 const laneX=z=>Math.sin(z*.00048+phase)*460+Math.sin(z*.00119+phase*.7)*190;
 const laneD=z=>Math.cos(z*.00048+phase)*.2208+Math.cos(z*.00119+phase*.7)*.2261;
-const routeX=z=>laneX(z)*.68-120+55*Math.sin(z*.00086+1)+courseBend(z);
+const baseRouteX=z=>laneX(z)*.68-120+55*Math.sin(z*.00086+1);
+const routeX=z=>baseRouteX(z)+courseBend(z);
 const courseY=z=>196+58*Math.sin(z*.00031+phase)+20*Math.sin(z*.00097);
 const rawStyles=[
  {name:'素纸',en:'PAPER',caption:'宇宙从一张还没写字的纸开始',sky:'#1c2b3c',horizon:'#33485e',fog:'#26384b',ground:'#1b2836',fields:['#1e2c3b','#22303f','#1a2735','#243342','#1c2a38','#213040'],water:'#3d5872',bank:'#2b3e52',roof:'#32475e',wall:'#4c6278',tree:'#2f4b62',treeDark:'#20344a',craft:'#f5f9fc',craftShade:'#a8bccd',ink:'#e6eff7',paper:'#111b27',sun:'#d8e8f4'},
@@ -305,8 +306,12 @@ function poseAt(p,t){return {...p,yaw:p.yaw+Math.sin(t*.047+p.id)*p.drift,pitch:
 function updateDirector(dt){
  if(cockpitMode){cockpitPose();captureCamPose=null;return;}
  
- // 1. Freeze director shot clock when in cinematic black hole capture to eliminate shot fighting
- if(started && !paused && capturePhase === 0){
+ // Pre-check skimming state so we can freeze the shot progression during close planetary skimming
+ const isCloseToPlanet = activeMasses.some(m => m.w && !m.isMiller && m.kind !== 4 && Math.abs(m.z - travel) < 1400);
+
+ // 1. Freeze director shot clock when in cinematic black hole capture OR close planet skimming!
+ // This completely ELIMINATES shot-fighting and jitter when passing celestial bodies.
+ if(started && !paused && capturePhase === 0 && !isCloseToPlanet){
   shotTime += dt; totalCycleTime += dt;
   while(shotTime >= plans.get(cycle)[shot].duration){
    shotTime -= plans.get(cycle)[shot].duration; shot++;
@@ -321,55 +326,52 @@ function updateDirector(dt){
  if(!started){goal = {yaw: -29*DEG + Math.sin(time*.035)*.035, pitch: 1.06 + Math.sin(time*.06)*.024, distance: 1490, aimY: 0, lane: 0, roll: 0};}
  if(time - observation.last > 2){observation.distance *= Math.exp(-dt*.8); observation.pitch *= Math.exp(-dt*.8);}
  if(!autoCamera) goal = {...manual, roll: 0};
- else {goal.distance += observation.distance; goal.pitch = clamp(goal.pitch + observation.pitch, -.16, 1.48);}
+ else {goal.distance += observation.distance; goal.pitch = clamp(goal.pitch + observation.pitch, -.38, 1.48);}
 
- // 2. Black Hole Dominance & Horizon Detection (Priority 1)
+ // 2. Solitary Planetary Encounter Tracking (Priority 1: Intimate 30s low-orbit skimming)
+ let skimRes = null;
+ if(autoCamera && !capturePhase){
+  skimRes = LowOrbitSkimmer.update(dt, autoCamera, capturePhase, activeMasses, fleet[LEAD], goal);
+ }
+
+ // 3. Black Hole Dominance & Horizon Framing (Priority 2: Only within 14,000-unit void corridor approaching Gargantua)
  let hm = null, hd = 1e9;
- if(autoCamera && activeMasses.length){
+ if(autoCamera && !capturePhase && (!skimRes || !skimRes.active) && activeMasses.length){
   for(const m of activeMasses){
-   if(m.kind === 4 && !m.passed && m.z >= travel - 4000 && m.z <= travel + 36000){
+   if(m.kind === 4 && !m.passed && m.z >= travel - 4000 && m.z <= travel + 14000){
     const d = Math.hypot(m.x - camera.eye[0], m.y - camera.eye[1], m.z - camera.eye[2]);
     if(d < hd){hd = d; hm = m;}
    }
   }
  }
 
- // 3. Low-Orbit Skimming & Multi-Dimensional Planet Tracking (Priority 2, only runs when NOT near Gargantua)
- let skimRes = null;
- if(autoCamera && !hm && !capturePhase){
-  skimRes = LowOrbitSkimmer.update(dt, autoCamera, capturePhase, activeMasses, fleet[LEAD], goal);
- }
-
- if(autoCamera && !hm && !capturePhase && activeMasses.length && (!skimRes || !skimRes.active)){
+ if(autoCamera && !capturePhase && (!skimRes || !skimRes.active) && !hm && activeMasses.length){
   let gm = null, gd = 1e9;
   for(const m of activeShips){
    const dx = m.x - routeX(travel), dy = m.y - courseY(travel), dz = m.z - travel;
    const d = Math.hypot(dx, dy, dz);
    if(d < gd && d < 9000){gd = d; gm = m;}
   }
-  // Search for rising distant worlds up to 36,000 units ahead (Deep Cosmic Lookout)
+  // Soft, continuous look-ahead to the solitary rising world up to 32,000 units ahead
   for(const m of activeMasses){
    if(m.kind >= 5 && m.kind <= 7) continue; // skip star light sources
    if(m.kind === 4 || m.isMiller) continue; // strictly skip Gargantua and Miller companion
    const dz = m.z - travel;
-   if(dz < -1500 || dz > 42000) continue;
+   if(dz < -1200 || dz > 32000) continue;
    const dx = m.x - routeX(travel), dy = m.y - courseY(travel);
    const d = Math.hypot(dx, dy, dz);
-   // Prefer close encounters, but softly look ahead to distant rising worlds
-   const weight = m.isDistant ? 1.6 : 1.0;
-   if(d * weight < gd){gd = d * weight; gm = m;}
+   if(d < gd){gd = d; gm = m;}
   }
 
   if(gm){
    const dz = gm.z - travel;
-   // Continuous long-range lookout weight: smoothly blends from 0.08 at 36,000 to 0.45 at 7,000
    let w = 0.0;
-   if(dz > 7000){
-    w = clamp((36000 - dz) / 29000, 0, 1) * 0.18;
+   if(dz > 6000){
+    w = clamp((32000 - dz) / 26000, 0, 1) * 0.16;
    } else {
-    w = clamp((7000 - gd) / 5000, 0, 1) * 0.36 + 0.12;
+    w = clamp((6000 - gd) / 5000, 0, 1) * 0.32 + 0.10;
    }
-   lookTarget = [mix(routeX(travel), gm.x, w), mix(courseY(travel) + camera.aimY, gm.y, w), mix(travel, gm.z, w * 0.85)];
+   lookTarget = [mix(routeX(travel), gm.x, w), mix(courseY(travel) + camera.aimY, gm.y, w), mix(travel, gm.z, w * 0.80)];
   } else {
    lookTarget = [routeX(travel), courseY(travel) + camera.aimY, travel];
   }
@@ -379,17 +381,17 @@ function updateDirector(dt){
 
  if(skimRes && skimRes.active){
   const pose = skimRes.pose || 'skim';
-  const targetZOff = pose === 'nadir' ? 200 : pose === 'zenith' ? 200 : 350;
-  lookTarget[0] = mix(lookTarget[0], skimRes.hx, skimRes.sw * 0.72);
-  lookTarget[1] = mix(lookTarget[1], skimRes.hy, skimRes.sw * 0.72);
-  lookTarget[2] = mix(lookTarget[2], skimRes.hz + targetZOff, skimRes.sw * 0.72);
+  const targetZOff = pose === 'nadir' ? 180 : pose === 'zenith' ? 180 : 300;
+  lookTarget[0] = mix(lookTarget[0], skimRes.hx, skimRes.sw * 0.75);
+  lookTarget[1] = mix(lookTarget[1], skimRes.hy, skimRes.sw * 0.75);
+  lookTarget[2] = mix(lookTarget[2], skimRes.hz + targetZOff, skimRes.sw * 0.75);
  }
 
  // 4. Long-range Black Hole Horizon Framing (before capture begins)
  if(autoCamera && !capturePhase && hm){
   const fwl = craftWorld(fleet[LEAD]);
   const fr = Math.hypot(hm.x - fwl[0], hm.y - fwl[1], hm.z - fwl[2]);
-  const wT = clamp((32000 - fr) / 24000, 0, 1) * 0.82;
+  const wT = clamp((14000 - fr) / 9000, 0, 1) * 0.82;
   horizonW += (wT - horizonW) * Math.min(1, dt * 1.5);
   const w = horizonW;
   lookTarget = [mix(lookTarget[0], hm.x, w), mix(lookTarget[1], hm.y, w), mix(lookTarget[2], hm.z, w)];
@@ -411,25 +413,29 @@ function updateDirector(dt){
  }
 
  // 6. Damped Camera Integration
- const rate = (autoCamera || capturePhase) ? 3.2 : 7;
+ const isSkimmingActive = skimRes && skimRes.active;
+ const rate = (autoCamera || capturePhase || isSkimmingActive) ? 3.5 : 7;
  camera.yaw += angleDelta(camera.yaw, goal.yaw) * (1 - Math.exp(-dt * rate));
  for(const k of ['pitch','distance','aimY','lane','roll']) camera[k] = expStep(camera[k], goal[k] || 0, rate, dt);
 
  // 7. Smooth Target Settling
  if(!lookInit){lookSmooth[0]=lookTarget[0];lookSmooth[1]=lookTarget[1];lookSmooth[2]=lookTarget[2];lookInit=true;}
  else{
-  const kk = Math.min(1, dt * 2.4);
+  const kk = Math.min(1, dt * 2.8);
   for(let i=0;i<3;i++){lookSmooth[i] += (lookTarget[i] - lookSmooth[i]) * kk; lookTarget[i] = lookSmooth[i];}
  }
 
- // 8. Geometric Precision: Anchored to lookTarget[2] (Eliminates 2157-unit Euclidean distortion)
+ // 8. Geometric Precision: Anchored to lookTarget[2]
+ // FIXED: Removed Math.max(34, ...) ground clamping so camera can freely pitch down to overlook nadir worlds!
+ // FIXED: Softened camera.lane pulling during skimming to prevent non-linear lateral jerking!
  const horizontal = Math.cos(camera.pitch) * camera.distance;
+ const curSkimW = skimRes ? skimRes.sw : 0;
  let eye = [
   lookTarget[0] + Math.sin(camera.yaw) * horizontal,
-  Math.max(34, lookTarget[1] + Math.sin(camera.pitch) * camera.distance),
+  lookTarget[1] + Math.sin(camera.pitch) * camera.distance,
   lookTarget[2] - Math.cos(camera.yaw) * horizontal
  ];
- eye[0] = mix(eye[0], laneX(eye[2]), camera.lane * .90);
+ eye[0] = mix(eye[0], routeX(eye[2]), camera.lane * 0.90 * (1 - curSkimW));
  camera.eye = eye;
 
  let f = lookTarget.map((v,i) => v - eye[i]), flen = Math.hypot(...f);
@@ -438,7 +444,12 @@ function updateDirector(dt){
  r = rlen < 1e-5 ? [1,0,0] : r.map(v => v / rlen);
  let u = [f[1]*r[2], f[2]*r[0] - f[0]*r[2], -f[1]*r[0]];
  if(camera.roll){const co = Math.cos(camera.roll), si = Math.sin(camera.roll), rr = r.map((v,i) => v*co + u[i]*si); u = u.map((v,i) => v*co - r[i]*si); r = rr;}
- camera.forward = f; camera.right = r; camera.up = u; camera.cx = W * .385; camera.cy = H * .465;
+ camera.forward = f; camera.right = r; camera.up = u;
+
+ // 9. Cinematic IMAX Centering: smoothly shifts from cruise offset (0.385, 0.465) to majestic center (0.485, 0.495)
+ const centerWeight = Math.max(captureCamPose ? captureCamPose.blend : 0, curSkimW, hm ? horizonW : 0);
+ camera.cx = W * mix(0.385, 0.485, centerWeight);
+ camera.cy = H * mix(0.465, 0.495, centerWeight);
 
  const effWarpF = Math.max(warp, WarpDrive.currentWarp);
  const warpFactor = clamp(effWarpF / 28, 0, 1.2);
@@ -810,30 +821,27 @@ const LowOrbitSkimmer = {
 
   update(dt, autoCamera, capturePhase, activeMasses, fleetLead, goal) {
     if (!autoCamera || capturePhase || !activeMasses.length) {
-      this.skimW = expStep(this.skimW, 0.0, 3.0, dt);
+      this.skimW = expStep(this.skimW, 0.0, 3.5, dt);
       return null;
     }
 
     let bestM = null, minDz = 1e9;
     const fwl = craftWorld(fleetLead);
 
-    // Prioritize encounters over distant background stars
+    // With 10-chunk spacing, there is at most ONE solitary encounter in the corridor
     for (const m of activeMasses) {
       if (!m.w || m.isMiller || m.kind === 4) continue;
       const dz = m.z - travel;
-      // Active engagement corridor
-      if (dz >= -2000 && dz <= 4500) {
-        const weight = m.isDistant ? 2.5 : 1.0;
-        const effDist = Math.abs(dz) * weight;
-        if (effDist < minDz) {
-          minDz = effDist;
+      if (dz >= -2500 && dz <= 5500) {
+        if (Math.abs(dz) < minDz) {
+          minDz = Math.abs(dz);
           bestM = m;
         }
       }
     }
 
     if (!bestM) {
-      this.skimW = expStep(this.skimW, 0.0, 2.5, dt);
+      this.skimW = expStep(this.skimW, 0.0, 3.0, dt);
       return null;
     }
 
@@ -842,12 +850,12 @@ const LowOrbitSkimmer = {
     const dz = m.z - travel;
     const fDist = m.flybyDist || 930;
 
-    // Smooth Hermite skimming envelope (30.0 seconds at cruise speed SPEED=62)
-    const targetSkimW = clamp(1.0 - Math.abs(dz) / fDist, 0.0, 1.0);
-    this.skimW = expStep(this.skimW, targetSkimW, 2.4, dt);
+    // Responsive C2 Hermite skimming envelope (30.0s window: 2 * 930 / 62 = 30.0s)
+    const targetSkimW = clamp(1.0 - Math.abs(dz) / (fDist * 1.05), 0.0, 1.0);
+    this.skimW = expStep(this.skimW, targetSkimW, 3.8, dt);
     const sw = smoother(this.skimW);
 
-    if (sw > 0.01) {
+    if (sw > 0.005) {
       const dx = fwl[0] - m.x, dy = fwl[1] - m.y, dz3 = fwl[2] - m.z;
       const distToCenter = Math.hypot(dx, dy, dz3) || 1;
       const ux = dx / distToCenter, uy = dy / distToCenter, uz = dz3 / distToCenter;
@@ -856,44 +864,41 @@ const LowOrbitSkimmer = {
       const hy = m.y + uy * m.r;
       const hz = m.z + uz * m.r;
 
-      // =======================================================================
-      // ADAPTIVE 3D CAMERA FRAMING FOR NADIR, ZENITH, FLANK, AND SKIM:
-      // =======================================================================
       const pose = m.poseType || 'skim';
 
       if (pose === 'nadir') {
-        // OVERLOOKING ABYSS BELOW: Camera tilts down (-22 deg), gazing at the sprawling ocean/crust below
-        const idealDist = Math.max(m.r * 1.45, 1600);
-        goal.distance = mix(goal.distance, idealDist, sw * 0.80);
-        goal.pitch = mix(goal.pitch, -0.26, sw * 0.75); // Pitch down toward the majestic world beneath
-        goal.roll = mix(goal.roll || 0, 0.04, sw * 0.60);
-      } else if (pose === 'zenith') {
-        // LOOKING UP AT ZENITH CANOPY: Camera tilts up (+25 deg), gazing at rings and cloud belts in the heavens
-        const idealDist = Math.max(m.r * 1.50, 1700);
-        goal.distance = mix(goal.distance, idealDist, sw * 0.80);
-        goal.pitch = mix(goal.pitch, 0.38, sw * 0.75); // Pitch up toward the cosmic sky canopy
-        goal.roll = mix(goal.roll || 0, -0.04, sw * 0.60);
-      } else if (pose === 'flank') {
-        // LATERAL PARALLAX TITAN: Wide scenic perspective framing the companion world
-        const idealDist = Math.max(1600, m.r * 1.20);
-        goal.distance = mix(goal.distance, idealDist, sw * 0.55);
-        goal.pitch = mix(goal.pitch, 0.12, sw * 0.45);
-        const sideBank = (m.x > fwl[0] ? -1 : 1) * 0.06;
+        // OVERLOOKING ABYSS STRICTLY BENEATH: Camera overhead looking DOWN (+30 deg) at the rolling world
+        const idealDist = Math.max(m.r * 1.48, 1650);
+        goal.distance = mix(goal.distance, idealDist, sw * 0.85);
+        goal.pitch = mix(goal.pitch, 0.52, sw * 0.85); // Downward plunge angle overlooking the vast abyss
+        goal.roll = mix(goal.roll || 0, 0.0, sw * 0.65);
+       } else if (pose === 'zenith') {
+        // LOOKING UP AT ZENITH CANOPY STRICTLY ABOVE: Camera below looking UP (-13 deg) at heavenly rings
+        const idealDist = Math.max(m.r * 1.48, 1650);
+        goal.distance = mix(goal.distance, idealDist, sw * 0.85);
+        goal.pitch = mix(goal.pitch, -0.22, sw * 0.85); // Upward gaze gazing into celestial canopy
+        goal.roll = mix(goal.roll || 0, 0.0, sw * 0.65);
+       } else if (pose === 'flank') {
+        // LATERAL PARALLAX TITAN: Scenic companion framing
+        const idealDist = Math.max(1600, m.r * 1.25);
+        goal.distance = mix(goal.distance, idealDist, sw * 0.60);
+        goal.pitch = mix(goal.pitch, 0.10, sw * 0.50);
+        const sideBank = (m.x > fwl[0] ? -1 : 1) * 0.04;
         goal.roll = mix(goal.roll || 0, sideBank, sw * 0.65);
-      } else {
-        // INTIMATE SKIM: Close low-altitude orbit (planet fills 60%-80% of horizon)
+       } else {
+        // INTIMATE TANGENT SKIM: Planet fills 60%-80% of horizon
         const idealDist = Math.max(m.r * 1.35, 1450);
-        goal.distance = mix(goal.distance, idealDist, sw * 0.75);
-        goal.pitch = mix(goal.pitch, 0.18, sw * 0.55);
-        const sideBank = (m.x > fwl[0] ? -1 : 1) * 0.09;
-        goal.roll = mix(goal.roll || 0, sideBank, sw * 0.75);
-      }
+        goal.distance = mix(goal.distance, idealDist, sw * 0.80);
+        goal.pitch = mix(goal.pitch, 0.14, sw * 0.60);
+        const sideBank = (m.x > fwl[0] ? -1 : 1) * 0.08;
+        goal.roll = mix(goal.roll || 0, sideBank, sw * 0.80);
+       }
 
       if (!m.notifiedSkim && Math.abs(dz) < 900) {
         m.notifiedSkim = true;
         const wD = m.w;
         const eggTag = (wD.manif && wD.manif.id === 'earth_egg') ? ' 【★地球文明彩蛋 1/16】' : '';
-        const poseName = pose === 'nadir' ? '俯瞰深渊天体' : pose === 'zenith' ? '仰望天顶苍穹' : pose === 'flank' ? '侧翼深空视差' : '近轨贴地掠过';
+        const poseName = pose === 'nadir' ? '正下方俯瞰深渊' : pose === 'zenith' ? '正上方仰望天顶' : pose === 'flank' ? '侧翼深空伴飞' : '近轨贴地掠过';
         toast(`\u{1fa90} ${poseName} · ${wD.type.name}【${wD.shape.name} · ${wD.manif.name}】${eggTag}`, 6);
       }
 
@@ -1148,20 +1153,20 @@ function chunk(k){
  const horizon = (k !== 0 && k % 48 === 0) || (k === 12);
 
  if(horizon){
-  // Gargantua Supermassive Black Hole (accoutered in 3D space with towering 36,890-unit accretion disk)
+  // Gargantua Supermassive Black Hole (Towering 36,890-unit accretion disk)
   const z = z0 + CHUNK * .5;
-  const sx = laneX(z) + 7200;
-  const y = courseY(z) + 240; // majestically elevated in the upper flank
+  const sx = baseRouteX(z) + 7200;
+  const y = courseY(z) + 240;
   masses.push({
    x: sx, y, z, kind: 4, r: 3500, axis: [0, 1, 0], phase: 0,
    captured: false, passed: false,
    isBlackHole: true
   });
 
-  // Miller's Planet (Interstellar ocean world) placed in the lower-fore corridor, creating iconic Interstellar depth
+  // Miller's Planet (Interstellar ocean world) in the lower abyss corridor
   const mZ = z - 1800;
-  const mX = laneX(mZ) - 620;
-  const mY = courseY(mZ) - 480; // in the lower abyss below Gargantua
+  const mX = baseRouteX(mZ) - 620;
+  const mY = courseY(mZ) - 480;
   masses.push({
    x: mX, y: mY, z: mZ, kind: 1, r: 280,
    w: worldFor(0), // Pure ocean world
@@ -1171,10 +1176,18 @@ function chunk(k){
    flybyDist: 930
   });
  } else {
-  // Encounters spaced every 6 chunks (~5.2 minutes lonely space flight)
-  const nearHole = Math.abs(k - 12) < 4 || (k % 48 < 4 || k % 48 > 44);
-  hasEncounter = (!nearHole) && (k % 6 === 3);
-  const encIndex = Math.floor(k / 6);
+  // Solitary Grand Planetary Encounter spaced every 10 chunks (~8.6 minutes of pure, deep space cruise)
+  // Gargantua isolated with 6 full chunks (~5+ min) of pure void anticipation
+  const nearHole = Math.abs(k - 12) < 6 || (k >= 42 && (k % 48 < 6 || k % 48 > 42));
+  hasEncounter = (!nearHole) && (k % 10 === 5);
+
+  let encIndex = 0;
+  if(hasEncounter){
+   for(let cand = 5; cand < k; cand += 10){
+    const nh = Math.abs(cand - 12) < 6 || (cand >= 42 && (cand % 48 < 6 || cand % 48 > 42));
+    if(!nh) encIndex++;
+   }
+  }
 
   if(hasEncounter){
    const z = z0 + CHUNK * (0.35 + r() * 0.30);
@@ -1191,39 +1204,41 @@ function chunk(k){
    const pRad = wD.pSize.radMin + r() * (wD.pSize.radMax - wD.pSize.radMin);
 
    // =========================================================================
-   // 4 VOLUMETRIC 3D PLACEMENT ARCHETYPES:
-   // 0: NADIR ABYSS (Below flight path: high-altitude orbital overlook)
-   // 1: ZENITH CANOPY (Above flight path: looking up at majestic rings & storms)
-   // 2: FLANK PARALLAX TITAN (Lateral deep space: grand companion parallax)
-   // 3: LOW-ORBIT TANGENT SKIM (Closest skimming: 1.18 - 1.24 Rp)
+   // 4 RIGOROUS 3D SPATIAL ARCHETYPES (TRUE NADIR, TRUE ZENITH, TRUE FLANK):
+   // Strictly anchored to baseRouteX(z) and courseY(z) flight trajectory!
    // =========================================================================
    const archIndex = (encIndex % 4);
-   let x = laneX(z), y = courseY(z), poseType = 'skim', reach = pRad * 1.35;
+   let x = baseRouteX(z), y = courseY(z), poseType = 'skim', reach = pRad * 1.35;
 
    if(archIndex === 0){
-    // NADIR ABYSS: Massive planet resting in the depths below the flight path
+    // TRUE NADIR ABYSS: Planet center strictly on the plumb line BENEATH the fleet!
+    // Fleet skims over the north polar / equatorial surface from above!
     poseType = 'nadir';
-    y = courseY(z) - (pRad * 1.25 + 1600 + r() * 1200);
-    x = laneX(z) + (r() - 0.5) * pRad * 0.8;
-    reach = Math.abs(y - courseY(z));
+    const alt = pRad * (0.24 + 0.08 * r());
+    x = baseRouteX(z);
+    y = courseY(z) - (pRad + alt);
+    reach = pRad + alt;
    } else if(archIndex === 1){
-    // ZENITH CANOPY: Looming in the heavens above the flight lane
+    // TRUE ZENITH CANOPY: Planet center strictly on the plumb line in the HEAVENS ABOVE!
+    // Fleet skims underneath the titanic world and ring canopy looking straight up!
     poseType = 'zenith';
-    y = courseY(z) + (pRad * 1.25 + 1800 + r() * 1400);
-    x = laneX(z) + (r() - 0.5) * pRad * 0.8;
-    reach = Math.abs(y - courseY(z));
+    const alt = pRad * (0.26 + 0.08 * r());
+    x = baseRouteX(z);
+    y = courseY(z) + (pRad + alt);
+    reach = pRad + alt;
    } else if(archIndex === 2){
-    // FLANK PARALLAX TITAN: Deep in lateral space creating majestic parallax
-    poseType = 'flank';
-    reach = pRad * 1.6 + 4800 + r() * 3800;
-    x = laneX(z) + side * reach;
-    y = courseY(z) + (r() - 0.5) * pRad * 0.7;
-   } else {
-    // LOW-ORBIT TANGENT SKIM: Intimate close orbital skim (filling 60-80% screen)
+    // TRUE FLANK LOW-ORBIT SKIM: Intimate close orbital skim on lateral tangent
     poseType = 'skim';
-    reach = pRad * (1.18 + r() * 0.12);
-    x = laneX(z) + side * reach;
-    y = courseY(z) + (r() - 0.5) * pRad * 0.35;
+    const alt = pRad * (0.18 + 0.08 * r());
+    reach = pRad + alt;
+    x = baseRouteX(z) + side * reach;
+    y = courseY(z);
+   } else {
+    // TRUE FLANK PARALLAX TITAN: Scenic companion world 5000+ units out on lateral flank
+    poseType = 'flank';
+    reach = pRad * 1.55 + 5200;
+    x = baseRouteX(z) + side * reach;
+    y = courseY(z) + (r() - 0.5) * 800;
    }
 
    masses.push({
@@ -1237,34 +1252,6 @@ function chunk(k){
     spinSpeed: 0.02 + r() * 0.03,
     notifiedSkim: false,
     isEncounter: true
-   });
-  }
-
-  // =========================================================================
-  // DISTANT COSMIC BACKGROUND GIANTS:
-  // Standing stellar landmarks every 3 chunks far out in lateral deep space (16,000 - 36,000 units)
-  // Provides eternal volumetric 3D depth and eliminate empty void syndrome
-  // =========================================================================
-  if(k % 3 === 1 && !nearHole){
-   const dZ = z0 + CHUNK * (0.2 + r() * 0.6) + (r() - 0.5) * 8000;
-   const dSide = (r() < 0.5) ? -1 : 1;
-   const dReach = 18000 + r() * 22000;
-   const dX = laneX(dZ) + dSide * dReach;
-   const dY = courseY(dZ) + (r() < 0.5 ? -1 : 1) * (8000 + r() * 12000);
-   const dRad = 2800 + r() * 3600;
-   const dWorld = worldFor((k * 7 + 13) % 280);
-
-   masses.push({
-    x: dX, y: dY, z: dZ,
-    kind: dWorld.hasRings ? 8 : dWorld.pSize.kind,
-    r: dRad,
-    w: dWorld,
-    axis: [r() - 0.5, r() - 0.5, r() - 0.5], phase: r() * TAU,
-    orb: null,
-    isDistant: true,
-    poseType: 'distant',
-    spinSpeed: 0.01 + r() * 0.015,
-    flybyDist: 4000
    });
   }
  }
@@ -4519,7 +4506,7 @@ function frame(now){
 }
 // A small read-only diagnostic surface for inspecting a locally opened file.
 window.Starfield=Object.freeze({
- version:'v66-volumetric-3d-master',
+ version:'v68-true-nadir-zenith-master',
  holeDir:()=>{let best=null,bd=1e9;const lw=craftWorld(fleet[LEAD]);
  for(const m of activeMasses){if(m.kind!==4)continue;const d=Math.hypot(lw[0]-m.x,lw[1]-m.y,lw[2]-m.z);if(d<bd){bd=d;best=m;}}
  if(!best)return null;const dx=best.x-lw[0],dz=best.z-lw[2];
@@ -4532,11 +4519,27 @@ window.Starfield=Object.freeze({
  nova:()=>{const n=novaState();return n?{age:+n.age.toFixed(1),life:+n.life.toFixed(3),x:Math.round(n.x),y:Math.round(n.y)}:null;},
  cameras:Object.freeze(LENSES.map(p=>Object.freeze({name:p.name,en:p.en}))),
  worldFor,
- seekEncounter:(encIndex)=>{
-  const k = encIndex * 6 + 3;
-  travel = k * CHUNK + CHUNK * 0.45 - 800;
+ getSkimmer:()=>LowOrbitSkimmer,
+ getChunk:chunk,
+ seekEncounter:(targetEncIndex)=>{
+  let found = 0, k = 5;
+  while(k < 100000){
+   const nh = Math.abs(k - 12) < 6 || (k >= 42 && (k % 48 < 6 || k % 48 > 42));
+   if(!nh && (k % 10 === 5)){
+    if(found === targetEncIndex) break;
+    found++;
+   }
+   k += 10;
+  }
+  const c = chunk(k);
+  const m = c.masses.find(m => m.isEncounter);
+  if(m){
+   travel = m.z - 750;
+  } else {
+   travel = k * CHUNK + CHUNK * 0.5 - 750;
+  }
   chunks.clear();
-  return { encIndex, travel, k, world: worldFor(encIndex) };
+  return { encIndex: targetEncIndex, travel, k, world: worldFor(targetEncIndex) };
  },
  seek:(seconds)=>{
   const step=1/60,n=Math.max(0,Math.round(seconds/step));
