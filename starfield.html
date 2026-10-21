@@ -55,6 +55,102 @@
   display: inline-block;
 }
 
+
+/* ==========================================================================
+ * COMMS HUD & ICEY-STYLE NARRATOR
+ * ========================================================================== */
+#comms-hud {
+  position: absolute;
+  top: calc(var(--pad, 32px) + 8px);
+  left: 50%;
+  transform: translateX(-50%) translateY(-24px);
+  width: min(640px, 88vw);
+  background: rgba(14, 18, 26, 0.84);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(136, 192, 208, 0.35);
+  border-radius: 8px;
+  padding: 12px 20px 14px 20px;
+  box-shadow: 0 10px 36px rgba(0,0,0,0.55), 0 0 20px rgba(136,192,208,0.15);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.38s ease, transform 0.38s cubic-bezier(0.16, 1, 0.3, 1);
+  z-index: 1000;
+}
+#comms-hud.active {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+.comms-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 7px;
+  font-size: 11px;
+  font-family: var(--font-mono, monospace);
+  letter-spacing: 0.14em;
+  color: #88c0d0;
+  text-transform: uppercase;
+}
+.comms-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #a3be8c;
+  box-shadow: 0 0 10px #a3be8c;
+  animation: commsPulse 1.2s infinite ease-in-out;
+}
+.comms-wave {
+  display: inline-flex;
+  gap: 2.5px;
+  align-items: center;
+  height: 12px;
+  margin-left: 6px;
+}
+.comms-wave i {
+  display: block;
+  width: 2px;
+  height: 3px;
+  background: #88c0d0;
+  border-radius: 1px;
+  transition: height 0.12s ease;
+  opacity: 0.45;
+}
+.comms-wave.talking i { opacity: 1; }
+.comms-wave.talking i:nth-child(1) { animation: waveAnim 0.32s infinite ease-in-out alternate 0.04s; }
+.comms-wave.talking i:nth-child(2) { animation: waveAnim 0.38s infinite ease-in-out alternate 0.11s; }
+.comms-wave.talking i:nth-child(3) { animation: waveAnim 0.28s infinite ease-in-out alternate 0.18s; }
+.comms-wave.talking i:nth-child(4) { animation: waveAnim 0.42s infinite ease-in-out alternate 0.07s; }
+.comms-wave.talking i:nth-child(5) { animation: waveAnim 0.35s infinite ease-in-out alternate 0.14s; }
+.comms-wave.talking i:nth-child(6) { animation: waveAnim 0.40s infinite ease-in-out alternate 0.22s; }
+.comms-wave.talking i:nth-child(7) { animation: waveAnim 0.30s infinite ease-in-out alternate 0.09s; }
+.comms-wave.talking i:nth-child(8) { animation: waveAnim 0.46s infinite ease-in-out alternate 0.16s; }
+@keyframes waveAnim {
+  0% { height: 3px; }
+  100% { height: 12px; }
+}
+@keyframes commsPulse {
+  0%, 100% { opacity: 0.4; transform: scale(0.9); }
+  50% { opacity: 1; transform: scale(1.25); box-shadow: 0 0 12px #a3be8c; }
+}
+.comms-body {
+  font-size: 15px;
+  line-height: 1.65;
+  color: #eceff4;
+  letter-spacing: 0.035em;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.9);
+}
+.control.voice-on[aria-pressed="false"] {
+  opacity: 0.45;
+}
+.comms-icon svg {
+  transition: transform 0.25s ease;
+}
+.control.voice-on[aria-pressed="true"] .comms-icon svg {
+  color: #a3be8c;
+  filter: drop-shadow(0 0 6px rgba(163, 190, 140, 0.45));
+}
+
 </style>
 </head>
 <body>
@@ -96,11 +192,12 @@
 </button>
 <button class="control camera" id="camera-toggle" aria-pressed="true" title="自动 / 自主镜头（C）；自主模式拖拽旋转，滚轮缩放"><i class="icon orbit-icon" aria-hidden="true"></i><span id="camera-button-name">自动运镜</span></button><i class="control-separator"></i>
 <button class="control sound-on" id="sound-toggle" aria-pressed="true" title="声音开关（M）" aria-label="声音开关"><i class="icon sound-icon" aria-hidden="true"><i></i><i></i><i></i><i></i></i></button>
-<button class="control" id="poem-toggle" aria-pressed="true" title="手记开关（P）" aria-label="手记开关"><i class="icon poem-icon" aria-hidden="true"></i></button>
+<button class="control" id="poem-toggle" aria-pressed="true" title="手记开关（P）" aria-label="手记开关"><i class="icon poem-icon" aria-hidden="true"></i></button><button class="control voice-on" id="voice-toggle" aria-pressed="true" title="领航员配音开关（N）" aria-label="领航员解说开关"><span class="icon comms-icon"><svg viewBox="0 0 16 16" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M8 2a2.5 2.5 0 0 0-2.5 2.5v4a2.5 2.5 0 0 0 5 0v-4A2.5 2.5 0 0 0 8 2z"/><path d="M3.5 8a4.5 4.5 0 0 0 9 0M8 12.5v2.5M5.5 15h5" stroke-linecap="round"/></svg></span></button>
 <button class="control" id="pause-toggle" aria-pressed="true" title="暂停 / 继续（空格）" aria-label="暂停飞行"><i class="icon pause-icon" aria-hidden="true"></i></button>
 <button class="control" id="fullscreen-toggle" title="全屏（F）" aria-label="切换全屏"><i class="icon fullscreen-icon" aria-hidden="true"></i></button>
 </nav>
-<div id="hint">移动光标引航 &nbsp; · &nbsp; 滚轮轻探远方 &nbsp; · &nbsp; C 自主运镜 &nbsp; · &nbsp; V 驾驶舱</div><div id="toast" role="status" aria-live="polite"></div><div id="pause-label" class="serif">星光在等你</div>
+<div id="hint">移动光标引航 &nbsp; · &nbsp; 滚轮远眺 &nbsp; · &nbsp; G 曲速 &nbsp; · &nbsp; C 镜头 &nbsp; · &nbsp; N 领航员 &nbsp; · &nbsp; V 驾驶舱</div><div id="toast" role="status" aria-live="polite"></div><div id="pause-label" class="serif">星光在等你</div>
+<section id="comms-hud" class="hud" aria-label="领航员通信"><div class="comms-header"><div class="comms-dot"></div><span class="comms-title mono">COMMS // NAVIGATOR-07</span><div class="comms-wave" id="comms-wave"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div><div id="comms-text" class="comms-body serif"></div></section>
 </main>
 <script>
 'use strict';
@@ -223,6 +320,10 @@ const WarpDrive = {
 
   cycle() {
     this.gearIndex = (this.gearIndex + 1) % this.gears.length;
+    const curG = this.gears[this.gearIndex];
+    if(this.gearIndex === 1) Narrator.speak(Narrator.scripts.warp_5x, { id: 'warp_5x' });
+    else if(this.gearIndex === 2) Narrator.speak(Narrator.scripts.warp_15x, { id: 'warp_15x', priority: 2 });
+    else Narrator.speak(Narrator.scripts.warp_1x, { id: 'warp_1x' });
     this.updateUI();
     const g = this.gears[this.gearIndex];
     toast(`已切换至 ${g.label} · 速度 ${g.cVal}`);
@@ -900,6 +1001,11 @@ const LowOrbitSkimmer = {
         const eggTag = (wD.manif && wD.manif.id === 'earth_egg') ? ' 【★地球文明彩蛋 1/16】' : '';
         const poseName = pose === 'nadir' ? '正下方俯瞰深渊' : pose === 'zenith' ? '正上方仰望天顶' : pose === 'flank' ? '侧翼深空伴飞' : '近轨贴地掠过';
         toast(`\u{1fa90} ${poseName} · ${wD.type.name}【${wD.shape.name} · ${wD.manif.name}】${eggTag}`, 6);
+        if(wD.manif && wD.manif.id === 'earth_egg') Narrator.speak(Narrator.scripts.earth_egg, { id: 'earth_egg', priority: 2 });
+        else if(pose === 'nadir') Narrator.speak(Narrator.scripts.nadir_planet, { id: 'nadir_planet' });
+        else if(pose === 'zenith') Narrator.speak(Narrator.scripts.zenith_planet, { id: 'zenith_planet' });
+        else if(pose === 'flank') Narrator.speak(Narrator.scripts.flank_deep, { id: 'flank_deep' });
+        else Narrator.speak(Narrator.scripts.flank_skim, { id: 'flank_skim' });
       }
 
       return { active: true, sw, planet: m, hx, hy, hz, pose };
@@ -1035,6 +1141,19 @@ const SpaceEventEngine = {
     // Trigger HUD toast notifications on close encounters
     if (!ev.notified && distToFleet < 4500) {
       ev.notified = true;
+      if (ev.type === 'voyager_probe') Narrator.speak(Narrator.scripts.ev_voyager, { id: 'ev_voyager', priority: 2 });
+      else if (ev.type === 'dimension_foil') Narrator.speak(Narrator.scripts.ev_foil, { id: 'ev_foil', priority: 2 });
+      else if (ev.type === 'dyson_ring') Narrator.speak(Narrator.scripts.ev_dyson, { id: 'ev_dyson', priority: 2 });
+      else if (ev.type === 'wormhole_sphere') Narrator.speak(Narrator.scripts.ev_wormhole, { id: 'ev_wormhole', priority: 2 });
+      else if (ev.type === 'pillars_of_creation') Narrator.speak(Narrator.scripts.ev_pillars, { id: 'ev_pillars', priority: 2 });
+      else if (ev.type === 'monolith_artifact') Narrator.speak(Narrator.scripts.ev_monolith, { id: 'ev_monolith', priority: 2 });
+      else if (ev.type === 'ghost_fleet') Narrator.speak(Narrator.scripts.ev_ghost, { id: 'ev_ghost', priority: 2 });
+      else if (ev.type === 'asteroid_field') Narrator.speak(Narrator.scripts.ev_asteroid, { id: 'ev_asteroid' });
+      else if (ev.type === 'pulsar') Narrator.speak(Narrator.scripts.ev_pulsar, { id: 'ev_pulsar' });
+      else if (ev.type === 'comet') Narrator.speak(Narrator.scripts.ev_comet, { id: 'ev_comet' });
+      else if (ev.type === 'solar_flare') Narrator.speak(Narrator.scripts.ev_flare, { id: 'ev_flare' });
+      else if (ev.type === 'derelict') Narrator.speak(Narrator.scripts.ev_derelict, { id: 'ev_derelict' });
+      else if (ev.type === 'spatial_anomaly') Narrator.speak(Narrator.scripts.ev_anomaly, { id: 'ev_anomaly' });
       if (ev.type === 'asteroid_field') toast('☄ 密集小行星带 · ASTEROID BELT HAZARD', 4);
       else if (ev.type === 'pulsar') toast('✦ 星际脉冲星 · PULSAR BEACON', 4);
       else if (ev.type === 'comet') toast('☄ 掠日彗星 · COSMIC COMET DETECTED', 4);
@@ -3460,6 +3579,7 @@ function updateCapture(dt){
     captureMass = m;
     m.captured = true; // Permanently prevent re-triggering deadlock loop
     sound.setTension(true);
+    Narrator.speak(Narrator.scripts.bh_capture, { id: 'bh_capture', priority: 2 });
     toast('卡冈图雅 · 泰坦视界 // GARGANTUA 60S FLYBY', 6);
     break;
    }
@@ -5362,6 +5482,8 @@ function drawCockpit(t){
 }
 function toggleCockpit(){
  cockpitMode=!cockpitMode;
+ if(cockpitMode) Narrator.speak(Narrator.scripts.cockpit_enter, { id: 'cockpit_enter' });
+ else Narrator.speak(Narrator.scripts.cockpit_exit, { id: 'cockpit_exit' });
  if(cockpitMode)cockpitBlend=Math.max(cockpitBlend,.55);
  if(cockpitMode){autoCamera=false;wind.active=false;manual.yaw=camera.yaw;manual.pitch=camera.pitch;manual.distance=Math.max(600,manual.distance);}
  else{autoCamera=true;}
@@ -5373,13 +5495,246 @@ function toggleCockpit(){
 function toggleCamera(){
  if(cockpitMode){cockpitMode=false;toast('回到外部镜头');}
  autoCamera=!autoCamera;
+ if(!autoCamera) Narrator.speak(Narrator.scripts.cam_manual, { id: 'cam_manual' });
+ else Narrator.speak(Narrator.scripts.cam_auto, { id: 'cam_auto' });
  if(!autoCamera){manual.yaw=camera.yaw;manual.pitch=camera.pitch;manual.distance=camera.distance;manual.aimY=camera.aimY;manual.lane=camera.lane;wind.active=false;}
  canvas.classList.toggle('manual',!autoCamera);$('camera-toggle').setAttribute('aria-pressed',String(autoCamera));$('camera-button-name').textContent=autoCamera?'自动运镜':'自主镜头';
  toast(autoCamera?'镜头交还航行，移动光标引航':'拖拽调整方向 · 滚轮或双指捏合缩放');
 }
 function toggleSound(){soundEnabled=!soundEnabled;$('sound-toggle').setAttribute('aria-pressed',String(soundEnabled));$('sound-toggle').classList.toggle('sound-on',soundEnabled);sound.setEnabled(soundEnabled);}
+
+/* ============================================================================
+ * ICEY-STYLE NARRATOR & SPACECRAFT COMMS RADIO (折痕 · Fold-07)
+ * ============================================================================ */
+function playRadioChirp(isIn){
+ if(!sound || !sound.ac || !sound.enabled) return;
+ try {
+  const ac = sound.ac;
+  const now = ac.currentTime;
+  const osc = ac.createOscillator();
+  const gain = ac.createGain();
+  const filter = ac.createBiquadFilter();
+  filter.type = 'bandpass';
+  filter.frequency.value = 1750;
+  filter.Q.value = 3.2;
+  if(isIn){
+   osc.type = 'sine';
+   osc.frequency.setValueAtTime(2200, now);
+   osc.frequency.exponentialRampToValueAtTime(1100, now + 0.04);
+   gain.gain.setValueAtTime(0.045, now);
+   gain.gain.exponentialRampToValueAtTime(0.001, now + 0.045);
+   osc.connect(filter); filter.connect(gain); gain.connect(sound.master || ac.destination);
+   osc.start(now); osc.stop(now + 0.05);
+  } else {
+   osc.type = 'sine';
+   osc.frequency.setValueAtTime(950, now);
+   osc.frequency.setValueAtTime(1420, now + 0.035);
+   gain.gain.setValueAtTime(0.035, now);
+   gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+   osc.connect(filter); filter.connect(gain); gain.connect(sound.master || ac.destination);
+   osc.start(now); osc.stop(now + 0.085);
+  }
+ } catch(_) {}
+}
+
+const Narrator = {
+ enabled: true,
+ speaking: false,
+ queue: [],
+ history: new Set(),
+ typeTimer: null,
+ hideTimer: null,
+ lastSpokenTime: 0,
+ idleTimer: 0,
+
+ // Comprehensive Voice Scripts Catalogue
+ scripts: {
+  intro: '星历未知。量子领航员‘折痕’已上线。14艘折纸飞船结构正常……虽然我一直不理解，为什么有人会用折纸来横跨深空。不过既然你按了起航，那我们就出发吧。',
+  cam_manual: '你按了C键把自动运镜关了？行吧大导演，你来掌镜，我倒要看看你能拍出什么奥斯卡水准的太空纪录片。',
+  cam_auto: '终于把运镜控制权还给我了？相信我，算法选的角度绝对比你刚才乱转镜头好看得多。',
+  warp_5x: '空间发生微小弯曲。抓稳你的折痕，虽然抓紧纸边并不能阻止你在虚空里解体。',
+  warp_15x: '喂！15倍光速曲率？！你的手就非得放在那个黄色按钮上不松开是吧？！我们只是一艘纸飞机，不是歼星舰！',
+  warp_1x: '已退出超光速曲率。引擎正在散热，别说，折纸的散热性能居然意外地不错。',
+  pause: '突然按暂停，是在思考宇宙大爆炸的终极哲学，还是外卖到了？我建议是拿外卖，终极真理通常不顶饱。',
+  resume: '欢迎回到现实。宇宙还在，你的飞船也还没散架，继续飞吧。',
+  cockpit_enter: '已切换至领航员主驾驶视角。感受一下真实的深空前向视野吧，注意别被迎面而来的星尘晃瞎了眼。',
+  cockpit_exit: '退出驾驶舱。又回到全景上帝视角了是吧？懂你，谁不喜欢从高处俯瞰这群脆弱的纸鹤呢。',
+  bh_approach: '引力梯度激增！那是卡冈图雅……黑洞！剧本里可没写我们要掉进事件视界！……不过说实话，这道吸积盘的光环，真是美得令人窒息。',
+  bh_capture: '正在横穿相对论引力场！时间膨胀已达到极限……你在外面的一秒钟，在这里足够看尽几千颗恒星的生死。',
+  bh_sling: '成功脱离引力弹弓！你刚才有一瞬间比你的曾祖父还年轻了两毫秒，回去记得向爱因斯坦道个谢。',
+  nadir_planet: '垂直俯视下潜……正下方整整一颗深渊星球。别告诉我你恐高，在太空中我们连‘上’和‘下’都还没严格定义呢。',
+  zenith_planet: '抬头看天顶！两万单位跨度的冰晶星环正从我们头顶掠过……你看，宇宙在把东西撞碎的时候，也摔得挺漂亮的。',
+  flank_skim: '进入近轨切线伴飞。距离地表只有几百单位，如果现在开窗，大概能闻到大气层摩擦的焦糊味……开玩笑的，别开窗。',
+  flank_deep: '侧翼发现庞大伴随星体。那颗星球在静静自转，像个亿万年没挪过窝的深空老邻居。',
+  earth_egg: '等等……扫描光谱……蔚蓝海洋、绿色陆架，还有夜半球的暖光灯火？天啊，是代号‘地球’的古老母星。别靠太近，让他们以为我们只是一颗流星就好。',
+  ev_voyager: '雷达抓到一个古董！1977年发射的旅行者号探测器，上面还挂着一张镀金铜板唱片……人类当年可真浪漫，把巴赫的曲子扔在真空里飘了几个世纪。',
+  ev_foil: '停！别用机翼碰那张发光的薄膜！那是二向箔！我们本身就是一艘折纸飞船，要是被降维打击，我都不知道该叫二维纸片还是纸浆了！',
+  ev_dyson: '恒星级戴森环巨构……当年建造它的文明大概早就飞升了，只留下这圈永不熄灭的太阳能电池板在虚空里晒太阳。',
+  ev_wormhole: '球形虫洞！通过光学引力透镜，你能看见球体内部倒映着另一个悬臂的螺旋星系……想钻进去看看吗？',
+  ev_pillars: '创生之柱。指状的冷分子星云巨柱……那些微光不是灯塔，是正在点火的新生恒星胚胎。',
+  ev_monolith: '比例 1:4:9 的黑色方尖碑……全吸光表面，零反射率。别盯着它看太久，小心耳机里突然响起施特劳斯的《查拉图斯特拉如是说》。',
+  ev_ghost: '扫描到远古无畏舰残骸。几万年前的星际古战场，断裂的舰体还在闪烁等离子余火……至少他们曾经战斗过。',
+  ev_asteroid: '前方密集陨石带！这要是撞上一块，我们的折纸飞船就得当场变成折纸碎屑了。全员规避！',
+  ev_pulsar: '高能毫秒脉冲星！那两道旋转的辐射束就像宇宙灯塔，不过被照到的话，可不是看不清路那么简单。',
+  ev_comet: '掠日彗星！那条冰晶尘埃尾巴拉了几千公里长……真想拿它冰镇一杯威士忌。',
+  ev_flare: '恒星耀斑爆发！日冕抛射的等离子电弧正在把太空染红，我们的电磁偏转力场正在嗡嗡作响。',
+  ev_derelict: '发现漂浮的先驱者古代通信信标。它还在不知疲倦地向虚空广播一组早已失传的坐标。',
+  ev_anomaly: '时空微裂隙引力异常！周围的光线在疯狂扭曲……抓好操纵杆，别被吸进拓扑褶皱里。'
+ },
+
+ idleTalks: [
+  '深空巡航第三十分钟。如果你觉得无聊，可以试着数一数视野里的恒星……剧透一下，大约有四万八千颗，数完了告诉我。',
+  '宇宙最大的秘密不是暗物质，而是为什么我们飞了这么久，这几张折纸居然连一点折角都没卷边。',
+  '我们穿行在光与墨的交界处。有时候我分不清，是我们在一张白纸上飞行，还是宇宙本身就是折叠起来的故事。',
+  '前方的星光在向红端位移。别担心，那只是多普勒效应，不是星星在害羞。',
+  '你在看风景，我在看仪表盘。这就是领航员的命运——总得有人清醒地算着剩余燃料和光年距离。',
+  '知道为什么太空这么安静吗？因为声音需要介质，而这里只有纯粹的引力和大片未被命名的虚空。'
+ ],
+
+ speak(text, options = {}) {
+  if (!this.enabled) return;
+  const id = options.id || text;
+  const priority = options.priority || 1;
+
+  if (this.history.has(id) && priority < 2) return;
+  this.history.add(id);
+  if (this.history.size > 40) {
+   const first = this.history.values().next().value;
+   this.history.delete(first);
+  }
+
+  if (this.speaking) {
+   if (priority >= 2) {
+    if ('speechSynthesis' in window) {
+     try { window.speechSynthesis.cancel(); } catch(_) {}
+    }
+    this.speaking = false;
+   } else {
+    if (this.queue.length < 3) this.queue.push({ text, options });
+    return;
+   }
+  }
+
+  this._executeSpeak(text, options);
+ },
+
+ _executeSpeak(text, options) {
+  this.speaking = true;
+  this.lastSpokenTime = time;
+  this.idleTimer = 0;
+  playRadioChirp(true);
+
+  const el = document.getElementById('comms-hud');
+  const body = document.getElementById('comms-text');
+  const wave = document.getElementById('comms-wave');
+  if (el && body) {
+   el.classList.add('active');
+   if (wave) wave.classList.add('talking');
+   body.textContent = '';
+   clearTimeout(this.typeTimer);
+   clearTimeout(this.hideTimer);
+
+   let charIdx = 0;
+   const typeSpeed = 30;
+   const typeChar = () => {
+    if (charIdx < text.length) {
+     body.textContent += text[charIdx];
+     charIdx++;
+     this.typeTimer = setTimeout(typeChar, typeSpeed);
+    }
+   };
+   typeChar();
+  }
+
+  const duration = Math.max(3.8, text.length * 0.16 + 1.2);
+
+  if ('speechSynthesis' in window && (!sound || sound.enabled)) {
+   try {
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'zh-CN';
+    u.pitch = 1.08;
+    u.rate = 1.08;
+    u.volume = 0.95;
+    let ended = false;
+    const finish = () => {
+     if(!ended){ ended = true; this._onSpeechEnd(duration); }
+    };
+    u.onend = finish;
+    u.onerror = finish;
+    window.speechSynthesis.speak(u);
+    // Safety fallback timeout
+    setTimeout(finish, (duration + 2.5) * 1000);
+   } catch(e) {
+    setTimeout(() => this._onSpeechEnd(duration), duration * 1000);
+   }
+  } else {
+   setTimeout(() => this._onSpeechEnd(duration), duration * 1000);
+  }
+ },
+
+ _onSpeechEnd(duration) {
+  if (!this.speaking) return;
+  this.speaking = false;
+  playRadioChirp(false);
+  const wave = document.getElementById('comms-wave');
+  if (wave) wave.classList.remove('talking');
+
+  clearTimeout(this.hideTimer);
+  this.hideTimer = setTimeout(() => {
+   const el = document.getElementById('comms-hud');
+   if (el) el.classList.remove('active');
+   if (this.queue.length > 0) {
+    const next = this.queue.shift();
+    setTimeout(() => this._executeSpeak(next.text, next.options), 500);
+   }
+  }, 2200);
+ },
+
+ update(dt) {
+  if (!this.enabled || !started || paused) return;
+  this.idleTimer += dt;
+  // If silent for ~180s (3 min) in deep space, trigger random idle commentary
+  if (this.idleTimer >= 180 && !this.speaking) {
+   this.idleTimer = 0;
+   const talk = this.idleTalks[Math.floor(Math.random() * this.idleTalks.length)];
+   this.speak(talk, { id: 'idle_' + talk.slice(0, 8), priority: 1 });
+  }
+ },
+
+ toggle() {
+  this.enabled = !this.enabled;
+  const btn = document.getElementById('voice-toggle');
+  if (btn) btn.setAttribute('aria-pressed', String(this.enabled));
+  if (!this.enabled) {
+   if ('speechSynthesis' in window) {
+    try { window.speechSynthesis.cancel(); } catch(_) {}
+   }
+   this.speaking = false;
+   const el = document.getElementById('comms-hud');
+   if (el) el.classList.remove('active');
+   toast('🔇 领航员旁白解说已静音', 3);
+  } else {
+   toast('🎙️ 领航员旁白解说已启用', 3);
+   this.speak('通信信道重新接通。量子领航员‘折痕’恢复监听。', { id: 'voice_reconnected', priority: 2 });
+  }
+ },
+
+ exportScript() {
+  const list = Object.entries(this.scripts).map(([id, text]) => ({
+   id, speaker: '折痕 (Fold-07)', text
+  }));
+  this.idleTalks.forEach((text, i) => list.push({
+   id: 'idle_' + i, speaker: '折痕 (Fold-07)', text
+  }));
+  return list;
+ }
+};
+
 function togglePoem(){poemsEnabled=!poemsEnabled;$('poem-toggle').setAttribute('aria-pressed',String(poemsEnabled));$('poem').style.opacity=poemsEnabled?poemOpacity:0;}
-function togglePause(){paused=!paused;root.classList.toggle('paused',paused);$('pause-toggle').setAttribute('aria-pressed',String(!paused));$('pause-toggle').setAttribute('aria-label',paused?'继续飞行':'暂停飞行');paused?sound.suspend():sound.resume();last=performance.now();}
+function togglePause(){paused=!paused;root.classList.toggle('paused',paused);
+ if(paused) Narrator.speak(Narrator.scripts.pause, { id: 'pause', priority: 2 });
+ else Narrator.speak(Narrator.scripts.resume, { id: 'resume' });$('pause-toggle').setAttribute('aria-pressed',String(!paused));$('pause-toggle').setAttribute('aria-label',paused?'继续飞行':'暂停飞行');paused?sound.suspend():sound.resume();last=performance.now();}
 async function requestWake(){
  if(!started||document.hidden)return;
  try{if(navigator.wakeLock){wakeLock=await navigator.wakeLock.request('screen');$('awake-state').textContent='◦';$('awake-state').title='屏幕常亮已开启';wakeLock.addEventListener('release',()=>{wakeLock=null;$('awake-state').textContent='';});}}catch(_){$('awake-state').textContent='';}
@@ -5398,6 +5753,7 @@ function chooseDeparture(index){
 }
 for(const el of document.querySelectorAll('.destination'))el.addEventListener('click',()=>chooseDeparture(Number(el.dataset.region)));
 $('begin').addEventListener('click',()=>{
+  Narrator.speak(Narrator.scripts.intro, { id: 'intro', priority: 2 });
  if(started)return;started=true;flightTime=0;departure=travel;shotTime=0;root.classList.add('flying');$('intro').classList.add('gone');$('intro').setAttribute('aria-hidden','true');$('intro').inert=true;
  wind.last=-10;wind.active=false;
  // Preserve the original gesture for audio and fullscreen: no await before these.
@@ -5419,12 +5775,12 @@ window.addEventListener('keyup', e => {
   }
 });
 
-$('camera-toggle').addEventListener('click',toggleCamera);$('sound-toggle').addEventListener('click',toggleSound);$('poem-toggle').addEventListener('click',togglePoem);$('pause-toggle').addEventListener('click',togglePause);$('fullscreen-toggle').addEventListener('click',()=>fullscreen(true));
+$('voice-toggle').addEventListener('click',()=>Narrator.toggle());$('camera-toggle').addEventListener('click',toggleCamera);$('sound-toggle').addEventListener('click',toggleSound);$('poem-toggle').addEventListener('click',togglePoem);$('pause-toggle').addEventListener('click',togglePause);$('fullscreen-toggle').addEventListener('click',()=>fullscreen(true));
 window.addEventListener('keydown',e=>{
  if(!started||e.ctrlKey||e.metaKey||e.altKey)return;
  if(e.code==='Space'){if(e.target instanceof HTMLButtonElement)return;e.preventDefault();togglePause();}
  else if(e.key.toLowerCase()==='v')toggleCockpit();
- else if(e.key.toLowerCase()==='c')toggleCamera();else if(e.key.toLowerCase()==='m')toggleSound();else if(e.key.toLowerCase()==='p')togglePoem();else if(e.key.toLowerCase()==='f')fullscreen(true);
+ else if(e.key.toLowerCase()==='c')toggleCamera();else if(e.key.toLowerCase()==='m')toggleSound();else if(e.key.toLowerCase()==='p')togglePoem();else if(e.key.toLowerCase()==='n')Narrator.toggle();else if(e.key.toLowerCase()==='f')fullscreen(true);
  else if(e.key.toLowerCase()==='h')toast('移动光标引航 · Shift/W 曲速加速 · G 切挡 · C 镜头 · M 声音 · P 手记 · 空格暂停 · F 全屏',6);
 });
 document.addEventListener('visibilitychange',()=>{last=performance.now();if(document.hidden){sound.suspend();if(wakeLock)wakeLock.release().catch(()=>{});}else{if(!paused)sound.resume();requestWake();}});
@@ -5451,7 +5807,7 @@ function frame(now){
    flightTime += dt;}else{previewTime+=dt;travel+=SPEED*.15*dt;}}
  updateDirector(realDt);
  currentPalette=region(routeX(travel),travel);
- if(dt){updateWind(dt);updateGravity();updateBirds(dt);updateGate(dt);updateCapture(dt);updateSling(dt);updateParticles(dt);updatePoem(dt);}
+ if(dt){updateWind(dt);updateGravity();updateBirds(dt);updateGate(dt);updateCapture(dt);updateSling(dt);updateParticles(dt);updatePoem(dt);Narrator.update(dt);}
  ctx.setTransform(DPR,0,0,DPR,0,0);drawCalls=0;queue.length=0;holeDraws=0;
  drawSky();deepfield();drawCraftShadows();bodies();drawFleet();drawParticles();flush();
  // The throat: a bell around the two seconds either side of the step.
@@ -5489,6 +5845,9 @@ window.Starfield=Object.freeze({
  nova:()=>{const n=novaState();return n?{age:+n.age.toFixed(1),life:+n.life.toFixed(3),x:Math.round(n.x),y:Math.round(n.y)}:null;},
  cameras:Object.freeze(LENSES.map(p=>Object.freeze({name:p.name,en:p.en}))),
  worldFor,
+ getNarrator:()=>Narrator,
+ speak:(text,opt)=>Narrator.speak(text,opt),
+ exportNarratorScript:()=>Narrator.exportScript(),
  getSkimmer:()=>LowOrbitSkimmer,
  getChunk:chunk,
  seekEncounter:(targetEncIndex)=>{
@@ -5518,7 +5877,7 @@ window.Starfield=Object.freeze({
    const effWarp = Math.max(warp, WarpDrive.currentWarp);
    travel += SPEED * step * (1 + 1.1 * sling + effWarp);
    flightTime += step;}else{previewTime+=step;travel+=SPEED*.15*step;}
-   updateDirector(step);updateWind(step);updateGravity();updateBirds(step);updateCapture(step);updateSling(step);updateParticles(step);updatePoem(step);
+   updateDirector(step);updateWind(step);updateGravity();updateBirds(step);updateCapture(step);updateSling(step);updateParticles(step);updatePoem(step);Narrator.update(step);
    currentPalette=region(routeX(travel),travel);
   }
   return {travel,time};
