@@ -3536,8 +3536,10 @@ function captureCam(){
 
  const fw = craftWorld(fleet[LEAD]);
  
- // Compose BOTH the paper crane migration flock in foreground and Gargantua in background
- const focusFactor = mix(0.42, 0.65, Math.sin(Math.PI * u));
+ // Aim at the hole itself. A look target between the flock and the hole put
+ // the eye at .95 r - inside the disc's outer edge - and the shader, which
+ // assumes an observer outside the disc, painted the frame a flat amber.
+ const focusFactor = 1.0;
  const tx = mix(fw[0], m.x, focusFactor);
  const ty = mix(fw[1], m.y, focusFactor);
  const tz = mix(fw[2], m.z, focusFactor);
