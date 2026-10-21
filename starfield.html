@@ -855,6 +855,16 @@ const PLANET_SIZES = [
 
 const W_TYPES = PLANET_TYPES; // backwards compatibility
 
+
+/* A tone shift inside a type: warm or cool lean, plus a value swing. Two worlds
+ * of the same type are now distinguishable at a glance, which is what the deck
+ * needed to stop reading as a repeat. */
+function shiftTone(c, t) {
+  const warm = [255, 206, 150], cool = [150, 200, 255];
+  const m = blend(c, t < .5 ? warm : cool, Math.abs(t - .5) * 1.15);
+  const k = .84 + t * .34;
+  return m.map(v => clamp(v * k, 0, 255));
+}
 function shuffleDeck280(seed) {
   const r = rng(seed >>> 0), a = [];
   for (let i = 0; i < 280; i++) a.push(i);
@@ -888,7 +898,14 @@ function worldFor(e) {
   const sizeIdx = Math.floor(sr() * 6);
 
   const shape = PLANET_SHAPES[shapeIdx];
-  const type  = PLANET_TYPES[typeIdx];
+  const type0 = PLANET_TYPES[typeIdx];
+  const toneR = rng((cycleSeed ^ Math.imul(idx + 31, 0x27d4eb2f)) >>> 0);
+  const tone = toneR();
+  const type = Object.assign({}, type0, {
+    c: shiftTone(type0.c, tone),
+    atmo: shiftTone(type0.atmo, tone * .72),
+    mie: shiftTone(type0.mie, tone * .45)
+  });
   const manif = PLANET_MANIFESTATIONS[manifIdx];
   const pSize = PLANET_SIZES[sizeIdx];
   const hasRings = (shape.id === 'ringed');
