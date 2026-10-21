@@ -542,7 +542,11 @@ function updateDirector(dt){
  {
   const bx=routeX(travel),by=courseY(travel)+camera.aimY,bz=travel;
   const dx=lookTarget[0]-bx,dy=lookTarget[1]-by,dz=lookTarget[2]-bz;
-  const d=Math.hypot(dx,dy,dz),cap=Math.max(800,camera.distance*.55);
+  // .42 of the orbit radius is 22.8 deg. The vertical half-frame is 24 deg
+  // at 16:9 (focal = H*1.12), so the old 29 deg cap - and the 800 floor
+  // under it - could put the whole flock outside a frame that still read
+  // "14 CRAFT" in the corner.
+  const d=Math.hypot(dx,dy,dz),cap=Math.max(220,camera.distance*.30);
   if(d>cap){const sc=cap/d;lookTarget[0]=bx+dx*sc;lookTarget[1]=by+dy*sc;lookTarget[2]=bz+dz*sc;}
  }
  const horizontal = Math.cos(camera.pitch) * camera.distance;
