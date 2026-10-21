@@ -2904,7 +2904,8 @@ void main() {
   fragColor = vec4(tone * alpha, alpha);
 }`;
 
-const holeGL=(()=>{
+let holeGL=null;
+function bootHoleGL(){
   let cv,gl,prog,u={},texOrganic,texNoise;
   try{
     cv=document.createElement('canvas');
@@ -2982,8 +2983,13 @@ const holeGL=(()=>{
   }catch(e){
     console.error('Hole init fail:',e);return null;
   }
+  // A lost context cannot be revived in place: the program, the two textures
+  // and the buffer are all gone. Ask for restoration, then build it again.
+  cv.addEventListener('webglcontextlost',ev=>{ev.preventDefault();},false);
+  cv.addEventListener('webglcontextrestored',()=>{holeGL=bootHoleGL();},false);
   return {cv,gl,prog,u,texOrganic,texNoise};
-})();
+}
+holeGL=bootHoleGL();
 
 function drawHole(m, q, p, t, rad){
   const cx = q[0], cy = q[1];
