@@ -192,7 +192,7 @@
 </button>
 <button class="control camera" id="camera-toggle" aria-pressed="true" title="自动 / 自主镜头（C）；自主模式拖拽旋转，滚轮缩放"><i class="icon orbit-icon" aria-hidden="true"></i><span id="camera-button-name">自动运镜</span></button><i class="control-separator"></i>
 <button class="control sound-on" id="sound-toggle" aria-pressed="true" title="声音开关（M）" aria-label="声音开关"><i class="icon sound-icon" aria-hidden="true"><i></i><i></i><i></i><i></i></i></button>
-<button class="control" id="poem-toggle" aria-pressed="true" title="手记开关（P）" aria-label="手记开关"><i class="icon poem-icon" aria-hidden="true"></i></button><button class="control voice-on" id="voice-toggle" aria-pressed="true" title="领航员配音开关（N）" aria-label="领航员解说开关"><span class="icon comms-icon"><svg viewBox="0 0 16 16" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M8 2a2.5 2.5 0 0 0-2.5 2.5v4a2.5 2.5 0 0 0 5 0v-4A2.5 2.5 0 0 0 8 2z"/><path d="M3.5 8a4.5 4.5 0 0 0 9 0M8 12.5v2.5M5.5 15h5" stroke-linecap="round"/></svg></span></button>
+<button class="control" id="poem-toggle" aria-pressed="true" title="手记开关（P）" aria-label="手记开关"><i class="icon poem-icon" aria-hidden="true"></i></button>
 <button class="control" id="pause-toggle" aria-pressed="true" title="暂停 / 继续（空格）" aria-label="暂停飞行"><i class="icon pause-icon" aria-hidden="true"></i></button>
 <button class="control" id="fullscreen-toggle" title="全屏（F）" aria-label="切换全屏"><i class="icon fullscreen-icon" aria-hidden="true"></i></button>
 </nav>
@@ -5730,7 +5730,7 @@ const Narrator = {
 
  _fallbackTTS(text) {
   const duration = Math.max(3.8, text.length * 0.16 + 1.2);
-  if ('speechSynthesis' in window && (!sound || sound.enabled)) {
+  if (false) { // mechanical TTS removed: the navigator is typography only
    try {
     window.speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(text);
@@ -5785,7 +5785,7 @@ const Narrator = {
 
  toggle() {
   this.enabled = !this.enabled;
-  const btn = document.getElementById('voice-toggle');
+  const btn = null; // voice UI removed with the mechanical TTS
   if (btn) btn.setAttribute('aria-pressed', String(this.enabled));
   if (!this.enabled) {
    if (this.currentAudio) {
@@ -5859,12 +5859,12 @@ window.addEventListener('keyup', e => {
   }
 });
 
-$('voice-toggle').addEventListener('click',()=>Narrator.toggle());$('camera-toggle').addEventListener('click',toggleCamera);$('sound-toggle').addEventListener('click',toggleSound);$('poem-toggle').addEventListener('click',togglePoem);$('pause-toggle').addEventListener('click',togglePause);$('fullscreen-toggle').addEventListener('click',()=>fullscreen(true));
+$('camera-toggle').addEventListener('click',toggleCamera);$('sound-toggle').addEventListener('click',toggleSound);$('poem-toggle').addEventListener('click',togglePoem);$('pause-toggle').addEventListener('click',togglePause);$('fullscreen-toggle').addEventListener('click',()=>fullscreen(true));
 window.addEventListener('keydown',e=>{
  if(!started||e.ctrlKey||e.metaKey||e.altKey)return;
  if(e.code==='Space'){if(e.target instanceof HTMLButtonElement)return;e.preventDefault();togglePause();}
  else if(e.key.toLowerCase()==='v')toggleCockpit();
- else if(e.key.toLowerCase()==='c')toggleCamera();else if(e.key.toLowerCase()==='m')toggleSound();else if(e.key.toLowerCase()==='p')togglePoem();else if(e.key.toLowerCase()==='n')Narrator.toggle();else if(e.key.toLowerCase()==='f')fullscreen(true);
+ else if(e.key.toLowerCase()==='c')toggleCamera();else if(e.key.toLowerCase()==='m')toggleSound();else if(e.key.toLowerCase()==='p')togglePoem();else if(e.key.toLowerCase()==='f')fullscreen(true);
  else if(e.key.toLowerCase()==='h')toast('移动光标引航 · Shift/W 曲速加速 · G 切挡 · C 镜头 · M 声音 · P 手记 · 空格暂停 · F 全屏',6);
 });
 document.addEventListener('visibilitychange',()=>{last=performance.now();if(document.hidden){sound.suspend();if(wakeLock)wakeLock.release().catch(()=>{});}else{if(!paused)sound.resume();requestWake();}});
