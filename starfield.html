@@ -544,7 +544,9 @@ function updateDirector(dt){
  // Keep the flock on the plate: whatever the shot wants to look at, the look
  // target may not drift further than ~29 degrees off the corridor, or the
  // subject leaves the frame entirely.
- {
+ // A capture has its own six-DOF camera and the fleet is not its subject; the
+ // clamp belongs to ordinary shots only.
+ if(!captureCamPose){
   const bx=routeX(travel),by=courseY(travel)+camera.aimY,bz=travel;
   const dx=lookTarget[0]-bx,dy=lookTarget[1]-by,dz=lookTarget[2]-bz;
   // .42 of the orbit radius is 22.8 deg. The vertical half-frame is 24 deg
@@ -4521,9 +4523,13 @@ function drawSky(){
    const ng = novaGas(n, nova), al = clamp(n.alpha * wash * 2.9 * ng * near * far * big, 0, 0.94);
    if (al < .004) continue;
    const qx = q[0], qy = q[1], rr = rad, aa = al, nn = n;
-   // Enqueued at its own depth, so a world nearer than the cloud prints over
-   // it and one behind it does not. This is the whole point of the rewrite.
-   queue.push({type:4, d, alpha:1, fn:()=>{
+   // Enqueued behind every solid. A world in front of a cloud still hides it;
+   // a cloud in front of a world must read as haze, not as a sheet of paint
+   // over the one object the whole piece is built around. (The flat 事件视界
+   // frame that prompted this was the look clamp, not the gas - see the
+   // capture exemption below - but a cloud between the eye and the hole at
+   // 15,000 units out would do exactly the same thing.)
+   queue.push({type:4, d:1e6+d, alpha:1, fn:()=>{
     // Pass 1: the ionised core, added rather than painted.
     const coreRad = rr * 0.46;
     ctx.save();
