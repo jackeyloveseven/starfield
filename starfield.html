@@ -4951,6 +4951,12 @@ function drawTesseract(){
  ctx.save();
  ctx.globalAlpha=a;
  ctx.fillStyle=css(blend(p.paper,[0,0,0],.90));ctx.fillRect(0,0,W,H);
+ // The page turns: a paper-white bloom for the first half second, so the
+ // room arrives as a change of medium rather than as an overlay fading in.
+ if(tessT<.55){
+  const fl=1-tessT/.55;
+  ctx.fillStyle=css([255,253,248],fl*.62);ctx.fillRect(0,0,W,H);
+ }
  // the camera floats: a slow sway, a slower yaw. Never a walk - the room must
  // stay a room for the eight seconds it is on screen.
  const yaw=Math.sin(t*.27)*.115, pit=Math.sin(t*.19)*.055;
@@ -5010,7 +5016,8 @@ function drawTesseract(){
     ctx.lineWidth=Math.max(.7,2.0*(f/((A[2]+Cq[2])*.5)));
     ctx.beginPath();ctx.moveTo(h0[0],h0[1]);ctx.lineTo(h1[0],h1[1]);ctx.stroke();
     if(hj<.40){
-     const mx=(A[0]+Cq[0])*.5,my=h0[1]*(.72)+h1[1]*.28;
+     const bw=Math.abs(h1[0]-h0[0])||1;
+     const mx=(A[0]+Cq[0])*.5+(hash(seed+i,seed+j,9)-.5)*bw*.44,my=h0[1]*(.72)+h1[1]*.28;
      const rr=Math.max(1.5,Math.hypot(h1[0]-h0[0],h1[1]-h0[1])*(.07+.05*hash(seed+i,seed+j,3)));
      ctx.fillStyle=css(blend(mull,[0,0,0],.35),.62);
      ctx.beginPath();ctx.arc(mx,my,rr,0,TAU);ctx.fill();
@@ -6169,7 +6176,7 @@ function frame(now){
  if(gateFlash>.01){ctx.save();ctx.globalCompositeOperation='lighter';
   ctx.fillStyle=css([255,250,240],gateFlash*.55);ctx.fillRect(0,0,W,H);ctx.restore();
   gateFlash*=Math.max(0,1-realDt*2.2);}
- if(tessT>0){tessT+=realDt;drawTesseract();if(tessT>TESS_DUR)tessT=0;}
+ if(tessT>0){tessT+=dt;drawTesseract();if(tessT>TESS_DUR)tessT=0;}
  cockpitBlend+=((cockpitMode?1:0)-cockpitBlend)*Math.min(1,realDt*3.2);
  drawCockpit(time);paperFinish();postPass();
  uiAccumulator+=realDt;if(uiAccumulator>.12){uiAccumulator=0;updateUI();}
