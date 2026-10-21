@@ -304,95 +304,150 @@ makePlan(0,null);makePlan(1,plans.get(0)[5].yaw);
 function poseAt(p,t){return {...p,yaw:p.yaw+Math.sin(t*.047+p.id)*p.drift,pitch:p.pitch+Math.sin(t*.039+p.id*.5)*.007};}
 function updateDirector(dt){
  if(cockpitMode){cockpitPose();captureCamPose=null;return;}
- if(started&&!paused){
-  shotTime+=dt;totalCycleTime+=dt;
-  while(shotTime>=plans.get(cycle)[shot].duration){
-   shotTime-=plans.get(cycle)[shot].duration;shot++;
-   if(shot===6){shot=0;cycle++;totalCycleTime=0;if(!plans.has(cycle+1))makePlan(cycle+1,plans.get(cycle)[5].yaw);plans.delete(cycle-2);}
+ 
+ // 1. Freeze director shot clock when in cinematic black hole capture to eliminate shot fighting
+ if(started && !paused && capturePhase === 0){
+  shotTime += dt; totalCycleTime += dt;
+  while(shotTime >= plans.get(cycle)[shot].duration){
+   shotTime -= plans.get(cycle)[shot].duration; shot++;
+   if(shot === 6){shot = 0; cycle++; totalCycleTime = 0; if(!plans.has(cycle+1)) makePlan(cycle+1, plans.get(cycle)[5].yaw); plans.delete(cycle-2);}
   }
  }
- const list=plans.get(cycle)||makePlan(cycle,null),p=list[shot]||list[5],n=shot===5?(plans.get(cycle+1)||makePlan(cycle+1,p.yaw))[0]:list[shot+1];
- const progress=shotTime/p.duration,t=smoother((progress-.44)/.56),A=poseAt(p,time),B=poseAt(n,time);
- let goal={yaw:A.yaw+angleDelta(A.yaw,B.yaw)*t,pitch:mix(A.pitch,B.pitch,t),distance:mix(A.distance,B.distance,t),aimY:mix(A.aimY,B.aimY,t),lane:mix(A.lane,B.lane,t),roll:mix(A.roll,B.roll,t)};
- if(!started){goal={yaw:-29*DEG+Math.sin(time*.035)*.035,pitch:1.06+Math.sin(time*.06)*.024,distance:1490,aimY:0,lane:0,roll:0};}
- if(time-observation.last>2){observation.distance*=Math.exp(-dt*.8);observation.pitch*=Math.exp(-dt*.8);}
- if(!autoCamera)goal={...manual,roll:0};
- else{goal.distance+=observation.distance;goal.pitch=clamp(goal.pitch+observation.pitch,-.16,1.48);}
- captureCamPose=capturePhase&&captureMass?captureCam():null;
- if(captureCamPose){const c=captureCamPose;goal.distance=mix(goal.distance,c.distance,c.blend);goal.pitch=mix(goal.pitch,c.pitch,c.blend);goal.roll=mix(goal.roll||0,c.roll,c.blend);
-  // Azimuth too, when the capture asks for one: without it the camera
-  // orbits to whatever side the shot was on and the flock falls behind it.
-  if(c.yaw!=null)goal.yaw=mix(goal.yaw,c.yaw,c.blend);}
- const rate=autoCamera?2.2:7;
- camera.yaw+=angleDelta(camera.yaw,goal.yaw)*(1-Math.exp(-dt*rate));
- for(const k of ['pitch','distance','aimY','lane','roll'])camera[k]=expStep(camera[k],goal[k]||0,rate,dt);
- lookTarget=[routeX(travel),courseY(travel)+camera.aimY,travel];
- // The camera watches the road. A world 4,000 units off the lane is then
- // never in frame, which is why the encounters read as nothing happening.
- // Lean the look target toward the nearest big body; the eye stays on the
- // lane, so it is a glance and not a detour.
- if(autoCamera&&activeMasses.length){
-  let gm=null,gd=1e9;
+ 
+ const list = plans.get(cycle) || makePlan(cycle, null), p = list[shot] || list[5], n = shot === 5 ? (plans.get(cycle+1) || makePlan(cycle+1, p.yaw))[0] : list[shot+1];
+ const progress = shotTime / p.duration, t = smoother((progress - .44) / .56), A = poseAt(p, time), B = poseAt(n, time);
+ let goal = {yaw: A.yaw + angleDelta(A.yaw, B.yaw)*t, pitch: mix(A.pitch, B.pitch, t), distance: mix(A.distance, B.distance, t), aimY: mix(A.aimY, B.aimY, t), lane: mix(A.lane, B.lane, t), roll: mix(A.roll, B.roll, t)};
+ 
+ if(!started){goal = {yaw: -29*DEG + Math.sin(time*.035)*.035, pitch: 1.06 + Math.sin(time*.06)*.024, distance: 1490, aimY: 0, lane: 0, roll: 0};}
+ if(time - observation.last > 2){observation.distance *= Math.exp(-dt*.8); observation.pitch *= Math.exp(-dt*.8);}
+ if(!autoCamera) goal = {...manual, roll: 0};
+ else {goal.distance += observation.distance; goal.pitch = clamp(goal.pitch + observation.pitch, -.16, 1.48);}
+
+ // 2. Black Hole Dominance & Horizon Detection (Priority 1)
+ let hm = null, hd = 1e9;
+ if(autoCamera && activeMasses.length){
+  for(const m of activeMasses){
+   if(m.kind === 4 && !m.passed && m.z >= travel - 4000 && m.z <= travel + 36000){
+    const d = Math.hypot(m.x - camera.eye[0], m.y - camera.eye[1], m.z - camera.eye[2]);
+    if(d < hd){hd = d; hm = m;}
+   }
+  }
+ }
+
+ // 3. Low-Orbit Skimming & Multi-Dimensional Planet Tracking (Priority 2, only runs when NOT near Gargantua)
+ let skimRes = null;
+ if(autoCamera && !hm && !capturePhase){
+  skimRes = LowOrbitSkimmer.update(dt, autoCamera, capturePhase, activeMasses, fleet[LEAD], goal);
+ }
+
+ if(autoCamera && !hm && !capturePhase && activeMasses.length && (!skimRes || !skimRes.active)){
+  let gm = null, gd = 1e9;
   for(const m of activeShips){
-   const dx=m.x-lookTarget[0],dy=m.y-lookTarget[1],dz=m.z-lookTarget[2];
-   const d=Math.hypot(dx,dy,dz);
-   if(d<gd&&d<9000){gd=d;gm=m;}
+   const dx = m.x - routeX(travel), dy = m.y - courseY(travel), dz = m.z - travel;
+   const d = Math.hypot(dx, dy, dz);
+   if(d < gd && d < 9000){gd = d; gm = m;}
   }
+  // Search for rising distant worlds up to 36,000 units ahead (Deep Cosmic Lookout)
   for(const m of activeMasses){
-   if(m.kind>=5&&m.kind<=7)continue; // a star is a light, not a place
-   const dx=m.x-lookTarget[0],dy=m.y-lookTarget[1],dz=m.z-lookTarget[2];
-   const d=Math.hypot(dx,dy,dz);
-   if(d<gd&&d<7000){gd=d;gm=m;}
+   if(m.kind >= 5 && m.kind <= 7) continue; // skip star light sources
+   if(m.kind === 4 || m.isMiller) continue; // strictly skip Gargantua and Miller companion
+   const dz = m.z - travel;
+   if(dz < -1500 || dz > 42000) continue;
+   const dx = m.x - routeX(travel), dy = m.y - courseY(travel);
+   const d = Math.hypot(dx, dy, dz);
+   // Prefer close encounters, but softly look ahead to distant rising worlds
+   const weight = m.isDistant ? 1.6 : 1.0;
+   if(d * weight < gd){gd = d * weight; gm = m;}
   }
-  if(gm){const w=clamp((7000-gd)/5000,0,1)*.32;
-   lookTarget=[mix(lookTarget[0],gm.x,w),mix(lookTarget[1],gm.y,w),
-    mix(lookTarget[2],gm.z,w)];}
+
+  if(gm){
+   const dz = gm.z - travel;
+   // Continuous long-range lookout weight: smoothly blends from 0.08 at 36,000 to 0.45 at 7,000
+   let w = 0.0;
+   if(dz > 7000){
+    w = clamp((36000 - dz) / 29000, 0, 1) * 0.18;
+   } else {
+    w = clamp((7000 - gd) / 5000, 0, 1) * 0.36 + 0.12;
+   }
+   lookTarget = [mix(routeX(travel), gm.x, w), mix(courseY(travel) + camera.aimY, gm.y, w), mix(travel, gm.z, w * 0.85)];
+  } else {
+   lookTarget = [routeX(travel), courseY(travel) + camera.aimY, travel];
+  }
+ } else if(!hm && !capturePhase && (!skimRes || !skimRes.active)) {
+  lookTarget = [routeX(travel), courseY(travel) + camera.aimY, travel];
  }
- // A horizon is the set piece, so it gets its own framing: from 26,000
- // units in the look target leans to it and the orbit pulls in. Without
- // this the disc arrives already wider than the frame.
- if(autoCamera&&!capturePhase&&activeMasses.length){
-  let hm=null,hd=1e9;
-  for(const m of activeMasses){
-   if(m.kind!==4||m.z<travel-2500||m.z>travel+42000)continue;
-   const d=Math.hypot(m.x-camera.eye[0],m.y-camera.eye[1],m.z-camera.eye[2]);
-   if(d<hd){hd=d;hm=m;}
-  }
-  if(hm){
-   // distance from the lead crane, not from the eye
-   const fwl=craftWorld(fleet[LEAD]);
-   const fr=Math.hypot(hm.x-fwl[0],hm.y-fwl[1],hm.z-fwl[2]);
-   const wT=clamp((26000-fr)/20000,0,1)*.85;
-   horizonW+=(wT-horizonW)*Math.min(1,dt*1.5);
-   const w=horizonW;
-   lookTarget=[mix(lookTarget[0],hm.x,w),mix(lookTarget[1],hm.y,w),
-    mix(lookTarget[2],hm.z,w)];
-   goal.distance=mix(goal.distance,Math.max(hm.r*2.2,fr*.95),w);
-   goal.pitch=mix(goal.pitch,clamp(.22,0,1.4),w*.45);
-  }
+
+ if(skimRes && skimRes.active){
+  const pose = skimRes.pose || 'skim';
+  const targetZOff = pose === 'nadir' ? 200 : pose === 'zenith' ? 200 : 350;
+  lookTarget[0] = mix(lookTarget[0], skimRes.hx, skimRes.sw * 0.72);
+  lookTarget[1] = mix(lookTarget[1], skimRes.hy, skimRes.sw * 0.72);
+  lookTarget[2] = mix(lookTarget[2], skimRes.hz + targetZOff, skimRes.sw * 0.72);
  }
- if(captureCamPose){const c=captureCamPose;lookTarget=[mix(lookTarget[0],c.tx,c.blend),mix(lookTarget[1],c.ty,c.blend),mix(lookTarget[2],c.tz,c.blend)];}
- // Integrate the look target: ~0.4 s to settle, so a change of subject is a
- // turn and not a cut.
+
+ // 4. Long-range Black Hole Horizon Framing (before capture begins)
+ if(autoCamera && !capturePhase && hm){
+  const fwl = craftWorld(fleet[LEAD]);
+  const fr = Math.hypot(hm.x - fwl[0], hm.y - fwl[1], hm.z - fwl[2]);
+  const wT = clamp((32000 - fr) / 24000, 0, 1) * 0.82;
+  horizonW += (wT - horizonW) * Math.min(1, dt * 1.5);
+  const w = horizonW;
+  lookTarget = [mix(lookTarget[0], hm.x, w), mix(lookTarget[1], hm.y, w), mix(lookTarget[2], hm.z, w)];
+  goal.distance = mix(goal.distance, Math.max(hm.r * 2.5, fr * 0.85), w);
+  goal.pitch = mix(goal.pitch, 0.08, w * 0.45);
+ } else if(!capturePhase) {
+  horizonW += (0 - horizonW) * Math.min(1, dt * 2.0);
+ }
+
+ // 5. Integrate Cinematic Capture Pose (Full 6-DOF authority during 60s Gargantua flyby)
+ captureCamPose = capturePhase && captureMass ? captureCam() : null;
+ if(captureCamPose){
+  const c = captureCamPose;
+  goal.distance = mix(goal.distance, c.distance, c.blend);
+  goal.pitch = mix(goal.pitch, c.pitch, c.blend);
+  goal.roll = mix(goal.roll || 0, c.roll, c.blend);
+  if(c.yaw != null) goal.yaw = mix(goal.yaw, c.yaw, c.blend);
+  lookTarget = [mix(lookTarget[0], c.tx, c.blend), mix(lookTarget[1], c.ty, c.blend), mix(lookTarget[2], c.tz, c.blend)];
+ }
+
+ // 6. Damped Camera Integration
+ const rate = (autoCamera || capturePhase) ? 3.2 : 7;
+ camera.yaw += angleDelta(camera.yaw, goal.yaw) * (1 - Math.exp(-dt * rate));
+ for(const k of ['pitch','distance','aimY','lane','roll']) camera[k] = expStep(camera[k], goal[k] || 0, rate, dt);
+
+ // 7. Smooth Target Settling
  if(!lookInit){lookSmooth[0]=lookTarget[0];lookSmooth[1]=lookTarget[1];lookSmooth[2]=lookTarget[2];lookInit=true;}
- else{const kk=Math.min(1,dt*2.4);
-  for(let i=0;i<3;i++){lookSmooth[i]+=(lookTarget[i]-lookSmooth[i])*kk;lookTarget[i]=lookSmooth[i];}}
- const horizontal=Math.cos(camera.pitch)*camera.distance;
- let eye=[lookTarget[0]+Math.sin(camera.yaw)*horizontal,Math.max(34,lookTarget[1]+Math.sin(camera.pitch)*camera.distance),travel-Math.cos(camera.yaw)*horizontal];
- eye[0]=mix(eye[0],laneX(eye[2]),camera.lane*.90);
- camera.eye=eye;
- let f=lookTarget.map((v,i)=>v-eye[i]),len=Math.hypot(...f);f=f.map(v=>v/len);
- let r=[f[2],0,-f[0]];len=Math.hypot(...r);r=r.map(v=>v/len);
- let u=[f[1]*r[2],f[2]*r[0]-f[0]*r[2],-f[1]*r[0]];
- if(camera.roll){const co=Math.cos(camera.roll),si=Math.sin(camera.roll),rr=r.map((v,i)=>v*co+u[i]*si);u=u.map((v,i)=>v*co-r[i]*si);r=rr;}
- camera.forward=f;camera.right=r;camera.up=u;camera.cx=W*.385;camera.cy=H*.465;const effWarpF = Math.max(warp, WarpDrive.currentWarp);
+ else{
+  const kk = Math.min(1, dt * 2.4);
+  for(let i=0;i<3;i++){lookSmooth[i] += (lookTarget[i] - lookSmooth[i]) * kk; lookTarget[i] = lookSmooth[i];}
+ }
+
+ // 8. Geometric Precision: Anchored to lookTarget[2] (Eliminates 2157-unit Euclidean distortion)
+ const horizontal = Math.cos(camera.pitch) * camera.distance;
+ let eye = [
+  lookTarget[0] + Math.sin(camera.yaw) * horizontal,
+  Math.max(34, lookTarget[1] + Math.sin(camera.pitch) * camera.distance),
+  lookTarget[2] - Math.cos(camera.yaw) * horizontal
+ ];
+ eye[0] = mix(eye[0], laneX(eye[2]), camera.lane * .90);
+ camera.eye = eye;
+
+ let f = lookTarget.map((v,i) => v - eye[i]), flen = Math.hypot(...f);
+ f = flen < 1e-5 ? [0,0,1] : f.map(v => v / flen);
+ let r = [f[2], 0, -f[0]], rlen = Math.hypot(...r);
+ r = rlen < 1e-5 ? [1,0,0] : r.map(v => v / rlen);
+ let u = [f[1]*r[2], f[2]*r[0] - f[0]*r[2], -f[1]*r[0]];
+ if(camera.roll){const co = Math.cos(camera.roll), si = Math.sin(camera.roll), rr = r.map((v,i) => v*co + u[i]*si); u = u.map((v,i) => v*co - r[i]*si); r = rr;}
+ camera.forward = f; camera.right = r; camera.up = u; camera.cx = W * .385; camera.cy = H * .465;
+
+ const effWarpF = Math.max(warp, WarpDrive.currentWarp);
  const warpFactor = clamp(effWarpF / 28, 0, 1.2);
  const fovWarp = 1 / (1 + warpFactor * 0.35 - WarpDrive.reverseR * 0.22);
  camera.focal = H * 1.12 * fovWarp * (captureCamPose ? mix(1, captureCamPose.focal, captureCamPose.blend) : 1);
- if (WarpDrive.shake > 0.05) {
-   camera.cx += (Math.random() - 0.5) * WarpDrive.shake * 3.5;
-   camera.cy += (Math.random() - 0.5) * WarpDrive.shake * 2.5;
-   camera.eye[2] -= WarpDrive.brakeKick;
+ if(WarpDrive.shake > 0.05){
+  camera.cx += (Math.random() - 0.5) * WarpDrive.shake * 3.5;
+  camera.cy += (Math.random() - 0.5) * WarpDrive.shake * 2.5;
+  camera.eye[2] -= WarpDrive.brakeKick;
  }
 }
 
@@ -469,93 +524,747 @@ const chunks=new Map(),CHUNK=3200;
  *   type : ocean, lava, forest, city, ice, desert, gas
  *   shape: round, ringed, oblate, fractured
  * -------------------------------------------------------------------------*/
-const W_TYPES = [
- {n:'海',  c:[ 36, 92,158], f:'ocean'},
- {n:'熔岩',c:[104, 42, 26], f:'lava'},
- {n:'林',  c:[ 52, 96, 56], f:'forest'},
- {n:'城',  c:[ 46, 46, 54], f:'city'},
- {n:'冰',  c:[128,168,196], f:'ice'},
- {n:'沙',  c:[150,112, 62], f:'desert'},
- {n:'气',  c:[132, 96, 74], f:'gas'},
- // Dealt rarely; see worldFor().
- {n:'地球',c:[ 52,112,176], f:'earth'}
+/* ============================================================================
+ * PLANET GENERATOR SYSTEM (v63 Master)
+ * 10 Distinct Planet Types * 6 Scale Tiers * Continuous LOD Surface Features
+ * ============================================================================ */
+/* ============================================================================
+ * PLANET MATRIX SYSTEM (v64 Master)
+ * 280 Distinct Worlds (4 Shapes * 7 Geological Types * 10 Thematic Manifestations)
+ * ============================================================================ */
+
+const PLANET_SHAPES = [
+  {
+    id: 'round',
+    name: '\u6807\u51c6\u7403\u4f53',
+    en: 'Hydrostatic Sphere',
+    desc: '\u7ecf\u5178\u6d41\u4f53\u9759\u529b\u5b66\u5e73\u8861\u7403\u4f53\uff0c\u5730\u8868\u91cd\u529b\u5747\u5300\uff0c\u5927\u6c14\u73af\u6d41\u5e73\u7a33\u5bf9\u79f0\u3002'
+  },
+  {
+    id: 'ringed',
+    name: '\u5b8f\u4f1f\u661f\u73af',
+    en: 'Majestic Ringed',
+    desc: '\u62e5\u6709\u591a\u9636\u5c42\u9ad8\u53cd\u7167\u7387\u661f\u73af\u7cfb\uff0c\u5305\u542b\u5361\u897f\u5c3c\u7f1d\u9699\u4e0e\u771f\u5b9e\u884c\u661f\u672c\u5f71\u6295\u5c04\u3002'
+  },
+  {
+    id: 'oblate',
+    name: '\u6781\u901f\u692d\u7403',
+    en: 'Oblate Spheroid',
+    desc: '\u8d85\u9ad8\u901f\u81ea\u8f6c\u79bb\u5fc3\u6241\u7403\u4f53\uff0c\u8d64\u9053\u663e\u8457\u9686\u8d77(1.25x)\uff0c\u4e24\u6781\u6536\u7f29\u6241\u5e73(0.82x)\u3002'
+  },
+  {
+    id: 'fractured',
+    name: '\u5927\u6495\u88c2\u788e\u6838',
+    en: 'Fractured Core',
+    desc: '\u5927\u707e\u53d8\u5730\u5e54\u5f00\u88c2\u4f53\uff0c\u5730\u8868\u88c2\u89e3\u4e3a\u72ec\u7acb\u6784\u9020\u65ad\u5757\uff0c\u6df1\u6e0a\u95f4\u9699\u88f8\u9732\u70bd\u70ed\u5730\u5e54\u3002'
+  }
 ];
-const W_SHAPES = ['round','ringed','oblate','fractured'];
-function shuffleDeck(n, seed) {
- const r = rng(seed >>> 0), a = [];
- for (let i = 0; i < n; i++) a.push(i);
- for (let i = n - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); const t = a[i]; a[i] = a[j]; a[j] = t; }
- return a;
+
+const PLANET_TYPES = [
+  {
+    id: 'ocean',
+    name: '\u6df1\u6d77\u6d41\u4f53',
+    en: 'Pelagic Ocean',
+    c: [24, 105, 188],
+    atmo: [65, 160, 255],
+    mie: [210, 240, 255],
+    power: 1.45,
+    waterLevel: 0.95
+  },
+  {
+    id: 'lava',
+    name: '\u7194\u706b\u7384\u6b66',
+    en: 'Pyros Magma',
+    c: [115, 34, 18],
+    atmo: [255, 80, 35],
+    mie: [255, 175, 85],
+    power: 1.15,
+    waterLevel: 0.0
+  },
+  {
+    id: 'forest',
+    name: '\u7fe0\u7eff\u751f\u6001',
+    en: 'Verdant Forest',
+    c: [38, 108, 56],
+    atmo: [80, 192, 160],
+    mie: [220, 250, 230],
+    power: 1.3,
+    waterLevel: 0.45
+  },
+  {
+    id: 'city',
+    name: '\u6587\u660e\u57ce\u7f51',
+    en: 'Civilization Grid',
+    c: [72, 78, 92],
+    atmo: [110, 155, 215],
+    mie: [245, 225, 180],
+    power: 1.2,
+    waterLevel: 0.35
+  },
+  {
+    id: 'ice',
+    name: '\u6781\u5bd2\u51b0\u539f',
+    en: 'Europa Glacies',
+    c: [155, 195, 228],
+    atmo: [170, 220, 255],
+    mie: [242, 252, 255],
+    power: 1.1,
+    waterLevel: 0.1
+  },
+  {
+    id: 'desert',
+    name: '\u6c99\u4e18\u701a\u6d77',
+    en: 'Arrakis Dunes',
+    c: [192, 128, 62],
+    atmo: [248, 178, 108],
+    mie: [255, 222, 168],
+    power: 0.95,
+    waterLevel: 0.02
+  },
+  {
+    id: 'gas',
+    name: '\u6c14\u6001\u5de8\u661f',
+    en: 'Jovian Gas',
+    c: [205, 142, 85],
+    atmo: [245, 198, 142],
+    mie: [255, 242, 212],
+    power: 1.25,
+    waterLevel: 0.0
+  }
+];
+
+const PLANET_MANIFESTATIONS = [
+  {
+    id: 'skimming_water',
+    name: '\u63a0\u8fc7\u6c34\u4e16\u754c / \u7c73\u52d2\u661f',
+    en: 'Miller Tide Skimming',
+    sub: '\u6d69\u701a\u6c34\u5e55\u6d8c\u6d6a\u4e0e\u9633\u5149\u53cd\u5c04'
+  },
+  {
+    id: 'mothership_fleet',
+    name: '\u8981\u585e\u6bcd\u8230\u7f16\u961f\u62a4\u822a',
+    en: 'Mothership Fleet Escort',
+    sub: '\u8f68\u9053\u5de1\u5f0b\u8981\u585e\u4e0e\u62a4\u822a\u5fae\u5149'
+  },
+  {
+    id: 'protoss_crystal',
+    name: '\u661f\u7075\u795e\u65cf\u6c34\u6676\u661f',
+    en: 'Protoss Prismatic World',
+    sub: '\u6298\u5149\u6c34\u6676\u5854\u5c16\u4e0e\u5e7d\u80fd\u77e9\u9635'
+  },
+  {
+    id: 'zerg_biomorphic',
+    name: '\u866b\u65cf\u751f\u5316\u83cc\u6bef\u661f',
+    en: 'Zerg Biomorphic Hive',
+    sub: '\u8815\u52a8\u7d2b\u8272\u83cc\u6bef\u4e0e\u6709\u673a\u56ca\u80bf'
+  },
+  {
+    id: 'earth_egg',
+    name: '\u5730\u7403\u6587\u660e\u5f69\u86cb',
+    en: 'Terra Nova Easter Egg',
+    sub: '\u771f\u5b9e\u5927\u9646\u67b6\u4e0e\u6587\u660e\u591c\u666f\u4e4b\u706b'
+  },
+  {
+    id: 'cyber_metropolis',
+    name: '\u8d5b\u535a\u670b\u514b\u5de5\u4e1a\u5de8\u6784',
+    en: 'Cyber Metropolis Ring',
+    sub: '\u5916\u9aa8\u67b6\u73af\u5e26\u4e0e\u9713\u8679\u5168\u606f\u5149\u8def'
+  },
+  {
+    id: 'dune_arrakis',
+    name: '\u6c99\u4e18\u5384\u62c9\u79d1\u65af',
+    en: 'Arrakis Dune Anomaly',
+    sub: '\u6c99\u866b\u810a\u7ebf\u89c6\u5dee\u4e0e\u9999\u6599\u77ff\u6655'
+  },
+  {
+    id: 'shattered_cataclysm',
+    name: '\u5927\u6495\u88c2\u707e\u53d8\u88c2\u89e3',
+    en: 'Cataclysmic Shatter',
+    sub: '\u788e\u7247\u73af\u5e26\u4e0e\u5730\u5e54\u7535\u5f27\u66b4\u9732'
+  },
+  {
+    id: 'super_storm',
+    name: '\u8d85\u7ea7\u96f7\u66b4\u6728\u661f',
+    en: 'Jovian Super Storm',
+    sub: '\u8d85\u97f3\u901f\u96f7\u66b4\u5e26\u4e0e\u6781\u5149\u5195\u73af'
+  },
+  {
+    id: 'dark_void',
+    name: '\u865a\u7a7a\u6697\u7269\u8d28\u5e7d\u51a5',
+    en: 'Dark Void Anomaly',
+    sub: '\u5f15\u529b\u900f\u955c\u5f2f\u66f2\u4e0e\u5e7d\u51a5\u5fae\u5149'
+  }
+];
+
+const PLANET_SIZES = [
+  {
+    id: 'dwarf',
+    name: '\u77ee\u884c\u661f/\u5c0f\u884c\u661f\u4f53',
+    radMin: 800,
+    radMax: 1350,
+    kind: 1
+  },
+  {
+    id: 'terrestrial',
+    name: '\u6807\u51c6\u7c7b\u5730/\u77f3\u8d28\u661f',
+    radMin: 2200,
+    radMax: 3400,
+    kind: 1
+  },
+  {
+    id: 'super_earth',
+    name: '\u8d85\u7ea7\u5730\u7403/\u5de8\u5730\u661f',
+    radMin: 3800,
+    radMax: 5200,
+    kind: 1
+  },
+  {
+    id: 'sub_neptune',
+    name: '\u4e9a\u6d77\u738b\u661f/\u51b0\u5de8\u661f',
+    radMin: 6200,
+    radMax: 8800,
+    kind: 8
+  },
+  {
+    id: 'gas_giant',
+    name: '\u7c7b\u6728\u6c14\u6001\u5de8\u884c\u661f',
+    radMin: 9800,
+    radMax: 14500,
+    kind: 8
+  },
+  {
+    id: 'colossus',
+    name: '\u8d85\u7ea7\u6cf0\u5766\u5de8\u661f',
+    radMin: 16000,
+    radMax: 23000,
+    kind: 6
+  }
+];
+
+const W_TYPES = PLANET_TYPES; // backwards compatibility
+
+function shuffleDeck280(seed) {
+  const r = rng(seed >>> 0), a = [];
+  for (let i = 0; i < 280; i++) a.push(i);
+  for (let i = 279; i > 0; i--) {
+    const j = Math.floor(r() * (i + 1));
+    const t = a[i]; a[i] = a[j]; a[j] = t;
+  }
+  return a;
 }
-/* Which deck entry does encounter `e` get? */
+
+/**
+ * Deterministic world generator for encounter index `e`.
+ * Visits every single one of the 280 combinations before cycling!
+ */
 function worldFor(e) {
- const cyc = Math.floor(e / 7), idx = e % 7;
- const td = shuffleDeck(7, (SEED ^ Math.imul(cyc + 3, 0x9e3779b1)) >>> 0);
- const sd = shuffleDeck(4, (SEED ^ Math.imul(cyc + 11, 0x85ebca6b)) >>> 0);
- // One cycle in eight deals the earth instead of the seventh surface.
- const r = rng((SEED ^ Math.imul(cyc + 29, 0x27d4eb2f)) >>> 0);
- if (r() < .125) td[6] = 7;
- return { t: td[idx], s: sd[(idx + (cyc & 3)) % 4] };
+  const safeE = Math.max(0, Math.floor(e || 0));
+  const cycle = Math.floor(safeE / 280);
+  const idx = safeE % 280;
+  const cycleSeed = (SEED ^ Math.imul(cycle + 101, 0x9e3779b1)) >>> 0;
+  const deck = shuffleDeck280(cycleSeed);
+  const code = deck[idx];
+
+  // Orthogonal decomposition: 4 Shapes * 7 Types * 10 Manifestations = 280
+  const shapeIdx = code % 4;
+  const typeIdx  = Math.floor(code / 4) % 7;
+  const manifIdx = Math.floor(code / 28) % 10;
+
+  // Size tier
+  const sizeSeed = (cycleSeed ^ Math.imul(idx + 13, 0x85ebca6b)) >>> 0;
+  const sr = rng(sizeSeed);
+  const sizeIdx = Math.floor(sr() * 6);
+
+  const shape = PLANET_SHAPES[shapeIdx];
+  const type  = PLANET_TYPES[typeIdx];
+  const manif = PLANET_MANIFESTATIONS[manifIdx];
+  const pSize = PLANET_SIZES[sizeIdx];
+  const hasRings = (shape.id === 'ringed');
+
+  return {
+    code,
+    e,
+    shapeIdx,
+    typeIdx,
+    manifIdx,
+    sizeIdx,
+    shape,
+    type,
+    manif,
+    pSize,
+    hasRings,
+    seed: (sizeSeed ^ Math.imul(code + 7, 0x5bd1e995)) >>> 0,
+    // Compatibility properties
+    t: typeIdx,
+    s: sizeIdx,
+    pType: type
+  };
 }
+
+/* ============================================================================
+ * LOW-ORBIT SURFACE SKIMMING CAMERA DIRECTOR
+ * ============================================================================ */
+const LowOrbitSkimmer = {
+  activePlanet: null,
+  skimW: 0.0,
+
+  update(dt, autoCamera, capturePhase, activeMasses, fleetLead, goal) {
+    if (!autoCamera || capturePhase || !activeMasses.length) {
+      this.skimW = expStep(this.skimW, 0.0, 3.0, dt);
+      return null;
+    }
+
+    let bestM = null, minDz = 1e9;
+    const fwl = craftWorld(fleetLead);
+
+    // Prioritize encounters over distant background stars
+    for (const m of activeMasses) {
+      if (!m.w || m.isMiller || m.kind === 4) continue;
+      const dz = m.z - travel;
+      // Active engagement corridor
+      if (dz >= -2000 && dz <= 4500) {
+        const weight = m.isDistant ? 2.5 : 1.0;
+        const effDist = Math.abs(dz) * weight;
+        if (effDist < minDz) {
+          minDz = effDist;
+          bestM = m;
+        }
+      }
+    }
+
+    if (!bestM) {
+      this.skimW = expStep(this.skimW, 0.0, 2.5, dt);
+      return null;
+    }
+
+    this.activePlanet = bestM;
+    const m = bestM;
+    const dz = m.z - travel;
+    const fDist = m.flybyDist || 930;
+
+    // Smooth Hermite skimming envelope (30.0 seconds at cruise speed SPEED=62)
+    const targetSkimW = clamp(1.0 - Math.abs(dz) / fDist, 0.0, 1.0);
+    this.skimW = expStep(this.skimW, targetSkimW, 2.4, dt);
+    const sw = smoother(this.skimW);
+
+    if (sw > 0.01) {
+      const dx = fwl[0] - m.x, dy = fwl[1] - m.y, dz3 = fwl[2] - m.z;
+      const distToCenter = Math.hypot(dx, dy, dz3) || 1;
+      const ux = dx / distToCenter, uy = dy / distToCenter, uz = dz3 / distToCenter;
+
+      const hx = m.x + ux * m.r;
+      const hy = m.y + uy * m.r;
+      const hz = m.z + uz * m.r;
+
+      // =======================================================================
+      // ADAPTIVE 3D CAMERA FRAMING FOR NADIR, ZENITH, FLANK, AND SKIM:
+      // =======================================================================
+      const pose = m.poseType || 'skim';
+
+      if (pose === 'nadir') {
+        // OVERLOOKING ABYSS BELOW: Camera tilts down (-22 deg), gazing at the sprawling ocean/crust below
+        const idealDist = Math.max(m.r * 1.45, 1600);
+        goal.distance = mix(goal.distance, idealDist, sw * 0.80);
+        goal.pitch = mix(goal.pitch, -0.26, sw * 0.75); // Pitch down toward the majestic world beneath
+        goal.roll = mix(goal.roll || 0, 0.04, sw * 0.60);
+      } else if (pose === 'zenith') {
+        // LOOKING UP AT ZENITH CANOPY: Camera tilts up (+25 deg), gazing at rings and cloud belts in the heavens
+        const idealDist = Math.max(m.r * 1.50, 1700);
+        goal.distance = mix(goal.distance, idealDist, sw * 0.80);
+        goal.pitch = mix(goal.pitch, 0.38, sw * 0.75); // Pitch up toward the cosmic sky canopy
+        goal.roll = mix(goal.roll || 0, -0.04, sw * 0.60);
+      } else if (pose === 'flank') {
+        // LATERAL PARALLAX TITAN: Wide scenic perspective framing the companion world
+        const idealDist = Math.max(1600, m.r * 1.20);
+        goal.distance = mix(goal.distance, idealDist, sw * 0.55);
+        goal.pitch = mix(goal.pitch, 0.12, sw * 0.45);
+        const sideBank = (m.x > fwl[0] ? -1 : 1) * 0.06;
+        goal.roll = mix(goal.roll || 0, sideBank, sw * 0.65);
+      } else {
+        // INTIMATE SKIM: Close low-altitude orbit (planet fills 60%-80% of horizon)
+        const idealDist = Math.max(m.r * 1.35, 1450);
+        goal.distance = mix(goal.distance, idealDist, sw * 0.75);
+        goal.pitch = mix(goal.pitch, 0.18, sw * 0.55);
+        const sideBank = (m.x > fwl[0] ? -1 : 1) * 0.09;
+        goal.roll = mix(goal.roll || 0, sideBank, sw * 0.75);
+      }
+
+      if (!m.notifiedSkim && Math.abs(dz) < 900) {
+        m.notifiedSkim = true;
+        const wD = m.w;
+        const eggTag = (wD.manif && wD.manif.id === 'earth_egg') ? ' 【★地球文明彩蛋 1/16】' : '';
+        const poseName = pose === 'nadir' ? '俯瞰深渊天体' : pose === 'zenith' ? '仰望天顶苍穹' : pose === 'flank' ? '侧翼深空视差' : '近轨贴地掠过';
+        toast(`\u{1fa90} ${poseName} · ${wD.type.name}【${wD.shape.name} · ${wD.manif.name}】${eggTag}`, 6);
+      }
+
+      return { active: true, sw, planet: m, hx, hy, hz, pose };
+    }
+
+    return null;
+  }
+};
+
+const SpaceEventEngine = {
+  createEvent(k, z0, r, laneX, courseY) {
+    const evTypeIdx = Math.floor(r() * 6);
+    const types = ['asteroid_field', 'pulsar', 'comet', 'solar_flare', 'derelict', 'spatial_anomaly'];
+    const type = types[evTypeIdx];
+    const z = z0 + CHUNK * (0.30 + r() * 0.40);
+    const side = r() < 0.5 ? -1 : 1;
+    const x = laneX + side * (1200 + r() * 2600);
+    const y = courseY + (r() - 0.5) * 1600;
+
+    if (type === 'asteroid_field') {
+      const rocks = [];
+      const count = 28 + Math.floor(r() * 24);
+      for (let i = 0; i < count; i++) {
+        rocks.push({
+          ox: (r() - 0.5) * 2800,
+          oy: (r() - 0.5) * 1400,
+          oz: (r() - 0.5) * 2200,
+          rad: 45 + r() * 120,
+          rot: r() * TAU,
+          spin: (r() - 0.5) * 1.5,
+          color: [95 + r() * 40 | 0, 92 + r() * 35 | 0, 90 + r() * 30 | 0]
+        });
+      }
+      return { type, x, y, z, rocks, notified: false };
+    } else if (type === 'pulsar') {
+      return { type, x, y, z, spinRate: 6.0 + r() * 8.0, pulsePhase: r() * TAU, notified: false };
+    } else if (type === 'comet') {
+      return {
+        type, x, y, z,
+        vx: (r() - 0.5) * 45, vy: (r() - 0.5) * 25, vz: -120 - r() * 80,
+        comaRad: 280 + r() * 200, tailLen: 6500 + r() * 4000,
+        notified: false
+      };
+    } else if (type === 'solar_flare') {
+      return { type, x, y, z, arcRad: 1200 + r() * 1000, flarePhase: r() * TAU, notified: false };
+    } else if (type === 'derelict') {
+      return { type, x, y, z, beaconRad: 240 + r() * 160, rot: r() * TAU, notified: false };
+    } else { // spatial_anomaly
+      return { type, x, y, z, radius: 900 + r() * 700, notified: false };
+    }
+  },
+
+  drawEvent(ev, t) {
+    const q = project([ev.x, ev.y, ev.z]);
+    if (!q || q[2] > 65000 || q[2] < 30) return;
+    const distToFleet = Math.abs(ev.z - travel);
+
+    // Trigger HUD toast notifications on close encounters
+    if (!ev.notified && distToFleet < 4500) {
+      ev.notified = true;
+      if (ev.type === 'asteroid_field') toast('▲ 遭遇密集小行星带 · ASTEROID BELT HAZARD', 4);
+      else if (ev.type === 'pulsar') toast('▲ 捕获毫秒脉冲星极地辐射束 · PULSAR BEACON', 4);
+      else if (ev.type === 'comet') toast('▲ 发现长周期掠日彗星 · COSMIC COMET DETECTED', 4);
+      else if (ev.type === 'solar_flare') toast('▲ 恒星日冕物质抛射耀斑 · CORONAL MASS EJECTION', 4);
+      else if (ev.type === 'derelict') toast('▲ 先驱者深空遗迹信标 · ANCIENT RELAY BEACON', 4);
+      else if (ev.type === 'spatial_anomaly') toast('▲ 时空微裂隙引力透镜异常 · GRAVITATIONAL ANOMALY', 4);
+    }
+
+    const evAlpha = clamp((65000 - q[2]) / 35000, 0, 1);
+
+    if (ev.type === 'asteroid_field') {
+      for (const rock of ev.rocks) {
+        const rp = project([ev.x + rock.ox, ev.y + rock.oy, ev.z + rock.oz]);
+        if (!rp || rp[2] > 55000 || rp[2] < 20) continue;
+        const rPix = rock.rad * rp[3];
+        if (rPix < 0.8) continue;
+        queue.push({
+          type: 4, d: rp[2], alpha: evAlpha, fn: () => {
+            ctx.save();
+            ctx.translate(rp[0], rp[1]);
+            ctx.rotate(rock.rot + t * rock.spin);
+            ctx.beginPath();
+            const pts = 5;
+            for (let i = 0; i < pts; i++) {
+              const th = i * TAU / pts;
+              const rad = rPix * (0.8 + 0.35 * Math.sin(i * 2.3 + rock.rot));
+              if (i === 0) ctx.moveTo(Math.cos(th) * rad, Math.sin(th) * rad);
+              else ctx.lineTo(Math.cos(th) * rad, Math.sin(th) * rad);
+            }
+            ctx.closePath();
+            ctx.fillStyle = css(rock.color, 0.88);
+            ctx.fill();
+            ctx.strokeStyle = 'rgba(210,215,225,0.35)';
+            ctx.lineWidth = Math.max(0.6, rPix * 0.12);
+            ctx.stroke();
+            ctx.restore();
+          }
+        });
+      }
+    } else if (ev.type === 'pulsar') {
+      const beamAngle = t * ev.spinRate + ev.pulsePhase;
+      const coreR = Math.max(2.5, 40 * q[3]);
+      queue.push({
+        type: 4, d: q[2], alpha: evAlpha, fn: () => {
+          const cx = q[0], cy = q[1];
+          // Sweeping dual relativistic beams
+          ctx.save();
+          ctx.translate(cx, cy);
+          ctx.rotate(beamAngle);
+          for (const sgn of [-1, 1]) {
+            const beamLen = Math.min(W * 1.2, 18000 * q[3]);
+            const bGrad = ctx.createRadialGradient(0, 0, 0, 0, sgn * beamLen * 0.5, beamLen);
+            bGrad.addColorStop(0, 'rgba(215, 235, 255, 0.85)');
+            bGrad.addColorStop(0.3, 'rgba(120, 185, 255, 0.40)');
+            bGrad.addColorStop(1, 'rgba(60, 120, 255, 0)');
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.lineTo(-coreR * 3, sgn * beamLen);
+            ctx.lineTo( coreR * 3, sgn * beamLen);
+            ctx.closePath();
+            ctx.fillStyle = bGrad;
+            ctx.fill();
+          }
+          // Brilliant pulsar core
+          ctx.beginPath(); ctx.arc(0, 0, coreR * 2.5, 0, TAU);
+          ctx.fillStyle = 'rgba(230, 245, 255, 0.95)'; ctx.fill();
+          ctx.restore();
+        }
+      });
+      glow([ev.x, ev.y, ev.z], 1800, [150, 210, 255], 0.45 * evAlpha, 2.5);
+    } else if (ev.type === 'comet') {
+      const comaR = Math.max(3, ev.comaRad * q[3]);
+      queue.push({
+        type: 4, d: q[2], alpha: evAlpha, fn: () => {
+          const cx = q[0], cy = q[1];
+          // Sweeping dual tails: straight ion tail + curved dust tail
+          const tailLen = ev.tailLen * q[3];
+          // Ion tail (cyan)
+          ctx.save();
+          ctx.translate(cx, cy);
+          const iGrad = ctx.createLinearGradient(0, 0, tailLen * 0.8, -tailLen * 0.4);
+          iGrad.addColorStop(0, 'rgba(140, 230, 255, 0.75)');
+          iGrad.addColorStop(0.5, 'rgba(60, 170, 240, 0.30)');
+          iGrad.addColorStop(1, 'rgba(20, 80, 180, 0)');
+          ctx.beginPath();
+          ctx.moveTo(0, 0);
+          ctx.lineTo(tailLen * 0.85, -tailLen * 0.45);
+          ctx.lineTo(tailLen * 0.80, -tailLen * 0.35);
+          ctx.closePath();
+          ctx.fillStyle = iGrad; ctx.fill();
+
+          // Dust tail (golden curve)
+          const dGrad = ctx.createLinearGradient(0, 0, tailLen * 0.7, -tailLen * 0.2);
+          dGrad.addColorStop(0, 'rgba(255, 235, 180, 0.65)');
+          dGrad.addColorStop(0.6, 'rgba(240, 180, 110, 0.25)');
+          dGrad.addColorStop(1, 'rgba(180, 100, 40, 0)');
+          ctx.beginPath();
+          ctx.moveTo(0, 0);
+          ctx.quadraticCurveTo(tailLen * 0.4, -tailLen * 0.05, tailLen * 0.75, -tailLen * 0.22);
+          ctx.lineTo(tailLen * 0.65, -tailLen * 0.15);
+          ctx.closePath();
+          ctx.fillStyle = dGrad; ctx.fill();
+
+          // Coma and icy nucleus
+          const cGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, comaR * 2.2);
+          cGrad.addColorStop(0, 'rgba(255, 255, 255, 0.95)');
+          cGrad.addColorStop(0.3, 'rgba(170, 240, 255, 0.60)');
+          cGrad.addColorStop(1, 'rgba(80, 190, 255, 0)');
+          ctx.fillStyle = cGrad;
+          ctx.beginPath(); ctx.arc(0, 0, comaR * 2.2, 0, TAU); ctx.fill();
+          ctx.restore();
+        }
+      });
+    } else if (ev.type === 'solar_flare') {
+      const arcR = ev.arcRad * q[3];
+      if (arcR > 3) {
+        queue.push({
+          type: 4, d: q[2], alpha: evAlpha, fn: () => {
+            const cx = q[0], cy = q[1];
+            ctx.save();
+            ctx.translate(cx, cy);
+            ctx.beginPath();
+            ctx.arc(0, 0, arcR, Math.PI * 0.8, Math.PI * 2.2);
+            ctx.strokeStyle = `rgba(255, 95, 30, ${(0.65 * evAlpha).toFixed(3)})`;
+            ctx.lineWidth = Math.max(2, arcR * 0.12);
+            ctx.stroke();
+            ctx.strokeStyle = `rgba(255, 220, 120, ${(0.80 * evAlpha).toFixed(3)})`;
+            ctx.lineWidth = Math.max(1, arcR * 0.04);
+            ctx.stroke();
+            ctx.restore();
+          }
+        });
+        glow([ev.x, ev.y, ev.z], ev.arcRad * 1.5, [255, 120, 40], 0.35 * evAlpha, 2.2);
+      }
+    } else if (ev.type === 'derelict') {
+      const bRad = Math.max(4, ev.beaconRad * q[3]);
+      queue.push({
+        type: 4, d: q[2], alpha: evAlpha, fn: () => {
+          const cx = q[0], cy = q[1];
+          ctx.save();
+          ctx.translate(cx, cy);
+          ctx.rotate(ev.rot + t * 0.15);
+          // Central monolith
+          ctx.fillStyle = 'rgba(25, 32, 45, 0.95)';
+          ctx.fillRect(-bRad * 0.3, -bRad * 0.8, bRad * 0.6, bRad * 1.6);
+          ctx.strokeStyle = 'rgba(215, 230, 255, 0.65)';
+          ctx.lineWidth = Math.max(1, bRad * 0.06);
+          ctx.strokeRect(-bRad * 0.3, -bRad * 0.8, bRad * 0.6, bRad * 1.6);
+          // Rotating solar panels
+          ctx.beginPath();
+          ctx.ellipse(0, 0, bRad * 1.5, bRad * 0.35, 0, 0, TAU);
+          ctx.strokeStyle = 'rgba(120, 200, 255, 0.55)';
+          ctx.stroke();
+          // Pulsing signal beacon
+          const ping = (Math.sin(t * 3.5) + 1) * 0.5;
+          ctx.beginPath(); ctx.arc(0, 0, bRad * (0.2 + ping * 0.6), 0, TAU);
+          ctx.strokeStyle = `rgba(255, 215, 110, ${(0.85 * (1 - ping) * evAlpha).toFixed(3)})`;
+          ctx.stroke();
+          ctx.restore();
+        }
+      });
+    } else if (ev.type === 'spatial_anomaly') {
+      const aRad = Math.max(6, ev.radius * q[3]);
+      queue.push({
+        type: 4, d: q[2], alpha: evAlpha, fn: () => {
+          const cx = q[0], cy = q[1];
+          ctx.save();
+          ctx.translate(cx, cy);
+          const anGrad = ctx.createRadialGradient(0, 0, aRad * 0.2, 0, 0, aRad);
+          anGrad.addColorStop(0, 'rgba(4, 6, 12, 0.88)');
+          anGrad.addColorStop(0.6, 'rgba(70, 130, 240, 0.25)');
+          anGrad.addColorStop(0.9, 'rgba(180, 215, 255, 0.50)');
+          anGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+          ctx.fillStyle = anGrad;
+          ctx.beginPath(); ctx.arc(0, 0, aRad, 0, TAU); ctx.fill();
+          ctx.restore();
+        }
+      });
+    }
+  }
+};
+
 function chunk(k){
  if(chunks.has(k))return chunks.get(k);
- const r=rng((hash(k,71)*4294967295)>>>0),z0=k*CHUNK,masses=[],shards=[],plates=[],galaxies=[],ships=[],gates=[];
+ const r=rng((hash(k,71)*4294967295)>>>0),z0=k*CHUNK,masses=[],shards=[],plates=[],galaxies=[],ships=[],gates=[],events=[];let hasEncounter=false;
  const zc=z0+CHUNK*.5;
  // Every 37 chunks, plus the k=12 showpiece: that is the chunk the
  // 事件视界 departure lands on, and it is the ABYSS plate. 19 + this same
  // special put two horizons seven chunks apart; 37 puts the nearest one
  // twenty-five chunks away.
- const horizon=(k!==0 && k%71===0) || (k===12);
+ const horizon = (k !== 0 && k % 48 === 0) || (k === 12);
 
  if(horizon){
-  // Gargantua Supermassive Black Hole (Towering cinematic presence)
-  const z=z0+CHUNK*.5;
-  const sx=laneX(z)+10000;
-  const y=120;
-  masses.push({x:sx,y,z,kind:4,r:4200,axis:[0,1,0],phase:0});
-
-  // Miller's Planet (ocean world) placed beside the fleet with Gargantua in the background
-  const mX = laneX(z) + 420;
-  const mY = courseY(z) - 60;
-  const mZ = z - 300;
+  // Gargantua Supermassive Black Hole (accoutered in 3D space with towering 36,890-unit accretion disk)
+  const z = z0 + CHUNK * .5;
+  const sx = laneX(z) + 7200;
+  const y = courseY(z) + 240; // majestically elevated in the upper flank
   masses.push({
-   x: mX, y: mY, z: mZ, kind: 1, r: 175,
+   x: sx, y, z, kind: 4, r: 3500, axis: [0, 1, 0], phase: 0,
+   captured: false, passed: false,
+   isBlackHole: true
+  });
+
+  // Miller's Planet (Interstellar ocean world) placed in the lower-fore corridor, creating iconic Interstellar depth
+  const mZ = z - 1800;
+  const mX = laneX(mZ) - 620;
+  const mY = courseY(mZ) - 480; // in the lower abyss below Gargantua
+  masses.push({
+   x: mX, y: mY, z: mZ, kind: 1, r: 280,
+   w: worldFor(0), // Pure ocean world
    axis: [0.1, 0.9, 0.1], phase: 3.65,
-   orb: { cx: sx, cy: y, cz: z, a: 2350, b: 2100, inc: 0.28, nod: -0.12, spd: 0.015, ph: 3.65 }
+   isMiller: true,
+   poseType: 'nadir',
+   flybyDist: 930
   });
  } else {
-  // Solitary grand planet encounter every 7 chunks (walk for a long time across deep space)
-  // Near a horizon the field thins to one chance in five, so the thing the
-  // piece is built around is never crowded.
-  const nearHole=Math.abs(k-12)<3||(k%71<3);
-  const hasEncounter = (k % 11 === 5) && (!nearHole || hash(k,909)<.20);
-  const encIndex = Math.floor(k / 11);
+  // Encounters spaced every 6 chunks (~5.2 minutes lonely space flight)
+  const nearHole = Math.abs(k - 12) < 4 || (k % 48 < 4 || k % 48 > 44);
+  hasEncounter = (!nearHole) && (k % 6 === 3);
+  const encIndex = Math.floor(k / 6);
+
   if(hasEncounter){
    const z = z0 + CHUNK * (0.35 + r() * 0.30);
    const side = (r() < 0.5) ? -1 : 1;
-   // One of four directions per encounter, in a fixed rotation: consecutive
-   // worlds do not stack on one axis, and the plate gets something above,
-   // below and to the sides instead of everything at the vanishing point.
-   const slot=(k/11|0)%4,sgn=(slot===0||slot===1)?1:-1,upDown=(slot===0||slot===2);
-   // Every fourth encounter is a giant.
-   const kindPool = [(k/11|0)%4===3?6:1, 8, 3, 0];
    const wD = worldFor(encIndex);
-   const kKind = (wD.s === 1) ? 8 : kindPool[((k / 11)|0) % kindPool.length];
-   const pRad = kKind === 8 ? 3200 + r() * 2000 : kKind === 6 ? 3000 + r() * 1800
-    : 2400 + r() * 1800;
-   // The offset is in radii, so the corridor never runs through the body.
-   // In radii, and close: further than ~2 r above the lane and the body
-   // falls outside the field of view, which is why it was never seen.
-   const sep = (Math.abs(k-12)<3||(k%71<3)) ? 1.35 : 1;
-   const reach = pRad * (3.00 + r() * 1.00) * sep;
-   const y = courseY(z) + (upDown ? sgn * reach : (r() - .5) * pRad * .7);
-   const x = laneX(z) + (upDown ? side * (r() * .8 - .4) * pRad : sgn * reach);
+
+   // 1/16 Authentic Earth Easter Egg injection
+   if(hash(k, 1616) < 0.0625 && wD.manif.id !== 'earth_egg'){
+    const earthM = PLANET_MANIFESTATIONS.find(m => m.id === 'earth_egg');
+    if(earthM) wD.manif = earthM;
+   }
+
+   const kKind = wD.hasRings ? 8 : wD.pSize.kind;
+   const pRad = wD.pSize.radMin + r() * (wD.pSize.radMax - wD.pSize.radMin);
+
+   // =========================================================================
+   // 4 VOLUMETRIC 3D PLACEMENT ARCHETYPES:
+   // 0: NADIR ABYSS (Below flight path: high-altitude orbital overlook)
+   // 1: ZENITH CANOPY (Above flight path: looking up at majestic rings & storms)
+   // 2: FLANK PARALLAX TITAN (Lateral deep space: grand companion parallax)
+   // 3: LOW-ORBIT TANGENT SKIM (Closest skimming: 1.18 - 1.24 Rp)
+   // =========================================================================
+   const archIndex = (encIndex % 4);
+   let x = laneX(z), y = courseY(z), poseType = 'skim', reach = pRad * 1.35;
+
+   if(archIndex === 0){
+    // NADIR ABYSS: Massive planet resting in the depths below the flight path
+    poseType = 'nadir';
+    y = courseY(z) - (pRad * 1.25 + 1600 + r() * 1200);
+    x = laneX(z) + (r() - 0.5) * pRad * 0.8;
+    reach = Math.abs(y - courseY(z));
+   } else if(archIndex === 1){
+    // ZENITH CANOPY: Looming in the heavens above the flight lane
+    poseType = 'zenith';
+    y = courseY(z) + (pRad * 1.25 + 1800 + r() * 1400);
+    x = laneX(z) + (r() - 0.5) * pRad * 0.8;
+    reach = Math.abs(y - courseY(z));
+   } else if(archIndex === 2){
+    // FLANK PARALLAX TITAN: Deep in lateral space creating majestic parallax
+    poseType = 'flank';
+    reach = pRad * 1.6 + 4800 + r() * 3800;
+    x = laneX(z) + side * reach;
+    y = courseY(z) + (r() - 0.5) * pRad * 0.7;
+   } else {
+    // LOW-ORBIT TANGENT SKIM: Intimate close orbital skim (filling 60-80% screen)
+    poseType = 'skim';
+    reach = pRad * (1.18 + r() * 0.12);
+    x = laneX(z) + side * reach;
+    y = courseY(z) + (r() - 0.5) * pRad * 0.35;
+   }
+
    masses.push({
     x, y, z, kind: kKind, r: pRad,
-    // One world in sixteen is the easter egg.
     w: wD,
     axis: [r() - 0.5, r() - 0.5, r() - 0.5], phase: r() * TAU,
-    orb: null
+    orb: null,
+    flybyDist: 930,
+    poseType,
+    reach,
+    spinSpeed: 0.02 + r() * 0.03,
+    notifiedSkim: false,
+    isEncounter: true
+   });
+  }
+
+  // =========================================================================
+  // DISTANT COSMIC BACKGROUND GIANTS:
+  // Standing stellar landmarks every 3 chunks far out in lateral deep space (16,000 - 36,000 units)
+  // Provides eternal volumetric 3D depth and eliminate empty void syndrome
+  // =========================================================================
+  if(k % 3 === 1 && !nearHole){
+   const dZ = z0 + CHUNK * (0.2 + r() * 0.6) + (r() - 0.5) * 8000;
+   const dSide = (r() < 0.5) ? -1 : 1;
+   const dReach = 18000 + r() * 22000;
+   const dX = laneX(dZ) + dSide * dReach;
+   const dY = courseY(dZ) + (r() < 0.5 ? -1 : 1) * (8000 + r() * 12000);
+   const dRad = 2800 + r() * 3600;
+   const dWorld = worldFor((k * 7 + 13) % 280);
+
+   masses.push({
+    x: dX, y: dY, z: dZ,
+    kind: dWorld.hasRings ? 8 : dWorld.pSize.kind,
+    r: dRad,
+    w: dWorld,
+    axis: [r() - 0.5, r() - 0.5, r() - 0.5], phase: r() * TAU,
+    orb: null,
+    isDistant: true,
+    poseType: 'distant',
+    spinSpeed: 0.01 + r() * 0.015,
+    flybyDist: 4000
    });
   }
  }
@@ -577,7 +1286,11 @@ function chunk(k){
     len:500+r()*900,roll:r()*TAU,ph:r()*TAU,drift:0,hull:r(),lights:r(),wreck:true});
   }
  }
- const c={masses,shards,plates,galaxies,ships,gates,k};chunks.set(k,c);return c;
+ // Deal random space events along the flight lane
+ if(!horizon && !hasEncounter && k > 2 && (k % 8 === 4)){
+  events.push(SpaceEventEngine.createEvent(k, z0, r, laneX(zc), courseY(zc)));
+ }
+ const c={masses,shards,plates,galaxies,ships,gates,events,k};chunks.set(k,c);return c;
 }
 function courseBend(z){
  let sum=0;
@@ -726,369 +1439,31 @@ function worldShade() {
   return worldLit = cv;
 }
 
-const AIR_PRESETS = {
-  0: { rayleigh: [205, 160, 130], mie: [255, 230, 210], power: 0.65 },
-  1: { rayleigh: [ 90, 165, 255], mie: [220, 240, 255], power: 1.35 },
-  2: { rayleigh: [245, 195, 135], mie: [255, 240, 200], power: 1.15 },
-  3: { rayleigh: [170, 220, 255], mie: [240, 250, 255], power: 0.95 },
-  8: { rayleigh: [230, 200, 150], mie: [255, 235, 190], power: 1.20 }
-};
-
-function drawWorld(m, q, p, t, rad, tint) {
-  const cx = q[0], cy = q[1];
-
-  let l = [-.40, -.50, .77];
-  if (m.orb) {
-    const dx = m.orb.cx - m.x, dy = m.orb.cy - m.y, dz = m.orb.cz - m.z;
-    const dl = Math.hypot(dx, dy, dz) || 1;
-    l = [dx / dl, dy / dl, dz / dl];
-  }
-  const ln = Math.hypot(l[0], l[1], l[2]);
-  const lx = l[0] / ln, ly = l[1] / ln, lz = l[2] / ln;
-
-  queue.push({
-    type: 4, d: q[2], alpha: massVis, fn: () => {
-      if (rad < 2.0) {
-        ctx.beginPath(); ctx.arc(cx, cy, Math.max(.6, rad), 0, TAU);
-        ctx.fillStyle = css(tint, .85); ctx.fill();
-        return;
-      }
-
-      const sp = Math.hypot(lx, ly);
-      const ux = sp > 1e-3 ? lx / sp : 1, uy = sp > 1e-3 ? ly / sp : 0;
-      const airCfg = AIR_PRESETS[m.kind] || AIR_PRESETS[1];
-      const ak = airCfg.power;
-      const atmoRay = airCfg.rayleigh;
-      const atmoMie = airCfg.mie;
-
-      // 1. Rayleigh Atmospheric Limb Glow
-      const rGrad = ctx.createRadialGradient(cx, cy, rad * 0.88, cx, cy, rad * 1.45);
-      rGrad.addColorStop(0.00, css(atmoRay, 0.0));
-      rGrad.addColorStop(0.20, css(atmoRay, 0.42 * ak));
-      rGrad.addColorStop(0.50, css(atmoRay, 0.18 * ak));
-      rGrad.addColorStop(0.80, css(atmoRay, 0.05 * ak));
-      rGrad.addColorStop(1.00, css(atmoRay, 0.0));
-
-      ctx.beginPath();
-      ctx.arc(cx, cy, rad * 1.45, 0, TAU);
-      ctx.fillStyle = rGrad;
-      ctx.fill();
-
-      // 2. Forward Mie Glare Crescent
-      const mieOffsetX = cx + ux * rad * 0.28;
-      const mieOffsetY = cy + uy * rad * 0.28;
-      const mGrad = ctx.createRadialGradient(mieOffsetX, mieOffsetY, rad * 0.95, mieOffsetX, mieOffsetY, rad * 1.60);
-      mGrad.addColorStop(0.00, css(atmoMie, 0.35 * ak));
-      mGrad.addColorStop(0.25, css(atmoMie, 0.15 * ak));
-      mGrad.addColorStop(0.60, css(atmoMie, 0.03 * ak));
-      mGrad.addColorStop(1.00, 'rgba(255,255,255,0)');
-
-      ctx.beginPath();
-      ctx.arc(cx, cy, rad * 1.60, 0, TAU);
-      ctx.fillStyle = mGrad;
-      ctx.fill();
-
-      // 3. Planet Surface Body
-      ctx.save();
-      ctx.beginPath();
-      ctx.arc(cx, cy, rad, 0, TAU);
-      ctx.clip();
-
-      ctx.drawImage(worldShade(), cx - rad, cy - rad, rad * 2, rad * 2);
-
-      ctx.globalCompositeOperation = 'multiply';
-      // Fixed at 0.38 this bleached any world large enough to fill the plate.
-      const lift = 0.38 * clamp(1 - rad / (H * 0.75), 0.22, 1);
-      ctx.fillStyle = css(blend(tint, [255, 255, 255], lift));
-      ctx.fillRect(cx - rad, cy - rad, rad * 2, rad * 2);
-      ctx.globalCompositeOperation = 'source-over';
-
-      // Ring-on-Planet Shadow
-      if (m.kind === 8 && rad > 12) {
-        const hb = (m.phase * 4096) | 0;
-        const roll = (hash(hb, 8, 62) - .5) * .9;
-        const squash = .24 + .20 * hash(hb, 7, 61);
-        ctx.save();
-        ctx.translate(cx, cy);
-        ctx.rotate(roll);
-        ctx.scale(1, squash);
-        ctx.fillStyle = 'rgba(5, 8, 16, 0.78)';
-        ctx.fillRect(-rad, rad * 0.05, rad * 2, rad * 0.32);
-        ctx.restore();
-      }
-
-      // Latitude belts, only when the world is big enough for them to be
-      // structure rather than noise.
-      if (rad > 90) {
-        const hb = (m.phase * 4096) | 0, nb = 3 + ((hb >> 3) & 3);
-        for (let i = 0; i < nb; i++) {
-          const f = (i + .5) / nb, yy = cy + rad * (f * 1.7 - .85);
-          const hh = rad * (.055 + .045 * hash(hb, i, 9));
-          ctx.beginPath(); ctx.ellipse(cx, yy, rad * 1.05, hh, 0, 0, TAU);
-          ctx.fillStyle = css(blend(tint, [255, 255, 255], .10 + .08 * hash(hb, i, 4)), .10);
-          ctx.fill();
-        }
-      }
-
-      // Archetype marks. Clipped to the disc, drawn after the surface so they
-      // read as something ON the world.
-      if (rad > 70 && m.w) {
-        const hb = (m.phase * 4096) | 0, fe = (W_TYPES[m.w.t] || W_TYPES[0]).f;
-        if (fe === 'earth') {
-          // ---- ocean shading, then land, then weather ----------------------
-          // Continents: a few irregular lobes, squashed toward the limb.
-          const lobes = 4 + (hash(hb, 71, 1) * 3 | 0);
-          for (let i = 0; i < lobes; i++) {
-            const a0 = hash(hb, 72 + i, 1) * TAU;
-            const rr = rad * (.18 + .48 * hash(hb, 72 + i, 2));
-            const px = cx + Math.cos(a0) * rr, py = cy + Math.sin(a0) * rr * .92;
-            const sq = Math.sqrt(Math.max(.12, 1 - (rr / rad) * (rr / rad)));
-            const w = rad * (.22 + .20 * hash(hb, 72 + i, 3));
-            const h = w * (.55 + .55 * hash(hb, 72 + i, 4)) * sq;
-            ctx.beginPath();
-            ctx.ellipse(px, py, w, h, a0 + .4 * hash(hb, 72 + i, 5), 0, TAU);
-            ctx.fillStyle = 'rgba(74,116,62,' + (0.55 + .22 * hash(hb, 72 + i, 6)).toFixed(3) + ')';
-            ctx.fill();
-            // the coast: a lighter rim and a wet dark line
-            ctx.strokeStyle = 'rgba(206,214,180,.34)';
-            ctx.lineWidth = Math.max(1, rad * .006);
-            ctx.stroke();
-            ctx.strokeStyle = 'rgba(18,44,58,.40)';
-            ctx.lineWidth = Math.max(1, rad * .0035);
-            ctx.stroke();
-          }
-          // polar ice
-          for (const sy of [-1, 1]) {
-            const g = ctx.createLinearGradient(cx, cy + sy * rad * .58, cx, cy + sy * rad);
-            g.addColorStop(0, 'rgba(244,250,255,0)');
-            g.addColorStop(1, 'rgba(244,250,255,.80)');
-            ctx.fillStyle = g;
-            ctx.beginPath();
-            ctx.ellipse(cx, cy + sy * rad * .88, rad * .92, rad * .26, 0, 0, TAU);
-            ctx.fill();
-          }
-          // cloud bands, with one vortex
-          for (let i = 0; i < 5; i++) {
-            const yy = cy + rad * ((i - 2) * .34 + (hash(hb, 80 + i, 1) - .5) * .12);
-            const ww = rad * (.62 + .34 * hash(hb, 80 + i, 2));
-            ctx.beginPath();
-            ctx.ellipse(cx + rad * (hash(hb, 80 + i, 3) - .5) * .5, yy, ww,
-                        rad * (.045 + .045 * hash(hb, 80 + i, 4)),
-                        hash(hb, 80 + i, 5) * .5, 0, TAU);
-            ctx.fillStyle = 'rgba(250,253,255,' + (0.20 + .16 * hash(hb, 80 + i, 6)).toFixed(3) + ')';
-            ctx.fill();
-          }
-          {
-            const va = hash(hb, 90, 1) * TAU, vr = rad * (.30 + .30 * hash(hb, 90, 2));
-            const vx = cx + Math.cos(va) * vr, vy = cy + Math.sin(va) * vr;
-            for (let i = 0; i < 3; i++) {
-              ctx.beginPath();
-              ctx.arc(vx, vy, rad * (.10 + .07 * i), va + i, va + i + 2.2);
-              ctx.strokeStyle = 'rgba(252,254,255,.26)';
-              ctx.lineWidth = Math.max(1, rad * .012);
-              ctx.stroke();
-            }
-          }
-          // the sun glint, on the lit side of the ocean only
-          const gx = cx + lx * rad * .46, gy = cy - ly * rad * .46;
-          const gl = ctx.createRadialGradient(gx, gy, 0, gx, gy, rad * .26);
-          gl.addColorStop(0, 'rgba(255,255,255,.42)');
-          gl.addColorStop(.5, 'rgba(210,236,255,.16)');
-          gl.addColorStop(1, 'rgba(255,255,255,0)');
-          ctx.fillStyle = gl; ctx.fillRect(cx - rad, cy - rad, rad * 2, rad * 2);
-          // night side: city lights, clustered where the land meets the sea
-          const dark = 1 - clamp(.5 + .5 * (lx * 0 + ly * 0), 0, 1);
-          for (let i = 0; i < 46; i++) {
-            const a0 = hash(hb, 100 + i, 1) * TAU;
-            const rr = rad * Math.sqrt(hash(hb, 100 + i, 2)) * .88;
-            const px = cx + Math.cos(a0) * rr, py = cy + Math.sin(a0) * rr;
-            // keep them on the side away from the light
-            if (((px - cx) * lx + (py - cy) * (-ly)) > 0) continue;
-            if (hash(hb, 100 + i, 7) > .42) continue;
-            ctx.fillStyle = 'rgba(255,214,150,' + (0.45 + .45 * hash(hb, 100 + i, 3)).toFixed(3) + ')';
-            const s2 = Math.max(1.2, rad * .008);
-            ctx.fillRect(px, py, s2, s2 * .8);
-          }
-          void dark;
-        } else if (fe === 'lava') {
-          ctx.strokeStyle = 'rgba(255,130,44,.62)';
-          ctx.lineWidth = Math.max(1.6, rad * .020);
-          for (let i = 0; i < 7; i++) {
-            const a0 = hash(hb, 10 + i, 1) * TAU, r0 = rad * (.25 + .55 * hash(hb, 10 + i, 2));
-            const x0 = cx + Math.cos(a0) * r0, y0 = cy + Math.sin(a0) * r0 * .75;
-            ctx.beginPath(); ctx.moveTo(x0, y0);
-            ctx.lineTo(x0 + (hash(hb, 10 + i, 3) - .5) * rad * .55,
-                       y0 + (hash(hb, 10 + i, 4) - .5) * rad * .30);
-            ctx.stroke();
-          }
-        } else if (fe === 'city') {
-          for (let i = 0; i < 26; i++) {
-            if (hash(hb, 30 + i, 5) > .55) continue;
-            const a0 = hash(hb, 30 + i, 1) * TAU, r0 = Math.sqrt(hash(hb, 30 + i, 2)) * rad * .86;
-            ctx.fillStyle = 'rgba(255,212,150,' + (0.55 + .40 * hash(hb, 30 + i, 6)).toFixed(3) + ')';
-            ctx.fillRect(cx + Math.cos(a0) * r0, cy + Math.sin(a0) * r0,
-                         Math.max(1.6, rad * .016), Math.max(1.6, rad * .016));
-          }
-        } else if (fe === 'ocean' || fe === 'ice') {
-          // a hard specular glint where the light lands
-          const gx = cx + lx * rad * .42, gy = cy - ly * rad * .42;
-          const g = ctx.createRadialGradient(gx, gy, 0, gx, gy, rad * .30);
-          g.addColorStop(0, 'rgba(255,255,255,' + (fe === 'ice' ? .30 : .22) + ')');
-          g.addColorStop(1, 'rgba(255,255,255,0)');
-          ctx.fillStyle = g; ctx.fillRect(cx - rad, cy - rad, rad * 2, rad * 2);
-        } else if (fe === 'forest') {
-          for (let i = 0; i < 14; i++) {
-            const a0 = hash(hb, 50 + i, 1) * TAU, r0 = Math.sqrt(hash(hb, 50 + i, 2)) * rad * .82;
-            ctx.beginPath();
-            ctx.ellipse(cx + Math.cos(a0) * r0, cy + Math.sin(a0) * r0,
-                        rad * (.08 + .10 * hash(hb, 50 + i, 3)), rad * .06, a0, 0, TAU);
-            ctx.fillStyle = 'rgba(22,62,34,' + (0.42 + .30 * hash(hb, 50 + i, 4)).toFixed(3) + ')';
-            ctx.fill();
-          }
-        } else if (fe === 'desert') {
-          ctx.strokeStyle = 'rgba(216,176,116,.38)';
-          ctx.lineWidth = Math.max(1, rad * .02);
-          for (let i = 0; i < 5; i++) {
-            const yy = cy + rad * ((i - 2) * .30);
-            ctx.beginPath();
-            ctx.ellipse(cx, yy, rad * .95, rad * .10, 0, 0, TAU);
-            ctx.stroke();
-          }
-        }
-        // silhouette: a fractured world loses a wedge
-        if (m.w.s === 2 || (m.w && W_SHAPES[m.w.s] === 'fractured')) {
-          const a0 = hash(hb, 61, 1) * TAU, spr = .12 + .10 * hash(hb, 61, 2);
-          ctx.beginPath(); ctx.moveTo(cx, cy);
-          ctx.arc(cx, cy, rad * 1.02, a0, a0 + spr); ctx.closePath();
-          ctx.fillStyle = 'rgba(4,6,10,.92)'; ctx.fill();
-        }
-      }
-      if (rad > 12) {
-        const hb = (m.phase * 4096) | 0;
-        kindSurfaceEnhanced(m, cx, cy, rad, [lx, ly, lz], hb, tint);
-      }
-
-      // 4. Inner Limb Atmospheric Veil
-      const innerAtmo = ctx.createRadialGradient(cx, cy, rad * 0.82, cx, cy, rad * 1.01);
-      innerAtmo.addColorStop(0.00, css(atmoRay, 0.0));
-      innerAtmo.addColorStop(0.70, css(atmoRay, 0.22 * ak));
-      innerAtmo.addColorStop(1.00, css(atmoMie, 0.55 * ak));
-      ctx.fillStyle = innerAtmo;
-      ctx.beginPath(); ctx.arc(cx, cy, rad, 0, TAU); ctx.fill();
-
-      ctx.restore();
-    }
-  });
-}
-
-function kindSurfaceEnhanced(m, cx, cy, rad, l, hb, tint) {
-  const k = m.kind;
-  const lit = (x, y) => {
-    const dx = (x - cx) / rad, dy = (y - cy) / rad;
-    return clamp((dx * l[0] + dy * l[1] + Math.sqrt(Math.max(0, 1 - dx * dx - dy * dy)) * l[2] + .06) / .26);
-  };
-
-  if (k === 1) {
-    // Ocean World (Miller's Planet)
-    ctx.globalCompositeOperation = 'multiply';
-    ctx.fillStyle = css([130, 175, 245]);
-    ctx.fillRect(cx - rad, cy - rad, rad * 2, rad * 2);
-    ctx.globalCompositeOperation = 'source-over';
-
-    const sa = Math.atan2(l[1], l[0]);
-    const shOffX = -l[0] * rad * 0.045;
-    const shOffY = -l[1] * rad * 0.045;
-
-    for (let j = 0; j < 7; j++) {
-      const a = sa + (hash(hb, 60 + j, 91) - .5) * 2.6;
-      const rr = rad * (.12 + .48 * hash(hb, 60 + j, 92));
-      const bx = cx + Math.cos(a) * rr, by = cy + Math.sin(a) * rr;
-      const br = rad * (.10 + .16 * hash(hb, 60 + j, 93));
-      const al = lit(bx, by);
-      if (al < 0.25) continue;
-
-      const rot = hash(hb, 60 + j, 94) * TAU;
-
-      // 3D Cloud Shadow
-      ctx.save();
-      ctx.translate(bx + shOffX, by + shOffY);
-      ctx.rotate(rot);
-      ctx.scale(1, 0.46);
-      ctx.beginPath(); ctx.arc(0, 0, br, 0, TAU);
-      ctx.fillStyle = `rgba(12, 28, 55, ${0.45 * al})`;
-      ctx.fill();
-      ctx.restore();
-
-      // 3D Cloud Body
-      ctx.save();
-      ctx.translate(bx, by);
-      ctx.rotate(rot);
-      ctx.scale(1, 0.46);
-      ctx.beginPath(); ctx.arc(0, 0, br, 0, TAU);
-      ctx.fillStyle = css(blend(tint, [255, 255, 255], 0.92), 0.55 * al);
-      ctx.fill();
-      ctx.beginPath(); ctx.arc(0, 0, br * 0.65, 0, TAU);
-      ctx.fillStyle = `rgba(255, 255, 255, ${0.40 * al})`;
-      ctx.fill();
-      ctx.restore();
-    }
-    return;
-  }
-
-  if (k === 2 || k === 8) {
-    ctx.globalCompositeOperation = 'multiply';
-    for (let j = 0; j < 12; j++) {
-      const y0 = cy + Math.sin(-Math.PI / 2 + Math.PI * j / 12) * rad;
-      const y1 = cy + Math.sin(-Math.PI / 2 + Math.PI * (j + 1) / 12) * rad;
-      const v = .52 + .46 * hash(hb, 20 + j, 41);
-      ctx.fillStyle = css([v * 255, v * 240, v * 225]);
-      ctx.fillRect(cx - rad, y0, rad * 2, y1 - y0 + 1);
-    }
-    ctx.globalCompositeOperation = 'source-over';
-
-    const sx = cx + l[0] * rad * .36, sy = cy - l[1] * rad * .32;
-    const sl = lit(sx, sy);
-    if (sl > .25) {
-      ctx.save();
-      ctx.translate(sx, sy);
-      ctx.rotate((hash(hb, 3, 51) - .5) * .8);
-      ctx.scale(1.2, .55);
-      ctx.beginPath(); ctx.arc(0, 0, rad * .24, 0, TAU);
-      ctx.fillStyle = css(shade(blend(tint, [240, 160, 110], .65), .92), .65 * sl); ctx.fill();
-      ctx.beginPath(); ctx.arc(0, 0, rad * .12, 0, TAU);
-      ctx.fillStyle = css(blend(tint, [255, 225, 200], .85), .75 * sl); ctx.fill();
-      ctx.restore();
-    }
-    return;
-  }
-
-  if (k === 0) {
-    for (let j = 0; j < 8; j++) {
-      const a = hash(hb, 50 + j, 81) * TAU, rr = Math.sqrt(hash(hb, 50 + j, 82)) * rad * .68;
-      const bx = cx + Math.cos(a) * rr, by = cy + Math.sin(a) * rr;
-      const br = rad * (.04 + .07 * hash(hb, 50 + j, 83));
-      const al = lit(bx, by);
-      if (al < .12) continue;
-      const la = Math.atan2(-l[1], l[0]);
-
-      ctx.beginPath(); ctx.arc(bx, by, br, 0, TAU);
-      ctx.fillStyle = css(shade(tint, .36), al * .55); ctx.fill();
-      ctx.beginPath(); ctx.arc(bx, by, br, la - Math.PI * .62, la + Math.PI * .62);
-      ctx.strokeStyle = css(shade(tint, .18), al * .75); ctx.lineWidth = Math.max(.6, br * .36); ctx.stroke();
-      ctx.beginPath(); ctx.arc(bx, by, br, la + Math.PI * .38, la + Math.PI * 1.62);
-      ctx.strokeStyle = css(blend(tint, [255, 245, 235], .60), al * .50); ctx.lineWidth = Math.max(.6, br * .36); ctx.stroke();
-    }
-  }
-}
+/* ============================================================================
+ * MULTI-LAYER PLANETARY RINGS WITH CASSINI DIVISION & SHADOW CASTING
+ * ============================================================================ */
+const RING_PALETTES = [
+  { t: [225, 218, 205], d: [180, 168, 150], o: [135, 125, 115] },
+  { t: [185, 210, 235], d: [140, 175, 205], o: [100, 130, 165] },
+  { t: [215, 175, 135], d: [165, 125,  95], o: [120,  88,  65] },
+  { t: [195, 180, 220], d: [150, 135, 180], o: [110,  95, 140] }
+];
 
 function ringHalf(m, q, rad, back) {
   const hb = (m.phase * 4096) | 0;
-  const squash = .24 + .20 * hash(hb, 7, 61), roll = (hash(hb, 8, 62) - .5) * .9;
-  const pal = RINGFAM[ringFam(hb)];
-  const bands = [
-    [1.20, 1.48, pal.t, .72],
-    [1.54, 1.84, pal.d, .62],
-    [1.89, 2.05, pal.o, .40]
+  const squash = 0.24 + 0.20 * hash(hb, 7, 61);
+  const roll = (hash(hb, 8, 62) - 0.5) * 0.9;
+  const pal = RING_PALETTES[((hb >> 4) & 3)];
+
+  const ringFade = clamp((rad - 4) / 10, 0, 1);
+  if (ringFade <= 0) return;
+
+  const ringLayers = [
+    { r0: 1.18, r1: 1.42, c: pal.o, a: 0.32 * ringFade },
+    { r0: 1.44, r1: 1.72, c: pal.t, a: 0.85 * ringFade },
+    // Cassini division gap between 1.72 and 1.78
+    { r0: 1.78, r1: 2.06, c: pal.d, a: 0.62 * ringFade },
+    { r0: 2.10, r1: 2.14, c: pal.t, a: 0.42 * ringFade }
   ];
 
   queue.push({
@@ -1098,23 +1473,24 @@ function ringHalf(m, q, rad, back) {
       ctx.rotate(roll);
       ctx.scale(1, squash);
 
-      const a0 = back ? Math.PI : 0, a1 = back ? TAU : Math.PI;
+      const a0 = back ? Math.PI : 0;
+      const a1 = back ? TAU : Math.PI;
 
-      for (const b of bands) {
+      for (const rL of ringLayers) {
         ctx.beginPath();
-        ctx.arc(0, 0, rad * b[1], a0, a1, false);
-        ctx.arc(0, 0, rad * b[0], a1, a0, true);
+        ctx.arc(0, 0, rad * rL.r1, a0, a1, false);
+        ctx.arc(0, 0, rad * rL.r0, a1, a0, true);
         ctx.closePath();
-        ctx.fillStyle = css(b[2], b[3]);
+        ctx.fillStyle = css(rL.c, rL.a);
         ctx.fill();
       }
 
-      // Planet-on-Ring Umbra shadow
+      // Planet-on-Ring Umbra shadow (projected on rear rings)
       if (back) {
         ctx.save();
         ctx.beginPath();
-        ctx.ellipse(0, rad * 0.45, rad * 1.05, rad * 1.95, 0, 0, TAU);
-        ctx.fillStyle = 'rgba(2, 4, 8, 0.88)';
+        ctx.ellipse(0, rad * 0.45, rad * 1.05, rad * 2.15, 0, 0, TAU);
+        ctx.fillStyle = `rgba(2, 4, 8, ${(0.92 * ringFade).toFixed(3)})`;
         ctx.fill();
         ctx.restore();
       }
@@ -1124,12 +1500,530 @@ function ringHalf(m, q, rad, back) {
   });
 }
 
-
-function drawRinged(m,q,p,t,rad,tint){
- if(rad>9)ringHalf(m,q,rad,true);
- drawWorld(m,q,p,t,rad,tint);
- if(rad>9)ringHalf(m,q,rad,false);
+function drawRinged(m, q, p, t, rad, tint) {
+  if (rad > 4.0) ringHalf(m, q, rad, true);
+  drawWorld(m, q, p, t, rad, tint);
+  if (rad > 4.0) ringHalf(m, q, rad, false);
 }
+
+/* ============================================================================
+ * MASTER PLANET SURFACE RENDERER (Continuous Multi-Tier LOD)
+ * ============================================================================ */
+function drawWorld(m, q, p, t, rad, tint) {
+  const cx = q[0], cy = q[1];
+
+  let l = [-.40, -.50, .77];
+  if (m.orb) {
+    const dx = m.orb.cx - m.x, dy = m.orb.cy - m.y, dz = m.orb.cz - m.z;
+    const dl = Math.hypot(dx, dy, dz) || 1;
+    l = [dx / dl, dy / dl, dz / dl];
+  }
+  const ln = Math.hypot(l[0], l[1], l[2]) || 1;
+  const lx = l[0] / ln, ly = l[1] / ln, lz = l[2] / ln;
+
+  queue.push({
+    type: 4, d: q[2], alpha: massVis, fn: () => {
+      if (rad < 1.8) {
+        ctx.beginPath(); ctx.arc(cx, cy, Math.max(0.6, rad), 0, TAU);
+        ctx.fillStyle = css(tint, 0.85); ctx.fill();
+        return;
+      }
+
+      // Smooth multi-tier continuous LOD blending factors (ZERO hard jumps)
+      const lodAtmo    = clamp((rad - 4) / 10, 0, 1);
+      const lodMacro   = clamp((rad - 12) / 20, 0, 1);
+      const lodTerrain = clamp((rad - 30) / 40, 0, 1);
+      const lodDetail  = clamp((rad - 75) / 75, 0, 1);
+      const lodSkim    = clamp((rad - 180) / 180, 0, 1);
+      const lodMicro   = clamp((rad - 380) / 260, 0, 1);
+
+      const w = m.w || worldFor(0);
+      const shape = w.shape;
+      const type  = w.type;
+      const manif = w.manif;
+      const hb = (m.phase * 4096) | 0;
+
+      const sp = Math.hypot(lx, ly);
+      const ux = sp > 1e-3 ? lx / sp : 1, uy = sp > 1e-3 ? ly / sp : 0;
+      const ak = type.power * lodAtmo;
+      const atmoRay = type.atmo;
+      const atmoMie = type.mie;
+
+      const isOblate = (shape.id === 'oblate');
+      const isFractured = (shape.id === 'fractured');
+      const isRinged = (shape.id === 'ringed');
+
+      const oblateScaleX = isOblate ? 1.25 : 1.0;
+      const oblateScaleY = isOblate ? 0.82 : 1.0;
+      const spinRoll = (hash(hb, 8, 62) - 0.5) * 0.55;
+
+      // 1. Atmospheric Limb Glow (Rayleigh & Forward Mie Glare)
+      if (lodAtmo > 0.02) {
+        ctx.save();
+        ctx.translate(cx, cy);
+        if (isOblate) { ctx.rotate(spinRoll); ctx.scale(oblateScaleX, oblateScaleY); }
+
+        const rGrad = ctx.createRadialGradient(0, 0, rad * 0.88, 0, 0, rad * 1.45);
+        rGrad.addColorStop(0.00, css(atmoRay, 0.0));
+        rGrad.addColorStop(0.20, css(atmoRay, 0.45 * ak));
+        rGrad.addColorStop(0.50, css(atmoRay, 0.20 * ak));
+        rGrad.addColorStop(0.80, css(atmoRay, 0.05 * ak));
+        rGrad.addColorStop(1.00, css(atmoRay, 0.0));
+        ctx.beginPath(); ctx.arc(0, 0, rad * 1.45, 0, TAU);
+        ctx.fillStyle = rGrad; ctx.fill();
+
+        const mieOffsetX = ux * rad * 0.28, mieOffsetY = uy * rad * 0.28;
+        const mGrad = ctx.createRadialGradient(mieOffsetX, mieOffsetY, rad * 0.95, mieOffsetX, mieOffsetY, rad * 1.62);
+        mGrad.addColorStop(0.00, css(atmoMie, 0.38 * ak));
+        mGrad.addColorStop(0.25, css(atmoMie, 0.16 * ak));
+        mGrad.addColorStop(0.60, css(atmoMie, 0.04 * ak));
+        mGrad.addColorStop(1.00, 'rgba(255,255,255,0)');
+        ctx.beginPath(); ctx.arc(0, 0, rad * 1.62, 0, TAU);
+        ctx.fillStyle = mGrad; ctx.fill();
+
+        ctx.restore();
+      }
+
+      // 2. Underlying Glowing Mantle Core (Fractured Worlds)
+      if (isFractured) {
+        const coreGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, rad * 0.98);
+        coreGrad.addColorStop(0.00, 'rgba(255, 255, 230, 0.98)');
+        coreGrad.addColorStop(0.25, 'rgba(255, 180, 50, 0.92)');
+        coreGrad.addColorStop(0.60, 'rgba(255, 75, 20, 0.85)');
+        coreGrad.addColorStop(0.90, 'rgba(140, 25, 10, 0.70)');
+        coreGrad.addColorStop(1.00, 'rgba(60, 10, 5, 0)');
+        ctx.save();
+        ctx.beginPath(); ctx.arc(cx, cy, rad * 0.98, 0, TAU);
+        ctx.fillStyle = coreGrad; ctx.fill();
+        ctx.restore();
+      }
+
+      // 3. Surface Body Clipping & Spherical Base Shading
+      ctx.save();
+      ctx.translate(cx, cy);
+      if (isOblate) { ctx.rotate(spinRoll); ctx.scale(oblateScaleX, oblateScaleY); }
+
+      ctx.beginPath();
+      if (isFractured) {
+        const plates = 7;
+        for (let i = 0; i < plates; i++) {
+          const a0 = i * TAU / plates + 0.05 + 0.02 * hash(hb, i, 1);
+          const a1 = (i + 1) * TAU / plates - 0.05 - 0.02 * hash(hb, i, 2);
+          const rPlate = rad * (0.92 + 0.07 * hash(hb, i, 3));
+          ctx.moveTo(0, 0);
+          ctx.arc(0, 0, rPlate, a0, a1);
+          ctx.closePath();
+        }
+      } else {
+        ctx.arc(0, 0, rad, 0, TAU);
+      }
+      ctx.clip();
+
+      ctx.drawImage(worldShade(), -rad, -rad, rad * 2, rad * 2);
+
+      ctx.globalCompositeOperation = 'multiply';
+      const lift = 0.38 * clamp(1 - rad / (H * 0.75), 0.22, 1);
+      ctx.fillStyle = css(blend(tint, [255, 255, 255], lift));
+      ctx.fillRect(-rad, -rad, rad * 2, rad * 2);
+      ctx.globalCompositeOperation = 'source-over';
+
+      // Ring-on-Planet Shadow
+      if (isRinged && lodTerrain > 0.02) {
+        const ringSquash = 0.24 + 0.20 * hash(hb, 7, 61);
+        const ringRoll = (hash(hb, 8, 62) - 0.5) * 0.9;
+        ctx.save();
+        ctx.rotate(ringRoll - (isOblate ? spinRoll : 0));
+        ctx.scale(1, ringSquash);
+        ctx.fillStyle = `rgba(5, 8, 16, ${(0.82 * lodTerrain).toFixed(3)})`;
+        ctx.fillRect(-rad, rad * 0.06, rad * 2, rad * 0.35);
+        ctx.restore();
+      }
+
+      // 4. GEOLOGICAL / ECOLOGICAL SURFACE TYPES (7 Types)
+      if (lodMacro > 0.02) {
+        // --- OCEAN WORLD ---
+        if (type.id === 'ocean') {
+          const gx = lx * rad * 0.44, gy = -ly * rad * 0.44;
+          const gl = ctx.createRadialGradient(gx, gy, 0, gx, gy, rad * 0.38);
+          gl.addColorStop(0.0, `rgba(255, 255, 255, ${(0.65 * lodMacro).toFixed(3)})`);
+          gl.addColorStop(0.4, `rgba(180, 230, 255, ${(0.30 * lodMacro).toFixed(3)})`);
+          gl.addColorStop(1.0, 'rgba(255, 255, 255, 0)');
+          ctx.fillStyle = gl; ctx.fillRect(-rad, -rad, rad * 2, rad * 2);
+
+          if (lodDetail > 0.02) {
+            for (let j = 0; j < 8; j++) {
+              const a = Math.atan2(ly, lx) + (hash(hb, 60 + j, 91) - 0.5) * 2.5;
+              const rr = rad * (0.15 + 0.52 * hash(hb, 60 + j, 92));
+              const bx = Math.cos(a) * rr, by = Math.sin(a) * rr;
+              const br = rad * (0.12 + 0.18 * hash(hb, 60 + j, 93));
+              const rot = hash(hb, 60 + j, 94) * TAU + t * 0.04;
+
+              ctx.save();
+              ctx.translate(bx - lx * rad * 0.04, by - ly * rad * 0.04);
+              ctx.rotate(rot); ctx.scale(1, 0.45);
+              ctx.beginPath(); ctx.arc(0, 0, br, 0, TAU);
+              ctx.fillStyle = `rgba(10, 25, 52, ${(0.44 * lodDetail).toFixed(3)})`; ctx.fill();
+              ctx.restore();
+
+              ctx.save();
+              ctx.translate(bx, by); ctx.rotate(rot); ctx.scale(1, 0.45);
+              ctx.beginPath(); ctx.arc(0, 0, br, 0, TAU);
+              ctx.fillStyle = `rgba(235, 248, 255, ${(0.55 * lodDetail).toFixed(3)})`; ctx.fill();
+              ctx.restore();
+            }
+          }
+        }
+        // --- LAVA WORLD ---
+        else if (type.id === 'lava') {
+          if (lodTerrain > 0.02) {
+            ctx.strokeStyle = `rgba(255, 125, 35, ${(0.78 * lodTerrain).toFixed(3)})`;
+            ctx.lineWidth = Math.max(1.5, rad * 0.022);
+            for (let i = 0; i < 11; i++) {
+              const a0 = hash(hb, 10 + i, 1) * TAU, r0 = rad * (0.18 + 0.60 * hash(hb, 10 + i, 2));
+              const x0 = Math.cos(a0) * r0, y0 = Math.sin(a0) * r0 * 0.85;
+              ctx.beginPath(); ctx.moveTo(x0, y0);
+              const x1 = x0 + (hash(hb, 10 + i, 3) - 0.5) * rad * 0.55;
+              const y1 = y0 + (hash(hb, 10 + i, 4) - 0.5) * rad * 0.38;
+              ctx.lineTo(x1, y1);
+              ctx.lineTo(x1 + (hash(hb, 10 + i, 5) - 0.5) * rad * 0.28,
+                         y1 + (hash(hb, 10 + i, 6) - 0.5) * rad * 0.22);
+              ctx.stroke();
+            }
+
+            for (let i = 0; i < 6; i++) {
+              const a0 = hash(hb, 25 + i, 1) * TAU, r0 = rad * (0.15 + 0.50 * hash(hb, 25 + i, 2));
+              const x0 = Math.cos(a0) * r0, y0 = Math.sin(a0) * r0;
+              const hRad = rad * (0.06 + 0.08 * hash(hb, 25 + i, 3));
+              const hGrad = ctx.createRadialGradient(x0, y0, 0, x0, y0, hRad);
+              hGrad.addColorStop(0.0, `rgba(255, 235, 130, ${(0.90 * lodTerrain).toFixed(3)})`);
+              hGrad.addColorStop(0.4, `rgba(255, 95, 25, ${(0.55 * lodTerrain).toFixed(3)})`);
+              hGrad.addColorStop(1.0, 'rgba(255, 40, 10, 0)');
+              ctx.fillStyle = hGrad; ctx.beginPath(); ctx.arc(x0, y0, hRad, 0, TAU); ctx.fill();
+            }
+          }
+        }
+        // --- FOREST WORLD ---
+        else if (type.id === 'forest') {
+          if (lodTerrain > 0.02) {
+            const lobes = 6 + (hash(hb, 40, 1) * 4 | 0);
+            for (let i = 0; i < lobes; i++) {
+              const a0 = hash(hb, 41 + i, 1) * TAU, rr = rad * (0.18 + 0.50 * hash(hb, 41 + i, 2));
+              const px = Math.cos(a0) * rr, py = Math.sin(a0) * rr * 0.90;
+              const sq = Math.sqrt(Math.max(0.12, 1 - (rr / rad) * (rr / rad)));
+              const wL = rad * (0.24 + 0.22 * hash(hb, 41 + i, 3)), hL = wL * (0.55 + 0.45 * hash(hb, 41 + i, 4)) * sq;
+              ctx.beginPath(); ctx.ellipse(px, py, wL, hL, a0 + 0.4 * hash(hb, 41 + i, 5), 0, TAU);
+              ctx.fillStyle = `rgba(38, 115, 52, ${((0.60 + 0.25 * hash(hb, 41 + i, 6)) * lodTerrain).toFixed(3)})`;
+              ctx.fill();
+              ctx.strokeStyle = `rgba(195, 185, 140, ${(0.45 * lodTerrain).toFixed(3)})`;
+              ctx.lineWidth = Math.max(1, rad * 0.008); ctx.stroke();
+            }
+
+            if (lodDetail > 0.02) {
+              ctx.strokeStyle = `rgba(45, 130, 220, ${(0.65 * lodDetail).toFixed(3)})`;
+              ctx.lineWidth = Math.max(1, rad * 0.007);
+              for (let i = 0; i < 4; i++) {
+                const a0 = hash(hb, 50 + i, 1) * TAU, rr = rad * (0.20 + 0.40 * hash(hb, 50 + i, 2));
+                ctx.beginPath(); ctx.moveTo(Math.cos(a0) * rr, Math.sin(a0) * rr);
+                ctx.quadraticCurveTo(
+                  Math.cos(a0 + 0.4) * rr * 1.2, Math.sin(a0 + 0.4) * rr * 1.2,
+                  Math.cos(a0 + 0.8) * rr * 0.7, Math.sin(a0 + 0.8) * rr * 0.7
+                );
+                ctx.stroke();
+              }
+            }
+          }
+        }
+        // --- CITY WORLD ---
+        else if (type.id === 'city') {
+          if (lodTerrain > 0.02) {
+            for (let i = 0; i < 7; i++) {
+              const a0 = hash(hb, 60 + i, 1) * TAU, rr = rad * (0.20 + 0.50 * hash(hb, 60 + i, 2));
+              const px = Math.cos(a0) * rr, py = Math.sin(a0) * rr;
+              const wS = rad * (0.22 + 0.18 * hash(hb, 60 + i, 3));
+              ctx.fillStyle = `rgba(85, 92, 108, ${(0.55 * lodTerrain).toFixed(3)})`;
+              ctx.fillRect(px - wS * 0.5, py - wS * 0.35, wS, wS * 0.7);
+            }
+          }
+          if (lodDetail > 0.02) {
+            for (let i = 0; i < 54; i++) {
+              const a0 = hash(hb, 100 + i, 1) * TAU, rr = rad * Math.sqrt(hash(hb, 100 + i, 2)) * 0.88;
+              const px = Math.cos(a0) * rr, py = Math.sin(a0) * rr;
+              if ((px * lx + py * (-ly)) > 0) continue;
+              ctx.fillStyle = `rgba(255, 218, 135, ${((0.55 + 0.40 * hash(hb, 100 + i, 3)) * lodDetail).toFixed(3)})`;
+              const sCity = Math.max(1.4, rad * 0.012);
+              ctx.fillRect(px, py, sCity, sCity * 0.8);
+            }
+          }
+        }
+        // --- ICE WORLD ---
+        else if (type.id === 'ice') {
+          const gx = lx * rad * 0.42, gy = -ly * rad * 0.42;
+          const gl = ctx.createRadialGradient(gx, gy, 0, gx, gy, rad * 0.34);
+          gl.addColorStop(0.0, `rgba(255, 255, 255, ${(0.52 * lodMacro).toFixed(3)})`);
+          gl.addColorStop(1.0, 'rgba(255, 255, 255, 0)');
+          ctx.fillStyle = gl; ctx.fillRect(-rad, -rad, rad * 2, rad * 2);
+
+          if (lodTerrain > 0.02) {
+            ctx.strokeStyle = `rgba(95, 132, 175, ${(0.55 * lodTerrain).toFixed(3)})`;
+            ctx.lineWidth = Math.max(1.2, rad * 0.015);
+            for (let i = 0; i < 9; i++) {
+              const a0 = hash(hb, 35 + i, 1) * TAU, r0 = rad * (0.22 + 0.55 * hash(hb, 35 + i, 2));
+              ctx.beginPath();
+              ctx.arc(Math.cos(a0) * r0 * 0.3, Math.sin(a0) * r0 * 0.3,
+                      rad * (0.35 + 0.40 * hash(hb, 35 + i, 3)), a0, a0 + 1.5);
+              ctx.stroke();
+            }
+          }
+        }
+        // --- DESERT WORLD ---
+        else if (type.id === 'desert') {
+          if (lodTerrain > 0.02) {
+            ctx.strokeStyle = `rgba(225, 170, 95, ${(0.48 * lodTerrain).toFixed(3)})`;
+            ctx.lineWidth = Math.max(1.2, rad * 0.022);
+            for (let i = 0; i < 7; i++) {
+              const yy = rad * ((i - 3) * 0.28);
+              ctx.beginPath();
+              ctx.ellipse(0, yy, rad * 0.95, rad * 0.12, (hash(hb, i, 7) - 0.5) * 0.25, 0, TAU);
+              ctx.stroke();
+            }
+          }
+        }
+        // --- GAS GIANT ---
+        else if (type.id === 'gas') {
+          if (lodTerrain > 0.02) {
+            const nb = 8 + ((hb >> 3) & 7);
+            for (let i = 0; i < nb; i++) {
+              const f = (i + 0.5) / nb, yy = rad * (f * 1.8 - 0.9);
+              const hh = rad * (0.04 + 0.05 * hash(hb, i, 9));
+              const waveOff = Math.sin(t * 0.18 + i * 1.1) * rad * 0.035;
+              ctx.beginPath(); ctx.ellipse(waveOff, yy, rad * 1.05, hh, 0, 0, TAU);
+              const beltAlpha = (0.14 + 0.16 * hash(hb, i, 4)) * lodTerrain;
+              ctx.fillStyle = css(blend(tint, [255, 255, 255], 0.12 + 0.15 * hash(hb, i, 5)), beltAlpha);
+              ctx.fill();
+            }
+          }
+          if (lodDetail > 0.02) {
+            const sx = lx * rad * 0.38, sy = -ly * rad * 0.28;
+            ctx.save();
+            ctx.translate(sx, sy);
+            ctx.rotate((hash(hb, 3, 51) - 0.5) * 0.8 - t * 0.08);
+            ctx.scale(1.3, 0.65);
+            ctx.beginPath(); ctx.arc(0, 0, rad * 0.22, 0, TAU);
+            ctx.fillStyle = `rgba(225, 110, 60, ${(0.68 * lodDetail).toFixed(3)})`; ctx.fill();
+            ctx.beginPath(); ctx.arc(0, 0, rad * 0.11, 0, TAU);
+            ctx.fillStyle = `rgba(255, 225, 185, ${(0.78 * lodDetail).toFixed(3)})`; ctx.fill();
+            ctx.restore();
+          }
+        }
+      }
+
+      // 5. THE 10 MANIFESTATIONS / THEMATIC STAGES
+      if (lodDetail > 0.02) {
+        // --- MANIF 1: skimming_water ---
+        if (manif.id === 'skimming_water') {
+          ctx.strokeStyle = `rgba(255, 255, 255, ${(0.65 * lodDetail).toFixed(3)})`;
+          ctx.lineWidth = Math.max(1.5, rad * 0.018);
+          for (let wI = 0; wI < 5; wI++) {
+            const wY = rad * (-0.4 + wI * 0.22 + Math.sin(t * 0.8 + wI) * 0.04);
+            ctx.beginPath();
+            ctx.moveTo(-rad * 0.85, wY);
+            ctx.quadraticCurveTo(0, wY + rad * 0.08, rad * 0.85, wY);
+            ctx.stroke();
+          }
+        }
+        // --- MANIF 2: mothership_fleet ---
+        else if (manif.id === 'mothership_fleet') {
+          for (let cI = 0; cI < 4; cI++) {
+            const orbitA = t * 0.25 + cI * (TAU / 4);
+            const ox = Math.cos(orbitA) * rad * 0.85;
+            const oy = Math.sin(orbitA) * rad * 0.35 + rad * 0.15;
+            ctx.fillStyle = `rgba(215, 230, 255, ${(0.88 * lodDetail).toFixed(3)})`;
+            ctx.fillRect(ox - 3, oy - 1.5, 6, 3);
+            ctx.fillStyle = `rgba(80, 200, 255, ${(0.95 * lodDetail).toFixed(3)})`;
+            ctx.fillRect(ox - 6, oy - 0.8, 3, 1.6);
+            const flash = Math.sin(t * 4.0 + cI * 1.5) > 0.2 ? 1 : 0;
+            if (flash) {
+              ctx.fillStyle = 'rgba(255, 60, 60, 0.95)';
+              ctx.fillRect(ox + 2, oy - 2.5, 2, 2);
+            }
+          }
+        }
+        // --- MANIF 3: protoss_crystal ---
+        else if (manif.id === 'protoss_crystal') {
+          ctx.strokeStyle = `rgba(255, 215, 60, ${(0.72 * lodDetail).toFixed(3)})`;
+          ctx.lineWidth = Math.max(1, rad * 0.012);
+          for (let pI = 0; pI < 5; pI++) {
+            const pa0 = hash(hb, 80 + pI, 1) * TAU, pr = rad * (0.25 + 0.45 * hash(hb, 80 + pI, 2));
+            const px0 = Math.cos(pa0) * pr, py0 = Math.sin(pa0) * pr;
+            const pa1 = hash(hb, 85 + pI, 1) * TAU;
+            ctx.beginPath(); ctx.moveTo(px0, py0);
+            ctx.lineTo(Math.cos(pa1) * pr * 1.1, Math.sin(pa1) * pr * 1.1);
+            ctx.stroke();
+
+            const sz = rad * (0.06 + 0.08 * hash(hb, 80 + pI, 3));
+            ctx.save(); ctx.translate(px0, py0);
+            ctx.beginPath();
+            ctx.moveTo(0, -sz * 1.4); ctx.lineTo(sz * 0.6, 0); ctx.lineTo(0, sz * 0.6); ctx.lineTo(-sz * 0.6, 0);
+            ctx.closePath();
+            ctx.fillStyle = `rgba(60, 230, 255, ${(0.80 * lodDetail).toFixed(3)})`; ctx.fill();
+            ctx.strokeStyle = `rgba(220, 140, 255, ${(0.90 * lodDetail).toFixed(3)})`; ctx.stroke();
+            ctx.restore();
+          }
+        }
+        // --- MANIF 4: zerg_biomorphic ---
+        else if (manif.id === 'zerg_biomorphic') {
+          ctx.strokeStyle = `rgba(135, 35, 155, ${(0.75 * lodDetail).toFixed(3)})`;
+          ctx.lineWidth = Math.max(1.8, rad * 0.025);
+          for (let zI = 0; zI < 6; zI++) {
+            const za = hash(hb, 90 + zI, 1) * TAU, zr = rad * (0.20 + 0.50 * hash(hb, 90 + zI, 2));
+            const zx = Math.cos(za) * zr, zy = Math.sin(za) * zr;
+            ctx.beginPath(); ctx.moveTo(zx, zy);
+            ctx.quadraticCurveTo(zx + rad * 0.15, zy - rad * 0.10, zx + rad * 0.28, zy + rad * 0.12);
+            ctx.stroke();
+
+            const pulse = 1.0 + 0.25 * Math.sin(t * 3.2 + zI * 1.2);
+            const cystRad = rad * 0.05 * pulse;
+            ctx.beginPath(); ctx.arc(zx, zy, cystRad, 0, TAU);
+            ctx.fillStyle = `rgba(225, 55, 135, ${(0.82 * lodDetail).toFixed(3)})`; ctx.fill();
+            ctx.strokeStyle = `rgba(255, 140, 210, ${(0.92 * lodDetail).toFixed(3)})`;
+            ctx.lineWidth = Math.max(0.8, rad * 0.008); ctx.stroke();
+          }
+        }
+        // --- MANIF 5: earth_egg ---
+        else if (manif.id === 'earth_egg') {
+          const contAlpha = (0.75 * lodDetail).toFixed(3);
+          ctx.beginPath();
+          ctx.ellipse(rad * 0.25, -rad * 0.10, rad * 0.38, rad * 0.45, 0.2, 0, TAU);
+          ctx.fillStyle = `rgba(55, 125, 55, ${contAlpha})`; ctx.fill();
+
+          ctx.beginPath();
+          ctx.ellipse(-rad * 0.45, -rad * 0.05, rad * 0.24, rad * 0.50, -0.3, 0, TAU);
+          ctx.fillStyle = `rgba(75, 135, 65, ${contAlpha})`; ctx.fill();
+
+          for (const sy of [-1, 1]) {
+            ctx.beginPath();
+            ctx.ellipse(0, sy * rad * 0.88, rad * 0.90, rad * 0.24, 0, 0, TAU);
+            ctx.fillStyle = `rgba(245, 252, 255, ${(0.85 * lodDetail).toFixed(3)})`; ctx.fill();
+          }
+
+          ctx.save();
+          ctx.translate(rad * 0.10, -rad * 0.25);
+          ctx.rotate(-t * 0.15);
+          ctx.beginPath(); ctx.arc(0, 0, rad * 0.16, 0, TAU);
+          ctx.fillStyle = `rgba(255, 255, 255, ${(0.65 * lodDetail).toFixed(3)})`; ctx.fill();
+          ctx.restore();
+        }
+        // --- MANIF 6: cyber_metropolis ---
+        else if (manif.id === 'cyber_metropolis') {
+          ctx.save();
+          ctx.rotate(-0.25);
+          ctx.strokeStyle = `rgba(0, 243, 255, ${(0.85 * lodDetail).toFixed(3)})`;
+          ctx.lineWidth = Math.max(1.8, rad * 0.020);
+          ctx.beginPath(); ctx.ellipse(0, 0, rad * 1.15, rad * 0.38, 0, 0, TAU); ctx.stroke();
+          ctx.strokeStyle = `rgba(255, 0, 128, ${(0.75 * lodDetail).toFixed(3)})`;
+          ctx.lineWidth = Math.max(1.2, rad * 0.012);
+          for (let spI = 0; spI < 4; spI++) {
+            const spA = spI * (TAU / 4) + t * 0.05;
+            ctx.beginPath();
+            ctx.moveTo(Math.cos(spA) * rad * 0.95, Math.sin(spA) * rad * 0.32);
+            ctx.lineTo(Math.cos(spA) * rad * 1.15, Math.sin(spA) * rad * 0.38);
+            ctx.stroke();
+          }
+          ctx.restore();
+        }
+        // --- MANIF 7: dune_arrakis ---
+        else if (manif.id === 'dune_arrakis') {
+          ctx.strokeStyle = `rgba(145, 82, 35, ${(0.80 * lodDetail).toFixed(3)})`;
+          ctx.lineWidth = Math.max(2, rad * 0.028);
+          for (let smI = 0; smI < 3; smI++) {
+            const smY = rad * (-0.25 + smI * 0.28);
+            const waveX = Math.sin(t * 0.4 + smI * 1.8) * rad * 0.15;
+            ctx.beginPath();
+            ctx.moveTo(-rad * 0.7 + waveX, smY);
+            ctx.lineTo(rad * 0.7 + waveX, smY);
+            ctx.stroke();
+          }
+          const spGrad = ctx.createRadialGradient(0, 0, rad * 0.6, 0, 0, rad);
+          spGrad.addColorStop(0.0, 'rgba(215, 85, 255, 0)');
+          spGrad.addColorStop(0.7, `rgba(255, 140, 50, ${(0.35 * lodDetail).toFixed(3)})`);
+          spGrad.addColorStop(1.0, `rgba(180, 50, 255, ${(0.45 * lodDetail).toFixed(3)})`);
+          ctx.fillStyle = spGrad; ctx.fillRect(-rad, -rad, rad * 2, rad * 2);
+        }
+        // --- MANIF 8: shattered_cataclysm ---
+        else if (manif.id === 'shattered_cataclysm') {
+          ctx.strokeStyle = `rgba(160, 235, 255, ${(0.92 * lodDetail).toFixed(3)})`;
+          ctx.lineWidth = Math.max(1.2, rad * 0.015);
+          for (let arcI = 0; arcI < 4; arcI++) {
+            const a0 = hash(hb, 70 + arcI, 1) * TAU, r0 = rad * 0.65;
+            const x0 = Math.cos(a0) * r0, y0 = Math.sin(a0) * r0;
+            const a1 = a0 + 0.6;
+            const x1 = Math.cos(a1) * r0, y1 = Math.sin(a1) * r0;
+            const jx = (x0 + x1) * 0.5 + (hash(hb, arcI, 4) - 0.5) * rad * 0.18;
+            const jy = (y0 + y1) * 0.5 + (hash(hb, arcI, 5) - 0.5) * rad * 0.18;
+            ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(jx, jy); ctx.lineTo(x1, y1);
+            ctx.stroke();
+          }
+        }
+        // --- MANIF 9: super_storm ---
+        else if (manif.id === 'super_storm') {
+          for (const sy of [-1, 1]) {
+            ctx.beginPath();
+            ctx.ellipse(0, sy * rad * 0.82, rad * 0.55, rad * 0.16, 0, 0, TAU);
+            ctx.strokeStyle = `rgba(80, 255, 180, ${(0.75 * lodDetail).toFixed(3)})`;
+            ctx.lineWidth = Math.max(1.8, rad * 0.022); ctx.stroke();
+          }
+          const flashOn = (Math.sin(t * 8.5) > 0.65);
+          if (flashOn) {
+            ctx.fillStyle = `rgba(255, 255, 255, ${(0.85 * lodDetail).toFixed(3)})`;
+            ctx.fillRect(-rad * 0.35, -rad * 0.15, rad * 0.70, rad * 0.08);
+          }
+        }
+        // --- MANIF 10: dark_void ---
+        else if (manif.id === 'dark_void') {
+          ctx.strokeStyle = `rgba(180, 140, 255, ${(0.75 * lodDetail).toFixed(3)})`;
+          ctx.lineWidth = Math.max(2, rad * 0.025);
+          ctx.beginPath(); ctx.arc(0, 0, rad * 0.98, 0, TAU); ctx.stroke();
+          const voidGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, rad * 0.85);
+          voidGrad.addColorStop(0.0, `rgba(4, 2, 8, ${(0.92 * lodDetail).toFixed(3)})`);
+          voidGrad.addColorStop(1.0, 'rgba(255, 255, 255, 0)');
+          ctx.fillStyle = voidGrad; ctx.fillRect(-rad, -rad, rad * 2, rad * 2);
+        }
+      }
+
+      // 6. Limb Darkening & Night Terminator Shadow
+      const limbGrad = ctx.createRadialGradient(0, 0, rad * 0.72, 0, 0, rad);
+      limbGrad.addColorStop(0.00, 'rgba(0,0,0,0)');
+      limbGrad.addColorStop(0.80, 'rgba(8,12,20,0.18)');
+      limbGrad.addColorStop(1.00, 'rgba(4,6,12,0.65)');
+      ctx.fillStyle = limbGrad; ctx.fillRect(-rad, -rad, rad * 2, rad * 2);
+
+      const shadowGrad = ctx.createLinearGradient(-lx * rad, ly * rad, lx * rad, -ly * rad);
+      shadowGrad.addColorStop(0.00, 'rgba(2,4,8,0.86)');
+      shadowGrad.addColorStop(0.44, 'rgba(2,4,8,0.72)');
+      shadowGrad.addColorStop(0.56, 'rgba(15,20,30,0.15)');
+      shadowGrad.addColorStop(0.72, 'rgba(0,0,0,0)');
+      ctx.fillStyle = shadowGrad; ctx.fillRect(-rad, -rad, rad * 2, rad * 2);
+
+      // 7. Atmospheric Twilight Rayleigh Rim (Golden sunset glow along day/night terminator)
+      if (lodMacro > 0.05) {
+        ctx.save();
+        ctx.globalCompositeOperation = 'screen';
+        const twGrad = ctx.createLinearGradient(-lx * rad, ly * rad, lx * rad, -ly * rad);
+        twGrad.addColorStop(0.00, 'rgba(0,0,0,0)');
+        twGrad.addColorStop(0.45, 'rgba(0,0,0,0)');
+        twGrad.addColorStop(0.51, `rgba(255, 150, 65, ${(0.42 * lodMacro).toFixed(3)})`);
+        twGrad.addColorStop(0.55, `rgba(255, 215, 125, ${(0.25 * lodMacro).toFixed(3)})`);
+        twGrad.addColorStop(0.60, 'rgba(0,0,0,0)');
+        ctx.fillStyle = twGrad;
+        ctx.fillRect(-rad, -rad, rad * 2, rad * 2);
+        ctx.restore();
+      }
+
+      ctx.restore();
+    }
+  });
+}
+
 /* Tanner Helland's blackbody approximation, the same ramp the reference uses.
  * It is what makes the inner edge read as hot rather than merely bright. */
 function blackbody(kelvin){
@@ -1429,14 +2323,48 @@ const holeGL=(()=>{
   return {cv,gl,prog,u,texOrganic,texNoise};
 })();
 
-function drawHole(m,q,p,t,rad){
-  const cx=q[0],cy=q[1];
-  // Any positive radius draws: the fade belongs to the far cull, not the near
-  // one, and a 2 px return was the blink.
-  if(!holeGL||rad<1){return;}
-  const G=holeGL,DRAW=rad*5.27;
-  holeDraws++;holeLastRad=Math.round(rad);
-  glow([m.x,m.y,m.z],rad*5.2,[255,180,85],0.24,2.5);
+function drawHole(m, q, p, t, rad){
+  const cx = q[0], cy = q[1];
+
+  // =========================================================================
+  // FAR-DISTANCE EINSTEIN RING & ACCRETION DISK BEACON (15,000 - 80,000 units):
+  // Even when kilometers away or center outside immediate viewport boundary,
+  // radiates relativistic golden lensing flares across deep space!
+  // =========================================================================
+  const dist = q[2];
+  const farFade = clamp((85000 - dist) / 45000, 0, 1);
+  if (farFade > 0.01) {
+    queue.push({
+      type: 4, d: q[2] + 50, alpha: farFade, fn: () => {
+        // Relativistic Golden Lensing Core
+        const coreFlareR = Math.max(3.5, rad * 1.25);
+        const gL = ctx.createRadialGradient(cx, cy, 0, cx, cy, coreFlareR * 3.8);
+        gL.addColorStop(0.00, 'rgba(255, 255, 240, 0.98)');
+        gL.addColorStop(0.18, 'rgba(255, 215, 120, 0.85)');
+        gL.addColorStop(0.45, 'rgba(255, 130, 40, 0.45)');
+        gL.addColorStop(0.75, 'rgba(180, 50, 15, 0.15)');
+        gL.addColorStop(1.00, 'rgba(40, 5, 0, 0)');
+        ctx.beginPath(); ctx.arc(cx, cy, coreFlareR * 3.8, 0, TAU);
+        ctx.fillStyle = gL; ctx.fill();
+
+        // Einstein Ring Curved Lensing Arc Wings
+        const arcSpan = Math.max(14.0, rad * 4.6);
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.rotate(-0.32);
+        ctx.scale(1.0, 0.28);
+        ctx.strokeStyle = 'rgba(255, 225, 140, 0.72)';
+        ctx.lineWidth = Math.max(1.5, rad * 0.15);
+        ctx.beginPath(); ctx.arc(0, 0, arcSpan, 0, TAU); ctx.stroke();
+        ctx.restore();
+      }
+    });
+  }
+
+  if (!holeGL || rad < 1.2) { return; }
+  const G = holeGL, DRAW = rad * 5.27;
+  holeDraws++; holeLastRad = Math.round(rad);
+  glow([m.x, m.y, m.z], rad * 5.2, [255, 180, 85], 0.28, 2.6);
 
   const dpr = DPR || 1;
   const left = Math.max(0, Math.floor(cx - DRAW));
@@ -1614,48 +2542,94 @@ function drawShip(s,q,t){
   ctx.restore();
  }});
 }
-function drawMass(m,p,t){
- const q=project([m.x,m.y,m.z]);
- if(!q||q[2]<=30)return;
- const rad=m.r*q[3];
- if(m.kind===4){if(rad<1)return;drawHole(m,q,p,t,rad);return;}
- let tint=massTint(m,p);
- // The archetype is the difference the eye actually looks for: same ball,
- // four different worlds.
- if(m.w){const wt=W_TYPES[m.w.t]||W_TYPES[0];tint=blend(tint,wt.c,.62);}
- // A star is not a lit ball: it is the light. Colour from the blackbody ramp
- // the horizon already uses, not from the region's palette - a sun that turns
- // from gold to blue-grey when the sky changes is not a sun - and drawn here
- // rather than through drawWorld: a world's ramp is built to sit under the
- // grade as a lit body, so a sun at that brightness comes out the same grey as
- // a moon. A radial falloff is the right shape for a source (it is only wrong
- // on a planet, where concentric rings read as a specular highlight).
- if(m.kind>=5&&m.kind<=7){
-  const cx=q[0],cy=q[1];
-  const lit=m.kind===7?blackbody(14000):m.kind===6?blackbody(3000):blackbody(4800);
-  // A neutron star is twenty units of matter carrying the light of a sun: its
-  // bloom is deliberately far larger than its disc, which is the only thing that
-  // makes a 3-pixel object read as a neutron star rather than as a dust speck.
-  const halo=m.kind===7?11:m.kind===6?2.6:2.0;
-  queue.push({type:4,d:q[2],alpha:1,fn:()=>{
-   const R=Math.max(m.kind===7?2.4:1.6,rad),g=ctx.createRadialGradient(cx,cy,0,cx,cy,R*1.06);
-   g.addColorStop(0,css(blend(lit,[255,255,255],.70),.98));
-   g.addColorStop(.52,css(lit,.96));
-   g.addColorStop(.86,css(blend(lit,[255,255,255],.16),.70));
-   g.addColorStop(1,css(lit,0));
-   ctx.beginPath();ctx.arc(cx,cy,R*1.06,0,TAU);ctx.fillStyle=g;ctx.fill();
-  }});
-  glow([m.x,m.y,m.z],m.r*halo,lit,m.kind===7?.46:.24,2.2);
-  glow([m.x,m.y,m.z],m.r*halo*.36,blend(lit,[255,255,255],.55),m.kind===7?.85:.52,2.4);
+function drawMass(m, p, t){
+ const q = project([m.x, m.y, m.z]);
+ if(!q || q[2] <= 30) return;
+ const rad = m.r * q[3];
+
+ // =========================================================================
+ // GARGANTUA SUPERMASSIVE BLACK HOLE:
+ // Even at 75,000 units away, render the Distant Einstein Ring & Accretion Beacon!
+ // Never blink out or suddenly pop in.
+ // =========================================================================
+ if(m.kind === 4){
+  drawHole(m, q, p, t, rad);
   return;
  }
- // A ringed giant is a lit world with rings around it, so it wraps drawWorld
- // rather than replacing it - the same lit path, with the rings depth-sorted in
- // front of and behind the disc.
- if(m.kind===8){drawRinged(m,q,p,t,rad,tint);return;}
- if(m.kind===4)tintHole=blend(tint,[255,236,214],.5);
- if(rad<6)glow([m.x,m.y,m.z],m.r*.85,tint,.55,2.8);
- drawWorld(m,q,p,t,rad,tint);
+
+ let tint = massTint(m, p);
+ if(m.w){
+  const wt = m.w.type || W_TYPES[m.w.t] || W_TYPES[0];
+  tint = blend(tint, wt.c, .62);
+ }
+
+ // Star light sources (kinds 5-7)
+ if(m.kind >= 5 && m.kind <= 7){
+  const cx = q[0], cy = q[1];
+  const lit = m.kind === 7 ? blackbody(14000) : m.kind === 6 ? blackbody(3000) : blackbody(4800);
+  const halo = m.kind === 7 ? 11 : m.kind === 6 ? 2.6 : 2.0;
+  queue.push({type: 4, d: q[2], alpha: 1, fn: () => {
+   const R = Math.max(m.kind === 7 ? 2.4 : 1.6, rad), g = ctx.createRadialGradient(cx, cy, 0, cx, cy, R * 1.06);
+   g.addColorStop(0, css(blend(lit, [255, 255, 255], .70), .98));
+   g.addColorStop(.52, css(lit, .96));
+   g.addColorStop(.86, css(blend(lit, [255, 255, 255], .16), .70));
+   g.addColorStop(1, css(lit, 0));
+   ctx.beginPath(); ctx.arc(cx, cy, R * 1.06, 0, TAU); ctx.fillStyle = g; ctx.fill();
+  }});
+  glow([m.x, m.y, m.z], m.r * halo, lit, m.kind === 7 ? .46 : .24, 2.2);
+  glow([m.x, m.y, m.z], m.r * halo * .36, blend(lit, [255, 255, 255], .55), m.kind === 7 ? .85 : .52, 2.4);
+  return;
+ }
+
+ if(m.kind === 8 || (m.w && m.w.hasRings)){
+  drawRinged(m, q, p, t, rad, tint);
+  return;
+ }
+
+ // =========================================================================
+ // FAR-DISTANCE CELESTIAL BEACON & SPECULAR STAR FLARE (15,000 - 75,000 units):
+ // At extreme distance, planets appear as brilliant stellar points with atmospheric halos
+ // (like Venus/Jupiter in the night sky), smoothly growing from a star point into a full world!
+ // =========================================================================
+ if(rad < 22){
+  const cx = q[0], cy = q[1];
+  const starDistFade = clamp((70000 - q[2]) / 25000, 0, 1);
+  if(starDistFade > 0.01){
+   queue.push({
+    type: 4, d: q[2] + 20, alpha: massVis * starDistFade, fn: () => {
+     // 1. Brilliant Specular Starlight Core
+     const coreR = Math.max(1.4, rad * 0.45);
+     ctx.beginPath(); ctx.arc(cx, cy, coreR, 0, TAU);
+     ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+     ctx.fill();
+
+     // 2. Atmospheric Colored Halo
+     const haloR = Math.max(4.0, rad * 1.85);
+     const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, haloR);
+     g.addColorStop(0.0, css(blend(tint, [255, 255, 255], 0.65), 0.85));
+     g.addColorStop(0.35, css(tint, 0.45));
+     g.addColorStop(1.0, css(tint, 0.0));
+     ctx.beginPath(); ctx.arc(cx, cy, haloR, 0, TAU);
+     ctx.fillStyle = g;
+     ctx.fill();
+
+     // 3. Subtle Cosmic Diffraction Spike Cross at high distance (rad < 6)
+     if(rad < 6.0){
+      const spkLen = Math.max(6.0, 18.0 - rad * 2.0);
+      ctx.strokeStyle = css(blend(tint, [255, 255, 255], 0.80), 0.35 * (1 - rad / 6.0));
+      ctx.lineWidth = 0.75;
+      ctx.beginPath();
+      ctx.moveTo(cx - spkLen, cy); ctx.lineTo(cx + spkLen, cy);
+      ctx.moveTo(cx, cy - spkLen); ctx.lineTo(cx, cy + spkLen);
+      ctx.stroke();
+     }
+    }
+   });
+  }
+ }
+
+ if(rad < 8) glow([m.x, m.y, m.z], m.r * 1.15, tint, .65, 3.2);
+ drawWorld(m, q, p, t, rad, tint);
 }
 /* A spiral galaxy as a printed plate: a flat toned disc with a crisp edge,
  * arms built as tapered ribbons rather than wires, and dust lanes that actually
@@ -1760,7 +2734,10 @@ function bodies(){
   // The shard and plate draw loops were here. drawShard/drawPlate are now
   // unreferenced; left in place rather than deleted blind.
 
-  for(const g of c.galaxies){const pj=project([g.x,g.y,g.z]);if(!pj||pj[2]>34000)continue;drawGalaxy(g,region(g.x,g.z),time);}
+  // Smooth distance fade for galaxies
+  for(const g of c.galaxies){const pj=project([g.x,g.y,g.z]);if(!pj||pj[2]>34000)continue;massVis=clamp((34000-pj[2])/8000);if(massVis<=0)continue;drawGalaxy(g,region(g.x,g.z),time);massVis=1;}
+  // Render procedural space events
+  for(const ev of (c.events||[])){SpaceEventEngine.drawEvent(ev,time);}
   // A body held at full alpha until a cutoff appears in one frame. Keep
  // them much longer and fade them in over the last 12,000 units.
  for(const g of (c.gates||[])){const pj=project([g.x,g.y,g.z]);if(!pj||pj[2]>52000)continue;
@@ -1819,12 +2796,22 @@ function stepOrbits(){
  }
 }
 function updateGravity(){
- activeMasses.length=0;
+ activeMasses.length = 0;
  stepOrbits();
- const k0=Math.floor(travel/CHUNK);
- for(let k=k0-2;k<=k0+2;k++)for(const m of chunk(k).masses){
-  if(Math.abs(m.z-travel)>7200)continue;
-  activeMasses.push(m);
+ const k0 = Math.floor(travel / CHUNK);
+ // Deep volumetric perception: scan 4 chunks behind and 22 chunks ahead (up to ~70,000 units)
+ for(let k = k0 - 4; k <= k0 + 22; k++){
+  const c = chunk(k);
+  if(!c || !c.masses) continue;
+  for(const m of c.masses){
+   const dz = m.z - travel;
+   if(m.kind === 4){
+    if(dz >= -4000 && dz <= 75000) activeMasses.push(m);
+   } else {
+    // All planetary encounters and distant background giants kept in activeMasses for continuous tracking
+    if(dz >= -5000 && dz <= 65000) activeMasses.push(m);
+   }
+  }
  }
 }
 function flockCentre(){
@@ -1864,38 +2851,33 @@ function reseedFlock(){
  * descending, and RECOVER is the one ending in the piece that does not reset the
  * flock - it eases it home, so the journey is left deeper than it began. */
 function captureCam(){
- const m=captureMass,r=(m&&m.r)||1100;
- if(capturePhase===1){
-  // Lean in until the well spills past every edge - but from the flock's
-  // side of it. At 3.60 r the camera sat past the horizon and the cranes
-  // were behind the lens; the plate was empty.
-  const g=smoother(clamp(captureGrip,0,1)),fw=craftWorld(fleet[LEAD]);
-  const hd=Math.hypot(fw[0]-m.x,fw[2]-m.z)||1;
-  return {blend:g*.95,tx:m.x,ty:m.y,tz:m.z,yaw:Math.atan2(fw[0]-m.x,-(fw[2]-m.z)),
-   distance:mix(3.60,2.60,g)*r,pitch:mix(.06,.03,g),roll:.02*g,focal:mix(.92,.80,g)};
- }
- if(capturePhase===2){
-  const g=clamp(captureT/6.5,0,1),fw=craftWorld(fleet[LEAD]);
-  const hd=Math.hypot(fw[0]-m.x,fw[2]-m.z)||1;
-  return {blend:1,tx:m.x,ty:m.y,tz:m.z,yaw:Math.atan2(fw[0]-m.x,-(fw[2]-m.z)),
-   distance:mix(2.60,2.35,g)*r,pitch:mix(.03,.06,g),
-   roll:mix(.02,.06,g),focal:mix(1.30,1.20,g)};
- }
- if(capturePhase===3){const fw=craftWorld(fleet[LEAD]);
-  const hd=Math.hypot(fw[0]-m.x,fw[2]-m.z)||1;
-  return {blend:1,tx:m.x,ty:m.y,tz:m.z,yaw:Math.atan2(fw[0]-m.x,-(fw[2]-m.z)),
-  distance:2.30*r,pitch:.05,roll:.06,focal:.80};}
- if(capturePhase===4){
-  // The fall: move off the well and let the corridor stretch away ahead. The
-  // focal is widened so the space in front compresses - the raymarcher is not
-  // touched; this is the projection doing it.
-  const out=smoother(clamp(captureT/3.5,0,1)),g=smoother(clamp(captureDive,0,1)),fz=travel+520;
-  return {blend:1,tx:mix(m.x,routeX(fz),out),ty:mix(m.y,courseY(fz),out),tz:mix(m.z,fz,out),
-   distance:mix(2.24*r,mix(2200,4300,g),out),pitch:mix(.34,mix(.10,-.22,g),out),
-   roll:mix(.06,.06+.46*g,out),focal:mix(1.20,mix(1.05,.66,g),out)};
- }
- const g=clamp(captureT/6,0,1),fz=travel+520;
- return {blend:1-g,tx:routeX(fz),ty:courseY(fz),tz:fz,distance:mix(4300,1600,g),pitch:mix(-.22,.10,g),roll:.52*(1-g),focal:mix(.66,1.12,g)};
+ const m = captureMass, r = (m && m.r) || 3500;
+ const u = clamp(captureT / 60.0, 0, 1); // 60-second normalized timeline
+ 
+ // Continuous C2-smooth Hermite blend in and out (Zero abrupt snap at entry and exit)
+ let blend = 1.0;
+ if(captureT < 12.0) blend = smoother(captureT / 12.0);
+ else if(captureT > 48.0) blend = 1.0 - smoother((captureT - 48.0) / 12.0);
+
+ const fw = craftWorld(fleet[LEAD]);
+ 
+ // Compose BOTH the paper crane migration flock in foreground and Gargantua in background
+ const focusFactor = mix(0.42, 0.65, Math.sin(Math.PI * u));
+ const tx = mix(fw[0], m.x, focusFactor);
+ const ty = mix(fw[1], m.y, focusFactor);
+ const tz = mix(fw[2], m.z, focusFactor);
+ 
+ // Continuous orbital yaw: smoothly track the silhouette of the colossal black hole
+ const angleToHole = Math.atan2(m.x - fw[0], -(m.z - fw[2]));
+ const yaw = angleToHole + mix(-0.28, 0.32, smoother(u));
+ const pitch = mix(0.06, 0.12, smoother(u)) - 0.04 * Math.sin(Math.PI * u);
+ const roll = 0.035 * Math.sin(Math.PI * u);
+ 
+ // Distance scaling: Gargantua event horizon fills 70-85% of screen
+ const distance = mix(2.95, 2.30, Math.sin(Math.PI * u)) * r;
+ const focal = mix(1.15, 0.88, Math.sin(Math.PI * u));
+
+ return {blend, tx, ty, tz, yaw, pitch, roll, distance, focal};
 }
 /* Where the flock sits during the fall, as a pure function of the bird and of
  * how deep the dive has gone - so DIVE and RECOVER agree exactly at the seam
@@ -1968,97 +2950,63 @@ function drawTunnel(amount){
  ctx.restore();
 }
 function updateCapture(dt){
- if(capturePhase===0){
-  if(!started||!activeMasses.length)return;
-  const lw=craftWorld(fleet[LEAD]);
+ if(capturePhase === 0){
+  if(!started || !activeMasses.length) return;
   for(const m of activeMasses){
-   if(m.kind!==4||m.z<travel-500)continue;
-   const dx=m.x-lw[0],dy=m.y-lw[1],dz=m.z-lw[2],dist=Math.hypot(dx,dy,dz);
-   // It used to take r*0.30 = 720 units AND a steering input, but the fleet's
-   // closest pass is about 2,000: the act the piece was built around never
-   // ran. It is an authored set piece on a horizon that comes every 37
-   // chunks, not a hazard that ambushes a drifting flock.
-   // 7,200 units of radius cannot reach an 11,000-unit gap on proximity
-   // alone, so passing the horizon's plane also counts: it is a set piece.
-   if(dist<m.r*1.6||Math.abs(m.z-travel)<2400){
-    {
-     capturePhase=1;captureT=0;captureTotal=0;captureGrip=0;captureDive=0;captureGear=0;captureMass=m;sound.setTension(true);toast('引力捕获 · GRAVITY CAPTURE',6);break;
-    }
+   // Only trigger when approaching from front (dz > 0) and never re-trigger once captured or passed
+   if(m.kind !== 4 || m.captured || m.passed) continue;
+   const dz = m.z - travel;
+   if(dz > 0 && dz <= 2000){
+    capturePhase = 1;
+    captureT = 0;
+    captureTotal = 0;
+    captureMass = m;
+    m.captured = true; // Permanently prevent re-triggering deadlock loop
+    sound.setTension(true);
+    toast('卡冈图雅 · 泰坦视界 // GARGANTUA 60S FLYBY', 6);
+    break;
    }
   }
   return;
  }
- captureT+=dt;captureTotal+=dt;
- // A capture is an authored interlude, never a trap: bail out if it runs long.
- if(captureTotal>50){sound.setTension(false);capturePhase=0;captureFlash=0;captureMass=null;captureTotal=0;captureGrip=0;captureDive=0;captureGear=0;captureCamPose=null;reseedFlock();return;}
- const m=captureMass;
- if(capturePhase===1){
-  // GRIP. The well has hold. Steering away from it is read and it stretches the
-  // tide from eight seconds toward thirteen - a fight that always loses. The
-  // ring closes from 0.60 to 0.22 horizon radii; the camera closes with it.
-  const lw=craftWorld(fleet[LEAD]);
-  const dx=m.x-lw[0],dz=m.z-lw[2];
-  const away=clamp(-Math.sign(dx*camera.right[0]+dz*camera.right[2]||1)*wind.x,0,1);
-  captureGrip=clamp(captureGrip+dt/(8+5*away),0,1);
-  const g=smoother(captureGrip),rad=mix(m.r*.60,m.r*.22,g);
-  for(const b of fleet){
-   const wx=routeX(travel)+b.x,wy=courseY(travel)+b.y,wz=travel+b.z;
-   b.x=mix(wx,m.x+rad+b.bx*.68,g)-routeX(travel);
-   b.y=mix(wy,m.y+b.by*.55,g)-courseY(travel);
-   b.z=mix(wz,m.z+b.bz*.68,g)-travel;
-   b.vx*=.34;b.vy*=.34;b.vz*=.34;
-  }
-  if(captureGrip>=1||captureT>14){capturePhase=2;captureT=0;}
+
+ captureT += dt;
+ captureTotal += dt;
+ const m = captureMass;
+ const u = clamp(captureT / 60.0, 0, 1);
+
+ // Smooth paper crane migratory flight kinematics past the titanic abyss
+ const sweepCurve = Math.sin(Math.PI * u);
+ const lateralOffset = sweepCurve * 2200; // gentle gravitational bend toward inner disk
+ const vertOffset = -sweepCurve * 45;
+
+ for(const b of fleet){
+  // Preserve delicate flapping flock formation
+  const wx = routeX(travel) + b.bx + lateralOffset;
+  const wy = courseY(travel) + b.by + vertOffset;
+  const wz = travel + b.bz;
+  b.x = wx - routeX(travel);
+  b.y = wy - courseY(travel);
+  b.z = wz - travel;
  }
- else if(capturePhase===2){
-  // The last orbit: the ring closes from the point of no return, and the flock
-  // is spread wider as it tightens, so it goes down around the shadow rather
-  // than into a point.
-  const k=clamp(captureT/6.5,0,1),r=m.r*mix(.22,.045,k),th=captureT*3.0;
-  const lx=m.x+Math.cos(th)*r,ly=m.y+Math.sin(th)*r*.62,lz=m.z+Math.sin(th*.5)*r*.5;
-  const ox=routeX(travel),oy=courseY(travel),stretch=1.1+1.7*k;
-  for(const b of fleet){
-   b.x=lx-ox+b.bx*stretch*.62;b.y=ly-oy+b.by*.55;b.z=lz-travel+b.bz*stretch*.62;
-   b.vx=b.vy=b.vz=0;
-  }
-  if(captureT>6.5){capturePhase=3;captureT=0;captureJumped=false;}
+
+ // Relativistic gravitational slingshot assist between 38s and 50s
+ if(captureT >= 38.0 && captureT < 50.0){
+  const slingProg = (captureT - 38.0) / 12.0;
+  warp = Math.sin(Math.PI * slingProg) * 12.0;
+ } else {
+  warp = expStep(warp, 0, 2.0, dt);
  }
- else if(capturePhase===3){
-  captureFlash=Math.sin(Math.PI*clamp(captureT/1.4,0,1));
-  if(captureT>.7&&!captureJumped){
-   captureJumped=true;warp=28;reseedFlock();
-  }
-  if(captureT>1.4){capturePhase=4;captureT=0;captureDive=0;captureGear=0;toast('第六幕 · 深空漂移 / ACT VI · DEEP DRIFT',7);}
- }
- else if(capturePhase===4){
-  // DIVE - the sixth act. A surge, a hard brake, a surge: the gear is chained
-  // deterministically (a hash of the segment, never Math.random, because seek()
-  // has to replay), so the fall keeps being re-lit and never arrives.
-  captureDive=clamp(captureDive+dt/15,0,1);
-  const gh=hash(Math.floor(captureT/2.4)*13+7),surge=gh<.58;
-  captureGear=expStep(captureGear,surge?5+gh*11:.35,surge?1.6:5.2,dt);
-  warp=captureGear;
-  const dd=smoother(captureDive);
-  for(const b of fleet){
-   const p=divePose(b,dd);
-   b.x=p[0];b.y=p[1];b.z=p[2];b.vx=b.vy=b.vz=0;
-  }
-  if(captureDive>=1){capturePhase=5;captureT=0;}
- }
- else{
-  // RECOVER - the ending that is different. No reseedFlock(): the flock is eased
-  // home on a smoothstep and the surge bleeds away over six seconds, so the
-  // corridor resumes from deeper than it left and the fall is never undone.
-  captureFlash=Math.max(0,captureFlash-dt*1.2);
-  captureGear=expStep(captureGear,0,1.1,dt);warp=captureGear;
-  captureDive=clamp(captureDive-dt/6,0,1);
-  const back=smoother(clamp(captureT/6,0,1));
-  for(const b of fleet){
-   const p=divePose(b,1);
-   b.x=mix(p[0],b.bx,back);b.y=mix(p[1],b.by,back);b.z=mix(p[2],b.bz,back);
-   b.vx*=.86;b.vy*=.86;b.vz*=.86;
-  }
-  if(captureT>6){capturePhase=0;captureFlash=0;captureMass=null;captureGrip=0;captureDive=0;captureGear=0;captureCamPose=null;slingPrev=1e9;}
+
+ // End of 60-second flyby encounter
+ if(captureT >= 60.0){
+  if(m) m.passed = true;
+  capturePhase = 0;
+  captureMass = null;
+  captureCamPose = null;
+  warp = 0;
+  sound.setTension(false);
+  toast('重返浩瀚深空 · DEEP SPACE RESUMED', 5);
  }
 }
 function updateBirds(dt){
@@ -2316,15 +3264,18 @@ const nebCache=new Map();let nebGens=0;
  * instead of fighting it. Every channel stays under 240: the grade maps 210 to
  * white, so anything brighter loses its hue to the bloom rather than reading as
  * colour. */
+/* Master Astronomical Nebula Palettes (Planckian ionization & reflection) */
 const NEB_PAL=[
- [[224, 38, 80],[ 18,190,200]],  // 素纸 PAPER: crimson emission against ionized cyan
- [[198, 56,132],[ 16,190,200]],  // 墨海 INKWASH: magenta against ionized cyan
- [[230, 64, 44],[ 16,192,204]],  // 箔野 FOIL: vermilion against ionized cyan
- [[228, 46, 40],[ 24,182,206]],  // 星核 CORE: scarlet against ionized cyan
- [[214, 38, 64],[ 20,172,184]]   // 深渊 ABYSS: ember crimson against teal
+ [[235,  48,  55], [ 30, 205, 230]], // Orion/Carina: H-alpha crimson + O-III cyan
+ [[ 42, 136, 248], [195, 228, 255]], // Pleiades: Starlight reflection sapphire
+ [[182,  52, 235], [255, 188,  48]], // Tarantula: Hot violet + Solar ionization
+ [[ 48, 225, 188], [228,  42,  75]], // Veil Supernova: Shockwave green + crimson
+ [[215, 138,  42], [ 24, 132, 148]], // Pillars of Creation: Amber dust + teal
+ [[242, 246, 255], [218,  62, 128]]  // Ring/Helix Planetary: White dwarf + outer gas
 ];
+
 function nebulaTex(seed,idx){
- const pal=NEB_PAL[idx]||NEB_PAL[0];
+ const pal=NEB_PAL[idx % NEB_PAL.length] || NEB_PAL[0];
  const key=seed+'|'+idx;
  if(nebCache.has(key))return nebCache.get(key);
  // 384 rather than 192: the camera can sit inside one of these, and a dust lane
@@ -2785,7 +3736,10 @@ function drawSky(){
    const el=Math.hypot(ex,ey,ez)||1,q2=skyPoint([ex/el,ey/el,ez/el]);
    if(q2){const w2=lensWarp(q2[0],q2[1]);buckets[tier].push(x,y,w2[0],w2[1],st.size);}
    else buckets[tier].push(x,y,x,y,st.size);
-  }else buckets[tier].push(x,y,st.size,Math.sin(time*.35+st.phase)>0?1:0);
+  }else{
+   const ph = Math.floor(((Math.sin(time * 0.45 + st.phase) + 1) * 0.5) * 3.99);
+   buckets[tier].push(x, y, st.size, ph);
+  }
  }
  const ink=css(blend(p.craft,[255,255,255],.32));
  if(eps>0){
@@ -2793,12 +3747,10 @@ function drawSky(){
    const b=buckets[t];if(!b.length)continue;
    const a0=clamp((.40+t*.24)*dense,0,.95);
    ctx.strokeStyle=ink;
-   // the long, faint tail: the ink dragged to its full length
    ctx.globalAlpha=a0*.46;ctx.lineWidth=.5+t*.20;
    ctx.beginPath();
    for(let j=0;j<b.length;j+=5){ctx.moveTo(b[j],b[j+1]);ctx.lineTo(b[j+2],b[j+3]);}
    ctx.stroke();
-   // the short, solid head: the star itself, pulled a third of the way
    ctx.globalAlpha=a0;ctx.lineWidth=.7+t*.22;
    ctx.beginPath();
    for(let j=0;j<b.length;j+=5){const x=b[j],y=b[j+1];ctx.moveTo(x,y);ctx.lineTo(x+(b[j+2]-x)*.34,y+(b[j+3]-y)*.34);}
@@ -2808,8 +3760,9 @@ function drawSky(){
   for(let t=0;t<4;t++){
    const b=buckets[t];if(!b.length)continue;
    ctx.fillStyle=ink;
-   for(let phase=0;phase<2;phase++){
-    ctx.globalAlpha=clamp((.40+t*.24)*dense,0,.95)*(phase?.72:1);
+   for(let phase=0;phase<4;phase++){
+    const twMul = 0.72 + phase * 0.093;
+    ctx.globalAlpha=clamp((.40+t*.24)*dense,0,.95)*twMul;
     ctx.beginPath();let any=false;
     for(let j=0;j<b.length;j+=4){if(b[j+3]!==phase)continue;ctx.moveTo(b[j]+b[j+2],b[j+1]);ctx.arc(b[j],b[j+1],b[j+2],0,TAU);any=true;}
     if(any)ctx.fill();
@@ -2886,17 +3839,19 @@ function drawSky(){
     ctx.beginPath();for(let j=0;j<bb.length;j+=4){const x=bb[j],y=bb[j+1];ctx.moveTo(x,y);ctx.lineTo(x+(bb[j+2]-x)*.34,y+(bb[j+3]-y)*.34);}ctx.stroke();
    }
   }else{
-   const bb=[[],[]];
+   const bb=[[],[],[],[]];
    for(const st of bandStars){
     const q=skyPoint(bdir(st.ca,st.sa,st.g));if(!q)continue;
     const w=lensWarp(q[0],q[1]),x=w[0],y=w[1];
     if(x<-6||x>W+6||y<-6||y>H+6)continue;
-    bb[Math.sin(time*.35+st.phase)>0?1:0].push(x,y,st.size);
+    const ph = Math.floor(((Math.sin(time * 0.42 + st.phase) + 1) * 0.5) * 3.99);
+    bb[ph].push(x,y,st.size);
    }
    ctx.fillStyle=bink;
-   for(let phase=0;phase<2;phase++){
+   for(let phase=0;phase<4;phase++){
     const b2=bb[phase];if(!b2.length)continue;
-    ctx.globalAlpha=clamp(.42*bw,0,.80)*(phase?.74:1);
+    const twMul = 0.74 + phase * 0.086;
+    ctx.globalAlpha=clamp(.42*bw,0,.80)*twMul;
     ctx.beginPath();let any=false;
     for(let j=0;j<b2.length;j+=3){ctx.moveTo(b2[j]+b2[j+2],b2[j+1]);ctx.arc(b2[j],b2[j+1],b2[j+2],0,TAU);any=true;}
     if(any)ctx.fill();
@@ -3077,14 +4032,14 @@ const vig=document.createElement('canvas'),vigCtx=vig.getContext('2d',{alpha:fal
  * FOIL gets v0 = 28 / v1 = 210, ABYSS gets v0 = 13 / v1 = 195. Both clip their
  * top percentile; neither crushes its own floor. */
 let gradeCache='',gradeKey=-1;
+let smoothGradeV0 = 14.0;
 function gradeFor(p){
- const L=.2126*p.sky[0]+.7152*p.sky[1]+.0722*p.sky[2];
- const v0=clamp(L*.62,4,30),A=1.40,k0=v0|0;
- if(k0===gradeKey)return gradeCache;
- gradeKey=k0;
- const c=clamp(1+2*A*v0/255,.02,3),k=A/c;
- gradeCache='brightness('+k.toFixed(3)+') contrast('+c.toFixed(3)+') saturate(1.14)';
- return gradeCache;
+ const L = .2126*p.sky[0] + .7152*p.sky[1] + .0722*p.sky[2];
+ const v0 = clamp(L * .62, 4, 30);
+ smoothGradeV0 += (v0 - smoothGradeV0) * 0.08;
+ const A = 1.40;
+ const c = clamp(1 + 2 * A * smoothGradeV0 / 255, .02, 3), k = A / c;
+ return 'brightness(' + k.toFixed(3) + ') contrast(' + c.toFixed(3) + ') saturate(1.14)';
 }
 let postMs=0;
 function buildVignette(vw,vh){
@@ -3564,6 +4519,7 @@ function frame(now){
 }
 // A small read-only diagnostic surface for inspecting a locally opened file.
 window.Starfield=Object.freeze({
+ version:'v66-volumetric-3d-master',
  holeDir:()=>{let best=null,bd=1e9;const lw=craftWorld(fleet[LEAD]);
  for(const m of activeMasses){if(m.kind!==4)continue;const d=Math.hypot(lw[0]-m.x,lw[1]-m.y,lw[2]-m.z);if(d<bd){bd=d;best=m;}}
  if(!best)return null;const dx=best.x-lw[0],dz=best.z-lw[2];
@@ -3572,9 +4528,16 @@ window.Starfield=Object.freeze({
  palette:()=>({index:currentPalette.index,t:currentPalette.t,sky:currentPalette.sky,horizon:currentPalette.horizon,fog:currentPalette.fog,tree:currentPalette.tree,craft:currentPalette.craft,sun:currentPalette.sun,shimmer:currentPalette.shimmer,front:currentPalette.front}),
  flock:()=>{let mx=0,mv=0,bad=false;for(const b of fleet){const d=Math.hypot(b.x,b.y,b.z);if(d>mx)mx=d;const v=Math.hypot(b.vx,b.vy,b.vz);if(v>mv)mv=v;if(!Number.isFinite(b.x+b.y+b.z+b.vx+b.vy+b.vz))bad=true;}return {radius:Math.round(mx),speed:Math.round(mv),bad};},
  holeGL:!!holeGL,
- getState:()=>({seed:SEED,started,paused,autoCamera,region:rawStyles[currentPalette.index].en,regionMix:currentPalette.t,travel,flightTime,capture:capturePhase,sling:Math.round(sling*100)/100,masses:activeMasses.length,kinds:activeMasses.map(m=>m.kind).sort().join(''),nebTex:nebCache.size,nebGens,fillMPx:+(lastFillPx/1e6).toFixed(1),fleet:fleet.length,particles:particles.length,variation:cycle+1,lens:plans.get(cycle)[shot].name,distance:camera.distance,pitch:camera.pitch,yaw:camera.yaw,eye:[...camera.eye],fps:Math.round(fps),drawCalls,loadedChunks:chunks.size,rotated,width:W,height:H,dpr:DPR,audio:sound.ready?sound.ac.state:'not-started',track:sound.index+1,postMs:+(postMs).toFixed(2),postOn,holeGL:!!holeGL,holeDraws,holeLastRad}),
+ getState:()=>({seed:SEED,started,paused,autoCamera,region:rawStyles[currentPalette.index].en,regionMix:currentPalette.t,travel,flightTime,capture:capturePhase,captureT,sling:Math.round(sling*100)/100,masses:activeMasses.length,kinds:activeMasses.map(m=>m.kind).sort().join(''),nebTex:nebCache.size,nebGens,fillMPx:+(lastFillPx/1e6).toFixed(1),fleet:fleet.length,particles:particles.length,variation:cycle+1,lens:plans.get(cycle)[shot].name,distance:camera.distance,pitch:camera.pitch,yaw:camera.yaw,eye:[...camera.eye],fps:Math.round(fps),drawCalls,loadedChunks:chunks.size,rotated,width:W,height:H,dpr:DPR,audio:sound.ready?sound.ac.state:'not-started',track:sound.index+1,postMs:+(postMs).toFixed(2),postOn,holeGL:!!holeGL,holeDraws,holeLastRad}),
  nova:()=>{const n=novaState();return n?{age:+n.age.toFixed(1),life:+n.life.toFixed(3),x:Math.round(n.x),y:Math.round(n.y)}:null;},
  cameras:Object.freeze(LENSES.map(p=>Object.freeze({name:p.name,en:p.en}))),
+ worldFor,
+ seekEncounter:(encIndex)=>{
+  const k = encIndex * 6 + 3;
+  travel = k * CHUNK + CHUNK * 0.45 - 800;
+  chunks.clear();
+  return { encIndex, travel, k, world: worldFor(encIndex) };
+ },
  seek:(seconds)=>{
   const step=1/60,n=Math.max(0,Math.round(seconds/step));
   for(let i=0;i<n;i++){
