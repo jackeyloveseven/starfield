@@ -400,6 +400,13 @@ function makePlan(c,prevYaw){
   const p={id,name:lens.name,en:lens.en,yaw,pitch:clamp((lens.pitch+(i!==0&&i!==4?(high?3:-5):0))*DEG,-.16,1.47),distance:lens.d*card,aimY:0,lane:lens.lane||0,roll:(r()-.5)*.026,duration:16+r()*.85,drift:(id===7?9:2)*DEG};
   result.push(p);previous=yaw;
  }
+ // Dolly compression, around this plan's own median. Ordering survives -
+ // the intimate shots are still the nearest and the reveal still the
+ // farthest - but the span a single cut can cross is halved, which is
+ // the difference between a camera move and a stutter.
+ const ds=result.map(p=>p.distance).sort((a,b)=>a-b);
+ const med=(ds[2]+ds[3])*.5;
+ for(const p of result)p.distance=med*Math.pow(p.distance/med,.52);
  plans.set(c,result);return result;
 }
 makePlan(0,null);makePlan(1,plans.get(0)[5].yaw);
@@ -446,7 +453,7 @@ function updateDirector(dt){
   }
  }
 
- if(autoCamera && !capturePhase && (!skimRes || !skimRes.active) && !hm && activeMasses.length){
+ if(started && autoCamera && !capturePhase && (!skimRes || !skimRes.active) && !hm && activeMasses.length){
   let gm = null, gd = 1e9;
   for(const m of activeShips){
    const dx = m.x - routeX(travel), dy = m.y - courseY(travel), dz = m.z - travel;
@@ -2118,13 +2125,22 @@ function ringHalf(m, q, rad, back) {
       const a0 = back ? Math.PI : 0;
       const a1 = back ? TAU : Math.PI;
 
+      // Density inside each macro band. Five sub-bands with their own alpha
+      // is the minimum that stops a close pass from printing as one flat fill;
+      // the gaps fall where the hash puts them, never at a regular pitch.
+      const veil = 1 - .45 * clamp(rad / (H * .75), 0, 1);
       for (const rL of ringLayers) {
-        ctx.beginPath();
-        ctx.arc(0, 0, rad * rL.r1, a0, a1, false);
-        ctx.arc(0, 0, rad * rL.r0, a1, a0, true);
-        ctx.closePath();
-        ctx.fillStyle = css(rL.c, rL.a);
-        ctx.fill();
+        for (let k = 0; k < 5; k++) {
+          const u0 = rL.r0 + (rL.r1 - rL.r0) * k / 5;
+          const u1 = rL.r0 + (rL.r1 - rL.r0) * (k + 1) / 5;
+          const dens = .55 + hash(hb, 40 + Math.round(rL.r0 * 100), k) * .9;
+          ctx.beginPath();
+          ctx.arc(0, 0, rad * u1, a0, a1, false);
+          ctx.arc(0, 0, rad * u0, a1, a0, true);
+          ctx.closePath();
+          ctx.fillStyle = css(rL.c, Math.min(.92, rL.a * dens * veil));
+          ctx.fill();
+        }
       }
 
       // Planet-on-Ring Umbra shadow (projected on rear rings)
@@ -3816,7 +3832,12 @@ function drawFleet(){
   const world={};for(const k in v)world[k]=craftTransform(b,v[k]);
   const lead=b===fleet[LEAD];
   const base=p.craft,fold=lead?blend([178,58,44],p.craft,.22):blend(p.craft,p.craftShade,.60),edge=blend(p.craft,p.craftShade,.83);
-  const tri=(a,b,c,col)=>poly([world[a],world[b],world[c]],col);
+  // First person: a crane this close is a shard across the canopy, not a
+  // bird. Fade the ones inside the formation, only in the cockpit.
+  const dcam=Math.hypot(pos[0]-camera.eye[0],pos[1]-camera.eye[1],pos[2]-camera.eye[2]);
+  const nearCraft=cockpitBlend>.01?mix(1,clamp((dcam-90)/260,0,1),cockpitBlend):1;
+  if(nearCraft<.004)continue;
+  const tri=(a,b,c,col)=>poly([world[a],world[b],world[c]],col,{alpha:nearCraft});
   // Upper surface split by the spine ridge, underside folded under it.
   tri('nose','spineTop','wrl',base);tri('spineTop','spineBack','wrl',fold);tri('spineBack','wtl','wrl',edge);
   tri('nose','wrr','spineTop',shade(base,.98));tri('spineTop','wrr','spineBack',fold);tri('spineBack','wrr','wtr',edge);
@@ -3887,14 +3908,45 @@ const bandStars=Array.from({length:coarse?1800:3200},(_,i)=>{
 /* Ink washes for the deep field. Each is rendered once into an offscreen
  * canvas and then only scaled; the tint is quantised so the cache stays tiny
  * while the palette blends continuously. */
-const nebulae=Array.from({length:coarse?26:44},(_,i)=>{
- const a=hash(i,210)*TAU,y=hash(i,211)*2-1,r=Math.sqrt(Math.max(0,1-y*y));
- // Was .30...88 of the focal length: a nebula was routinely wider than the whole
- // frame, so the camera sat inside one and read a 192px texture blown up ten
- // times - a wash with no structure in it, however good the texture. .22...68
- // and six more of them, so you meet distinct nebulae instead of one flood.
- return {x:Math.cos(a)*r,y,z:Math.sin(a)*r,size:.22+hash(i,212)*.46,seed:1+Math.floor(hash(i,213)*6),rot:hash(i,214)*TAU,alpha:.17+hash(i,215)*.38};
-});
+/* Billboards with a place in the world, not a painted dome.
+ *
+ * These used to be unit directions, and that had three consequences the eye
+ * reads immediately: the camera could never approach one, nothing could pass in
+ * front of one, and every cloud was pinned to the same infinity. Each now owns a
+ * centre and a radius in world units, so it grows as the convoy closes on it,
+ * slides against the far field, and sorts against the worlds in the same queue.
+ *
+ * Its distance is chosen from the apparent size we want rather than the other
+ * way round: 1.6-4.0 radii off the centre gives the 0.14-0.32 rad the old
+ * constant gave, but now as a consequence of where the cloud is. The unit
+ * direction survives only for novaGas(), which asks "is this gas in the flash's
+ * direction". */
+const nebulae=Array.from({length:coarse?26:44},(_,i)=>({
+ i:i,gen:0,wx:0,wy:0,wz:-1e18,wr:0,
+ x:1,y:0,z:0,size:.3,seed:1+Math.floor(hash(i,213)*6),
+ rot:hash(i,214)*TAU,alpha:.17+hash(i,215)*.38
+}));
+let nebReady=false;
+function nebulaPlace(n,ahead){
+ const r=rng((SEED^Math.imul((n.i+1)|0,0x9e3779b1)^Math.imul(n.gen+1,0x85ebca6b))>>>0);
+ const z=travel+ahead,R=6000+r()*11000;
+ const L=R*(1.6+r()*2.4),a0=r()*TAU;
+ n.wr=R;
+ n.wx=routeX(z)+Math.cos(a0)*L;
+ n.wy=courseY(z)+Math.sin(a0)*L;
+ n.wz=z+(r()-.5)*L*.8;
+ const dx=n.wx-routeX(z),dy=n.wy-courseY(z),dz=n.wz-z,dd=Math.hypot(dx,dy,dz)||1;
+ n.x=dx/dd;n.y=dy/dd;n.z=dz/dd;n.size=clamp(R/dd,.05,1.2);
+ n.rot=r()*TAU;
+}
+function nebulaUpdate(){
+ if(!nebReady){nebReady=true;
+  for(const n of nebulae)nebulaPlace(n,-45000+((n.i+.5)/nebulae.length)*150000);
+ }
+ // Recycle well behind the eye, never in front of it: a cloud that is 80k
+ // behind the camera cannot be on screen even at the widest yaw.
+ for(const n of nebulae)if(n.wz<travel-80000){n.gen++;nebulaPlace(n,110000+hash(n.i,301+n.gen)*45000);}
+}
 const nebCache=new Map();let nebGens=0;
 /* Keyed by region index, not by the live blended colour: keying on a colour
  * that changes every frame meant building a 34-gradient canvas inside the
@@ -4431,46 +4483,63 @@ function drawSky(){
  const dense=.36+p.void*.36+p.core*.46+p.shimmer*.28;
  // Ink washes first: they are the deep field, everything else prints on top.
  const wash=.30+p.wash*1.35+p.core*.65;
+ nebulaUpdate();
  if(wash>.06){
   const list = lowQuality ? nebulae.slice(0, 8) : nebulae;
+  const pal0 = NEB_PAL[p.index] || NEB_PAL[0];
+  const aT = p.t, a0 = p.a, b0 = p.b, tw = p.t < 1, roll = camera.roll || 0;
   for (const n of list) {
-   const q = skyPoint([n.x, n.y, n.z]); if (!q) continue;
-   const rad = n.size * camera.focal, pad = rad * 0.62;
+   const q = project([n.wx, n.wy, n.wz]); if (!q) continue;
+   const d = q[2];
+   if (d > 150000) continue;
+   const rad = n.wr * q[3];
+   if (rad < 6) continue;
+   const pad = rad * 0.62;
    if (q[0] < -pad || q[0] > W + pad || q[1] < -pad || q[1] > H + pad) continue;
-   const a = p.t, a0 = p.a, b0 = p.b, tw = p.t < 1;
-   const ng = novaGas(n, nova), al = clamp(n.alpha * wash * 2.9 * ng, 0, 0.94);
-
-   // Pass 1: Luminous stellar core emission & ionized gas halo (additive)
-   const coreRad = rad * 0.46;
-   const pal = NEB_PAL[p.index] || NEB_PAL[0];
-   ctx.save();
-   ctx.translate(q[0], q[1]);
-   ctx.globalCompositeOperation = 'lighter';
-   const nGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, coreRad);
-   nGrad.addColorStop(0, css(blend(pal[0], [255, 255, 255], 0.20), al * 0.26));
-   nGrad.addColorStop(0.30, css(pal[0], al * 0.14));
-   nGrad.addColorStop(0.66, css(pal[1], al * 0.10));
-   nGrad.addColorStop(1, 'rgba(0,0,0,0)');
-   ctx.fillStyle = nGrad;
-   ctx.beginPath(); ctx.arc(0, 0, coreRad, 0, TAU); ctx.fill();
-   ctx.restore();
-
-   // Pass 2: High-contrast filamental dust lanes & absorption rifts
-   ctx.save();
-   ctx.translate(q[0], q[1]);
-   ctx.rotate(n.rot);
-   ctx.globalCompositeOperation = 'source-over';
-   if (tw) {
-    ctx.globalAlpha = al * (1 - a);
-    ctx.drawImage(nebulaTex(n.seed, a0), -rad, -rad, rad * 2, rad * 2);
-    ctx.globalAlpha = al * a;
-    ctx.drawImage(nebulaTex(n.seed, b0), -rad, -rad, rad * 2, rad * 2);
-   } else {
-    ctx.globalAlpha = al;
-    ctx.drawImage(nebulaTex(n.seed, p.index), -rad, -rad, rad * 2, rad * 2);
-   }
-   fillPx += rad * 2 * rad * 2 * (tw ? 2 : 1);
-   ctx.restore();
+   // Past 1.35 radii the gas dissolves rather than becoming a wall. Running
+   // through one should be a wash of light, not 384 px stretched over the plate.
+   const near = clamp((d - n.wr * 1.35) / (n.wr * 0.9), 0, 1);
+   const far  = clamp((150000 - d) / 55000, 0, 1);
+   // The same rule the worlds get: a billboard that covers the plate stops
+   // being a cloud. Measured against the frame, so it holds at every FOV.
+   const cap = Math.min(W, H), big = clamp((cap * .62 - rad) / (cap * .22), 0, 1);
+   const ng = novaGas(n, nova), al = clamp(n.alpha * wash * 2.9 * ng * near * far * big, 0, 0.94);
+   if (al < .004) continue;
+   const qx = q[0], qy = q[1], rr = rad, aa = al, nn = n;
+   // Enqueued at its own depth, so a world nearer than the cloud prints over
+   // it and one behind it does not. This is the whole point of the rewrite.
+   queue.push({type:4, d, alpha:1, fn:()=>{
+    // Pass 1: the ionised core, added rather than painted.
+    const coreRad = rr * 0.46;
+    ctx.save();
+    ctx.translate(qx, qy);
+    ctx.globalCompositeOperation = 'lighter';
+    const nGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, coreRad);
+    nGrad.addColorStop(0, css(blend(pal0[0], [255,255,255], 0.20), aa * 0.26));
+    nGrad.addColorStop(0.30, css(pal0[0], aa * 0.14));
+    nGrad.addColorStop(0.66, css(pal0[1], aa * 0.10));
+    nGrad.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = nGrad;
+    ctx.beginPath(); ctx.arc(0, 0, coreRad, 0, TAU); ctx.fill();
+    ctx.restore();
+    // Pass 2: the dust, at the world's own screen angle. Camera roll belongs
+    // in here - without it a banked camera spins every cloud against the sky.
+    ctx.save();
+    ctx.translate(qx, qy);
+    ctx.rotate(nn.rot + roll);
+    ctx.globalCompositeOperation = 'source-over';
+    if (tw) {
+     ctx.globalAlpha = aa * (1 - aT);
+     ctx.drawImage(nebulaTex(nn.seed, a0), -rr, -rr, rr * 2, rr * 2);
+     ctx.globalAlpha = aa * aT;
+     ctx.drawImage(nebulaTex(nn.seed, b0), -rr, -rr, rr * 2, rr * 2);
+    } else {
+     ctx.globalAlpha = aa;
+     ctx.drawImage(nebulaTex(nn.seed, p.index), -rr, -rr, rr * 2, rr * 2);
+    }
+    fillPx += rr * 2 * rr * 2 * (tw ? 2 : 1);
+    ctx.restore();
+   }});
   }
   ctx.globalAlpha = 1;
  }
@@ -5375,7 +5444,7 @@ canvas.addEventListener('wheel',e=>{
  * -------------------------------------------------------------------------*/
 function cockpitPose(){
  const lead=fleet[LEAD]||fleet[0],p=craftWorld(lead);
- const back=340,rise=96;
+ const back=640,rise=118;
  const yawToLane=Math.atan(laneD(travel)*.68);
  const breath=Math.sin(time*.82)*1.9+Math.sin(time*1.31)*.7;
  const tremor=Math.sin(time*2.3)*.35+Math.sin(time*3.7)*.18;
