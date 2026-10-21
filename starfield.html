@@ -1183,7 +1183,10 @@ const SpaceEventEngine = {
     const distToFleet = Math.abs(ev.z - travel);
 
     // Trigger HUD toast notifications on close encounters
-    if (!ev.notified && distToFleet < 4500) {
+    // Same rule as the skirmish: an event 4,500 units to the side is still
+    // off the plate, and a named thing the eye cannot find reads as a bug.
+    if (!ev.notified && distToFleet < 4500 &&
+        q[0] > -120 && q[0] < W + 120 && q[1] > -120 && q[1] < H + 120) {
       ev.notified = true;
       if (ev.type === 'voyager_probe') Narrator.speak(Narrator.scripts.ev_voyager, { id: 'ev_voyager', priority: 2 });
       else if (ev.type === 'dimension_foil') Narrator.speak(Narrator.scripts.ev_foil, { id: 'ev_foil', priority: 2 });
