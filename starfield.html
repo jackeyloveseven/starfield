@@ -1069,7 +1069,11 @@ const SpaceEventEngine = {
     ];
     // Deterministic variety distribution across chunks
     const evTypeIdx = (hash(k, 239) + Math.floor(r() * types.length)) % types.length;
-    const type = types[evTypeIdx];
+    let type = types[evTypeIdx];
+    // Reduce wormhole_sphere encounter rate by 5x (only 20% pass through)
+    if (type === 'wormhole_sphere' && hash(k, 881) >= 0.20) {
+      type = types[(evTypeIdx + 1) % types.length];
+    }
     const z = z0 + CHUNK * (0.30 + r() * 0.40);
     const side = r() < 0.5 ? -1 : 1;
     const x = laneX + side * (1200 + r() * 2600);
@@ -1941,7 +1945,7 @@ function chunk(k){
    hull:r(),lights:r()});
  }
  // One gate, and the battle that happened around it.
- if(k>0&&k%61===17){
+ if(k>0&&((k%367)+367)%367===89){
   const z=z0+CHUNK*.55;
   gates.push({x:laneX(z),y:courseY(z)+40,z,r:150+r()*90,ph:r()*TAU,used:false});
   for(let i=0;i<5;i++){
