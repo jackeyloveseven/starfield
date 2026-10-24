@@ -71,6 +71,18 @@ def run_test():
         print(f"   Current track after button click: {track_bach}")
         assert track_bach == "air_on_g_string", f"Expected air_on_g_string, got {track_bach}"
 
+        # 7. Click track 6 (Saint-Saëns - Introduction and Rondo Capriccioso)
+        print("8. Clicking Saint-Saëns - Introduction and Rondo Capriccioso button...")
+        btn_saint = page.locator(".track-select-btn[data-track='6']")
+        assert btn_saint.is_visible(), "Saint-Saëns track button not visible!"
+        btn_saint.click()
+        page.wait_for_timeout(800)
+
+        piece_saint = page.evaluate("() => ((window.Starfield ? window.Starfield.getSoundscape() : null) || window.sound).classical.getCurrentPiece()")
+        print(f"   Current piece: {piece_saint['title']} by {piece_saint['composer']}")
+        assert piece_saint["id"] == "saint_saens_rondo", f"Expected saint_saens_rondo, got {piece_saint['id']}"
+        assert "圣-桑" in piece_saint["title"], "Expected 圣-桑 in title!"
+
         print(f"Total Errors: {len(errors)}, Total Logs: {len(logs)}")
         if errors:
             print("Errors encountered:", errors)
