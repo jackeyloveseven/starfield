@@ -5127,22 +5127,25 @@ function drawWorld(m, q, p, t, rad, tint) {
         ctx.translate(cx, cy);
         if (isOblate) { ctx.rotate(spinRoll); ctx.scale(oblateScaleX, oblateScaleY); }
 
-        const rGrad = ctx.createRadialGradient(0, 0, rad * 0.88, 0, 0, rad * 1.45);
+        // Adaptive atmo scale: keep glow delicate and non-smearing when planet is massive close-up (rad > 180)
+        const atmoOuterScale = rad > 180 ? 1.0 + (0.35 * (180 / rad)) : 1.45;
+        const rGrad = ctx.createRadialGradient(0, 0, rad * 0.94, 0, 0, rad * atmoOuterScale);
         rGrad.addColorStop(0.00, css(atmoRay, 0.0));
-        rGrad.addColorStop(0.20, css(atmoRay, 0.45 * ak));
-        rGrad.addColorStop(0.50, css(atmoRay, 0.20 * ak));
-        rGrad.addColorStop(0.80, css(atmoRay, 0.05 * ak));
+        rGrad.addColorStop(0.20, css(atmoRay, 0.35 * ak));
+        rGrad.addColorStop(0.55, css(atmoRay, 0.12 * ak));
+        rGrad.addColorStop(0.85, css(atmoRay, 0.02 * ak));
         rGrad.addColorStop(1.00, css(atmoRay, 0.0));
-        ctx.beginPath(); ctx.arc(0, 0, rad * 1.45, 0, TAU);
+        ctx.beginPath(); ctx.arc(0, 0, rad * atmoOuterScale, 0, TAU);
         ctx.fillStyle = rGrad; ctx.fill();
 
-        const mieOffsetX = ux * rad * 0.28, mieOffsetY = uy * rad * 0.28;
-        const mGrad = ctx.createRadialGradient(mieOffsetX, mieOffsetY, rad * 0.95, mieOffsetX, mieOffsetY, rad * 1.62);
-        mGrad.addColorStop(0.00, css(atmoMie, 0.38 * ak));
-        mGrad.addColorStop(0.25, css(atmoMie, 0.16 * ak));
-        mGrad.addColorStop(0.60, css(atmoMie, 0.04 * ak));
+        const mieOuterScale = rad > 180 ? 1.0 + (0.45 * (180 / rad)) : 1.62;
+        const mieOffsetX = ux * rad * 0.20, mieOffsetY = uy * rad * 0.20;
+        const mGrad = ctx.createRadialGradient(mieOffsetX, mieOffsetY, rad * 0.96, mieOffsetX, mieOffsetY, rad * mieOuterScale);
+        mGrad.addColorStop(0.00, css(atmoMie, 0.28 * ak));
+        mGrad.addColorStop(0.30, css(atmoMie, 0.10 * ak));
+        mGrad.addColorStop(0.70, css(atmoMie, 0.02 * ak));
         mGrad.addColorStop(1.00, 'rgba(255,255,255,0)');
-        ctx.beginPath(); ctx.arc(0, 0, rad * 1.62, 0, TAU);
+        ctx.beginPath(); ctx.arc(0, 0, rad * mieOuterScale, 0, TAU);
         ctx.fillStyle = mGrad; ctx.fill();
 
         ctx.restore();
@@ -9549,6 +9552,7 @@ speak(candidate, options = {}) {
   const el = document.getElementById('comms-hud');
   const body = document.getElementById('comms-text');
   const wave = document.getElementById('comms-wave');
+  let startTyping = null;
   if (el && body) {
    el.classList.add('active');
    if (wave) wave.classList.add('talking');
@@ -9557,15 +9561,19 @@ speak(candidate, options = {}) {
    clearTimeout(this.hideTimer);
 
    let charIdx = 0;
-   const typeSpeed = 33; // slowed by 0.15 (28 / 0.85 = ~32.9ms)
-   const typeChar = () => {
-    if (charIdx < text.length) {
-     body.textContent += text[charIdx];
-     charIdx++;
-     this.typeTimer = setTimeout(typeChar, typeSpeed);
-    }
+   startTyping = (speed) => {
+    clearTimeout(this.typeTimer);
+    const typeChar = () => {
+     if (charIdx < text.length) {
+      body.textContent += text[charIdx];
+      charIdx++;
+      this.typeTimer = setTimeout(typeChar, speed);
+     }
+    };
+    typeChar();
    };
-   typeChar();
+   // Default comfortable reading cadence (~22 chars/sec)
+   startTyping(45);
   }
 
   const id = options.id || '';
@@ -9577,13 +9585,21 @@ speak(candidate, options = {}) {
      try { this.currentAudio.pause(); this.currentAudio.currentTime = 0; } catch(_) {}
     }
     const snd = new Audio(clip);
-    snd.defaultPlaybackRate = 0.85;
-    snd.playbackRate = 0.85;
-    snd.preservesPitch = true;
-    snd.addEventListener('play', () => {
-     snd.playbackRate = 0.85;
-     snd.preservesPitch = true;
-    });
+    // Pristine 1.0 natural audio playback rate: zero TDPSOLA time-stretching, zero phase-vocoder smearing!
+    snd.defaultPlaybackRate = 1.0;
+    snd.playbackRate = 1.0;
+    snd.preservesPitch = false;
+
+    // Dynamic Syllable Sync: match typewriter pacing strictly to actual audio speech duration
+    const syncTypewriter = () => {
+     if (startTyping && snd.duration && snd.duration > 0 && text.length > 0) {
+      const charSpeed = Math.max(25, Math.min(180, Math.round((snd.duration * 1000) / text.length)));
+      startTyping(charSpeed);
+     }
+    };
+    snd.addEventListener('loadedmetadata', syncTypewriter);
+    if (snd.readyState >= 1) syncTypewriter();
+
     this.currentAudio = snd;
     snd.volume = 0.95;
     let ended = false;
@@ -9612,7 +9628,7 @@ speak(candidate, options = {}) {
  },
 
  _fallbackTTS(text) {
-  const duration = Math.max(4.5, (text.length * 0.16 + 1.2) / 0.85);
+  const duration = Math.max(3.8, text.length * 0.18 + 0.8);
   setTimeout(() => this._onSpeechEnd(duration), duration * 1000);
  },
 
@@ -12855,17 +12871,20 @@ requestAnimationFrame(frame);
     lastTime: 0,
     frameCount: 0,
 
-    // Precision orthographic scale parameters
+    // Precision orthographic scale parameters & Dynamic Adaptive Multi-Tier Ultra-HD Buffer
     BUFFER_SIZE: 512,
+    currentBufferSize: 512,
+    shrinkCounter: 0,
     PLANET_R: 24.0,
     CAM_EXTENT: 27.5, // leaves headroom for clouds (26.0) and birds (27.2)
 
     init() {
       if (this.initialized || typeof THREE === 'undefined') return;
 
+      this.currentBufferSize = 512;
       this.canvas = document.createElement('canvas');
-      this.canvas.width = this.BUFFER_SIZE;
-      this.canvas.height = this.BUFFER_SIZE;
+      this.canvas.width = this.currentBufferSize;
+      this.canvas.height = this.currentBufferSize;
 
       this.renderer = new THREE.WebGLRenderer({
         canvas: this.canvas,
@@ -12873,8 +12892,8 @@ requestAnimationFrame(frame);
         antialias: true,
         powerPreference: 'high-performance'
       });
-      this.renderer.setSize(this.BUFFER_SIZE, this.BUFFER_SIZE);
-      this.renderer.setPixelRatio(1.0); // 1024 native buffer provides pin-sharp edges
+      this.renderer.setSize(this.currentBufferSize, this.currentBufferSize, false);
+      this.renderer.setPixelRatio(1.0);
 
       this.scene = new THREE.Scene();
 
@@ -12907,9 +12926,51 @@ requestAnimationFrame(frame);
 
     // Calculates the exact pixel draw diameter to match the game's projected planet radius
     getDrawSize(rad) {
-      // Planet sphere radius in orthographic view is (PLANET_R / CAM_EXTENT) * (BUFFER_SIZE / 2)
+      // Planet sphere radius in orthographic view is (PLANET_R / CAM_EXTENT) * (currentBufferSize / 2)
       // To match screen radius `rad`, draw size on screen is:
       return (this.CAM_EXTENT / this.PLANET_R) * 2.0 * rad;
+    },
+
+    // Dynamic Adaptive Multi-Tier Resolution Allocator:
+    // Automatically upscales offscreen WebGL buffer to 1024x1024 or 1536x1536 during close encounters (rad >= 200)
+    // so low-poly faceted geometry and trees remain 100% tack-sharp with ZERO bilinear blur!
+    ensureBufferSize(rad) {
+      const dpr = (typeof window !== 'undefined' && window.devicePixelRatio) ? Math.min(window.devicePixelRatio, 2.0) : 1.0;
+      const drawD = this.getDrawSize(rad);
+      const neededPixels = Math.round(drawD * dpr);
+
+      let target = 512;
+      if (neededPixels > 1150 || rad >= 230) {
+        target = 1536; // Ultra-HD 1536x1536 for close encounters, zenith/nadir skimming
+      } else if (neededPixels > 550 || rad >= 110) {
+        target = 1024; // High-res 1024x1024 for approaching planets
+      } else {
+        target = 512;  // Lightweight 512x512 for cruise phase
+      }
+
+      if (target > this.currentBufferSize) {
+        this.currentBufferSize = target;
+        this.shrinkCounter = 0;
+        this._resizeBuffer(target);
+      } else if (target < this.currentBufferSize) {
+        this.shrinkCounter++;
+        // 45-frame hysteresis before downscaling to prevent GPU context thrashing
+        if (this.shrinkCounter > 45) {
+          this.currentBufferSize = target;
+          this.shrinkCounter = 0;
+          this._resizeBuffer(target);
+        }
+      } else {
+        this.shrinkCounter = 0;
+      }
+    },
+
+    _resizeBuffer(sz) {
+      if (!this.canvas || !this.renderer) return;
+      this.canvas.width = sz;
+      this.canvas.height = sz;
+      this.renderer.setSize(sz, sz, false);
+      this.renderer.setPixelRatio(1.0);
     },
 
     // Pre-generates upcoming planets in activeMasses ahead of time during cruise
@@ -13253,11 +13314,13 @@ requestAnimationFrame(frame);
       if (!this.initialized) this.init();
       if (!this.initialized) return null;
 
+      // Ensure offscreen WebGL buffer resolution dynamically adapts to screen draw diameter
+      this.ensureBufferSize(rad);
+
       this.frameCount++;
 
-      // Adaptive WebGL throttling: 30-40 FPS WebGL updates while 2D canvas draws smoothly at 60-120 FPS!
-      // Cuts GPU fragment fill rate by 50-66% with zero perceptible difference in rotational smoothness
-      const throttleRate = rad < 35.0 ? 3 : 2;
+      // Adaptive WebGL throttling: full 60 FPS for close encounters (rad >= 180), sub-frame throttled for distant
+      const throttleRate = rad >= 180 ? 1 : (rad < 35.0 ? 3 : 2);
       if (this.currentRenderedId === (m.seed || (m.encIndex ? m.encIndex * 7919 : (m.x ^ m.z))) && (this.frameCount % throttleRate !== 0)) {
         return this.canvas;
       }

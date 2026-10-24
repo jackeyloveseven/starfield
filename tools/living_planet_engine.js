@@ -114,17 +114,20 @@
     lastTime: 0,
     frameCount: 0,
 
-    // Precision orthographic scale parameters
+    // Precision orthographic scale parameters & Dynamic Adaptive Multi-Tier Ultra-HD Buffer
     BUFFER_SIZE: 512,
+    currentBufferSize: 512,
+    shrinkCounter: 0,
     PLANET_R: 24.0,
     CAM_EXTENT: 27.5, // leaves headroom for clouds (26.0) and birds (27.2)
 
     init() {
       if (this.initialized || typeof THREE === 'undefined') return;
 
+      this.currentBufferSize = 512;
       this.canvas = document.createElement('canvas');
-      this.canvas.width = this.BUFFER_SIZE;
-      this.canvas.height = this.BUFFER_SIZE;
+      this.canvas.width = this.currentBufferSize;
+      this.canvas.height = this.currentBufferSize;
 
       this.renderer = new THREE.WebGLRenderer({
         canvas: this.canvas,
@@ -132,8 +135,8 @@
         antialias: true,
         powerPreference: 'high-performance'
       });
-      this.renderer.setSize(this.BUFFER_SIZE, this.BUFFER_SIZE);
-      this.renderer.setPixelRatio(1.0); // 1024 native buffer provides pin-sharp edges
+      this.renderer.setSize(this.currentBufferSize, this.currentBufferSize, false);
+      this.renderer.setPixelRatio(1.0);
 
       this.scene = new THREE.Scene();
 
@@ -166,9 +169,51 @@
 
     // Calculates the exact pixel draw diameter to match the game's projected planet radius
     getDrawSize(rad) {
-      // Planet sphere radius in orthographic view is (PLANET_R / CAM_EXTENT) * (BUFFER_SIZE / 2)
+      // Planet sphere radius in orthographic view is (PLANET_R / CAM_EXTENT) * (currentBufferSize / 2)
       // To match screen radius `rad`, draw size on screen is:
       return (this.CAM_EXTENT / this.PLANET_R) * 2.0 * rad;
+    },
+
+    // Dynamic Adaptive Multi-Tier Resolution Allocator:
+    // Automatically upscales offscreen WebGL buffer to 1024x1024 or 1536x1536 during close encounters (rad >= 200)
+    // so low-poly faceted geometry and trees remain 100% tack-sharp with ZERO bilinear blur!
+    ensureBufferSize(rad) {
+      const dpr = (typeof window !== 'undefined' && window.devicePixelRatio) ? Math.min(window.devicePixelRatio, 2.0) : 1.0;
+      const drawD = this.getDrawSize(rad);
+      const neededPixels = Math.round(drawD * dpr);
+
+      let target = 512;
+      if (neededPixels > 1150 || rad >= 230) {
+        target = 1536; // Ultra-HD 1536x1536 for close encounters, zenith/nadir skimming
+      } else if (neededPixels > 550 || rad >= 110) {
+        target = 1024; // High-res 1024x1024 for approaching planets
+      } else {
+        target = 512;  // Lightweight 512x512 for cruise phase
+      }
+
+      if (target > this.currentBufferSize) {
+        this.currentBufferSize = target;
+        this.shrinkCounter = 0;
+        this._resizeBuffer(target);
+      } else if (target < this.currentBufferSize) {
+        this.shrinkCounter++;
+        // 45-frame hysteresis before downscaling to prevent GPU context thrashing
+        if (this.shrinkCounter > 45) {
+          this.currentBufferSize = target;
+          this.shrinkCounter = 0;
+          this._resizeBuffer(target);
+        }
+      } else {
+        this.shrinkCounter = 0;
+      }
+    },
+
+    _resizeBuffer(sz) {
+      if (!this.canvas || !this.renderer) return;
+      this.canvas.width = sz;
+      this.canvas.height = sz;
+      this.renderer.setSize(sz, sz, false);
+      this.renderer.setPixelRatio(1.0);
     },
 
     // Pre-generates upcoming planets in activeMasses ahead of time during cruise
@@ -512,11 +557,13 @@
       if (!this.initialized) this.init();
       if (!this.initialized) return null;
 
+      // Ensure offscreen WebGL buffer resolution dynamically adapts to screen draw diameter
+      this.ensureBufferSize(rad);
+
       this.frameCount++;
 
-      // Adaptive WebGL throttling: 30-40 FPS WebGL updates while 2D canvas draws smoothly at 60-120 FPS!
-      // Cuts GPU fragment fill rate by 50-66% with zero perceptible difference in rotational smoothness
-      const throttleRate = rad < 35.0 ? 3 : 2;
+      // Adaptive WebGL throttling: full 60 FPS for close encounters (rad >= 180), sub-frame throttled for distant
+      const throttleRate = rad >= 180 ? 1 : (rad < 35.0 ? 3 : 2);
       if (this.currentRenderedId === (m.seed || (m.encIndex ? m.encIndex * 7919 : (m.x ^ m.z))) && (this.frameCount % throttleRate !== 0)) {
         return this.canvas;
       }

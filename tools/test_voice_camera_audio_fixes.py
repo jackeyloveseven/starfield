@@ -1,6 +1,6 @@
 """
 Test Suite for:
-1. Voice speed reduction by 0.15 (playbackRate = 0.85, typeSpeed = 33)
+1. Voice pristine 1.0 native speed with dynamic typewriter sync
 2. Electronic audio overlap elimination (SCORES media silenced, procedural synthGain = 0, chimes disabled)
 3. Resilient manual camera controls (dragging, recovery on capture loss, arrow keys, Gargantua authority gating)
 """
@@ -71,8 +71,8 @@ def run_test():
         }""")
         print(f"   Narrator State: {narrator_state}")
         if narrator_state["hasAudio"]:
-            assert abs(narrator_state["playbackRate"] - 0.85) < 0.01, f"Expected playbackRate 0.85, got {narrator_state['playbackRate']}!"
-            assert narrator_state["preservesPitch"] is True, "preservesPitch should be true!"
+            assert abs(narrator_state["playbackRate"] - 1.0) < 0.01, f"Expected playbackRate 0.85, got {narrator_state['playbackRate']}!"
+            assert narrator_state["preservesPitch"] is False, "preservesPitch should be false for native 1.0x playback!"
 
         # Test Manual Camera Control
         print("5. Switching to Manual Camera mode ('C')...")
