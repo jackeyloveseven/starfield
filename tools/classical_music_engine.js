@@ -1,5 +1,3 @@
-/**
- * ============================================================================
  * STARFIELD: CONCERT GRAND & CHAMBER ORCHESTRA CLASSICAL MUSIC ENGINE
  * ============================================================================
  * High-fidelity, zero-dependency, procedural acoustic synthesis of timeless
@@ -356,56 +354,115 @@
     }
 
     // Play a Chamber String Note with Warm Expressive Vibrato & Slow Romantic Attack
+    // Elevated Solo Violin Physical Acoustics: Bridge Hill Formant (~2850 Hz), Wood Cavity Resonance (~480 Hz)
+    // Dynamic Spiccato vs Legato Bow Articulation & Soloist Concert Hall Staging
     playStringNote(midiNote, durationSeconds, velocity = 0.7, startTime = 0) {
       const ac = this.ac;
       const t0 = startTime || ac.currentTime;
       const freq = midiToFreq(midiNote);
 
-      const filter = ac.createBiquadFilter();
-      filter.type = 'lowpass';
-      // Solo Violin Acoustic Formant & Bridge Hill (小提琴独奏高频穿透力与泛音共振)
-      const filterCutoff = Math.max(1800, freq * 2.8 + velocity * 1800);
-      filter.frequency.setValueAtTime(filterCutoff, t0);
-      filter.Q.value = 2.4;
+      // 1. Acoustic Body Resonance & Formants:
+      // Violin bridge hill formant (~2850 Hz) + Wood cavity resonance (~480 Hz)
+      const bodyFilter = ac.createBiquadFilter();
+      bodyFilter.type = 'peaking';
+      bodyFilter.frequency.setValueAtTime(2850, t0);
+      bodyFilter.Q.value = 3.0;
+      bodyFilter.gain.setValueAtTime(6.0, t0); // +6dB bridge hill brilliance
 
+      const warmFilter = ac.createBiquadFilter();
+      warmFilter.type = 'peaking';
+      warmFilter.frequency.setValueAtTime(480, t0);
+      warmFilter.Q.value = 2.5;
+      warmFilter.gain.setValueAtTime(3.5, t0); // +3.5dB warm wooden body resonance
+
+      // Dynamic lowpass tracking string harmonic roll-off
+      const lowpass = ac.createBiquadFilter();
+      lowpass.type = 'lowpass';
+      const cutoff = Math.min(12000, Math.max(2200, freq * 3.2 + velocity * 2200));
+      lowpass.frequency.setValueAtTime(cutoff, t0);
+      lowpass.Q.value = 1.8;
+
+      // 2. Dynamic Bow Envelope (Articulated Spiccato vs Cantabile Legato)
+      const isFast = durationSeconds < 0.35;
       const noteGain = ac.createGain();
-      const peakGain = 0.12 * velocity;
-      const attackTime = Math.min(0.18, Math.max(0.025, durationSeconds * 0.25));
+      const peakGain = (isFast ? 0.15 : 0.12) * velocity;
+      const attackTime = isFast ? 0.016 : Math.min(0.12, Math.max(0.04, durationSeconds * 0.22));
+
       noteGain.gain.setValueAtTime(0.0001, t0);
       noteGain.gain.linearRampToValueAtTime(peakGain, t0 + attackTime);
-      noteGain.gain.setValueAtTime(peakGain * 0.90, t0 + Math.max(attackTime, durationSeconds * 0.8));
-      noteGain.gain.exponentialRampToValueAtTime(0.0001, t0 + durationSeconds + 0.35); // smooth bow release
+      if (isFast) {
+        // Fast Spanish Rondo spiccato attack & snappy release
+        noteGain.gain.exponentialRampToValueAtTime(peakGain * 0.3, t0 + durationSeconds * 0.75);
+        noteGain.gain.exponentialRampToValueAtTime(0.0001, t0 + durationSeconds + 0.12);
+      } else {
+        // Expressive lyrical Andante cantabile bow swell & silky release
+        noteGain.gain.linearRampToValueAtTime(peakGain * 0.95, t0 + durationSeconds * 0.6);
+        noteGain.gain.exponentialRampToValueAtTime(0.0001, t0 + durationSeconds + 0.38);
+      }
 
-      // Dual detuned saw/triangle cluster for lush orchestral string section
+      // 3. Multi-timbral rich string oscillators
       const osc1 = ac.createOscillator();
       osc1.type = 'sawtooth';
       osc1.frequency.setValueAtTime(freq, t0);
 
       const osc2 = ac.createOscillator();
-      osc2.type = 'triangle';
-      osc2.frequency.setValueAtTime(freq * 1.002, t0);
+      osc2.type = 'sawtooth';
+      osc2.frequency.setValueAtTime(freq * 1.0018, t0);
+      const g2 = ac.createGain();
+      g2.gain.value = 0.55;
+      osc2.connect(g2);
 
-      // Natural violin/cello vibrato (5.4 Hz) with dynamic pitch-proportional depth
+      const osc3 = ac.createOscillator();
+      osc3.type = 'triangle';
+      osc3.frequency.setValueAtTime(freq, t0);
+      const g3 = ac.createGain();
+      g3.gain.value = 0.35;
+      osc3.connect(g3);
+
+      // 4. Natural 5.4 Hz Violin Vibrato with realistic onset delay (120ms)
       const vibrato = ac.createOscillator();
       const vibGain = ac.createGain();
       vibrato.frequency.value = 5.4;
-      vibGain.gain.value = freq * 0.008; // subtle vibrato depth
+      const targetDepth = freq * (isFast ? 0.004 : 0.009);
+      vibGain.gain.setValueAtTime(0.00001, t0);
+      vibGain.gain.setValueAtTime(0.00001, t0 + 0.12);
+      vibGain.gain.linearRampToValueAtTime(targetDepth, t0 + 0.35);
+
       vibrato.connect(vibGain);
       vibGain.connect(osc1.frequency);
       vibGain.connect(osc2.frequency);
-      vibrato.start(t0 + 0.2); // vibrato begins after bow onset
+      vibGain.connect(osc3.frequency);
+      vibrato.start(t0 + 0.1);
 
-      osc1.connect(filter);
-      osc2.connect(filter);
-      filter.connect(noteGain);
-      noteGain.connect(this.masterGain);
+      // 5. Soloist Stereo Placement & Acoustic Concert Hall Staging
+      const panner = ac.createStereoPanner ? ac.createStereoPanner() : null;
+      if (panner) {
+        // Soloist placed at left-of-center (-0.14), bass strings at right (+0.18)
+        panner.pan.value = midiNote >= 65 ? -0.14 : 0.18;
+      }
 
-      const stopTime = t0 + durationSeconds + 0.7;
+      // Chain audio graph: oscillators -> filters -> noteGain -> panner -> masterGain
+      osc1.connect(lowpass);
+      g2.connect(lowpass);
+      g3.connect(lowpass);
+      lowpass.connect(bodyFilter);
+      bodyFilter.connect(warmFilter);
+      warmFilter.connect(noteGain);
+
+      if (panner) {
+        noteGain.connect(panner);
+        panner.connect(this.masterGain);
+      } else {
+        noteGain.connect(this.masterGain);
+      }
+
+      const stopTime = t0 + durationSeconds + (isFast ? 0.3 : 0.8);
       osc1.start(t0); osc1.stop(stopTime);
       osc2.start(t0); osc2.stop(stopTime);
+      osc3.start(t0); osc3.stop(stopTime);
       vibrato.stop(stopTime);
 
-      this.activeNodes.push(osc1, osc2, vibrato, noteGain);
+      this.activeNodes.push(osc1, osc2, osc3, vibrato, noteGain);
     }
 
     // Play a Classical Masterpiece by Index

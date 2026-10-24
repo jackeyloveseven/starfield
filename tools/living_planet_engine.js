@@ -1,4 +1,3 @@
-/**
  * ============================================================================
  * STARFIELD: ULTRA-PERFORMANCE THREE.JS LIVING PLANET ENGINE (活体生态星球引擎)
  * ============================================================================
@@ -212,6 +211,7 @@
       this.canvas.height = sz;
       this.renderer.setSize(sz, sz, false);
       this.renderer.setPixelRatio(1.0);
+      this._bufferResized = true;
     },
 
     // Pre-generates upcoming planets in activeMasses ahead of time during cruise
@@ -231,7 +231,7 @@
         const m = masses[i];
         if (m && (m.w || m.kind === 1 || m.kind === 8 || m.kind === 6)) {
           const dz = m.z - travel;
-          if (dz > 0 && dz < 75000) {
+          if (dz > 0 && dz < 68000) {
             const pId = this.getPlanetId(m);
             if (!this.planetCache.has(pId)) {
               this.getPlanetModel(m);
@@ -265,6 +265,9 @@
       model.pId = pId;
       this.planetsContainer.add(model.group);
       this.planetCache.set(pId, model);
+      if (this.renderer && this.scene && this.camera) {
+        try { this.renderer.compile(this.scene, this.camera); } catch(e) {}
+      }
       return model;
     },
 
@@ -561,9 +564,16 @@
           else obj.material.dispose();
         }
       });
+      if (model.canvas) {
+        model.canvas.width = 1;
+        model.canvas.height = 1;
+        model.canvas = null;
+        model.ctx = null;
+      }
     },
 
-    // Renders the living planet to the offscreen canvas and returns the canvas
+    // Renders the living planet to its dedicated isolated scratch canvas and returns it
+    // Guaranteed zero cross-planet buffer contamination and zero sub-frame flickering
     renderPlanet(m, rad, lightDir) {
       if (!this.initialized) this.init();
       if (!this.initialized || !m) return null;
@@ -573,6 +583,18 @@
       if (!model) return null;
 
       this.ensureBufferSize(rad);
+      const sz = this.currentBufferSize || 512;
+
+      // Ensure dedicated isolated 2D scratch canvas for this specific planet model
+      if (!model.canvas) {
+        model.canvas = document.createElement('canvas');
+        model.canvas.width = sz;
+        model.canvas.height = sz;
+        model.ctx = model.canvas.getContext('2d', { alpha: true });
+      } else if (model.canvas.width !== sz || model.canvas.height !== sz) {
+        model.canvas.width = sz;
+        model.canvas.height = sz;
+      }
 
       const now = performance.now() * 0.001;
       const dt = Math.min(0.05, now - this.lastTime);
@@ -584,7 +606,6 @@
         const child = this.planetsContainer.children[i];
         child.visible = (child === model.group);
       }
-      this.currentRenderedId = pId;
 
       // Update Sun light direction from Starfield light coordinates
       if (lightDir) {
@@ -610,9 +631,25 @@
         model.whalesGroup.rotation.y += dt * 0.14;
       }
 
-      // Render crisp WebGL frame directly to WebGL canvas with zero pipeline copy overhead
-      this.renderer.render(this.scene, this.camera);
-      return this.canvas;
+      // Adaptive Sub-Frame LOD Throttling:
+      const isSwitch = (this._lastRenderedId !== pId);
+      this._lastRenderedId = pId;
+      this.currentRenderedId = pId;
+      const isBufferChange = (this._bufferResized === true);
+      this._bufferResized = false;
+      model.renderAge = (model.renderAge || 0) + 1;
+
+      const refreshInterval = rad < 35 ? 3 : (rad < 70 ? 2 : 1);
+      const shouldRenderWebGL = isSwitch || isBufferChange || (model.renderAge >= refreshInterval) || !model.hasRendered;
+
+      if (shouldRenderWebGL) {
+        model.renderAge = 0;
+        model.hasRendered = true;
+        this.renderer.render(this.scene, this.camera);
+        model.ctx.clearRect(0, 0, sz, sz);
+        model.ctx.drawImage(this.canvas, 0, 0);
+      }
+      return model.canvas;
     }
   };
 

@@ -5160,14 +5160,20 @@ function drawWorld(m, q, p, t, rad, tint) {
       }
 
       // Three.js 3D Procedural Living Planet Engine (Islands, Oceans, Trees, Monuments, Birds & Whales)
-      // Rendered with pixel-exact orthographic sizing and high-performance hardware filtering (rad >= 8.0)
-      if (typeof LivingPlanetEngine !== 'undefined' && LivingPlanetEngine.enabled && rad >= 8.0 && typeof THREE !== 'undefined') {
+      // Rendered with continuous sub-pixel LOD cross-fading (rad >= 7.5) to eliminate any 1-frame distance pops
+      let blended3DCanvas = null;
+      if (typeof LivingPlanetEngine !== 'undefined' && LivingPlanetEngine.enabled && rad >= 7.5 && typeof THREE !== 'undefined') {
         const offCanvas = LivingPlanetEngine.renderPlanet(m, rad, [lx, ly, lz]);
         if (offCanvas) {
           const drawD = LivingPlanetEngine.getDrawSize(rad);
-          ctx.imageSmoothingEnabled = true;
-          ctx.drawImage(offCanvas, cx - drawD * 0.5, cy - drawD * 0.5, drawD, drawD);
-          return;
+          const blendAlpha3D = clamp((rad - 7.5) / 3.0, 0, 1);
+          if (blendAlpha3D >= 0.99) {
+            ctx.imageSmoothingEnabled = true;
+            ctx.drawImage(offCanvas, cx - drawD * 0.5, cy - drawD * 0.5, drawD, drawD);
+            return;
+          } else {
+            blended3DCanvas = { canvas: offCanvas, drawD, alpha: blendAlpha3D };
+          }
         }
       }
 
@@ -5607,6 +5613,13 @@ function drawWorld(m, q, p, t, rad, tint) {
       }
 
       ctx.restore();
+      if (blended3DCanvas && blended3DCanvas.alpha > 0.01) {
+        ctx.save();
+        ctx.globalAlpha = blended3DCanvas.alpha;
+        ctx.imageSmoothingEnabled = true;
+        ctx.drawImage(blended3DCanvas.canvas, cx - blended3DCanvas.drawD * 0.5, cy - blended3DCanvas.drawD * 0.5, blended3DCanvas.drawD, blended3DCanvas.drawD);
+        ctx.restore();
+      }
     }
   });
 }
@@ -6262,7 +6275,8 @@ function drawMass(m, p, t){
   }
  }
 
- if(rad < 8) glow([m.x, m.y, m.z], m.r * 1.15, tint, .65, 3.2);
+ const glowA = clamp((12 - rad) / 4, 0, 1);
+ if(glowA > 0.01) glow([m.x, m.y, m.z], m.r * 1.15, tint, .65 * glowA, 3.2);
  drawWorld(m, q, p, t, rad, tint);
 }
 /* A spiral galaxy as a printed plate: a flat toned disc with a crisp edge,
@@ -6362,11 +6376,11 @@ function drawGalaxy(g,p,t){
 function bodies(){
  activeShips.length=0;
  const k0=Math.floor(camera.eye[2]/CHUNK);
- const backRadius = autoCamera ? 3 : 6;
- const fwdRadius = lowQuality ? 14 : 22;
+ const backRadius = 8;
+ const fwdRadius = lowQuality ? 14 : 24;
  const active = [];
  for(let k=k0-backRadius;k<=k0+fwdRadius;k++)active.push(chunk(k));
- for(const [k] of chunks)if(k < k0 - backRadius - 2 || k > k0 + fwdRadius + 2)chunks.delete(k);
+ for(const [k] of chunks)if(k < k0 - 12 || k > k0 + fwdRadius + 6)chunks.delete(k);
  for(const c of active){
   // Frustum-culled distance fade for galaxies
   for(const g of c.galaxies){
@@ -6405,7 +6419,7 @@ function bodies(){
   for(const m of c.masses){
    const pj=project([m.x,m.y,m.z]);if(!pj||pj[2]>70000)continue;
    const rad=m.r*pj[3];
-   const cullR=(m.kind===4)?Math.max(rad*4.5,320):(rad*2.2+20);
+   const cullR=(m.kind>=5&&m.kind<=7)?(rad*12+100):(m.kind===4?Math.max(rad*8,500):(m.w&&m.w.hasRings||m.kind===8?rad*4+80:rad*2.8+80));
    if(pj[0]+cullR<0||pj[0]-cullR>W||pj[1]+cullR<0||pj[1]-cullR>H)continue;
    massVis=clamp((70000-pj[2])/45000);if(massVis<=0)continue;
    {const rp=m.r*pj[3];if(rp>H*.42)massVis*=clamp(H*.42/rp,.30,1);}
@@ -7858,9 +7872,34 @@ function drawNova(n){
  * Three walls in perspective, subdivided into windows, with the camera floating
  * inside. Cells share their edges - there is no seam to read as a broken grid,
  * and the mullions converge, which is the only cue that says "room".
+ * Elevated 5D Spacetime: 4D hypercube lattice projection + flowing gravitational
+ * timeline ribbons + quantum singularity metrics.
  * -------------------------------------------------------------------------*/
 let tessT=0;
 const TESS_DUR=9.0;
+window.triggerTesseract = () => { tessT = 1e-4; if(typeof toast === 'function') toast('五维空间 · TESSERACT', 9); };
+window.getTesseractState = () => ({ tessT, vertsCount: TESS_VERTS_4D.length, edgesCount: TESS_EDGES_4D.length });
+
+// Pre-computed 4D hypercube geometry (16 vertices, 32 edges)
+const TESS_VERTS_4D = [];
+for(let i=0; i<16; i++){
+  TESS_VERTS_4D.push([
+    (i & 1) ? 1 : -1,
+    (i & 2) ? 1 : -1,
+    (i & 4) ? 1 : -1,
+    (i & 8) ? 1 : -1
+  ]);
+}
+const TESS_EDGES_4D = [];
+for(let i=0; i<16; i++){
+  for(let j=i+1; j<16; j++){
+    const d = (i ^ j);
+    if(d === 1 || d === 2 || d === 4 || d === 8) {
+      TESS_EDGES_4D.push([i, j]);
+    }
+  }
+}
+
 function drawTesseract(){
  const a=smooth(clamp(tessT/1.6,0,1))*smooth(clamp((TESS_DUR-tessT)/2.2,0,1));
  if(a<=.002)return;
@@ -7952,6 +7991,110 @@ function drawTesseract(){
  wall([[-1700,-1000,2800],[1700,-1000,2800],[1700,1000,2800],[-1700,1000,2800]],6,4,1);
  wall([[1700,-1000,2800],[1700,-1000,900],[1700,1000,900],[1700,1000,2800]],5,4,2);
  wall([[-1700,-1000,900],[-1700,-1000,2800],[-1700,1000,2800],[-1700,1000,900]],5,4,3);
+
+ // -------------------------------------------------------------------------
+ // 5D BULK GRAVITATIONAL TIMELINE RIBBONS (时间线引力弦束)
+ // Infinite vertical & depth strands representing physicalized moments of time
+ // -------------------------------------------------------------------------
+ const numStrands = 7;
+ for(let s=0; s<numStrands; s++){
+  const sx = -1200 + s * 400 + Math.sin(t * 0.4 + s) * 35;
+  const sz0 = 1000, sz1 = 2700;
+  const pTop = pj(sx, -950, sz0), pBot = pj(sx, 950, sz0);
+  const pDeepTop = pj(sx, -950, sz1), pDeepBot = pj(sx, 950, sz1);
+  if(pTop && pBot && pDeepTop && pDeepBot){
+   // Glowing timeline thread
+   ctx.beginPath();
+   ctx.moveTo(pTop[0], pTop[1]); ctx.lineTo(pDeepTop[0], pDeepTop[1]);
+   ctx.moveTo(pBot[0], pBot[1]); ctx.lineTo(pDeepBot[0], pDeepBot[1]);
+   ctx.strokeStyle = css(blend(p.ink, [120, 220, 255], 0.65), 0.22);
+   ctx.lineWidth = 1.0;
+   ctx.stroke();
+
+   // Flowing temporal quantum nodes drifting along the time axis
+   const timePhase = (t * 0.45 + s * 0.23) % 1.0;
+   const curZ = sz0 + (sz1 - sz0) * timePhase;
+   const curY = Math.sin(t * 1.2 + s * 1.5) * 500;
+   const pNode = pj(sx, curY, curZ);
+   if(pNode){
+    const nodeR = Math.max(1.5, 4.5 * (f / pNode[2]));
+    ctx.beginPath(); ctx.arc(pNode[0], pNode[1], nodeR, 0, TAU);
+    ctx.fillStyle = css(blend(p.paper, [255, 235, 160], 0.85), 0.75);
+    ctx.fill();
+   }
+  }
+ }
+
+ // -------------------------------------------------------------------------
+ // 4D HYPERCUBE ROTATIONAL LATTICE (四维超立方体量子时空晶格投影)
+ // Projected 4D vertices (+-1, +-1, +-1, +-1) rotating across X-W and Y-Z hyperplanes
+ // -------------------------------------------------------------------------
+ const S = 480 + 35 * Math.sin(t * 0.55);
+ const rotXW = t * 0.28, rotYZ = t * 0.19;
+ const c1 = Math.cos(rotXW), s1 = Math.sin(rotXW);
+ const c2 = Math.cos(rotYZ), s2 = Math.sin(rotYZ);
+ const projected4D = [];
+
+ for(let i=0; i<16; i++){
+  const v = TESS_VERTS_4D[i];
+  const x0 = v[0] * S, y0 = v[1] * S, z0 = v[2] * S, w0 = v[3] * S;
+  // 4D Plane Rotations
+  const x1 = x0 * c1 - w0 * s1;
+  const w1 = x0 * s1 + w0 * c1;
+  const y1 = y0 * c2 - z0 * s2;
+  const z1 = y0 * s2 + z0 * c2;
+  // Perspective 4D to 3D bulk space
+  const Dw = 1450;
+  const factor = Dw / Math.max(300, Dw - w1);
+  const X3D = x1 * factor;
+  const Y3D = y1 * factor;
+  const Z3D = 1850 + z1 * factor;
+  projected4D.push(pj(X3D, Y3D, Z3D));
+ }
+
+ // Draw 32 4D hypercube lattice edges
+ ctx.save();
+ for(let e=0; e<TESS_EDGES_4D.length; e++){
+  const [i0, i1] = TESS_EDGES_4D[e];
+  const pA = projected4D[i0], pB = projected4D[i1];
+  if(!pA || !pB) continue;
+  const avgZ = (pA[2] + pB[2]) * 0.5;
+  const edgeAlpha = clamp(1.0 - (avgZ - 1200) / 2200, 0.2, 0.95);
+  ctx.beginPath();
+  ctx.moveTo(pA[0], pA[1]);
+  ctx.lineTo(pB[0], pB[1]);
+  ctx.strokeStyle = css(blend(p.paper, [160, 240, 255], 0.78), edgeAlpha * 0.65);
+  ctx.lineWidth = Math.max(0.8, 2.6 * (f / avgZ));
+  ctx.stroke();
+ }
+
+ // Draw luminous vertex quantum nodes (16 Bulk singularity junctions)
+ for(let i=0; i<projected4D.length; i++){
+  const pN = projected4D[i];
+  if(!pN) continue;
+  const nodeR = Math.max(2.0, 5.5 * (f / pN[2]));
+  const nodeG = ctx.createRadialGradient(pN[0], pN[1], 0, pN[0], pN[1], nodeR * 2.2);
+  nodeG.addColorStop(0, 'rgba(255, 255, 255, 0.95)');
+  nodeG.addColorStop(0.4, css(blend(p.paper, [180, 230, 255], 0.8), 0.75));
+  nodeG.addColorStop(1.0, 'rgba(100, 200, 255, 0)');
+  ctx.beginPath();
+  ctx.arc(pN[0], pN[1], nodeR * 2.2, 0, TAU);
+  ctx.fillStyle = nodeG;
+  ctx.fill();
+ }
+ ctx.restore();
+
+ // -------------------------------------------------------------------------
+ // 5D BULK METRIC TYPOGRAPHIC READOUT & AMBIENT AESTHETICS
+ // -------------------------------------------------------------------------
+ ctx.save();
+ ctx.font = '11px monospace';
+ ctx.fillStyle = css(blend(p.paper, [240, 250, 255], 0.8), 0.42 * a);
+ ctx.fillText(`5D BULK METRIC · TESSERACT NEXUS  [τ = ${(t).toFixed(2)}s / ${TESS_DUR.toFixed(1)}s]`, 38, H - 36);
+ ctx.fillStyle = css(blend(p.paper, [180, 225, 255], 0.7), 0.32 * a);
+ ctx.fillText('∇_μ T^μν = 0  ·  BULK GRAVITATIONAL WAVE HARMONICS  ·  NON-EUCLIDEAN TIME LATTICE', 38, H - 20);
+ ctx.restore();
+
  // the edge of the paper: a thin bright line where the walls meet
  ctx.strokeStyle=css(blend(p.ink,[255,255,255],.5),.18*a);
  ctx.lineWidth=1;
@@ -8447,56 +8590,115 @@ const SCORES=[
     }
 
     // Play a Chamber String Note with Warm Expressive Vibrato & Slow Romantic Attack
+    // Elevated Solo Violin Physical Acoustics: Bridge Hill Formant (~2850 Hz), Wood Cavity Resonance (~480 Hz)
+    // Dynamic Spiccato vs Legato Bow Articulation & Soloist Concert Hall Staging
     playStringNote(midiNote, durationSeconds, velocity = 0.7, startTime = 0) {
       const ac = this.ac;
       const t0 = startTime || ac.currentTime;
       const freq = midiToFreq(midiNote);
 
-      const filter = ac.createBiquadFilter();
-      filter.type = 'lowpass';
-      // Solo Violin Acoustic Formant & Bridge Hill (小提琴独奏高频穿透力与泛音共振)
-      const filterCutoff = Math.max(1800, freq * 2.8 + velocity * 1800);
-      filter.frequency.setValueAtTime(filterCutoff, t0);
-      filter.Q.value = 2.4;
+      // 1. Acoustic Body Resonance & Formants:
+      // Violin bridge hill formant (~2850 Hz) + Wood cavity resonance (~480 Hz)
+      const bodyFilter = ac.createBiquadFilter();
+      bodyFilter.type = 'peaking';
+      bodyFilter.frequency.setValueAtTime(2850, t0);
+      bodyFilter.Q.value = 3.0;
+      bodyFilter.gain.setValueAtTime(6.0, t0); // +6dB bridge hill brilliance
 
+      const warmFilter = ac.createBiquadFilter();
+      warmFilter.type = 'peaking';
+      warmFilter.frequency.setValueAtTime(480, t0);
+      warmFilter.Q.value = 2.5;
+      warmFilter.gain.setValueAtTime(3.5, t0); // +3.5dB warm wooden body resonance
+
+      // Dynamic lowpass tracking string harmonic roll-off
+      const lowpass = ac.createBiquadFilter();
+      lowpass.type = 'lowpass';
+      const cutoff = Math.min(12000, Math.max(2200, freq * 3.2 + velocity * 2200));
+      lowpass.frequency.setValueAtTime(cutoff, t0);
+      lowpass.Q.value = 1.8;
+
+      // 2. Dynamic Bow Envelope (Articulated Spiccato vs Cantabile Legato)
+      const isFast = durationSeconds < 0.35;
       const noteGain = ac.createGain();
-      const peakGain = 0.12 * velocity;
-      const attackTime = Math.min(0.18, Math.max(0.025, durationSeconds * 0.25));
+      const peakGain = (isFast ? 0.15 : 0.12) * velocity;
+      const attackTime = isFast ? 0.016 : Math.min(0.12, Math.max(0.04, durationSeconds * 0.22));
+
       noteGain.gain.setValueAtTime(0.0001, t0);
       noteGain.gain.linearRampToValueAtTime(peakGain, t0 + attackTime);
-      noteGain.gain.setValueAtTime(peakGain * 0.90, t0 + Math.max(attackTime, durationSeconds * 0.8));
-      noteGain.gain.exponentialRampToValueAtTime(0.0001, t0 + durationSeconds + 0.35); // smooth bow release
+      if (isFast) {
+        // Fast Spanish Rondo spiccato attack & snappy release
+        noteGain.gain.exponentialRampToValueAtTime(peakGain * 0.3, t0 + durationSeconds * 0.75);
+        noteGain.gain.exponentialRampToValueAtTime(0.0001, t0 + durationSeconds + 0.12);
+      } else {
+        // Expressive lyrical Andante cantabile bow swell & silky release
+        noteGain.gain.linearRampToValueAtTime(peakGain * 0.95, t0 + durationSeconds * 0.6);
+        noteGain.gain.exponentialRampToValueAtTime(0.0001, t0 + durationSeconds + 0.38);
+      }
 
-      // Dual detuned saw/triangle cluster for lush orchestral string section
+      // 3. Multi-timbral rich string oscillators
       const osc1 = ac.createOscillator();
       osc1.type = 'sawtooth';
       osc1.frequency.setValueAtTime(freq, t0);
 
       const osc2 = ac.createOscillator();
-      osc2.type = 'triangle';
-      osc2.frequency.setValueAtTime(freq * 1.002, t0);
+      osc2.type = 'sawtooth';
+      osc2.frequency.setValueAtTime(freq * 1.0018, t0);
+      const g2 = ac.createGain();
+      g2.gain.value = 0.55;
+      osc2.connect(g2);
 
-      // Natural violin/cello vibrato (5.4 Hz) with dynamic pitch-proportional depth
+      const osc3 = ac.createOscillator();
+      osc3.type = 'triangle';
+      osc3.frequency.setValueAtTime(freq, t0);
+      const g3 = ac.createGain();
+      g3.gain.value = 0.35;
+      osc3.connect(g3);
+
+      // 4. Natural 5.4 Hz Violin Vibrato with realistic onset delay (120ms)
       const vibrato = ac.createOscillator();
       const vibGain = ac.createGain();
       vibrato.frequency.value = 5.4;
-      vibGain.gain.value = freq * 0.008; // subtle vibrato depth
+      const targetDepth = freq * (isFast ? 0.004 : 0.009);
+      vibGain.gain.setValueAtTime(0.00001, t0);
+      vibGain.gain.setValueAtTime(0.00001, t0 + 0.12);
+      vibGain.gain.linearRampToValueAtTime(targetDepth, t0 + 0.35);
+
       vibrato.connect(vibGain);
       vibGain.connect(osc1.frequency);
       vibGain.connect(osc2.frequency);
-      vibrato.start(t0 + 0.2); // vibrato begins after bow onset
+      vibGain.connect(osc3.frequency);
+      vibrato.start(t0 + 0.1);
 
-      osc1.connect(filter);
-      osc2.connect(filter);
-      filter.connect(noteGain);
-      noteGain.connect(this.masterGain);
+      // 5. Soloist Stereo Placement & Acoustic Concert Hall Staging
+      const panner = ac.createStereoPanner ? ac.createStereoPanner() : null;
+      if (panner) {
+        // Soloist placed at left-of-center (-0.14), bass strings at right (+0.18)
+        panner.pan.value = midiNote >= 65 ? -0.14 : 0.18;
+      }
 
-      const stopTime = t0 + durationSeconds + 0.7;
+      // Chain audio graph: oscillators -> filters -> noteGain -> panner -> masterGain
+      osc1.connect(lowpass);
+      g2.connect(lowpass);
+      g3.connect(lowpass);
+      lowpass.connect(bodyFilter);
+      bodyFilter.connect(warmFilter);
+      warmFilter.connect(noteGain);
+
+      if (panner) {
+        noteGain.connect(panner);
+        panner.connect(this.masterGain);
+      } else {
+        noteGain.connect(this.masterGain);
+      }
+
+      const stopTime = t0 + durationSeconds + (isFast ? 0.3 : 0.8);
       osc1.start(t0); osc1.stop(stopTime);
       osc2.start(t0); osc2.stop(stopTime);
+      osc3.start(t0); osc3.stop(stopTime);
       vibrato.stop(stopTime);
 
-      this.activeNodes.push(osc1, osc2, vibrato, noteGain);
+      this.activeNodes.push(osc1, osc2, osc3, vibrato, noteGain);
     }
 
     // Play a Classical Masterpiece by Index
@@ -9636,6 +9838,7 @@ window.addEventListener('keydown',e=>{
  else if(e.key==='2')FleetFormations.set(1);
  else if(e.key==='3')FleetFormations.set(2);
  else if(e.key==='4')FleetFormations.set(3);
+ else if(e.key==='5'){if(window.triggerTesseract)window.triggerTesseract();}
  else if(e.key.toLowerCase()==='f')FleetFormations.cycle();
  else if(e.key.toLowerCase()==='h'){if(typeof FleetCustomizer !== 'undefined')FleetCustomizer.toggle();}
 });
@@ -12852,7 +13055,7 @@ requestAnimationFrame(frame);
         const m = masses[i];
         if (m && (m.w || m.kind === 1 || m.kind === 8 || m.kind === 6)) {
           const dz = m.z - travel;
-          if (dz > 0 && dz < 28000) {
+          if (dz > 0 && dz < 68000) {
             const pId = this.getPlanetId(m);
             if (!this.planetCache.has(pId)) {
               this.getPlanetModel(m);
@@ -12886,6 +13089,9 @@ requestAnimationFrame(frame);
       model.pId = pId;
       this.planetsContainer.add(model.group);
       this.planetCache.set(pId, model);
+      if (this.renderer && this.scene && this.camera) {
+        try { this.renderer.compile(this.scene, this.camera); } catch(e) {}
+      }
       return model;
     },
 
@@ -13182,9 +13388,16 @@ requestAnimationFrame(frame);
           else obj.material.dispose();
         }
       });
+      if (model.canvas) {
+        model.canvas.width = 1;
+        model.canvas.height = 1;
+        model.canvas = null;
+        model.ctx = null;
+      }
     },
 
-    // Renders the living planet to the offscreen canvas and returns the canvas
+    // Renders the living planet to its dedicated isolated scratch canvas and returns it
+    // Guaranteed zero cross-planet buffer contamination and zero sub-frame flickering
     renderPlanet(m, rad, lightDir) {
       if (!this.initialized) this.init();
       if (!this.initialized || !m) return null;
@@ -13194,6 +13407,18 @@ requestAnimationFrame(frame);
       if (!model) return null;
 
       this.ensureBufferSize(rad);
+      const sz = this.currentBufferSize || 512;
+
+      // Ensure dedicated isolated 2D scratch canvas for this specific planet model
+      if (!model.canvas) {
+        model.canvas = document.createElement('canvas');
+        model.canvas.width = sz;
+        model.canvas.height = sz;
+        model.ctx = model.canvas.getContext('2d', { alpha: true });
+      } else if (model.canvas.width !== sz || model.canvas.height !== sz) {
+        model.canvas.width = sz;
+        model.canvas.height = sz;
+      }
 
       const now = performance.now() * 0.001;
       const dt = Math.min(0.05, now - this.lastTime);
@@ -13205,7 +13430,6 @@ requestAnimationFrame(frame);
         const child = this.planetsContainer.children[i];
         child.visible = (child === model.group);
       }
-      this.currentRenderedId = pId;
 
       // Update Sun light direction from Starfield light coordinates
       if (lightDir) {
@@ -13231,23 +13455,25 @@ requestAnimationFrame(frame);
         model.whalesGroup.rotation.y += dt * 0.14;
       }
 
-      // Adaptive Sub-Frame LOD Throttling (游戏级错帧降频渲染):
-      // rad < 35 (远距离行星): 每3帧刷新1次 WebGL，其余帧直接复用高质量画布，减少66%着色开销
-      // 35 <= rad < 70 (中距离接近): 每2帧刷新1次 WebGL
-      // rad >= 70 (近距离特写): 全速 1:1 实时 120 FPS 刷新
-      const isSwitch = (this.currentRenderedId !== pId);
+      // Adaptive Sub-Frame LOD Throttling:
+      const isSwitch = (this._lastRenderedId !== pId);
+      this._lastRenderedId = pId;
+      this.currentRenderedId = pId;
       const isBufferChange = (this._bufferResized === true);
       this._bufferResized = false;
       model.renderAge = (model.renderAge || 0) + 1;
 
       const refreshInterval = rad < 35 ? 3 : (rad < 70 ? 2 : 1);
-      const shouldRenderWebGL = isSwitch || isBufferChange || (model.renderAge >= refreshInterval);
+      const shouldRenderWebGL = isSwitch || isBufferChange || (model.renderAge >= refreshInterval) || !model.hasRendered;
 
       if (shouldRenderWebGL) {
         model.renderAge = 0;
+        model.hasRendered = true;
         this.renderer.render(this.scene, this.camera);
+        model.ctx.clearRect(0, 0, sz, sz);
+        model.ctx.drawImage(this.canvas, 0, 0);
       }
-      return this.canvas;
+      return model.canvas;
     }
   };
 
