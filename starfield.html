@@ -3367,7 +3367,7 @@ function updateDirector(dt){
  }
 
  // 5. Integrate Cinematic Capture Pose (Full 6-DOF authority during 60s Gargantua flyby)
- captureCamPose = capturePhase && captureMass ? captureCam() : null;
+ captureCamPose = (autoCamera && capturePhase && captureMass) ? captureCam() : null;
  if(captureCamPose){
   const c = captureCamPose;
   goal.distance = mix(goal.distance, c.distance, c.blend);
@@ -3379,7 +3379,7 @@ function updateDirector(dt){
 
  // 6. Damped Camera Integration
  const isSkimmingActive = skimRes && skimRes.active;
- const rate = (autoCamera || capturePhase || isSkimmingActive) ? 3.5 : 7;
+ const rate = (autoCamera || (capturePhase && autoCamera) || isSkimmingActive) ? 3.5 : 8.5;
  camera.yaw += angleDelta(camera.yaw, goal.yaw) * (1 - Math.exp(-dt * rate));
  for(const k of ['pitch','distance','aimY','lane','roll']) camera[k] = expStep(camera[k], goal[k] || 0, rate, dt);
 
@@ -8624,7 +8624,7 @@ class Soundscape {
    this.master=ac.createGain();this.master.gain.value=0;
    const compressor=ac.createDynamicsCompressor();compressor.threshold.value=-15;compressor.knee.value=20;compressor.ratio.value=3;this.master.connect(compressor);compressor.connect(ac.destination);
    this.musicGain=ac.createGain();this.musicGain.gain.value=.68;this.musicGain.connect(this.master);
-   this.media=SCORES.map((src,i)=>{const el=new Audio();el.preload='auto';el.src=src;el.loop=false;const source=ac.createMediaElementSource(el);source.connect(this.musicGain);el.addEventListener('ended',()=>{if(i===this.index){this.gapUntil=ac.currentTime+2.4;}});el.addEventListener('error',()=>{this.musicFailed=true;});return el;});
+   this.media=[]; // Classical music is the definitive score; electronic media tracks silenced
    
    const noise=ac.createBuffer(1,ac.sampleRate*13,ac.sampleRate),data=noise.getChannelData(0);let brown=0;const r=rng(SEED^80731);
    for(let i=0;i<data.length;i++){const white=r()*2-1;brown=(brown+.018*white)/1.018;data[i]=white*.53+brown*2.2;}
@@ -8652,11 +8652,9 @@ class Soundscape {
    this.ready=true;await ac.resume();
    if(this.enabled&&!paused&&!document.hidden){
      this.master.gain.linearRampToValueAtTime(.78,ac.currentTime+5);
-     if (this.synthGain) this.synthGain.gain.linearRampToValueAtTime(.15,ac.currentTime+4); // Soft subtle air
+     if (this.synthGain) this.synthGain.gain.setValueAtTime(0, ac.currentTime); // Silenced electronic synth
      if (this.classical) {
        this.classical.playTrack(0, true);
-     } else {
-       this.media[0].play().catch(()=>{});
      }
    }
   }catch(err){console.warn('Audio initialization:',err);toast('Audio init deferred');}
@@ -8732,73 +8730,14 @@ class Soundscape {
  }
 
  updateProceduralSynth(now){
+  // Electronic procedural pads & chimes permanently silenced to prevent clashing with classical music
   if(!this.ready||!this.synthGain)return;
-  const regIdx=(typeof currentPalette!=='undefined')?currentPalette.index:0;
-  const varIdx=(typeof cycle!=='undefined')?(cycle%6):0;
-  const mIdx=(regIdx*6+varIdx)%30;
-  const [chord,chimeScale]=this.movements[mIdx];
-
-  // Smooth pad harmony morphing
-  if(this.activeMovementIdx!==mIdx){
-    this.activeMovementIdx=mIdx;
-    for(let v=0;v<4;v++){
-      this.padVoices[v].osc.frequency.setTargetAtTime(chord[v],now,2.5);
-    }
-  }
-
-  // Black hole gravitational time-dilation warping
-  const nearHole=(capturePhase>0)||(typeof activeMasses!=='undefined'&&activeMasses.some(m=>m.isBlackHole&&Math.abs(m.z-travel)<22000));
-  if(nearHole){
-    this.subOsc1.frequency.setTargetAtTime(27.5,now,1.2);
-    this.subOsc2.frequency.setTargetAtTime(27.9,now,1.2);
-    this.subGain.gain.setTargetAtTime(0.48,now,0.8);
-    this.padFilter.frequency.setTargetAtTime(280,now,0.9);
-    // Relativistic Heartbeat Pulse (approx 52 BPM dual acoustic thump)
-    if(now>=this.lastHeartbeat+1.15){
-      this.lastHeartbeat=now;
-      this.triggerHeartbeat(now, 46, 22);
-      this.triggerHeartbeat(now+0.26, 38, 20);
-    }
-  } else {
-    this.subOsc1.frequency.setTargetAtTime(43.65,now,1.6);
-    this.subOsc2.frequency.setTargetAtTime(44.15,now,1.6);
-    this.subGain.gain.setTargetAtTime(this.tense?0.40:0.28,now,1.2);
-    this.padFilter.frequency.setTargetAtTime(this.tense?420:750,now,1.2);
-  }
-
-  // Cosmic Chime / Music Box Arpeggios (tempo responsive to travel speed)
-  const spd=(typeof wind!=='undefined')?Math.hypot(wind.x,wind.y):0;
-  const effW=(typeof warp!=='undefined')?warp:0;
-  const chimeInterval=Math.max(1.1, 2.3 - spd*0.14 - (effW>0?0.5:0));
-  if(now>=this.lastChime+chimeInterval){
-    this.lastChime=now;
-    this.triggerChime(now,chimeScale);
-  }
+  if(this.synthGain.gain.value!==0) this.synthGain.gain.value=0;
  }
 
  triggerChime(now,scale){
-  if(!this.ready||!this.enabled||paused||document.hidden)return;
-  const ac=this.ac;
-  const baseFreq=scale[Math.floor(Math.random()*scale.length)];
-  const freq=baseFreq*(Math.random()<0.35?2:1);
-  const osc1=ac.createOscillator();osc1.type='sine';osc1.frequency.value=freq;
-  const osc2=ac.createOscillator();osc2.type='sine';osc2.frequency.value=freq*2.756; // Inharmonic bell overtone
-  const gain=ac.createGain();
-  gain.gain.setValueAtTime(0.0001,now);
-  gain.gain.linearRampToValueAtTime(0.062,now+0.005);
-  gain.gain.exponentialRampToValueAtTime(0.0001,now+1.9);
-
-  let outNode=gain;
-  if(ac.createStereoPanner){
-    const panner=ac.createStereoPanner();
-    panner.pan.value=(Math.random()-0.5)*1.3;
-    gain.connect(panner);outNode=panner;
-  }
-  osc1.connect(gain);osc2.connect(gain);
-  outNode.connect(this.synthGain);
-  osc1.start(now);osc2.start(now);
-  osc1.stop(now+2.0);osc2.stop(now+2.0);
-  setTimeout(()=>{try{osc1.disconnect();osc2.disconnect();gain.disconnect();}catch(_){}},2200);
+  // Silenced to ensure pure classical acoustic harmony
+  return;
  }
 
  triggerHeartbeat(now,startF,endF){
@@ -8818,7 +8757,6 @@ class Soundscape {
  update(){
   if(!this.ready||!this.enabled||paused||document.hidden)return;
   const ac=this.ac,now=ac.currentTime;
-  if(this.gapUntil&&now>=this.gapUntil){this.gapUntil=0;this.index=(this.index+1)%this.media.length;this.media[this.index].currentTime=0;this.media[this.index].play().catch(()=>{});}
   const speed=Math.hypot(wind.x,wind.y),altitude=camera.eye[1],laneDistance=Math.abs(camera.eye[0]-laneX(camera.eye[2]));
   const water=Math.exp(-Math.max(0,altitude-40)/210)*Math.exp(-((laneDistance/300)**2));
   const close=clamp((1400-camera.distance)/1050),flutter=fleet.reduce((s,b)=>s+Math.max(0,Math.sin(time*b.frequency+b.phase))**3,0)/fleet.length;
@@ -8827,7 +8765,7 @@ class Soundscape {
   this.water.gain.gain.setTargetAtTime(water*.050,now,.8);
   this.wings.gain.gain.setTargetAtTime(close*close*(.003+flutter*.027),now,.09);
 
-  // Update procedural synthesis engine
+  // Update procedural synthesis engine (silenced)
   this.updateProceduralSynth(now);
  }
 
@@ -8836,17 +8774,21 @@ class Soundscape {
   if(!this.ready||!this.enabled)return;
   try{
    const ac=this.ac,t=ac.currentTime;
-   if(on){this.prior=this.index;this.switchTo(5);
-    this.master.gain.setTargetAtTime(.92,t,.5);
-    this.wings.gain.setTargetAtTime(.032,t,.4);
-    if(this.synthGain)this.synthGain.gain.setTargetAtTime(.65,t,.5);}
-   else{this.switchTo(this.prior==null?0:this.prior);
+   if(on){
+    this.master.gain.setTargetAtTime(.85,t,.5);
+    this.wings.gain.setTargetAtTime(.025,t,.4);
+   }else{
     this.master.gain.setTargetAtTime(.78,t,1.6);
-    if(this.synthGain)this.synthGain.gain.setTargetAtTime(.52,t,1.6);}
+   }
   }catch(_){}
  }
  switchTo(i){
-  const el=this.media[i];if(!el||i===this.index)return;
+  if(this.classical){
+    this.classical.playTrack(i % CLASSICAL_PIECES.length, true);
+    this.index=this.classical.currentTrackIndex;
+    return;
+  }
+  if(!this.media||!this.media[i]||i===this.index)return;
   try{this.media[this.index].pause();}catch(_){}
   this.index=i;this.gapUntil=0;
   try{el.currentTime=0;}catch(_){}
@@ -8878,9 +8820,8 @@ class Soundscape {
     const t=this.ac.currentTime;
     this.master.gain.cancelScheduledValues(t);
     this.master.gain.setTargetAtTime(.78,t,.7);
-    if(this.synthGain){this.synthGain.gain.cancelScheduledValues(t);this.synthGain.gain.setTargetAtTime(.15,t,.7);}
+    if(this.synthGain){this.synthGain.gain.cancelScheduledValues(t);this.synthGain.gain.setValueAtTime(0,t);}
     if(this.classical && !this.classical.isPlaying) this.classical.playTrack(this.classical.currentTrackIndex, true);
-    else if(!this.gapUntil&&!this.media[this.index].ended)await this.media[this.index].play();
   }catch(_){}
  }
 }
@@ -9076,24 +9017,62 @@ function feedWind(p){
  wind.speed=Math.min(12,Math.hypot(x-wind.rawX,y-wind.rawY)/dt);wind.rawX=x;wind.rawY=y;wind.lastReal=now;wind.last=time;wind.active=true;
 }
 const pointers=new Map();let pinchDistance=0;
-canvas.addEventListener('pointerdown',e=>{
- if(!started)return;e.preventDefault();canvas.setPointerCapture(e.pointerId);const p=logicalPoint(e);pointers.set(e.pointerId,p);
+function onPointerDown(e){
+ if(!started)return;
+ if(e.button!==undefined&&e.button!==0)return;
+ try{canvas.setPointerCapture(e.pointerId);}catch(_){}
+ const p=logicalPoint(e);pointers.set(e.pointerId,p);
  if(pointers.size===2){const a=[...pointers.values()];pinchDistance=Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y);wind.active=false;}
  else if(autoCamera)feedWind(p);else canvas.classList.add('dragging');
-});
-canvas.addEventListener('pointermove',e=>{
- if(!started)return;const p=logicalPoint(e),previous=pointers.get(e.pointerId);
- if(previous)pointers.set(e.pointerId,p);
- if(pointers.size>=2){const a=[...pointers.values()],d=Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y);if(pinchDistance>0&&d>5){if(autoCamera){observation.distance=clamp(observation.distance+(pinchDistance-d)*2,-180,520);observation.last=time;}else manual.distance=clamp(manual.distance*pinchDistance/d,360,4400);}pinchDistance=d;return;}
- if(!autoCamera&&previous){manual.yaw-=(p.x-previous.x)*.0045;manual.pitch=clamp(manual.pitch+(p.y-previous.y)*.004,-.16,1.47);manual.lane=0;}
- else if(autoCamera&&(e.pointerType==='mouse'||previous))feedWind(p);
-});
-function releasePointer(e){
- pointers.delete(e.pointerId);pinchDistance=0;canvas.classList.remove('dragging');
- if(e.pointerType!=='mouse'){wind.active=false;wind.last=time;}
 }
-canvas.addEventListener('pointerup',releasePointer);canvas.addEventListener('pointercancel',releasePointer);
-canvas.addEventListener('lostpointercapture',e=>{if(pointers.has(e.pointerId))releasePointer(e);});
+function onPointerMove(e){
+ if(!started)return;
+ const p=logicalPoint(e);let previous=pointers.get(e.pointerId);
+ if(!previous&&(e.buttons===1||e.pointerType==='touch')){pointers.set(e.pointerId,p);previous=p;}
+ if(!previous)return;
+ pointers.set(e.pointerId,p);
+ if(pointers.size>=2){
+  const a=[...pointers.values()],d=Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y);
+  if(pinchDistance>0&&d>5){
+   if(autoCamera){observation.distance=clamp(observation.distance+(pinchDistance-d)*2,-180,520);observation.last=time;}
+   else manual.distance=clamp(manual.distance*pinchDistance/d,360,4400);
+  }
+  pinchDistance=d;return;
+ }
+ if(!autoCamera){
+  const dx=p.x-previous.x,dy=p.y-previous.y;
+  if(Math.abs(dx)>0||Math.abs(dy)>0){
+   manual.yaw-=(dx)*.0045;
+   manual.pitch=clamp(manual.pitch+(dy)*.004,-0.35,1.50);
+   manual.lane=0;
+   canvas.classList.add('dragging');
+  }
+ }else if(autoCamera&&(e.pointerType==='mouse'||previous))feedWind(p);
+}
+function releasePointer(e){
+ if(e&&e.pointerId!=null){
+  pointers.delete(e.pointerId);
+  try{canvas.releasePointerCapture(e.pointerId);}catch(_){}
+ }else{pointers.clear();}
+ if(pointers.size<2)pinchDistance=0;
+ if(pointers.size===0){
+  canvas.classList.remove('dragging');
+  if(!e||e.pointerType!=='mouse'){wind.active=false;wind.last=time;}
+ }
+}
+canvas.addEventListener('pointerdown',onPointerDown);
+canvas.addEventListener('pointermove',onPointerMove);
+window.addEventListener('pointermove',e=>{
+ if(pointers.has(e.pointerId)||(!autoCamera&&e.buttons===1)){onPointerMove(e);}
+});
+canvas.addEventListener('pointerup',releasePointer);
+canvas.addEventListener('pointercancel',releasePointer);
+window.addEventListener('pointerup',e=>{
+ if(pointers.has(e.pointerId)||e.buttons===0){releasePointer(e);}
+});
+canvas.addEventListener('lostpointercapture',e=>{
+ if(!(e.buttons&1)){releasePointer(e);}
+});
 canvas.addEventListener('pointerleave',()=>{if(!pointers.size){wind.active=false;wind.last=time;}});
 canvas.addEventListener('wheel',e=>{
  if(!started)return;e.preventDefault();const delta=clamp(e.deltaY*(e.deltaMode===1?16:e.deltaMode===2?H:1),-500,500);
@@ -9292,9 +9271,15 @@ function toggleCamera(){
  autoCamera=!autoCamera;
  if(!autoCamera) Narrator.speak(Narrator.scripts.cam_manual, { id: 'cam_manual' });
  else Narrator.speak(Narrator.scripts.cam_auto, { id: 'cam_auto' });
- if(!autoCamera){manual.yaw=camera.yaw;manual.pitch=camera.pitch;manual.distance=camera.distance;manual.aimY=camera.aimY;manual.lane=camera.lane;wind.active=false;}
+ if(!autoCamera){
+  manual.yaw=isFinite(camera.yaw)?camera.yaw:-29*DEG;
+  manual.pitch=isFinite(camera.pitch)?clamp(camera.pitch,-0.35,1.50):1.10;
+  manual.distance=isFinite(camera.distance)?clamp(camera.distance,360,4400):1490;
+  manual.aimY=isFinite(camera.aimY)?camera.aimY:0;
+  manual.lane=0;wind.active=false;
+ }
  canvas.classList.toggle('manual',!autoCamera);$('camera-toggle').setAttribute('aria-pressed',String(autoCamera));$('camera-button-name').textContent=autoCamera?'自动运镜':'自主镜头';
- toast(autoCamera?'镜头交还航行，移动光标引航':'拖拽调整方向 · 滚轮或双指捏合缩放');
+ toast(autoCamera?'镜头交还航行，移动光标引航':'拖拽调整方向 · 方向键微调 · 滚轮缩放');
 }
 function toggleSound(){soundEnabled=!soundEnabled;$('sound-toggle').setAttribute('aria-pressed',String(soundEnabled));$('sound-toggle').classList.toggle('sound-on',soundEnabled);sound.setEnabled(soundEnabled);}
 
@@ -9453,7 +9438,7 @@ speak(candidate, options = {}) {
    clearTimeout(this.hideTimer);
 
    let charIdx = 0;
-   const typeSpeed = 28;
+   const typeSpeed = 33; // slowed by 0.15 (28 / 0.85 = ~32.9ms)
    const typeChar = () => {
     if (charIdx < text.length) {
      body.textContent += text[charIdx];
@@ -9473,6 +9458,13 @@ speak(candidate, options = {}) {
      try { this.currentAudio.pause(); this.currentAudio.currentTime = 0; } catch(_) {}
     }
     const snd = new Audio(clip);
+    snd.defaultPlaybackRate = 0.85;
+    snd.playbackRate = 0.85;
+    snd.preservesPitch = true;
+    snd.addEventListener('play', () => {
+     snd.playbackRate = 0.85;
+     snd.preservesPitch = true;
+    });
     this.currentAudio = snd;
     snd.volume = 0.95;
     let ended = false;
@@ -9501,7 +9493,7 @@ speak(candidate, options = {}) {
  },
 
  _fallbackTTS(text) {
-  const duration = Math.max(3.8, text.length * 0.16 + 1.2);
+  const duration = Math.max(4.5, (text.length * 0.16 + 1.2) / 0.85);
   setTimeout(() => this._onSpeechEnd(duration), duration * 1000);
  },
 
@@ -9554,6 +9546,7 @@ speak(candidate, options = {}) {
   return JSON.stringify(this.scripts, null, 2);
  }
 };
+window.Narrator = Narrator;
 
 function togglePoem(){poemsEnabled=!poemsEnabled;$('poem-toggle').setAttribute('aria-pressed',String(poemsEnabled));$('poem').style.opacity=poemsEnabled?poemOpacity:0;}
 function togglePause(){paused=!paused;root.classList.toggle('paused',paused);
@@ -9623,6 +9616,13 @@ window.addEventListener('keydown',e=>{
  if(e.code==='Space'){if(e.target instanceof HTMLButtonElement)return;e.preventDefault();togglePause();}
  else if(e.key.toLowerCase()==='v')toggleCockpit();
  else if(e.key.toLowerCase()==='c')toggleCamera();
+ else if(!autoCamera&&(e.key==='ArrowLeft'||e.key==='ArrowRight'||e.key==='ArrowUp'||e.key==='ArrowDown')){
+  e.preventDefault();
+  if(e.key==='ArrowLeft')manual.yaw+=0.06;
+  else if(e.key==='ArrowRight')manual.yaw-=0.06;
+  else if(e.key==='ArrowUp')manual.pitch=clamp(manual.pitch-0.05,-0.35,1.50);
+  else if(e.key==='ArrowDown')manual.pitch=clamp(manual.pitch+0.05,-0.35,1.50);
+ }
  else if(e.key.toLowerCase()==='m')toggleSound();
  else if(e.key.toLowerCase()==='n'){
   if(typeof sound!=='undefined'&&sound.classical){
@@ -9702,12 +9702,14 @@ window.Starfield=Object.freeze({
  setTravel:(t)=>{travel=t;},
  getTravel:()=>travel,
  getCamera:()=>camera,
+ getManual:()=>manual,
  updateGravity:()=>updateGravity(),
  getActiveMasses:()=>activeMasses,
  getFlagship:()=>craftWorld(fleet[LEAD]),
  project:(p)=>project(p),
  corridorPoint:(z)=>[routeX(z),courseY(z),z],
  getSoundscape:()=>sound,
+ getNarrator:()=>Narrator,
  nova:()=>{const n=novaState();return n?{age:+n.age.toFixed(1),life:+n.life.toFixed(3),x:Math.round(n.x),y:Math.round(n.y)}:null;},
  cameras:Object.freeze(LENSES.map(p=>Object.freeze({name:p.name,en:p.en}))),
  feedWind:(p)=>feedWind(p),
