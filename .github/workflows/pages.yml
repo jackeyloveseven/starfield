@@ -34,6 +34,8 @@ jobs:
           cp starfield.html _site/index.html
           cp starfield.html _site/starfield.html
           cp migration.html _site/migration.html
+          cp planet_studio.html _site/planet_studio.html
+          cp -r libs _site/libs
           cp CREDITS.md _site/CREDITS.md
           cp README.md _site/README.md
           touch _site/.nojekyll
