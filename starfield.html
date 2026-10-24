@@ -616,12 +616,34 @@
 </svg>
 </span>
 </button>
+<button class="control" id="radar-toggle" title="巡天雷达 · 深空主动扫描 (R)" aria-label="巡天雷达">
+<span class="icon radar-icon">
+<svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.3">
+<circle cx="8" cy="8" r="6" stroke-dasharray="2 2"/>
+<circle cx="8" cy="8" r="3"/>
+<line x1="8" y1="8" x2="13" y2="3.5" stroke-linecap="round"/>
+<circle cx="8" cy="8" r="1.5" fill="currentColor"/>
+</svg>
+</span>
+<span id="radar-button-name">📡 巡天雷达</span>
+</button>
 <button class="control" id="formation-toggle" title="编队阵型切换 (1-4 / F)" aria-label="编队阵型">
 <span class="icon formation-icon">
 <svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.3">
 <polygon points="8,2 10.5,7 8,6 5.5,7" fill="currentColor"/>
 <polygon points="3.5,8 6,13 3.5,12 1,13" fill="currentColor" opacity="0.6"/>
 <polygon points="12.5,8 15,13 12.5,12 10,13" fill="currentColor" opacity="0.6"/>
+</svg>
+</span>
+</button>
+<button class="control" id="hangar-toggle" title="舰队折纸坞 · 舰体与尾迹定制 (H)" aria-label="舰队折纸坞">
+<span class="icon hangar-icon">
+<svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.3">
+<polygon points="8,1.5 12.5,6.5 8,14.5 3.5,6.5" stroke="currentColor" stroke-linejoin="round"/>
+<line x1="3.5" y1="6.5" x2="12.5" y2="6.5" stroke="currentColor"/>
+<line x1="8" y1="1.5" x2="8" y2="14.5" stroke="currentColor"/>
+<polygon points="3.5,6.5 1,10 4,11" stroke="currentColor" stroke-linejoin="round"/>
+<polygon points="12.5,6.5 15,10 12,11" stroke="currentColor" stroke-linejoin="round"/>
 </svg>
 </span>
 </button>
@@ -637,7 +659,7 @@
 <button class="control" id="pause-toggle" aria-pressed="true" title="暂停 / 继续（空格）" aria-label="暂停飞行"><i class="icon pause-icon" aria-hidden="true"></i></button>
 <button class="control" id="fullscreen-toggle" title="全屏（F）" aria-label="切换全屏"><i class="icon fullscreen-icon" aria-hidden="true"></i></button>
 </nav>
-<div id="hint">移动光标引航 &nbsp; · &nbsp; 滚轮远眺 &nbsp; · &nbsp; G 曲速 &nbsp; · &nbsp; C 镜头 &nbsp; · &nbsp; N 领航员 &nbsp; · &nbsp; V 驾驶舱</div><div id="toast" role="status" aria-live="polite"></div><div id="pause-label" class="serif">星光在等你</div>
+<div id="hint">移动光标引航 &nbsp; · &nbsp; 滚轮远眺 &nbsp; · &nbsp; G 曲速 &nbsp; · &nbsp; H 折纸坞 &nbsp; · &nbsp; C 镜头 &nbsp; · &nbsp; N 领航员 &nbsp; · &nbsp; V 驾驶舱</div><div id="toast" role="status" aria-live="polite"></div><div id="pause-label" class="serif">星光在等你</div>
 <section id="comms-hud" class="hud" aria-label="领航员通信"><div class="comms-header"><div class="comms-dot"></div><span class="comms-title mono">COMMS // NAVIGATOR-07</span><div class="comms-wave" id="comms-wave"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div><div id="comms-text" class="comms-body serif"></div></section>
 
 <!-- CELESTIAL CODEX MODAL -->
@@ -758,6 +780,1747 @@
 <div id="slingshot-toast">✦ 引力弹弓加速锁定 · 航速激增 ✦</div>
 
 </main>
+<script>
+/* FLEET CUSTOMIZER MODULE INLINED */
+/**
+ * 🚀 STARFIELD FLEET CUSTOMIZER & QUANTUM WARP TRAIL ENGINE
+ * ============================================================================
+ * Origami Fleet Cosmetic Hangar & Dynamic Trail Shaders for Starfield.
+ * 
+ * 1. Fleet Origami Hangar Customizer (FleetCustomizer):
+ *    - Hotkey: Press 'H' or click HUD Hangar button [ 🚀 舰队折纸坞 ].
+ *    - Frosted glass modal with 3D Turntable Preview (crease shadows, foil highlights).
+ *    - 4 Procedural Folded Paper Hulls:
+ *      0: 千纸鹤 (Paper Crane - Classic balanced origami flagship)
+ *      1: 疾风镖 (Aero Dart - Sleek supersonic folding arrow with needle fuselage)
+ *      2: 星灵刃 (Protoss Blade - Geometric angular interceptor with floating ring fins)
+ *      3: 虚空蛾 (Void Moth - Biomorphic multi-tier layered folding wings)
+ *    - 4 Dynamic Quantum Warp Ribbon Trails:
+ *      0: 宣纸星尘 (Paper Starlight - Warm amber gold dust embers)
+ *      1: 离子幽蓝 (Ion Azure - Cyan electric plasma ribbon)
+ *      2: 虚空幻紫 (Void Amethyst - Deep violet quantum vortex particles)
+ *      3: 暮光红绡 (Twilight Crimson - Fiery solar flare ribbons)
+ *    - Persistence: Stored in localStorage['starfield_fleet_custom_v1'].
+ * 
+ * 2. High-Performance Canvas 2D Mesh Rendering:
+ *    - Seamlessly replaces/hooks drawFleet(), drawShard(), and drawCraftShadows().
+ *    - Zero extra performance overhead (60 FPS maintained).
+ *    - Dynamic trail emitters stretch dynamically with WarpDrive speed (1.0c, 5.0c, 15.0c).
+ * ============================================================================
+ */
+
+(function (root) {
+  'use strict';
+
+  const STORAGE_KEY = 'starfield_fleet_custom_v1';
+
+  // ==========================================================================
+  // 1. DATA DEFINITIONS: 4 HULLS & 4 TRAILS
+  // ==========================================================================
+
+  const HULL_DEFS = [
+    {
+      id: 0,
+      name: '千纸鹤',
+      en: 'Paper Crane',
+      tag: '经典旗舰 · 平衡折纸',
+      desc: '源自古老东方星域的经典折纸旗舰。流畅修长的颈喙与大倾角振翼，在太阳风中展现无可挑剔的对称与优雅。',
+      stats: { speed: 82, agility: 88, foldLayers: 14, warpSync: 90 },
+      getVertices(flap, time) {
+        return {
+          nose: [0, 2, 34],
+          crown: [0, 6, 26],
+          neckBase: [0, 4, 14],
+          spineTop: [0, 6, 4],
+          spineBack: [0, 4, -13],
+          tail: [0, 6, -30],
+          tailRoot: [0, 0, -22],
+          wrl: [-9, 2, 4],
+          wrr: [9, 2, 4],
+          fl: [-21, flap * 7, -5],
+          fr: [21, flap * 7, -5],
+          wtl: [-36, flap * 8, -14],
+          wtr: [36, flap * 8, -14],
+          belly: [0, -5, 3],
+          keelF: [0, -3, 15],
+          keelB: [0, -3, -11],
+          finl: [-5, 8, -22],
+          finr: [5, 8, -22],
+          hl: [-13, 0, -19],
+          hr: [13, 0, -19]
+        };
+      },
+      faces: [
+        { pts: ['nose', 'crown', 'neckBase'], type: 'base' },
+        { pts: ['crown', 'neckBase', 'wrl'], type: 'fold' },
+        { pts: ['crown', 'wrr', 'neckBase'], type: 'fold' },
+        { pts: ['neckBase', 'spineTop', 'wrl'], type: 'base' },
+        { pts: ['neckBase', 'wrr', 'spineTop'], type: 'shade' },
+        { pts: ['spineTop', 'spineBack', 'wrl'], type: 'fold' },
+        { pts: ['spineTop', 'wrr', 'spineBack'], type: 'fold' },
+        { pts: ['wrl', 'spineTop', 'fl'], type: 'base' },
+        { pts: ['fl', 'spineTop', 'wtl'], type: 'edge' },
+        { pts: ['wtl', 'spineBack', 'fl'], type: 'edge' },
+        { pts: ['wrr', 'fr', 'spineTop'], type: 'shade' },
+        { pts: ['fr', 'wtr', 'spineTop'], type: 'edge' },
+        { pts: ['wtr', 'spineBack', 'fr'], type: 'edge' },
+        { pts: ['spineBack', 'finl', 'tail'], type: 'fold' },
+        { pts: ['spineBack', 'tail', 'finr'], type: 'base' },
+        { pts: ['tail', 'hl', 'finl'], type: 'edge' },
+        { pts: ['tail', 'finr', 'hr'], type: 'edge' },
+        { pts: ['keelF', 'belly', 'wrl'], type: 'shade' },
+        { pts: ['keelF', 'wrr', 'belly'], type: 'shade' },
+        { pts: ['belly', 'keelB', 'wrl'], type: 'shade' },
+        { pts: ['belly', 'wrr', 'keelB'], type: 'shade' },
+        { pts: ['belly', 'hl', 'keelB'], type: 'edge' },
+        { pts: ['belly', 'keelB', 'hr'], type: 'edge' },
+        { pts: ['nose', 'keelF', 'wrl'], type: 'shade' },
+        { pts: ['nose', 'wrr', 'keelF'], type: 'shade' }
+      ],
+      creases: [
+        ['nose', 'crown'], ['crown', 'neckBase'], ['neckBase', 'spineTop'],
+        ['spineTop', 'spineBack'], ['spineBack', 'tail'],
+        ['wrl', 'fl'], ['fl', 'wtl'], ['wrr', 'fr'], ['fr', 'wtr'],
+        ['spineBack', 'finl'], ['spineBack', 'finr']
+      ],
+      shadowShape: [[0,0,32], [-7,0,4], [-36,0,-14], [-13,0,-11], [-6,0,-26], [0,0,-22], [6,0,-26], [13,0,-11], [36,0,-14], [7,0,4]],
+      exhausts: [
+        { pos: [0, 4, -28], weight: 1.0 },
+        { pos: [-12, 0, -18], weight: 0.6 },
+        { pos: [12, 0, -18], weight: 0.6 }
+      ]
+    },
+
+    {
+      id: 1,
+      name: '疾风镖',
+      en: 'Aero Dart',
+      tag: '超音速 · 极速破空',
+      desc: '以针状机身与下垂式三角翼构筑的超音速折叠纸镖。极小的迎风面积让其在曲速巡航中斩断星尘阻力。',
+      stats: { speed: 98, agility: 75, foldLayers: 12, warpSync: 96 },
+      getVertices(flap, time) {
+        const microFlutter = Math.sin(time * 8.5) * 0.22;
+        return {
+          nose: [0, 0, 46],
+          canardRoot: [0, 1.8, 26],
+          canardL: [-9, 0.5, 20],
+          canardR: [9, 0.5, 20],
+          shoulderL: [-7, 1.2, 10],
+          shoulderR: [7, 1.2, 10],
+          canopyPeak: [0, 4.8, 8],
+          spineMid: [0, 3.6, -4],
+          spineAft: [0, 2.8, -18],
+          wingTipL: [-32, -0.8 + flap * 2 + microFlutter, -22],
+          wingTipR: [32, -0.8 + flap * 2 + microFlutter, -22],
+          wingletL: [-34, -5.5 + flap * 2, -26],
+          wingletR: [34, -5.5 + flap * 2, -26],
+          finRootL: [-3.5, 2, -18],
+          finRootR: [3.5, 2, -18],
+          finTopL: [-5.5, 9, -24],
+          finTopR: [5.5, 9, -24],
+          keelNose: [0, -2, 34],
+          keelBelly: [0, -4.5, 6],
+          keelAft: [0, -2.5, -16],
+          exhaustL: [-4.5, 0.2, -28],
+          exhaustR: [4.5, 0.2, -28],
+          centerNozzle: [0, 1.2, -30]
+        };
+      },
+      faces: [
+        { pts: ['nose', 'canardRoot', 'canardL'], type: 'base' },
+        { pts: ['nose', 'canardR', 'canardRoot'], type: 'shade' },
+        { pts: ['nose', 'canardL', 'keelNose'], type: 'shade' },
+        { pts: ['nose', 'keelNose', 'canardR'], type: 'shade' },
+        { pts: ['canardRoot', 'canopyPeak', 'shoulderL'], type: 'base' },
+        { pts: ['canardRoot', 'shoulderR', 'canopyPeak'], type: 'shade' },
+        { pts: ['canardRoot', 'shoulderL', 'canardL'], type: 'fold' },
+        { pts: ['canardRoot', 'canardR', 'shoulderR'], type: 'fold' },
+        { pts: ['canopyPeak', 'spineMid', 'shoulderL'], type: 'base' },
+        { pts: ['canopyPeak', 'shoulderR', 'spineMid'], type: 'shade' },
+        { pts: ['spineMid', 'spineAft', 'shoulderL'], type: 'fold' },
+        { pts: ['spineMid', 'shoulderR', 'spineAft'], type: 'fold' },
+        { pts: ['shoulderL', 'spineAft', 'wingTipL'], type: 'edge' },
+        { pts: ['shoulderR', 'wingTipR', 'spineAft'], type: 'edge' },
+        { pts: ['wingTipL', 'spineAft', 'wingletL'], type: 'edge' },
+        { pts: ['wingTipR', 'wingletR', 'spineAft'], type: 'edge' },
+        { pts: ['finRootL', 'finTopL', 'spineAft'], type: 'fold' },
+        { pts: ['finRootL', 'exhaustL', 'finTopL'], type: 'edge' },
+        { pts: ['finRootR', 'spineAft', 'finTopR'], type: 'fold' },
+        { pts: ['finRootR', 'finTopR', 'exhaustR'], type: 'edge' },
+        { pts: ['keelNose', 'keelBelly', 'shoulderL'], type: 'shade' },
+        { pts: ['keelNose', 'shoulderR', 'keelBelly'], type: 'shade' },
+        { pts: ['keelBelly', 'keelAft', 'wingTipL'], type: 'shade' },
+        { pts: ['keelBelly', 'wingTipR', 'keelAft'], type: 'shade' },
+        { pts: ['keelAft', 'exhaustL', 'centerNozzle'], type: 'edge' },
+        { pts: ['keelAft', 'centerNozzle', 'exhaustR'], type: 'edge' }
+      ],
+      creases: [
+        ['nose', 'canardRoot'], ['canardRoot', 'canopyPeak'], ['canopyPeak', 'spineAft'],
+        ['spineAft', 'centerNozzle'], ['shoulderL', 'wingTipL'], ['shoulderR', 'wingTipR'],
+        ['wingTipL', 'wingletL'], ['wingTipR', 'wingletR'],
+        ['finRootL', 'finTopL'], ['finRootR', 'finTopR']
+      ],
+      shadowShape: [[0,0,46], [-9,0,20], [-7,0,10], [-34,0,-26], [-4.5,0,-28], [0,0,-30], [4.5,0,-28], [34,0,-26], [7,0,10], [9,0,20]],
+      exhausts: [
+        { pos: [-4.5, 0.2, -28], weight: 0.8 },
+        { pos: [4.5, 0.2, -28], weight: 0.8 },
+        { pos: [0, 1.2, -30], weight: 1.0 }
+      ]
+    },
+
+    {
+      id: 2,
+      name: '星灵刃',
+      en: 'Protoss Blade',
+      tag: '几何截击 · 悬浮环翼',
+      desc: '具有前掠新月双刃与悬浮晶格环翼的高维截击机。几何棱镜折纸结构能有效汇聚量子光子流。',
+      stats: { speed: 92, agility: 96, foldLayers: 16, warpSync: 93 },
+      getVertices(flap, time) {
+        const hover = Math.sin(time * 3.2) * 1.6;
+        return {
+          bladeFangL: [-14, 1.2, 38],
+          bladeFangR: [14, 1.2, 38],
+          bladeMidL: [-22, 1.5, 24],
+          bladeMidR: [22, 1.5, 24],
+          bladeOuterL: [-36, 1.8 + flap * 2, 8],
+          bladeOuterR: [36, 1.8 + flap * 2, 8],
+          bladeNotchL: [-5, 0.6, 18],
+          bladeNotchR: [5, 0.6, 18],
+          voidCenter: [0, 0.8, 14],
+          coreApex: [0, 6.8, 0],
+          coreBottom: [0, -5.2, 0],
+          coreLeft: [-12, 1.0, -2],
+          coreRight: [12, 1.0, -2],
+          wingJointL: [-18, 0.5, -14],
+          wingJointR: [18, 0.5, -14],
+          tailChevron: [0, 3.2, -26],
+          tailBottom: [0, -2.2, -22],
+          finTopL: [-16, 10.5 + hover, -8],
+          finTopR: [16, 10.5 + hover, -8],
+          finBotL: [-16, -7.5 + hover, -8],
+          finBotR: [16, -7.5 + hover, -8],
+          finBackL: [-19, 1.5 + hover, -16],
+          finBackR: [19, 1.5 + hover, -16],
+          finFrontL: [-13, 1.5 + hover, 0],
+          finFrontR: [13, 1.5 + hover, 0]
+        };
+      },
+      faces: [
+        { pts: ['bladeFangL', 'bladeMidL', 'bladeNotchL'], type: 'base' },
+        { pts: ['bladeMidL', 'bladeOuterL', 'coreLeft'], type: 'edge' },
+        { pts: ['bladeNotchL', 'bladeMidL', 'coreLeft'], type: 'fold' },
+        { pts: ['bladeFangR', 'bladeNotchR', 'bladeMidR'], type: 'shade' },
+        { pts: ['bladeMidR', 'coreRight', 'bladeOuterR'], type: 'edge' },
+        { pts: ['bladeNotchR', 'coreRight', 'bladeMidR'], type: 'fold' },
+        { pts: ['coreApex', 'coreLeft', 'bladeNotchL'], type: 'base' },
+        { pts: ['coreApex', 'bladeNotchR', 'coreRight'], type: 'shade' },
+        { pts: ['coreApex', 'bladeNotchL', 'voidCenter'], type: 'fold' },
+        { pts: ['coreApex', 'voidCenter', 'bladeNotchR'], type: 'fold' },
+        { pts: ['coreApex', 'wingJointL', 'coreLeft'], type: 'fold' },
+        { pts: ['coreApex', 'coreRight', 'wingJointR'], type: 'fold' },
+        { pts: ['coreApex', 'tailChevron', 'wingJointL'], type: 'edge' },
+        { pts: ['coreApex', 'wingJointR', 'tailChevron'], type: 'edge' },
+        { pts: ['bladeOuterL', 'wingJointL', 'coreLeft'], type: 'edge' },
+        { pts: ['bladeOuterR', 'coreRight', 'wingJointR'], type: 'edge' },
+        { pts: ['finTopL', 'finFrontL', 'finBackL'], type: 'fold' },
+        { pts: ['finBotL', 'finBackL', 'finFrontL'], type: 'edge' },
+        { pts: ['finTopR', 'finBackR', 'finFrontR'], type: 'fold' },
+        { pts: ['finBotR', 'finFrontR', 'finBackR'], type: 'edge' },
+        { pts: ['coreBottom', 'bladeNotchL', 'bladeFangL'], type: 'shade' },
+        { pts: ['coreBottom', 'bladeFangR', 'bladeNotchR'], type: 'shade' },
+        { pts: ['coreBottom', 'coreLeft', 'bladeNotchL'], type: 'shade' },
+        { pts: ['coreBottom', 'bladeNotchR', 'coreRight'], type: 'shade' },
+        { pts: ['coreBottom', 'wingJointL', 'coreLeft'], type: 'shade' },
+        { pts: ['coreBottom', 'coreRight', 'wingJointR'], type: 'shade' },
+        { pts: ['coreBottom', 'tailBottom', 'wingJointL'], type: 'shade' },
+        { pts: ['coreBottom', 'wingJointR', 'tailBottom'], type: 'shade' }
+      ],
+      creases: [
+        ['bladeFangL', 'bladeOuterL'], ['bladeFangR', 'bladeOuterR'],
+        ['coreApex', 'tailChevron'], ['coreApex', 'voidCenter'],
+        ['finTopL', 'finBackL'], ['finTopR', 'finBackR'],
+        ['coreApex', 'coreLeft'], ['coreApex', 'coreRight']
+      ],
+      shadowShape: [[-14,0,38], [-36,0,8], [-18,0,-14], [0,0,-26], [18,0,-14], [36,0,8], [14,0,38], [5,0,18], [0,0,14], [-5,0,18]],
+      exhausts: [
+        { pos: [0, 3.2, -26], weight: 1.0 },
+        { pos: [-18, 0.5, -14], weight: 0.7 },
+        { pos: [18, 0.5, -14], weight: 0.7 }
+      ]
+    },
+
+    {
+      id: 3,
+      name: '虚空蛾',
+      en: 'Void Moth',
+      tag: '生物层叠 · 多阶天翼',
+      desc: '具备双阶层叠振翅与微曲触角的深空生物质折纸蛾。在事件视界边缘散发出幽邃微光，宛如宇宙的梦境守护者。',
+      stats: { speed: 85, agility: 94, foldLayers: 18, warpSync: 98 },
+      getVertices(flap, time) {
+        const flap1 = Math.sin(time * 3.8) * 0.75 + Math.sin(time * 0.7) * 0.15;
+        const flap2 = Math.sin(time * 3.8 - 0.45) * 0.65;
+        return {
+          antennaL: [-8, 5.2, 34],
+          antennaR: [8, 5.2, 34],
+          antennaMidL: [-4, 3.5, 28],
+          antennaMidR: [4, 3.5, 28],
+          head: [0, 1.8, 24],
+          thorax: [0, 5.4, 10],
+          abdomenMid: [0, 3.8, -6],
+          tailStinger: [0, -0.6, -26],
+          forewingRootL: [-6, 2.2, 8],
+          forewingRootR: [6, 2.2, 8],
+          forewingMidL: [-24, flap1 * 7, 7],
+          forewingMidR: [24, flap1 * 7, 7],
+          forewingTipL: [-40, flap1 * 9.5, -1],
+          forewingTipR: [40, flap1 * 9.5, -1],
+          forewingAftL: [-28, flap1 * 6, -10],
+          forewingAftR: [28, flap1 * 6, -10],
+          hindwingRootL: [-5, 0.8, -8],
+          hindwingRootR: [5, 0.8, -8],
+          hindwingRibL: [-22, flap2 * 5, -18],
+          hindwingRibR: [22, flap2 * 5, -18],
+          hindwingStreamerL: [-16, flap2 * 4, -36],
+          hindwingStreamerR: [16, flap2 * 4, -36],
+          bellyThorax: [0, -4.8, 7],
+          bellyAbdomen: [0, -3.8, -8]
+        };
+      },
+      faces: [
+        { pts: ['head', 'antennaMidL', 'antennaL'], type: 'edge' },
+        { pts: ['head', 'antennaR', 'antennaMidR'], type: 'edge' },
+        { pts: ['head', 'thorax', 'forewingRootL'], type: 'base' },
+        { pts: ['head', 'forewingRootR', 'thorax'], type: 'shade' },
+        { pts: ['thorax', 'abdomenMid', 'forewingRootL'], type: 'fold' },
+        { pts: ['thorax', 'forewingRootR', 'abdomenMid'], type: 'fold' },
+        { pts: ['abdomenMid', 'tailStinger', 'hindwingRootL'], type: 'shade' },
+        { pts: ['abdomenMid', 'hindwingRootR', 'tailStinger'], type: 'shade' },
+        { pts: ['forewingRootL', 'forewingMidL', 'thorax'], type: 'base' },
+        { pts: ['thorax', 'forewingMidL', 'abdomenMid'], type: 'fold' },
+        { pts: ['forewingMidL', 'forewingTipL', 'forewingAftL'], type: 'edge' },
+        { pts: ['forewingMidL', 'forewingAftL', 'abdomenMid'], type: 'edge' },
+        { pts: ['forewingRootR', 'thorax', 'forewingMidR'], type: 'shade' },
+        { pts: ['thorax', 'abdomenMid', 'forewingMidR'], type: 'fold' },
+        { pts: ['forewingMidR', 'forewingAftR', 'forewingTipR'], type: 'edge' },
+        { pts: ['forewingMidR', 'abdomenMid', 'forewingAftR'], type: 'edge' },
+        { pts: ['hindwingRootL', 'hindwingRibL', 'abdomenMid'], type: 'fold' },
+        { pts: ['hindwingRibL', 'hindwingStreamerL', 'tailStinger'], type: 'edge' },
+        { pts: ['abdomenMid', 'hindwingRibL', 'tailStinger'], type: 'edge' },
+        { pts: ['hindwingRootR', 'abdomenMid', 'hindwingRibR'], type: 'fold' },
+        { pts: ['hindwingRibR', 'tailStinger', 'hindwingStreamerR'], type: 'edge' },
+        { pts: ['abdomenMid', 'tailStinger', 'hindwingRibR'], type: 'edge' },
+        { pts: ['head', 'bellyThorax', 'forewingRootL'], type: 'shade' },
+        { pts: ['head', 'forewingRootR', 'bellyThorax'], type: 'shade' },
+        { pts: ['bellyThorax', 'bellyAbdomen', 'hindwingRootL'], type: 'shade' },
+        { pts: ['bellyThorax', 'hindwingRootR', 'bellyAbdomen'], type: 'shade' },
+        { pts: ['bellyAbdomen', 'tailStinger', 'hindwingRootL'], type: 'shade' },
+        { pts: ['bellyAbdomen', 'hindwingRootR', 'tailStinger'], type: 'shade' }
+      ],
+      creases: [
+        ['head', 'thorax'], ['thorax', 'abdomenMid'], ['abdomenMid', 'tailStinger'],
+        ['forewingRootL', 'forewingTipL'], ['forewingRootR', 'forewingTipR'],
+        ['forewingMidL', 'forewingAftL'], ['forewingMidR', 'forewingAftR'],
+        ['hindwingRootL', 'hindwingStreamerL'], ['hindwingRootR', 'hindwingStreamerR']
+      ],
+      shadowShape: [[0,0,24], [-6,0,8], [-40,0,-1], [-28,0,-10], [-16,0,-36], [0,0,-26], [16,0,-36], [28,0,-10], [40,0,-1], [6,0,8]],
+      exhausts: [
+        { pos: [0, -0.6, -26], weight: 1.0 },
+        { pos: [-16, 0, -36], weight: 0.8 },
+        { pos: [16, 0, -36], weight: 0.8 }
+      ]
+    }
+  ];
+
+  const TRAIL_DEFS = [
+    {
+      id: 0,
+      name: '宣纸星尘',
+      en: 'Paper Starlight',
+      vibe: '暖金烬屑 · 素纸星芒',
+      desc: '经典的暖金琥珀色宣纸纤维微光，伴随细密星尘火花在尾流中缓缓散落，如墨海中的金色呼吸。',
+      colors: {
+        core: [255, 248, 220],
+        main: [245, 185, 65],
+        secondary: [255, 125, 35],
+        dark: [140, 80, 25],
+        hex: '#f5b941',
+        gradient: 'linear-gradient(135deg, #fff0c2, #f5b941, #e06014)'
+      },
+      particleCount: 18,
+      spread: 6.5,
+      sparkleRate: 0.4
+    },
+    {
+      id: 1,
+      name: '离子幽蓝',
+      en: 'Ion Azure',
+      vibe: '电浆霓虹 · 赛博丝带',
+      desc: '高能电离等离子体激波，呈现冰晶青蓝与极光靛青的双重波浪干涉，散发尖锐的超光速折跃气息。',
+      colors: {
+        core: [225, 255, 255],
+        main: [0, 225, 255],
+        secondary: [35, 110, 255],
+        dark: [15, 45, 140],
+        hex: '#00e1ff',
+        gradient: 'linear-gradient(135deg, #e1ffff, #00e1ff, #236eff)'
+      },
+      particleCount: 22,
+      spread: 7.2,
+      sparkleRate: 0.7
+    },
+    {
+      id: 2,
+      name: '虚空幻紫',
+      en: 'Void Amethyst',
+      vibe: '引力漩涡 · 暗质粒子',
+      desc: '撕裂时空维度的深紫罗兰量子漩涡，螺旋扭转的暗物质粉尘宛若加甘图亚边缘跳动的奇点微光。',
+      colors: {
+        core: [245, 215, 255],
+        main: [175, 75, 255],
+        secondary: [255, 55, 185],
+        dark: [75, 20, 130],
+        hex: '#af4bff',
+        gradient: 'linear-gradient(135deg, #f5d7ff, #af4bff, #ff37b9)'
+      },
+      particleCount: 20,
+      spread: 8.0,
+      sparkleRate: 0.6
+    },
+    {
+      id: 3,
+      name: '暮光红绡',
+      en: 'Twilight Crimson',
+      vibe: '日冕激波 · 炽焰余晖',
+      desc: '恒星耀斑爆发时的狂暴炽热红绡，白炽核心伴随滚烫的太阳风粒子流，在曲速推进时如同一柄斩天烈刃。',
+      colors: {
+        core: [255, 240, 205],
+        main: [255, 50, 50],
+        secondary: [255, 120, 25],
+        dark: [140, 20, 20],
+        hex: '#ff3232',
+        gradient: 'linear-gradient(135deg, #fff0cd, #ff3232, #ff7819)'
+      },
+      particleCount: 24,
+      spread: 9.0,
+      sparkleRate: 0.8
+    }
+  ];
+
+  // ==========================================================================
+  // 2. FLEET CUSTOMIZER SINGLETON
+  // ==========================================================================
+
+  const FleetCustomizer = {
+    hulls: HULL_DEFS,
+    trails: TRAIL_DEFS,
+
+    selectedHull: 0,
+    selectedTrail: 0,
+
+    isOpen: false,
+    initialized: false,
+
+    // Runtime game hooks (injected via init)
+    game: null,
+
+    // Dynamic Trail Emitters History: Map of craft => history points
+    trailHistory: new Map(),
+
+    // 3D Turntable Preview State
+    turntable: {
+      canvas: null,
+      ctx: null,
+      yaw: 0.75,
+      pitch: 0.32,
+      autoRotate: true,
+      dragging: false,
+      lastX: 0,
+      lastY: 0,
+      time: 0,
+      particles: [],
+      animId: null
+    },
+
+    // ------------------------------------------------------------------------
+    // Persistence & State Management
+    // ------------------------------------------------------------------------
+    loadState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (typeof parsed.hull === 'number' && parsed.hull >= 0 && parsed.hull < HULL_DEFS.length) {
+            this.selectedHull = parsed.hull;
+          }
+          if (typeof parsed.trail === 'number' && parsed.trail >= 0 && parsed.trail < TRAIL_DEFS.length) {
+            this.selectedTrail = parsed.trail;
+          }
+        }
+      } catch (e) {
+        console.warn('[FleetCustomizer] Could not load localStorage:', e);
+      }
+    },
+
+    saveState() {
+      try {
+        const data = {
+          hull: this.selectedHull,
+          trail: this.selectedTrail,
+          updatedAt: Date.now()
+        };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      } catch (e) {
+        console.warn('[FleetCustomizer] Could not save localStorage:', e);
+      }
+    },
+
+    getHull() {
+      return this.selectedHull;
+    },
+
+    setHull(idx) {
+      if (idx < 0 || idx >= HULL_DEFS.length) return;
+      this.selectedHull = idx;
+      this.saveState();
+      this.trailHistory.clear();
+      this.updateUI();
+      if (this.game && typeof this.game.toast === 'function') {
+        const h = HULL_DEFS[idx];
+        this.game.toast(`舰队折纸重塑：${h.name} (${h.en}) · ${h.tag}`, 4);
+      }
+    },
+
+    getTrail() {
+      return this.selectedTrail;
+    },
+
+    setTrail(idx) {
+      if (idx < 0 || idx >= TRAIL_DEFS.length) return;
+      this.selectedTrail = idx;
+      this.saveState();
+      this.updateUI();
+      if (this.game && typeof this.game.toast === 'function') {
+        const t = TRAIL_DEFS[idx];
+        this.game.toast(`量子曲速尾迹切换：${t.name} (${t.en}) · ${t.vibe}`, 4);
+      }
+    },
+
+    // ------------------------------------------------------------------------
+    // UI Modal & Drawer Management
+    // ------------------------------------------------------------------------
+    init(gameContext) {
+      if (gameContext) this.game = gameContext;
+      this.loadState();
+      this.injectStyles();
+      this.injectDOM();
+      this.bindEvents();
+      this.initTurntable();
+      this.updateUI();
+      this.initialized = true;
+      console.log('[FleetCustomizer] Loaded successfully. Equipped Hull:', HULL_DEFS[this.selectedHull].name, '| Trail:', TRAIL_DEFS[this.selectedTrail].name);
+    },
+
+    toggle() {
+      if (this.isOpen) this.close();
+      else this.open();
+    },
+
+    open() {
+      this.isOpen = true;
+      const modal = document.getElementById('hangar-modal');
+      if (modal) {
+        modal.classList.add('open');
+      }
+      const btn = document.getElementById('hangar-toggle');
+      if (btn) btn.setAttribute('aria-pressed', 'true');
+      this.updateUI();
+      this.startTurntableLoop();
+    },
+
+    close() {
+      this.isOpen = false;
+      const modal = document.getElementById('hangar-modal');
+      if (modal) {
+        modal.classList.remove('open');
+      }
+      const btn = document.getElementById('hangar-toggle');
+      if (btn) btn.setAttribute('aria-pressed', 'false');
+      this.stopTurntableLoop();
+    },
+
+    injectStyles() {
+      if (document.getElementById('hangar-customizer-styles')) return;
+      const style = document.createElement('style');
+      style.id = 'hangar-customizer-styles';
+      style.textContent = `
+        /* Hangar Customizer Modal */
+        #hangar-modal {
+          position: absolute;
+          inset: 0;
+          z-index: 320;
+          background: rgba(6, 11, 18, 0.88);
+          backdrop-filter: blur(24px) saturate(160%);
+          -webkit-backdrop-filter: blur(24px) saturate(160%);
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          opacity: 0;
+          pointer-events: none;
+          transition: opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+          padding: 24px;
+        }
+        #hangar-modal.open {
+          opacity: 1;
+          pointer-events: auto;
+        }
+        .hangar-container {
+          width: 1060px;
+          max-width: 95vw;
+          height: 680px;
+          max-height: 90vh;
+          background: rgba(12, 19, 29, 0.94);
+          border: 1px solid rgba(230, 237, 242, 0.22);
+          box-shadow: 0 28px 72px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+          display: flex;
+          flex-direction: column;
+          position: relative;
+          overflow: hidden;
+        }
+        .hangar-header {
+          padding: 20px 28px 16px;
+          border-bottom: 1px solid rgba(230, 237, 242, 0.12);
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-end;
+          background: rgba(16, 25, 38, 0.5);
+        }
+        .hangar-titles h2 {
+          font-size: 21px;
+          letter-spacing: 3px;
+          margin: 0 0 4px;
+          font-weight: 400;
+          color: #e6edf2;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+        .hangar-titles h2 span.icon-badge {
+          font-size: 15px;
+          background: rgba(245, 185, 65, 0.15);
+          color: #f5b941;
+          padding: 2px 7px;
+          border-radius: 4px;
+          border: 1px solid rgba(245, 185, 65, 0.3);
+        }
+        .hangar-titles p {
+          font-size: 9.5px;
+          letter-spacing: 2.2px;
+          margin: 0;
+          opacity: 0.6;
+        }
+        .hangar-close-btn {
+          background: transparent;
+          border: 1px solid rgba(230, 237, 242, 0.25);
+          color: #e6edf2;
+          padding: 8px 16px;
+          border-radius: 20px;
+          font-size: 11px;
+          letter-spacing: 1.5px;
+          transition: all 0.25s;
+          cursor: pointer;
+        }
+        .hangar-close-btn:hover {
+          background: rgba(230, 237, 242, 0.15);
+          border-color: #e6edf2;
+        }
+
+        /* Modal Body: 2 Columns */
+        .hangar-body {
+          display: grid;
+          grid-template-columns: 440px 1fr;
+          flex: 1;
+          min-height: 0;
+          overflow: hidden;
+        }
+
+        /* Left Column: 3D Turntable Preview */
+        .hangar-preview-col {
+          border-right: 1px solid rgba(230, 237, 242, 0.12);
+          display: flex;
+          flex-direction: column;
+          background: radial-gradient(circle at center, rgba(20, 32, 48, 0.6) 0%, rgba(9, 14, 22, 0.9) 100%);
+          position: relative;
+          padding: 16px;
+        }
+        .turntable-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 8px;
+        }
+        .turntable-header .badge {
+          font-size: 9px;
+          letter-spacing: 1.8px;
+          color: #8fb6d8;
+          background: rgba(143, 182, 216, 0.12);
+          padding: 3px 8px;
+          border-radius: 4px;
+        }
+        .turntable-wrapper {
+          flex: 1;
+          position: relative;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          overflow: hidden;
+          border-radius: 6px;
+          border: 1px solid rgba(230, 237, 242, 0.08);
+          background: #070d14;
+          cursor: grab;
+          touch-action: none;
+        }
+        .turntable-wrapper.dragging {
+          cursor: grabbing;
+        }
+        #hangar-turntable-canvas {
+          display: block;
+          width: 100%;
+          height: 100%;
+        }
+        .turntable-hint {
+          position: absolute;
+          bottom: 10px;
+          left: 50%;
+          transform: translateX(-50%);
+          font-size: 9px;
+          letter-spacing: 1.2px;
+          color: rgba(230, 237, 242, 0.45);
+          pointer-events: none;
+          white-space: nowrap;
+          background: rgba(6, 11, 18, 0.6);
+          padding: 3px 10px;
+          border-radius: 12px;
+          border: 1px solid rgba(255, 255, 255, 0.06);
+        }
+        .turntable-meta {
+          margin-top: 12px;
+          background: rgba(16, 24, 35, 0.7);
+          border: 1px solid rgba(230, 237, 242, 0.1);
+          border-radius: 6px;
+          padding: 12px 14px;
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+        .turntable-meta-row {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          font-size: 11px;
+        }
+        .turntable-meta-row .label {
+          color: rgba(230, 237, 242, 0.55);
+          letter-spacing: 1px;
+        }
+        .turntable-meta-row .val {
+          color: #f5b941;
+          font-weight: 500;
+        }
+
+        /* Right Column: Customization Selectors */
+        .hangar-select-col {
+          display: flex;
+          flex-direction: column;
+          padding: 20px 26px;
+          overflow-y: auto;
+          gap: 22px;
+        }
+        .select-section-title {
+          font-size: 13px;
+          letter-spacing: 2px;
+          color: #e6edf2;
+          margin-bottom: 10px;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+        .select-section-title::before {
+          content: "";
+          display: inline-block;
+          width: 3px;
+          height: 13px;
+          background: #f5b941;
+          border-radius: 2px;
+        }
+        .section-desc {
+          font-size: 10px;
+          letter-spacing: 1px;
+          color: rgba(230, 237, 242, 0.5);
+          margin-top: -6px;
+          margin-bottom: 12px;
+        }
+
+        /* Card Grids */
+        .hull-cards-grid, .trail-cards-grid {
+          display: grid;
+          grid-template-columns: repeat(2, 1fr);
+          gap: 12px;
+        }
+
+        /* Hull Card */
+        .hangar-card {
+          background: rgba(16, 24, 36, 0.7);
+          border: 1px solid rgba(230, 237, 242, 0.12);
+          border-radius: 6px;
+          padding: 14px;
+          cursor: pointer;
+          transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+          position: relative;
+        }
+        .hangar-card:hover {
+          background: rgba(23, 34, 50, 0.85);
+          border-color: rgba(230, 237, 242, 0.35);
+          transform: translateY(-2px);
+        }
+        .hangar-card.active {
+          background: rgba(26, 40, 60, 0.95);
+          border-color: #f5b941;
+          box-shadow: 0 0 16px rgba(245, 185, 65, 0.25), inset 0 0 8px rgba(245, 185, 65, 0.1);
+        }
+        .card-top {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        }
+        .card-id-badge {
+          font-size: 9px;
+          letter-spacing: 1.5px;
+          color: rgba(230, 237, 242, 0.6);
+          background: rgba(255, 255, 255, 0.06);
+          padding: 2px 6px;
+          border-radius: 3px;
+        }
+        .hangar-card.active .card-id-badge {
+          color: #f5b941;
+          background: rgba(245, 185, 65, 0.15);
+        }
+        .card-active-pill {
+          font-size: 8.5px;
+          letter-spacing: 1px;
+          color: #f5b941;
+          display: none;
+          font-weight: 600;
+        }
+        .hangar-card.active .card-active-pill {
+          display: inline-block;
+        }
+        .card-name-row {
+          display: flex;
+          align-items: baseline;
+          gap: 8px;
+        }
+        .card-name {
+          font-size: 15px;
+          color: #e6edf2;
+          font-weight: 500;
+          letter-spacing: 1px;
+        }
+        .card-sub {
+          font-size: 10px;
+          color: rgba(230, 237, 242, 0.45);
+          letter-spacing: 0.5px;
+        }
+        .card-tag {
+          font-size: 9.5px;
+          color: #8fb6d8;
+          letter-spacing: 0.8px;
+        }
+        .card-desc {
+          font-size: 9.5px;
+          line-height: 1.55;
+          color: rgba(230, 237, 242, 0.6);
+        }
+
+        /* Trail Card */
+        .trail-card {
+          padding: 12px 14px;
+        }
+        .trail-swatch-bar {
+          height: 6px;
+          border-radius: 3px;
+          margin-bottom: 4px;
+          box-shadow: 0 0 10px currentColor;
+        }
+        .trail-card.active {
+          border-color: #00e1ff;
+          box-shadow: 0 0 16px rgba(0, 225, 255, 0.25);
+        }
+        .trail-card.active .card-active-pill {
+          color: #00e1ff;
+        }
+
+        /* Footer status bar */
+        .hangar-footer-bar {
+          margin-top: auto;
+          padding-top: 14px;
+          border-top: 1px solid rgba(230, 237, 242, 0.1);
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          font-size: 10px;
+          color: rgba(230, 237, 242, 0.5);
+        }
+        .hangar-footer-bar .storage-badge {
+          color: #8fb6d8;
+          letter-spacing: 1px;
+        }
+
+        @media (max-width: 900px) {
+          .hangar-body {
+            grid-template-columns: 1fr;
+            overflow-y: auto;
+          }
+          .hangar-preview-col {
+            height: 280px;
+            border-right: none;
+            border-bottom: 1px solid rgba(230, 237, 242, 0.12);
+          }
+        }
+      `;
+      document.head.appendChild(style);
+    },
+
+    injectDOM() {
+      // 1. Check/inject HUD toggle button
+      let btn = document.getElementById('hangar-toggle');
+      if (!btn) {
+        const controls = document.getElementById('controls');
+        if (controls) {
+          btn = document.createElement('button');
+          btn.className = 'control';
+          btn.id = 'hangar-toggle';
+          btn.setAttribute('title', '舰队折纸坞 · 舰体与尾迹定制 (H)');
+          btn.setAttribute('aria-label', '舰队折纸坞');
+          btn.innerHTML = `
+            <span class="icon hangar-icon">
+              <svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.3">
+                <polygon points="8,1.5 12.5,6.5 8,14.5 3.5,6.5" stroke="currentColor" stroke-linejoin="round"/>
+                <line x1="3.5" y1="6.5" x2="12.5" y2="6.5" stroke="currentColor"/>
+                <line x1="8" y1="1.5" x2="8" y2="14.5" stroke="currentColor"/>
+                <polygon points="3.5,6.5 1,10 4,11" stroke="currentColor" stroke-linejoin="round"/>
+                <polygon points="12.5,6.5 15,10 12,11" stroke="currentColor" stroke-linejoin="round"/>
+              </svg>
+            </span>
+          `;
+          const settingsToggle = document.getElementById('settings-toggle');
+          if (settingsToggle) {
+            controls.insertBefore(btn, settingsToggle);
+          } else {
+            controls.appendChild(btn);
+          }
+        }
+      }
+
+      // 2. Check/inject modal container
+      if (document.getElementById('hangar-modal')) return;
+
+      const modal = document.createElement('section');
+      modal.id = 'hangar-modal';
+      modal.setAttribute('aria-label', '舰队折纸坞');
+      modal.innerHTML = `
+        <div class="hangar-container">
+          <div class="hangar-header">
+            <div class="hangar-titles">
+              <h2 class="serif">
+                <span class="icon-badge">🚀</span>
+                舰队折纸坞 · 舰体与尾迹定制
+              </h2>
+              <p class="mono">FLEET ORIGAMI HANGAR // COSMETIC & WARP TRAIL ENGINE</p>
+            </div>
+            <button class="hangar-close-btn mono" id="hangar-close-btn">关闭 [ESC]</button>
+          </div>
+          <div class="hangar-body">
+            <!-- Left: 3D Turntable Preview -->
+            <div class="hangar-preview-col">
+              <div class="turntable-header">
+                <span class="badge mono">3D TURNTABLE PREVIEW</span>
+                <span class="mono" id="turntable-angle-label" style="font-size:9.5px; opacity:0.65;">ROT: 45°</span>
+              </div>
+              <div class="turntable-wrapper" id="turntable-wrapper">
+                <canvas id="hangar-turntable-canvas" width="400" height="360"></canvas>
+                <div class="turntable-hint mono">按住拖拽 360° 旋转 · 实时纸艺折痕与金箔光泽</div>
+              </div>
+              <div class="turntable-meta" id="turntable-meta">
+                <!-- Dynamically populated -->
+              </div>
+            </div>
+
+            <!-- Right: Customization Selectors -->
+            <div class="hangar-select-col">
+              <!-- Hulls -->
+              <div class="select-section">
+                <div class="select-section-title serif">折纸旗舰舰体几何 (Origami Hull Geometries)</div>
+                <div class="section-desc mono">高精度三维折叠网格 · 空间折纸气动学 · 旗舰金箔点缀</div>
+                <div class="hull-cards-grid" id="hull-cards-container">
+                  <!-- Injected via renderHullCards() -->
+                </div>
+              </div>
+
+              <!-- Trails -->
+              <div class="select-section">
+                <div class="select-section-title serif">量子曲速丝带尾迹 (Dynamic Quantum Warp Trails)</div>
+                <div class="section-desc mono">粒子动力学着色器 · 随曲速引擎动态拉伸 (1.0c / 5.0c / 15.0c)</div>
+                <div class="trail-cards-grid" id="trail-cards-container">
+                  <!-- Injected via renderTrailCards() -->
+                </div>
+              </div>
+
+              <!-- Footer info -->
+              <div class="hangar-footer-bar mono">
+                <span class="storage-badge">● 本地持久化：localStorage['starfield_fleet_custom_v1']</span>
+                <span>全舰队已实时同步装备</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+
+      const world = document.getElementById('world') || document.body;
+      world.appendChild(modal);
+    },
+
+    bindEvents() {
+      // Toggle button
+      const btn = document.getElementById('hangar-toggle');
+      if (btn && !btn._customizerBound) {
+        btn._customizerBound = true;
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          this.toggle();
+        });
+      }
+
+      // Close button
+      const closeBtn = document.getElementById('hangar-close-btn');
+      if (closeBtn) {
+        closeBtn.onclick = () => this.close();
+      }
+
+      // Hotkey listener: H to toggle, Escape to close if open
+      window.addEventListener('keydown', (e) => {
+        if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+        if (e.key.toLowerCase() === 'h' && !e.ctrlKey && !e.altKey && !e.metaKey) {
+          e.preventDefault();
+          this.toggle();
+        } else if (e.key === 'Escape' && this.isOpen) {
+          e.preventDefault();
+          this.close();
+        }
+      });
+    },
+
+    updateUI() {
+      this.renderHullCards();
+      this.renderTrailCards();
+      this.renderTurntableMeta();
+    },
+
+    renderHullCards() {
+      const container = document.getElementById('hull-cards-container');
+      if (!container) return;
+
+      container.innerHTML = HULL_DEFS.map((h) => {
+        const active = h.id === this.selectedHull;
+        return `
+          <div class="hangar-card ${active ? 'active' : ''}" data-hull-id="${h.id}">
+            <div class="card-top mono">
+              <span class="card-id-badge">H-0${h.id + 1}</span>
+              <span class="card-active-pill">● 已装备 EQUIPPED</span>
+            </div>
+            <div class="card-name-row">
+              <span class="card-name serif">${h.name}</span>
+              <span class="card-sub mono">${h.en}</span>
+            </div>
+            <div class="card-tag mono">${h.tag}</div>
+            <div class="card-desc serif">${h.desc}</div>
+          </div>
+        `;
+      }).join('');
+
+      container.querySelectorAll('.hangar-card').forEach((card) => {
+        card.onclick = () => {
+          const id = parseInt(card.getAttribute('data-hull-id'), 10);
+          this.setHull(id);
+        };
+      });
+    },
+
+    renderTrailCards() {
+      const container = document.getElementById('trail-cards-container');
+      if (!container) return;
+
+      container.innerHTML = TRAIL_DEFS.map((t) => {
+        const active = t.id === this.selectedTrail;
+        return `
+          <div class="hangar-card trail-card ${active ? 'active' : ''}" data-trail-id="${t.id}">
+            <div class="trail-swatch-bar" style="background: ${t.colors.gradient}; color: ${t.colors.hex};"></div>
+            <div class="card-top mono">
+              <span class="card-id-badge">T-0${t.id + 1}</span>
+              <span class="card-active-pill">● 生效中 ACTIVE</span>
+            </div>
+            <div class="card-name-row">
+              <span class="card-name serif">${t.name}</span>
+              <span class="card-sub mono">${t.en}</span>
+            </div>
+            <div class="card-tag mono">${t.vibe}</div>
+            <div class="card-desc serif">${t.desc}</div>
+          </div>
+        `;
+      }).join('');
+
+      container.querySelectorAll('.trail-card').forEach((card) => {
+        card.onclick = () => {
+          const id = parseInt(card.getAttribute('data-trail-id'), 10);
+          this.setTrail(id);
+        };
+      });
+    },
+
+    renderTurntableMeta() {
+      const meta = document.getElementById('turntable-meta');
+      if (!meta) return;
+
+      const hull = HULL_DEFS[this.selectedHull];
+      const trail = TRAIL_DEFS[this.selectedTrail];
+
+      meta.innerHTML = `
+        <div class="turntable-meta-row mono">
+          <span class="label">当前旗舰舰体</span>
+          <span class="val">${hull.name} (${hull.en})</span>
+        </div>
+        <div class="turntable-meta-row mono">
+          <span class="label">折纸多边形结构</span>
+          <span class="val">${hull.faces.length} 面 / ${hull.creases.length} 折痕</span>
+        </div>
+        <div class="turntable-meta-row mono">
+          <span class="label">量子尾迹着色器</span>
+          <span class="val" style="color:${trail.colors.hex}">${trail.name} (${trail.en})</span>
+        </div>
+        <div class="turntable-meta-row mono">
+          <span class="label">曲速激波响应</span>
+          <span class="val">1.0c 巡航 / 5.0c 激波 / 15.0c 丝带</span>
+        </div>
+      `;
+    },
+
+    // ------------------------------------------------------------------------
+    // 3. INTERACTIVE 3D TURNTABLE PREVIEW ENGINE
+    // ------------------------------------------------------------------------
+    initTurntable() {
+      const canvas = document.getElementById('hangar-turntable-canvas');
+      if (!canvas) return;
+      this.turntable.canvas = canvas;
+      this.turntable.ctx = canvas.getContext('2d');
+
+      const wrapper = document.getElementById('turntable-wrapper');
+      if (!wrapper) return;
+
+      const onStart = (clientX, clientY) => {
+        this.turntable.dragging = true;
+        this.turntable.autoRotate = false;
+        this.turntable.lastX = clientX;
+        this.turntable.lastY = clientY;
+        wrapper.classList.add('dragging');
+      };
+
+      const onMove = (clientX, clientY) => {
+        if (!this.turntable.dragging) return;
+        const dx = clientX - this.turntable.lastX;
+        const dy = clientY - this.turntable.lastY;
+        this.turntable.lastX = clientX;
+        this.turntable.lastY = clientY;
+
+        this.turntable.yaw += dx * 0.012;
+        this.turntable.pitch = Math.max(-0.45, Math.min(0.85, this.turntable.pitch + dy * 0.01));
+
+        const angleLabel = document.getElementById('turntable-angle-label');
+        if (angleLabel) {
+          const deg = Math.round((this.turntable.yaw % (Math.PI * 2)) * (180 / Math.PI));
+          angleLabel.textContent = `ROT: ${deg}°`;
+        }
+      };
+
+      const onEnd = () => {
+        this.turntable.dragging = false;
+        wrapper.classList.remove('dragging');
+        setTimeout(() => {
+          if (!this.turntable.dragging) this.turntable.autoRotate = true;
+        }, 3200);
+      };
+
+      wrapper.addEventListener('mousedown', (e) => onStart(e.clientX, e.clientY));
+      window.addEventListener('mousemove', (e) => onMove(e.clientX, e.clientY));
+      window.addEventListener('mouseup', onEnd);
+
+      wrapper.addEventListener('touchstart', (e) => {
+        if (e.touches.length > 0) onStart(e.touches[0].clientX, e.touches[0].clientY);
+      }, { passive: true });
+      window.addEventListener('touchmove', (e) => {
+        if (e.touches.length > 0) onMove(e.touches[0].clientX, e.touches[0].clientY);
+      }, { passive: true });
+      window.addEventListener('touchend', onEnd);
+    },
+
+    startTurntableLoop() {
+      if (this.turntable.animId) return;
+
+      const render = () => {
+        if (!this.isOpen) {
+          this.turntable.animId = null;
+          return;
+        }
+        this.renderTurntableFrame();
+        this.turntable.animId = requestAnimationFrame(render);
+      };
+      this.turntable.animId = requestAnimationFrame(render);
+    },
+
+    stopTurntableLoop() {
+      if (this.turntable.animId) {
+        cancelAnimationFrame(this.turntable.animId);
+        this.turntable.animId = null;
+      }
+    },
+
+    getTurntableState() {
+      return {
+        yaw: this.turntable.yaw,
+        pitch: this.turntable.pitch,
+        autoRotate: this.turntable.autoRotate,
+        selectedHull: this.selectedHull,
+        selectedTrail: this.selectedTrail
+      };
+    },
+
+    renderTurntableFrame() {
+      const { canvas, ctx } = this.turntable;
+      if (!canvas || !ctx) return;
+
+      const w = canvas.width;
+      const h = canvas.height;
+      this.turntable.time += 0.016;
+      const t = this.turntable.time;
+
+      if (this.turntable.autoRotate) {
+        this.turntable.yaw += 0.014;
+        const angleLabel = document.getElementById('turntable-angle-label');
+        if (angleLabel) {
+          const deg = Math.round((this.turntable.yaw % (Math.PI * 2)) * (180 / Math.PI));
+          angleLabel.textContent = `ROT: ${deg}°`;
+        }
+      }
+
+      ctx.clearRect(0, 0, w, h);
+
+      // Background vignette
+      const bgGrad = ctx.createRadialGradient(w / 2, h / 2, 20, w / 2, h / 2, w * 0.65);
+      bgGrad.addColorStop(0, '#0c1522');
+      bgGrad.addColorStop(1, '#05090f');
+      ctx.fillStyle = bgGrad;
+      ctx.fillRect(0, 0, w, h);
+
+      const cx = w / 2;
+      const cy = h / 2 + 15;
+      const zoom = 4.2;
+      const yaw = this.turntable.yaw;
+      const pitch = this.turntable.pitch;
+
+      // 1. Draw Pedestal Holographic Circles
+      ctx.save();
+      ctx.translate(cx, cy + 90);
+      ctx.scale(1, 0.38);
+      ctx.strokeStyle = 'rgba(143, 182, 216, 0.18)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.arc(0, 0, 110, 0, Math.PI * 2);
+      ctx.stroke();
+
+      ctx.strokeStyle = 'rgba(245, 185, 65, 0.25)';
+      ctx.beginPath();
+      ctx.arc(0, 0, 75, 0, Math.PI * 2);
+      ctx.stroke();
+
+      // Radial ticks
+      ctx.strokeStyle = 'rgba(143, 182, 216, 0.2)';
+      for (let i = 0; i < 12; i++) {
+        const rad = (i / 12) * Math.PI * 2 + yaw * 0.5;
+        ctx.beginPath();
+        ctx.moveTo(Math.cos(rad) * 65, Math.sin(rad) * 65);
+        ctx.lineTo(Math.cos(rad) * 110, Math.sin(rad) * 110);
+        ctx.stroke();
+      }
+      ctx.restore();
+
+      // 2. Project & Render 3D Origami Mesh
+      const hull = HULL_DEFS[this.selectedHull];
+      const flap = Math.sin(t * 3.5) * 0.72;
+      const vertices = hull.getVertices(flap, t);
+
+      // 3D rotation & projection helper
+      const cosY = Math.cos(yaw), sinY = Math.sin(yaw);
+      const cosP = Math.cos(pitch), sinP = Math.sin(pitch);
+      const bob = Math.sin(t * 2.2) * 4;
+
+      const project = (pt) => {
+        let x = pt[0];
+        let y = pt[1] + bob;
+        let z = pt[2];
+
+        // Rotate Pitch (X axis)
+        const y1 = y * cosP - z * sinP;
+        const z1 = y * sinP + z * cosP;
+
+        // Rotate Yaw (Y axis)
+        const x2 = x * cosY + z1 * sinY;
+        const z2 = -x * sinY + z1 * cosY;
+
+        // Perspective
+        const fov = 340;
+        const dist = 140;
+        const scale = fov / (fov + z2 + dist);
+
+        return {
+          x: cx + x2 * scale * zoom,
+          y: cy - y1 * scale * zoom,
+          z: z2,
+          origX: x2,
+          origY: y1,
+          origZ: z2
+        };
+      };
+
+      const projected = {};
+      for (const k in vertices) {
+        projected[k] = project(vertices[k]);
+      }
+
+      // Sort faces by depth
+      const sortedFaces = hull.faces.map((f) => {
+        const pts = f.pts.map(p => projected[p]);
+        const avgZ = (pts[0].z + pts[1].z + pts[2].z) / 3;
+        return { f, pts, avgZ };
+      }).sort((a, b) => b.avgZ - a.avgZ);
+
+      // Trail color palette
+      const trail = TRAIL_DEFS[this.selectedTrail];
+
+      // Draw shadow under craft
+      ctx.save();
+      ctx.beginPath();
+      const shadowPts = hull.shadowShape.map(p => {
+        const pr = project([p[0], -28, p[2]]);
+        return [pr.x, pr.y + 40];
+      });
+      ctx.moveTo(shadowPts[0][0], shadowPts[0][1]);
+      for (let i = 1; i < shadowPts.length; i++) ctx.lineTo(shadowPts[i][0], shadowPts[i][1]);
+      ctx.closePath();
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
+      ctx.filter = 'blur(6px)';
+      ctx.fill();
+      ctx.restore();
+
+      // Render Turntable Particles (Engine trail preview)
+      if (Math.random() < 0.4) {
+        const ex = hull.exhausts[Math.floor(Math.random() * hull.exhausts.length)];
+        const pr = project(ex.pos);
+        this.turntable.particles.push({
+          x: pr.x,
+          y: pr.y,
+          vx: (Math.random() - 0.5) * 1.5,
+          vy: Math.random() * 2 + 1,
+          life: 0,
+          ttl: 35 + Math.random() * 20,
+          size: 1.5 + Math.random() * 2.5
+        });
+      }
+
+      ctx.save();
+      for (let i = this.turntable.particles.length - 1; i >= 0; i--) {
+        const p = this.turntable.particles[i];
+        p.life++;
+        p.x += p.vx;
+        p.y += p.vy;
+        if (p.life > p.ttl) {
+          this.turntable.particles.splice(i, 1);
+          continue;
+        }
+        const alpha = Math.sin((p.life / p.ttl) * Math.PI) * 0.75;
+        ctx.fillStyle = `rgba(${trail.colors.main[0]}, ${trail.colors.main[1]}, ${trail.colors.main[2]}, ${alpha})`;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+
+      // Light direction from upper-left-front
+      const lx = -0.45, ly = 0.75, lz = -0.48;
+      const lLen = Math.hypot(lx, ly, lz);
+
+      // Draw mesh faces with crease shading & foil highlights
+      for (const item of sortedFaces) {
+        const { f, pts } = item;
+        const p0 = pts[0], p1 = pts[1], p2 = pts[2];
+
+        // Face normal in 3D
+        const ux = p1.origX - p0.origX, uy = p1.origY - p0.origY, uz = p1.origZ - p0.origZ;
+        const vx = p2.origX - p0.origX, vy = p2.origY - p0.origY, vz = p2.origZ - p0.origZ;
+        let nx = uy * vz - uz * vy;
+        let ny = uz * vx - ux * vz;
+        let nz = ux * vy - uy * vx;
+        const nLen = Math.hypot(nx, ny, nz) || 1;
+        nx /= nLen; ny /= nLen; nz /= nLen;
+
+        const dot = (nx * lx + ny * ly + nz * lz) / lLen;
+        const diff = Math.max(0.18, Math.min(1.0, 0.45 + dot * 0.55));
+
+        // Color blending for origami paper with metallic foil accents
+        let baseR = 230, baseG = 236, baseB = 242; // Classic paper
+        if (f.type === 'edge') {
+          baseR = 195; baseG = 205; baseB = 216;
+        } else if (f.type === 'fold') {
+          baseR = 215; baseG = 222; baseB = 230;
+        } else if (f.type === 'shade') {
+          baseR = 175; baseG = 186; baseB = 198;
+        }
+
+        // Gold Foil Highlight on Flagship Crest
+        let foilSpec = 0;
+        if (dot > 0.55) {
+          foilSpec = Math.pow(dot, 6) * 0.35;
+        }
+
+        const r = Math.min(255, Math.round(baseR * diff + foilSpec * 255));
+        const g = Math.min(255, Math.round(baseG * diff + foilSpec * 200));
+        const b = Math.min(255, Math.round(baseB * diff + foilSpec * 80));
+
+        ctx.beginPath();
+        ctx.moveTo(p0.x, p0.y);
+        ctx.lineTo(p1.x, p1.y);
+        ctx.lineTo(p2.x, p2.y);
+        ctx.closePath();
+
+        ctx.fillStyle = `rgb(${r},${g},${b})`;
+        ctx.fill();
+
+        // Paper crease stroke
+        ctx.strokeStyle = `rgba(30, 42, 58, 0.35)`;
+        ctx.lineWidth = 0.75;
+        ctx.stroke();
+      }
+
+      // Draw Crease Lines
+      ctx.strokeStyle = 'rgba(70, 95, 125, 0.55)';
+      ctx.lineWidth = 1.0;
+      for (const edge of hull.creases) {
+        const pa = projected[edge[0]];
+        const pb = projected[edge[1]];
+        if (pa && pb) {
+          ctx.beginPath();
+          ctx.moveTo(pa.x, pa.y);
+          ctx.lineTo(pb.x, pb.y);
+          ctx.stroke();
+        }
+      }
+
+      // Golden Foil Leading Edge on flagship
+      if (projected.nose && (projected.wtl || projected.wingTipL)) {
+        ctx.strokeStyle = 'rgba(245, 185, 65, 0.65)';
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        const tipL = projected.wtl || projected.wingTipL || projected.bladeOuterL;
+        const tipR = projected.wtr || projected.wingTipR || projected.bladeOuterR;
+        if (tipL && tipR) {
+          ctx.moveTo(tipL.x, tipL.y);
+          ctx.lineTo(projected.nose.x, projected.nose.y);
+          ctx.lineTo(tipR.x, tipR.y);
+          ctx.stroke();
+        }
+      }
+    },
+
+    // ------------------------------------------------------------------------
+    // 4. HIGH-PERFORMANCE FLEET & TRAIL CANVAS 2D RENDERING ENGINE
+    // ------------------------------------------------------------------------
+    /**
+     * Seamless replacement/hook for drawFleet(fleet).
+     * Maintains strict zero performance overhead (60 FPS).
+     */
+    drawFleet(fleet) {
+      if (!fleet || !fleet.length) return;
+
+      const hull = HULL_DEFS[this.selectedHull];
+      const trail = TRAIL_DEFS[this.selectedTrail];
+
+      // Resolve game environment hooks
+      const g = this.game || {};
+      const craftWorld = g.craftWorld || window.craftWorld;
+      const craftTransform = g.craftTransform || window.craftTransform;
+      const region = g.region || window.region;
+      const poly = g.poly || window.poly;
+      const line = g.line || window.line;
+      const sprite = g.sprite || window.sprite;
+      const glow = g.glow || window.glow;
+      const blend = g.blend || window.blend;
+      const shade = g.shade || window.shade;
+      const project = g.project || window.project;
+      const WarpDrive = g.WarpDrive || window.WarpDrive;
+      const time = g.time !== undefined ? g.time : (window.time || 0);
+      const cockpitBlend = g.cockpitBlend !== undefined ? g.cockpitBlend : (window.cockpitBlend || 0);
+      const camera = g.camera || window.camera;
+      const LEAD = g.LEAD !== undefined ? g.LEAD : (window.LEAD || 0);
+
+      if (!craftWorld || !craftTransform || !poly || !line) {
+        return; // Safe guard
+      }
+
+      // Compute dynamic warp stretch multiplier
+      const currentWarp = WarpDrive ? (WarpDrive.currentWarp || 0) : 0;
+      const warpGear = WarpDrive ? (WarpDrive.gearIndex || 0) : 0;
+      const isHolding = WarpDrive ? (WarpDrive.isHolding || false) : false;
+
+      // Warp speed factor: 1.0x at 1.0c, 2.8x at 5.0c, 6.5x at 15.0c
+      const warpStretch = 1.0 + (currentWarp / 28) * 4.2 + (isHolding ? 1.5 : 0);
+
+      // Iterate and draw each fleet ship
+      for (let i = 0; i < fleet.length; i++) {
+        const b = fleet[i];
+        const pos = craftWorld(b);
+        const p = region ? region(pos[0], pos[2]) : { craft: [230, 237, 242], craftShade: [160, 172, 186] };
+
+        // Cockpit fade for first-person camera
+        let nearCraft = 1;
+        if (camera && camera.eye) {
+          const dcam = Math.hypot(pos[0] - camera.eye[0], pos[1] - camera.eye[1], pos[2] - camera.eye[2]);
+          nearCraft = cockpitBlend > 0.01 ? (1 - cockpitBlend * Math.max(0, Math.min(1, (260 - (dcam - 90)) / 260))) : 1;
+          if (nearCraft < 0.005) continue;
+        }
+
+        const isLead = (b === fleet[LEAD]);
+        const flap = Math.sin(time * (b.frequency || 2.4) + (b.phase || 0)) * 0.72;
+
+        // 1. Procedural 3D Mesh for current Hull
+        const v = hull.getVertices(flap, time);
+        const world = {};
+        for (const k in v) {
+          world[k] = craftTransform(b, v[k]);
+        }
+
+        // Color palette for paper folding
+        const base = p.craft || [230, 237, 242];
+        const fold = isLead ? blend([245, 185, 65], base, 0.45) : (p.craftShade ? blend(base, p.craftShade, 0.55) : [190, 200, 212]);
+        const edge = isLead ? blend([255, 215, 0], base, 0.25) : (p.craftShade ? blend(base, p.craftShade, 0.82) : [160, 172, 186]);
+        const darkShade = shade ? shade(base, 0.86) : [170, 180, 192];
+
+        // Draw mesh faces
+        for (const face of hull.faces) {
+          const p1 = world[face.pts[0]];
+          const p2 = world[face.pts[1]];
+          const p3 = world[face.pts[2]];
+          if (!p1 || !p2 || !p3) continue;
+
+          let col = base;
+          if (face.type === 'fold') col = fold;
+          else if (face.type === 'edge') col = edge;
+          else if (face.type === 'shade') col = darkShade;
+
+          poly([p1, p2, p3], col, { alpha: nearCraft });
+        }
+
+        // Draw crease lines
+        for (const c of hull.creases) {
+          const p1 = world[c[0]];
+          const p2 = world[c[1]];
+          if (p1 && p2) {
+            line([p1, p2], p.craftShade || [140, 150, 165], 0.35 * nearCraft, 0.55);
+          }
+        }
+
+        // Flagship gold foil gleam lines
+        if (isLead && world.nose && (world.wtl || world.wingTipL || world.bladeOuterL)) {
+          const wL = world.wtl || world.wingTipL || world.bladeOuterL;
+          const wR = world.wtr || world.wingTipR || world.bladeOuterR;
+          line([wL, world.nose], [255, 215, 80], 0.7 * nearCraft, 0.9);
+          line([world.nose, wR], [255, 215, 80], 0.7 * nearCraft, 0.9);
+        }
+
+        // 2. Dynamic Quantum Warp Trail Ribbon Emitter
+        this.renderCraftTrail(b, world, hull, trail, warpStretch, nearCraft, time);
+      }
+    },
+
+    /**
+     * Renders dynamic quantum warp ribbon trails behind a craft.
+     */
+    renderCraftTrail(b, world, hull, trail, warpStretch, alphaMul, time) {
+      const g = this.game || {};
+      const poly = g.poly || window.poly;
+      const line = g.line || window.line;
+      const sprite = g.sprite || window.sprite;
+      const glow = g.glow || window.glow;
+
+      // Extract exhaust emitter point
+      const exDef = hull.exhausts[0];
+      const emitterPt = world.tail || world.centerNozzle || world.tailChevron || world.tailStinger || world.nose;
+      if (!emitterPt) return;
+
+      // Manage history buffer for this craft
+      let hist = this.trailHistory.get(b);
+      if (!hist) {
+        hist = [];
+        this.trailHistory.set(b, hist);
+      }
+
+      // Push current position to history
+      hist.unshift({
+        x: emitterPt[0],
+        y: emitterPt[1],
+        z: emitterPt[2],
+        time: time
+      });
+
+      // Max history length based on warp speed
+      const maxPts = Math.min(48, Math.round(14 * warpStretch));
+      while (hist.length > maxPts) hist.pop();
+
+      if (hist.length < 2) return;
+
+      // Draw Ribbon Trail Segments
+      const colMain = trail.colors.main;
+      const colCore = trail.colors.core;
+
+      for (let j = 0; j < hist.length - 1; j++) {
+        const pt1 = hist[j];
+        const pt2 = hist[j + 1];
+        const frac = j / hist.length;
+        const segAlpha = Math.max(0, (1 - frac) * 0.75 * alphaMul);
+
+        // Trail width & oscillation
+        const wave = Math.sin(time * 12 + j * 0.5) * (1.2 + frac * 3.5);
+        const w1 = [pt1.x + wave, pt1.y, pt1.z];
+        const w2 = [pt2.x + wave * 0.8, pt2.y, pt2.z];
+
+        if (line) {
+          // Outer plasma trail line
+          line([w1, w2], colMain, segAlpha, Math.max(0.6, 2.5 * (1 - frac)));
+          // Core bright quantum thread
+          line([w1, w2], colCore, segAlpha * 0.9, Math.max(0.4, 1.2 * (1 - frac)));
+        }
+      }
+
+      // Spawn drifting warp spark particles at high speeds
+      if (warpStretch > 1.4 && sprite && Math.random() < 0.35) {
+        const pt = hist[Math.floor(Math.random() * Math.min(hist.length, 6))];
+        const spreadX = (Math.random() - 0.5) * 8 * warpStretch;
+        const spreadY = (Math.random() - 0.5) * 6;
+        sprite([pt.x + spreadX, pt.y + spreadY, pt.z], 1.8 * warpStretch, colMain, 'dust', 0.65 * alphaMul);
+      }
+    },
+
+    /**
+     * Seamless replacement/hook for drawCraftShadows(fleet).
+     */
+    drawCraftShadows(fleet) {
+      if (!fleet || !fleet.length) return;
+
+      const hull = HULL_DEFS[this.selectedHull];
+      const g = this.game || {};
+      const craftWorld = g.craftWorld || window.craftWorld;
+      const craftTransform = g.craftTransform || window.craftTransform;
+      const region = g.region || window.region;
+      const poly = g.poly || window.poly;
+
+      if (!craftWorld || !craftTransform || !poly) return;
+
+      for (let i = 0; i < fleet.length; i++) {
+        const b = fleet[i];
+        const pos = craftWorld(b);
+        const p = region ? region(pos[0], pos[2]) : { treeDark: [20, 30, 45], void: 0 };
+        const height = pos[1];
+
+        const pts = hull.shadowShape.map(v => {
+          const q = craftTransform(b, v);
+          return [q[0] + height * 0.37, 0.7, q[2] + height * 0.28];
+        });
+
+        poly(pts, p.treeDark || [20, 30, 45], {
+          alpha: 0.11 * (1 - (p.void || 0) * 0.71)
+        });
+      }
+    },
+
+    /**
+     * Seamless replacement/hook for drawShard(s, p, t).
+     * Renders floating procedural folded paper shards & quantum dust flakes.
+     */
+    drawShard(s, p, t) {
+      const g = this.game || {};
+      const poly = g.poly || window.poly;
+      const line = g.line || window.line;
+      const blend = g.blend || window.blend;
+      const shade = g.shade || window.shade;
+
+      if (!poly) return;
+
+      // Active trail tint
+      const trail = TRAIL_DEFS[this.selectedTrail];
+      const trailCol = trail.colors.main;
+
+      const q = [null, null, null, null];
+      if (typeof window.shardShape === 'function') {
+        window.shardShape(s, t, q);
+      } else {
+        // Fallback procedural diamond shard
+        const a = s.ang + t * s.spin;
+        const cs = Math.cos(a) * s.w * 0.5;
+        const sn = Math.sin(a) * s.w * 0.5;
+        q[0] = [s.x - cs, s.y, s.z - sn];
+        q[1] = [s.x, s.y + s.h * 0.5, s.z];
+        q[2] = [s.x + cs, s.y, s.z + sn];
+        q[3] = [s.x, s.y - s.h * 0.5, s.z];
+      }
+
+      if (q[0] && q[1] && q[2] && q[3]) {
+        const shardColor = blend ? blend(p.wall || [180, 190, 205], trailCol, 0.22) : trailCol;
+        poly(q, shardColor, { palette: p, alpha: 0.92 });
+
+        const mid = q.map((v, i) => v.map((c, j) => (c + q[(i + 2) % 4][j]) * 0.5));
+        poly([q[0], q[1], mid[1], mid[0]], shade ? shade(shardColor, 0.88) : shardColor, { palette: p, alpha: 0.88 });
+
+        if (line) {
+          line([q[0], q[2]], shade ? shade(shardColor, 0.75) : [120, 130, 150], 0.5, 0.55);
+        }
+      }
+    }
+  };
+
+  // Expose globally
+  root.FleetCustomizer = FleetCustomizer;
+
+  // Auto-init on DOMContentLoaded if not already
+  if (typeof document !== 'undefined') {
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', () => FleetCustomizer.init());
+    } else {
+      FleetCustomizer.init();
+    }
+  }
+
+})(typeof window !== 'undefined' ? window : this);
+
+</script>
 <script>
 'use strict';
 /*
@@ -1098,8 +2861,26 @@ const Codex = {
         this.discover(item.id, item.name);
       }
     }
+  },
+
+  unlock(id, meta) {
+    if (typeof id === "object") { meta = id; id = meta.id; }
+    if (!id) return;
+    const name = (meta && meta.name) || id;
+    if (meta && !this.database.wonders.some(w => w.id === id)) {
+      this.database.wonders.push({
+        id: id,
+        name: name,
+        en: (meta && meta.en) || "Deciphered Ancient Relic",
+        tag: (meta && meta.tag) || "密文 / R1",
+        desc: (meta && meta.desc) || "通过深空雷达与折纸谐振仪成功破译的远古信标日志。",
+        cond: () => false
+      });
+    }
+    this.discover(id, name);
   }
 };
+window.Codex = Codex;
 
 // ============================================================================
 // 2. PHOTO MODE & WALLPAPER STUDIO (深空摄影模式与壁纸工坊)
@@ -3047,6 +4828,10 @@ function shardShape(s,t,out){
           s.z+(u[2]*Math.cos(ang)+v[2]*Math.sin(ang))*s.w*r0];}
 }
 function drawShard(s,p,t){
+ if(typeof FleetCustomizer !== 'undefined' && FleetCustomizer.drawShard){
+  FleetCustomizer.drawShard(s,p,t);
+  return;
+ }
  const q=[null,null,null,null];shardShape(s,t,q);
  poly(q,blend(p.wall,p.craft,.18),{palette:p,alpha:.94});
  const mid=q.map((v,i)=>v.map((c,j)=>(c+q[(i+2)%4][j])*.5));
@@ -4947,6 +6732,10 @@ function craftTransform(b, p) {
 }
 
 function drawCraftShadows() {
+ if(typeof FleetCustomizer !== 'undefined' && FleetCustomizer.drawCraftShadows){
+  FleetCustomizer.drawCraftShadows(fleet);
+  return;
+ }
  for (const b of fleet) {
   const pos = craftWorld(b), p = region(pos[0], pos[2]), height = pos[1];
   const shape = [[0,0,26],[-6,0,4],[-35,0,-13],[-12,0,-11],[-6,0,-25],[0,0,-20],[6,0,-25],[12,0,-11],[35,0,-13],[6,0,4]];
@@ -4957,6 +6746,10 @@ function drawCraftShadows() {
 
 
 function drawFleet(){
+ if(typeof FleetCustomizer !== 'undefined' && FleetCustomizer.drawFleet){
+  FleetCustomizer.drawFleet(fleet);
+  return;
+ }
  for(const b of fleet){
   const pos=craftWorld(b),p=region(pos[0],pos[2]);
   const flap=Math.sin(time*b.frequency+b.phase)*.72+Math.sin(time*.62+b.phase)*.12;
@@ -7158,6 +8951,19 @@ $('begin').addEventListener('click',()=>{
  // Preserve the original gesture for audio and fullscreen: no await before these.
  sound.init();fullscreen(false);requestWake();canvas.focus({preventScroll:true});
 Codex.init(); PhotoStudio.init(); GameSettings.init();
+if(typeof FleetCustomizer !== 'undefined' && FleetCustomizer.init){
+ FleetCustomizer.init({
+  fleet, LEAD, craftWorld, craftTransform, poly, line, sprite, glow,
+  shade, blend, region, camera, WarpDrive, toast, css, haze,
+  project,
+  get time() { return time; },
+  get travel() { return travel; },
+  get cockpitBlend() { return cockpitBlend; },
+  get currentPalette() { return currentPalette; },
+  get W() { return W; },
+  get H() { return H; }
+ });
+}
 
 });
 
@@ -7178,6 +8984,7 @@ window.addEventListener('keyup', e => {
 
 $('camera-toggle').addEventListener('click',toggleCamera);
 $('formation-toggle').addEventListener('click',()=>FleetFormations.cycle());
+const hangarBtn = $('hangar-toggle'); if(hangarBtn && !hangarBtn._customizerBound) { hangarBtn._customizerBound = true; hangarBtn.addEventListener('click',()=>FleetCustomizer.toggle()); }
 $('sound-toggle').addEventListener('click',toggleSound);$('poem-toggle').addEventListener('click',togglePoem);$('pause-toggle').addEventListener('click',togglePause);$('fullscreen-toggle').addEventListener('click',()=>fullscreen(true));
 window.addEventListener('keydown',e=>{
  if(!started||e.ctrlKey||e.metaKey||e.altKey)return;
@@ -7188,13 +8995,13 @@ window.addEventListener('keydown',e=>{
  else if(e.key.toLowerCase()==='p')PhotoStudio.toggle();
  else if(e.key.toLowerCase()==='t')togglePoem();
  else if(e.key.toLowerCase()==='j'||e.key==='Tab'){e.preventDefault();Codex.toggle();}
- else if(e.key==='Escape'){if(PhotoStudio.active)PhotoStudio.close();else if($('codex-modal').classList.contains('open'))Codex.close();else GameSettings.toggle();}
+ else if(e.key==='Escape'){if(PhotoStudio.active)PhotoStudio.close();else if(typeof FleetCustomizer !== 'undefined' && FleetCustomizer.isOpen)FleetCustomizer.close();else if($('codex-modal').classList.contains('open'))Codex.close();else GameSettings.toggle();}
  else if(e.key==='1')FleetFormations.set(0);
  else if(e.key==='2')FleetFormations.set(1);
  else if(e.key==='3')FleetFormations.set(2);
  else if(e.key==='4')FleetFormations.set(3);
  else if(e.key.toLowerCase()==='f')FleetFormations.cycle();
- else if(e.key.toLowerCase()==='h')toast('引航 · G/Shift曲速 · C镜头 · V驾驶舱 · F/1-4编队 · P摄影 · Tab图鉴 · M声音 · 空格暂停 · ESC设置',7);
+ else if(e.key.toLowerCase()==='h'){if(typeof FleetCustomizer !== 'undefined')FleetCustomizer.toggle();}
 });
 document.addEventListener('visibilitychange',()=>{last=performance.now();if(document.hidden){sound.suspend();if(wakeLock)wakeLock.release().catch(()=>{});}else{if(!paused)sound.resume();requestWake();}});
 window.addEventListener('blur',()=>{wind.active=false;wind.last=time;pointers.clear();});
@@ -7241,6 +9048,7 @@ function frame(now){
 // A small read-only diagnostic surface for inspecting a locally opened file.
 window.Starfield=Object.freeze({
  version:'v68-true-nadir-zenith-master',
+ fleetCustomizer:()=>window.FleetCustomizer,
  holeDir:()=>{let best=null,bd=1e9;const lw=craftWorld(fleet[LEAD]);
  for(const m of activeMasses){if(m.kind!==4)continue;const d=Math.hypot(lw[0]-m.x,lw[1]-m.y,lw[2]-m.z);if(d<bd){bd=d;best=m;}}
  if(!best)return null;const dx=best.x-lw[0],dz=best.z-lw[2];
@@ -7258,8 +9066,76 @@ window.Starfield=Object.freeze({
  getCamera:()=>camera,
  updateGravity:()=>updateGravity(),
  getActiveMasses:()=>activeMasses,
+ getFlagship:()=>craftWorld(fleet[LEAD]),
+ project:(p)=>project(p),
+ corridorPoint:(z)=>[routeX(z),courseY(z),z],
+ getSoundscape:()=>sound,
  nova:()=>{const n=novaState();return n?{age:+n.age.toFixed(1),life:+n.life.toFixed(3),x:Math.round(n.x),y:Math.round(n.y)}:null;},
  cameras:Object.freeze(LENSES.map(p=>Object.freeze({name:p.name,en:p.en}))),
+ feedWind:(p)=>feedWind(p),
+ applySteer:(sx,sy)=>{
+  const tx=clamp(0.42+sx*0.45),ty=clamp(0.50+sy*0.45);
+  feedWind({x:tx*W,y:ty*H});
+ },
+ toggleCockpit:()=>toggleCockpit(),
+ toggleCamera:()=>toggleCamera(),
+ togglePause:()=>togglePause(),
+ cycleFormation:(dir=1)=>{
+  if(dir<0)FleetFormations.set((FleetFormations.current+FleetFormations.names.length-1)%FleetFormations.names.length);
+  else FleetFormations.cycle();
+ },
+ cycleWarp:()=>WarpDrive.cycle(),
+ setWarpHold:(h)=>WarpDrive.setHold(h),
+ throttleUp:()=>{
+  if(WarpDrive.gearIndex<WarpDrive.gears.length-1){
+   WarpDrive.gearIndex++;WarpDrive.updateUI();
+   const g=WarpDrive.gears[WarpDrive.gearIndex];toast(`已加速至 ${g.label} · 速度 ${g.cVal}`);
+  }else WarpDrive.setHold(true);
+ },
+ throttleDown:()=>{
+  if(WarpDrive.isHolding)WarpDrive.setHold(false);
+  else if(WarpDrive.gearIndex>0){
+   WarpDrive.gearIndex--;WarpDrive.updateUI();
+   const g=WarpDrive.gears[WarpDrive.gearIndex];toast(`已减速至 ${g.label} · 速度 ${g.cVal}`);
+  }
+ },
+ slingshotBoost:()=>{
+  warp+=10.0;WarpDrive.shake+=2.0;
+  toast('⚡ 超曲速脉冲爆冲 // WARP BURST ENGAGED');
+  if(typeof sound!=='undefined'&&sound.playChime)sound.playChime(1046.5);
+ },
+ rotateCamera:(dyaw,dpitch)=>{
+  if(autoCamera){
+   autoCamera=false;manual.yaw=camera.yaw;manual.pitch=camera.pitch;manual.distance=camera.distance;manual.aimY=camera.aimY;manual.lane=camera.lane;wind.active=false;canvas.classList.add('manual');
+   $('camera-toggle').setAttribute('aria-pressed','false');$('camera-button-name').textContent='自主镜头';
+  }
+  manual.yaw+=dyaw;manual.pitch=clamp(manual.pitch+dpitch,-.16,1.47);manual.lane=0;
+ },
+ zoomCamera:(factor)=>{
+  if(autoCamera){observation.distance=clamp(observation.distance+(1-factor)*300,-180,520);observation.last=time;}
+  else{manual.distance=clamp(manual.distance/factor,360,4400);}
+ },
+ isCockpit:()=>cockpitMode,
+ isAutoCamera:()=>autoCamera,
+ isModalOpen:()=>{
+  return PhotoStudio.active||$('codex-modal').classList.contains('open')||$('settings-drawer').classList.contains('open');
+ },
+ closeModal:()=>{
+  if(PhotoStudio.active)PhotoStudio.close();
+  else if($('codex-modal').classList.contains('open'))Codex.close();
+  else if($('settings-drawer').classList.contains('open'))GameSettings.close();
+ },
+ toggleCodex:()=>Codex.toggle(),
+ togglePhoto:()=>PhotoStudio.toggle(),
+ toggleSettings:()=>GameSettings.toggle(),
+ isSlingshotSurge:()=>(typeof slingshotSurgeActive!=='undefined'&&slingshotSurgeActive),
+ getGateT:()=>gateT,
+ getCapturePhase:()=>capturePhase,
+ getWarpDrive:()=>WarpDrive,
+ getFleetFormations:()=>FleetFormations,
+ getCodex:()=>Codex,
+ getPhotoStudio:()=>PhotoStudio,
+ getGameSettings:()=>GameSettings,
  worldFor,
  getNarrator:()=>Narrator,
  speak:(text,opt)=>Narrator.speak(text,opt),
@@ -7303,6 +9179,2800 @@ window.Starfield=Object.freeze({
 });
 requestAnimationFrame(frame);
 })();
+
+</script>
+<script>
+/* GAMEPAD & TOUCH CONTROLS MODULE INLINED */
+/**
+ * ============================================================================
+ * STARFIELD // HTML5 GAMEPAD & MOBILE TOUCH CONTROLS ENGINE
+ * File: tools/gamepad_touch.js
+ * 
+ * Provides console-grade Gamepad (Xbox / PlayStation / Generic) support
+ * and responsive Mobile/Tablet Virtual Touch Controls for Starfield.
+ * 
+ * Features:
+ * - HTML5 Gamepad API polling loop with smooth stick interpolation & deadzone
+ * - Dual-rumble haptic vibration feedback on slingshot surge, wormholes & black holes
+ * - Dynamic floating virtual analog thumbstick with spring-damper return
+ * - Bottom-right quick-touch action cluster (Boost, Cam, Codex, Photo, Settings, Warp)
+ * - Two-finger pinch-to-zoom camera tracking
+ * - Graceful fallback to DOM & KeyboardEvent dispatching
+ * ============================================================================
+ */
+
+(function(window) {
+  'use strict';
+
+  // Prevent multiple initializations
+  if (window.GamepadTouchControls && window.GamepadTouchControls.isInitialized()) {
+    return;
+  }
+
+  // --- Constants & Config ---
+  const DEADZONE_LEFT = 0.12;
+  const DEADZONE_RIGHT = 0.12;
+  const STICK_MAX_RADIUS = 54; // pixels for virtual joystick
+  const CAMERA_YAW_SPEED = 1.6;
+  const CAMERA_PITCH_SPEED = 1.2;
+
+  // --- State Variables ---
+  let isInitialized = false;
+  let isTouchCapable = false;
+  let touchHudVisible = false;
+  let activeGamepadIndex = -1;
+  let gamepadConnected = false;
+
+  // Flight & Camera Steering State
+  let steerX = 0.0;
+  let steerY = 0.0;
+  let targetSteerX = 0.0;
+  let targetSteerY = 0.0;
+
+  // Gamepad Previous Button States (for edge detection)
+  let prevButtons = [];
+  let prevAxes = [0, 0, 0, 0];
+
+  // Game Vibration Tracking
+  let prevSurge = false;
+  let prevGateT = 0;
+  let prevCapturePhase = 0;
+
+  // Virtual Joystick DOM & Touch State
+  let joyContainer = null;
+  let joyBase = null;
+  let joyKnob = null;
+  let joyTouchId = null;
+  let joyOrigin = { x: 0, y: 0 };
+  let joyOffset = { x: 0, y: 0 };
+  let joyActive = false;
+  let joySpringAnimId = null;
+
+  // Action Cluster DOM
+  let actionCluster = null;
+  let gamepadBadge = null;
+
+  // Pinch-to-Zoom State
+  let activeTouches = new Map();
+  let initialPinchDist = 0;
+  let lastPinchDist = 0;
+
+  // Animation Loop
+  let rafId = null;
+  let lastFrameTime = performance.now();
+
+  // --- Sound & Haptic Helpers ---
+  function triggerHaptic(durationMs = 20) {
+    try {
+      if (typeof navigator !== 'undefined' && navigator.vibrate) {
+        navigator.vibrate(durationMs);
+      }
+    } catch (_) {}
+  }
+
+  function playRumble(pad, { duration = 300, weakMagnitude = 0.6, strongMagnitude = 0.8, startDelay = 0 } = {}) {
+    if (!pad) return;
+    try {
+      if (pad.vibrationActuator && typeof pad.vibrationActuator.playEffect === 'function') {
+        pad.vibrationActuator.playEffect('dual-rumble', {
+          startDelay,
+          duration,
+          weakMagnitude: Math.min(1, Math.max(0, weakMagnitude)),
+          strongMagnitude: Math.min(1, Math.max(0, strongMagnitude))
+        }).catch(() => {});
+      } else if (pad.hapticActuators && pad.hapticActuators.length > 0) {
+        pad.hapticActuators[0].pulse(strongMagnitude, duration).catch(() => {});
+      }
+    } catch (_) {}
+  }
+
+  // --- Game Dispatch Helper ---
+  // Safely calls window.Starfield API or falls back to synthetic DOM / Keyboard events
+  const Engine = {
+    get sf() { return window.Starfield || null; },
+
+    isFlightStarted() {
+      if (this.sf && typeof this.sf.getState === 'function') {
+        return !!this.sf.getState().started;
+      }
+      return document.getElementById('world')?.classList.contains('flying') || false;
+    },
+
+    beginFlight() {
+      const beginBtn = document.getElementById('begin');
+      if (beginBtn && beginBtn.offsetParent !== null) {
+        beginBtn.click();
+      }
+    },
+
+    applySteer(sx, sy) {
+      if (this.sf && typeof this.sf.applySteer === 'function') {
+        this.sf.applySteer(sx, sy);
+      } else if (this.sf && typeof this.sf.feedWind === 'function') {
+        const W = window.innerWidth, H = window.innerHeight;
+        const tx = Math.max(0, Math.min(1, 0.42 + sx * 0.45));
+        const ty = Math.max(0, Math.min(1, 0.50 + sy * 0.45));
+        this.sf.feedWind({ x: tx * W, y: ty * H });
+      } else {
+        // PointerEvent Fallback
+        const canvas = document.getElementById('landscape');
+        if (canvas) {
+          const clientX = (0.42 + sx * 0.45) * window.innerWidth;
+          const clientY = (0.50 + sy * 0.45) * window.innerHeight;
+          canvas.dispatchEvent(new PointerEvent('pointermove', {
+            clientX, clientY, pointerType: 'mouse', bubbles: true
+          }));
+        }
+      }
+    },
+
+    rotateCamera(dyaw, dpitch) {
+      if (this.sf && typeof this.sf.rotateCamera === 'function') {
+        this.sf.rotateCamera(dyaw, dpitch);
+      } else {
+        // Fallback: manually update camera or dispatch mouse drag
+        const cam = this.sf && typeof this.sf.getCamera === 'function' ? this.sf.getCamera() : null;
+        if (cam) {
+          cam.yaw = (cam.yaw || 0) + dyaw;
+          cam.pitch = Math.max(-0.16, Math.min(1.47, (cam.pitch || 0) + dpitch));
+        }
+      }
+    },
+
+    zoomCamera(factor) {
+      if (this.sf && typeof this.sf.zoomCamera === 'function') {
+        this.sf.zoomCamera(factor);
+      } else {
+        const canvas = document.getElementById('landscape');
+        if (canvas) {
+          const deltaY = (1 - factor) * 400;
+          canvas.dispatchEvent(new WheelEvent('wheel', { deltaY, bubbles: true, cancelable: true }));
+        }
+      }
+    },
+
+    toggleCockpit() {
+      if (this.sf && typeof this.sf.toggleCockpit === 'function') {
+        this.sf.toggleCockpit();
+      } else {
+        window.dispatchEvent(new KeyboardEvent('keydown', { key: 'v', code: 'KeyV', bubbles: true }));
+      }
+    },
+
+    toggleCamera() {
+      if (this.sf && typeof this.sf.toggleCamera === 'function') {
+        this.sf.toggleCamera();
+      } else {
+        const btn = document.getElementById('camera-toggle');
+        if (btn) btn.click();
+        else window.dispatchEvent(new KeyboardEvent('keydown', { key: 'c', code: 'KeyC', bubbles: true }));
+      }
+    },
+
+    cycleFormation(dir = 1) {
+      if (this.sf && typeof this.sf.cycleFormation === 'function') {
+        this.sf.cycleFormation(dir);
+      } else {
+        const btn = document.getElementById('formation-toggle');
+        if (btn) btn.click();
+        else window.dispatchEvent(new KeyboardEvent('keydown', { key: 'f', code: 'KeyF', bubbles: true }));
+      }
+    },
+
+    throttleUp() {
+      if (this.sf && typeof this.sf.throttleUp === 'function') {
+        this.sf.throttleUp();
+      } else {
+        const btn = document.getElementById('warp-toggle');
+        if (btn) btn.click();
+        else window.dispatchEvent(new KeyboardEvent('keydown', { key: 'g', code: 'KeyG', bubbles: true }));
+      }
+    },
+
+    throttleDown() {
+      if (this.sf && typeof this.sf.throttleDown === 'function') {
+        this.sf.throttleDown();
+      } else {
+        // Fallback: cycle warp or brake
+        window.dispatchEvent(new KeyboardEvent('keydown', { key: 'g', code: 'KeyG', bubbles: true }));
+      }
+    },
+
+    slingshotBoost() {
+      if (this.sf && typeof this.sf.slingshotBoost === 'function') {
+        this.sf.slingshotBoost();
+      } else {
+        window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Shift', code: 'ShiftLeft', bubbles: true }));
+        setTimeout(() => {
+          window.dispatchEvent(new KeyboardEvent('keyup', { key: 'Shift', code: 'ShiftLeft', bubbles: true }));
+        }, 300);
+      }
+    },
+
+    setWarpHold(hold) {
+      if (this.sf && typeof this.sf.setWarpHold === 'function') {
+        this.sf.setWarpHold(hold);
+      } else {
+        const type = hold ? 'keydown' : 'keyup';
+        window.dispatchEvent(new KeyboardEvent(type, { key: 'Shift', code: 'ShiftLeft', bubbles: true }));
+      }
+    },
+
+    closeModal() {
+      if (this.sf && typeof this.sf.closeModal === 'function') {
+        this.sf.closeModal();
+      } else {
+        window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true }));
+      }
+    },
+
+    isModalOpen() {
+      if (this.sf && typeof this.sf.isModalOpen === 'function') {
+        return this.sf.isModalOpen();
+      }
+      return !!(
+        document.querySelector('.photo-modal.open') ||
+        document.getElementById('codex-modal')?.classList.contains('open') ||
+        document.getElementById('settings-drawer')?.classList.contains('open')
+      );
+    },
+
+    toggleCodex() {
+      if (this.sf && typeof this.sf.toggleCodex === 'function') {
+        this.sf.toggleCodex();
+      } else {
+        const btn = document.getElementById('codex-toggle');
+        if (btn) btn.click();
+        else window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', code: 'Tab', bubbles: true }));
+      }
+    },
+
+    togglePhoto() {
+      if (this.sf && typeof this.sf.togglePhoto === 'function') {
+        this.sf.togglePhoto();
+      } else {
+        const btn = document.getElementById('photo-toggle');
+        if (btn) btn.click();
+        else window.dispatchEvent(new KeyboardEvent('keydown', { key: 'p', code: 'KeyP', bubbles: true }));
+      }
+    },
+
+    toggleSettings() {
+      if (this.sf && typeof this.sf.toggleSettings === 'function') {
+        this.sf.toggleSettings();
+      } else {
+        const btn = document.getElementById('settings-toggle');
+        if (btn) btn.click();
+        else window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true }));
+      }
+    },
+
+    isSlingshotSurge() {
+      if (this.sf && typeof this.sf.isSlingshotSurge === 'function') {
+        return this.sf.isSlingshotSurge();
+      }
+      return document.getElementById('slingshot-toast')?.classList.contains('show') || false;
+    },
+
+    getGateT() {
+      if (this.sf && typeof this.sf.getGateT === 'function') {
+        return this.sf.getGateT();
+      }
+      return 0;
+    },
+
+    getCapturePhase() {
+      if (this.sf && typeof this.sf.getCapturePhase === 'function') {
+        return this.sf.getCapturePhase();
+      }
+      return 0;
+    }
+  };
+
+  // --- Inject CSS Stylesheet ---
+  function injectStyles() {
+    if (document.getElementById('starfield-gamepad-touch-styles')) return;
+
+    const style = document.createElement('style');
+    style.id = 'starfield-gamepad-touch-styles';
+    style.textContent = `
+      /* Touch Controls Overlay Layer */
+      #starfield-touch-overlay {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        z-index: 120;
+        user-select: none;
+        -webkit-user-select: none;
+        overflow: hidden;
+      }
+
+      /* Floating Virtual Joystick */
+      .sf-touch-joy-zone {
+        position: absolute;
+        left: 0;
+        bottom: 0;
+        width: 45vw;
+        height: 55vh;
+        pointer-events: auto;
+        touch-action: none;
+      }
+
+      .sf-touch-joy-base {
+        position: absolute;
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(230, 237, 242, 0.05) 0%, rgba(11, 17, 24, 0.45) 80%);
+        border: 1.5px solid rgba(230, 237, 242, 0.28);
+        box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3), inset 0 0 16px rgba(180, 215, 255, 0.08);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        transform: translate(-50%, -50%);
+        opacity: 0.35;
+        transition: opacity 0.25s ease, border-color 0.25s ease;
+        pointer-events: none;
+        box-sizing: border-box;
+      }
+
+      .sf-touch-joy-base.active {
+        opacity: 0.95;
+        border-color: rgba(136, 192, 255, 0.7);
+        box-shadow: 0 0 28px rgba(100, 180, 255, 0.35), inset 0 0 20px rgba(100, 180, 255, 0.15);
+      }
+
+      .sf-touch-joy-base:before {
+        content: "";
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 6px;
+        height: 6px;
+        transform: translate(-50%, -50%);
+        border-radius: 50%;
+        background: rgba(230, 237, 242, 0.3);
+      }
+
+      .sf-touch-joy-knob {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 52px;
+        height: 52px;
+        border-radius: 50%;
+        background: radial-gradient(circle at 35% 35%, rgba(255, 255, 255, 0.9) 0%, rgba(180, 215, 255, 0.6) 60%, rgba(100, 160, 230, 0.4) 100%);
+        border: 1.5px solid rgba(255, 255, 255, 0.85);
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5), 0 0 16px rgba(136, 192, 255, 0.6);
+        transform: translate(-50%, -50%);
+        transition: transform 0.05s linear;
+        pointer-events: none;
+        box-sizing: border-box;
+      }
+
+      .sf-touch-joy-knob.spring-return {
+        transition: transform 0.22s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+      }
+
+      /* Virtual Action Button Cluster */
+      .sf-touch-cluster {
+        position: absolute;
+        right: 20px;
+        bottom: 24px;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 12px;
+        pointer-events: auto;
+        touch-action: none;
+      }
+
+      .sf-touch-btn-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .sf-touch-btn {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        background: rgba(11, 17, 24, 0.65);
+        border: 1px solid rgba(230, 237, 242, 0.3);
+        color: #e6edf2;
+        font-family: inherit;
+        font-size: 16px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+        cursor: pointer;
+        padding: 0;
+        outline: none;
+        transition: transform 0.12s ease, background 0.12s ease, border-color 0.12s ease;
+        -webkit-tap-highlight-color: transparent;
+      }
+
+      .sf-touch-btn:active, .sf-touch-btn.active {
+        transform: scale(0.92);
+        background: rgba(100, 180, 255, 0.28);
+        border-color: #88c0ff;
+        box-shadow: 0 0 16px rgba(100, 180, 255, 0.5);
+      }
+
+      .sf-touch-btn span.label {
+        font-size: 8px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        opacity: 0.75;
+        margin-top: 1px;
+        font-family: "SFMono-Regular", Consolas, monospace;
+      }
+
+      /* Primary Slingshot Boost Button */
+      .sf-touch-btn.boost {
+        width: 62px;
+        height: 62px;
+        background: radial-gradient(circle, rgba(255, 215, 0, 0.2) 0%, rgba(11, 17, 24, 0.75) 100%);
+        border: 1.5px solid rgba(255, 215, 0, 0.65);
+        color: #fff3a8;
+        box-shadow: 0 0 20px rgba(255, 215, 0, 0.35);
+      }
+
+      .sf-touch-btn.boost:active, .sf-touch-btn.boost.active {
+        transform: scale(0.92);
+        background: rgba(255, 215, 0, 0.4);
+        box-shadow: 0 0 28px rgba(255, 215, 0, 0.7);
+      }
+
+      /* Gamepad HUD Status Badge */
+      .sf-gamepad-badge {
+        position: absolute;
+        top: 24px;
+        left: 50%;
+        transform: translateX(-50%) translateY(-20px);
+        padding: 6px 18px;
+        border-radius: 20px;
+        background: rgba(11, 17, 24, 0.75);
+        border: 1px solid rgba(136, 192, 255, 0.45);
+        color: #d6e8ff;
+        font-family: "SFMono-Regular", Consolas, monospace;
+        font-size: 11px;
+        letter-spacing: 0.08em;
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.4s ease, transform 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+        z-index: 130;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+      }
+
+      .sf-gamepad-badge.show {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+      }
+
+      .sf-gamepad-badge .dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: #00ff88;
+        box-shadow: 0 0 8px #00ff88;
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  // --- Build Virtual Touch HUD ---
+  function createTouchHUD() {
+    if (document.getElementById('starfield-touch-overlay')) return;
+
+    injectStyles();
+
+    const overlay = document.createElement('div');
+    overlay.id = 'starfield-touch-overlay';
+
+    // 1. Virtual Joystick Zone
+    joyContainer = document.createElement('div');
+    joyContainer.className = 'sf-touch-joy-zone';
+
+    joyBase = document.createElement('div');
+    joyBase.className = 'sf-touch-joy-base';
+
+    joyKnob = document.createElement('div');
+    joyKnob.className = 'sf-touch-joy-knob';
+
+    joyBase.appendChild(joyKnob);
+    joyContainer.appendChild(joyBase);
+    overlay.appendChild(joyContainer);
+
+    // Initial default position for joystick base (resting position)
+    const defaultX = Math.max(70, window.innerWidth * 0.14);
+    const defaultY = window.innerHeight - 100;
+    joyBase.style.left = defaultX + 'px';
+    joyBase.style.top = defaultY + 'px';
+
+    // 2. Quick Action Cluster
+    actionCluster = document.createElement('div');
+    actionCluster.className = 'sf-touch-cluster';
+
+    // Row 1: Auxiliary Functions (Cam, Codex, Photo, Settings)
+    const rowAux = document.createElement('div');
+    rowAux.className = 'sf-touch-btn-row';
+
+    // Cam
+    const btnCam = createTouchButton('👁️', '镜头', () => Engine.toggleCamera());
+    // Codex
+    const btnCodex = createTouchButton('📖', '图鉴', () => Engine.toggleCodex());
+    // Photo
+    const btnPhoto = createTouchButton('🌌', '摄影', () => Engine.togglePhoto());
+    // Settings
+    const btnSettings = createTouchButton('⚙️', '设置', () => Engine.toggleSettings());
+
+    rowAux.appendChild(btnCam);
+    rowAux.appendChild(btnCodex);
+    rowAux.appendChild(btnPhoto);
+    rowAux.appendChild(btnSettings);
+
+    // Row 2: Flight Primary Actions (Warp Gear, Slingshot Boost)
+    const rowFlight = document.createElement('div');
+    rowFlight.className = 'sf-touch-btn-row';
+
+    const btnCockpit = createTouchButton('🪟', '舱内', () => Engine.toggleCockpit());
+    const btnFormation = createTouchButton('📐', '编队', () => Engine.cycleFormation());
+    const btnWarp = createTouchButton('⚡', '曲速', () => Engine.throttleUp());
+    
+    // Slingshot Boost primary button
+    const btnBoost = document.createElement('button');
+    btnBoost.className = 'sf-touch-btn boost';
+    btnBoost.innerHTML = `<span style="font-size:22px;line-height:1;">🚀</span><span class="label">BOOST</span>`;
+    btnBoost.title = '脉冲加速 / 弹射爆冲';
+
+    const onBoostPress = (e) => {
+      e.preventDefault();
+      btnBoost.classList.add('active');
+      triggerHaptic(30);
+      Engine.slingshotBoost();
+      Engine.setWarpHold(true);
+    };
+    const onBoostRelease = (e) => {
+      e.preventDefault();
+      btnBoost.classList.remove('active');
+      Engine.setWarpHold(false);
+    };
+    btnBoost.addEventListener('pointerdown', onBoostPress);
+    btnBoost.addEventListener('pointerup', onBoostRelease);
+    btnBoost.addEventListener('pointercancel', onBoostRelease);
+
+    rowFlight.appendChild(btnCockpit);
+    rowFlight.appendChild(btnFormation);
+    rowFlight.appendChild(btnWarp);
+    rowFlight.appendChild(btnBoost);
+
+    actionCluster.appendChild(rowAux);
+    actionCluster.appendChild(rowFlight);
+    overlay.appendChild(actionCluster);
+
+    // 3. Gamepad Status Badge
+    gamepadBadge = document.createElement('div');
+    gamepadBadge.className = 'sf-gamepad-badge';
+    gamepadBadge.innerHTML = `<i class="dot"></i><span id="sf-gp-name">GAMEPAD CONNECTED</span>`;
+    overlay.appendChild(gamepadBadge);
+
+    document.body.appendChild(overlay);
+
+    // Bind Touch Events on Joystick
+    setupJoystickEvents();
+
+    // Bind Pinch-to-Zoom on Document/Canvas
+    setupPinchZoomEvents();
+  }
+
+  function createTouchButton(icon, label, callback) {
+    const btn = document.createElement('button');
+    btn.className = 'sf-touch-btn';
+    btn.innerHTML = `<span>${icon}</span><span class="label">${label}</span>`;
+    btn.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      btn.classList.add('active');
+      triggerHaptic(15);
+      callback();
+    });
+    btn.addEventListener('pointerup', () => btn.classList.remove('active'));
+    btn.addEventListener('pointercancel', () => btn.classList.remove('active'));
+    return btn;
+  }
+
+  // --- Virtual Joystick Touch Event Handlers ---
+  function setupJoystickEvents() {
+    if (!joyContainer) return;
+
+    joyContainer.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      if (joyActive) return;
+
+      if (!Engine.isFlightStarted()) {
+        Engine.beginFlight();
+      }
+
+      joyActive = true;
+      joyTouchId = e.pointerId;
+      joyContainer.setPointerCapture(e.pointerId);
+
+      // Reposition base dynamically at touch start point
+      joyOrigin.x = e.clientX;
+      joyOrigin.y = e.clientY;
+      joyBase.style.left = joyOrigin.x + 'px';
+      joyBase.style.top = joyOrigin.y + 'px';
+      joyBase.classList.add('active');
+      joyKnob.classList.remove('spring-return');
+
+      updateJoystick(e.clientX, e.clientY);
+      triggerHaptic(10);
+    });
+
+    joyContainer.addEventListener('pointermove', (e) => {
+      if (!joyActive || e.pointerId !== joyTouchId) return;
+      e.preventDefault();
+      updateJoystick(e.clientX, e.clientY);
+    });
+
+    const releaseJoystick = (e) => {
+      if (!joyActive || (e && e.pointerId !== joyTouchId)) return;
+      joyActive = false;
+      joyTouchId = null;
+
+      // Spring-damper return to center
+      joyKnob.classList.add('spring-return');
+      joyKnob.style.transform = 'translate(-50%, -50%)';
+      joyBase.classList.remove('active');
+
+      targetSteerX = 0;
+      targetSteerY = 0;
+    };
+
+    joyContainer.addEventListener('pointerup', releaseJoystick);
+    joyContainer.addEventListener('pointercancel', releaseJoystick);
+    joyContainer.addEventListener('lostpointercapture', releaseJoystick);
+  }
+
+  function updateJoystick(clientX, clientY) {
+    const dx = clientX - joyOrigin.x;
+    const dy = clientY - joyOrigin.y;
+    const dist = Math.hypot(dx, dy);
+
+    let clampedDist = dist;
+    let normX = 0;
+    let normY = 0;
+
+    if (dist > 0) {
+      clampedDist = Math.min(dist, STICK_MAX_RADIUS);
+      normX = (dx / dist) * (clampedDist / STICK_MAX_RADIUS);
+      normY = (dy / dist) * (clampedDist / STICK_MAX_RADIUS);
+    }
+
+    const knobX = (dx / (dist || 1)) * clampedDist;
+    const knobY = (dy / (dist || 1)) * clampedDist;
+
+    joyKnob.style.transform = `translate(calc(-50% + ${knobX.toFixed(1)}px), calc(-50% + ${knobY.toFixed(1)}px))`;
+
+    targetSteerX = normX;
+    targetSteerY = normY;
+  }
+
+  // --- Two-Finger Pinch-to-Zoom Handler ---
+  function setupPinchZoomEvents() {
+    window.addEventListener('touchstart', (e) => {
+      for (let i = 0; i < e.changedTouches.length; i++) {
+        const t = e.changedTouches[i];
+        activeTouches.set(t.identifier, { x: t.clientX, y: t.clientY });
+      }
+
+      if (activeTouches.size === 2) {
+        const pts = Array.from(activeTouches.values());
+        initialPinchDist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+        lastPinchDist = initialPinchDist;
+      }
+    }, { passive: true });
+
+    window.addEventListener('touchmove', (e) => {
+      for (let i = 0; i < e.changedTouches.length; i++) {
+        const t = e.changedTouches[i];
+        if (activeTouches.has(t.identifier)) {
+          activeTouches.set(t.identifier, { x: t.clientX, y: t.clientY });
+        }
+      }
+
+      if (activeTouches.size >= 2) {
+        const pts = Array.from(activeTouches.values());
+        const curDist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+
+        if (lastPinchDist > 0 && Math.abs(curDist - lastPinchDist) > 3) {
+          const factor = curDist / lastPinchDist;
+          Engine.zoomCamera(factor);
+          lastPinchDist = curDist;
+        }
+      }
+    }, { passive: true });
+
+    const removeTouches = (e) => {
+      for (let i = 0; i < e.changedTouches.length; i++) {
+        activeTouches.delete(e.changedTouches[i].identifier);
+      }
+      if (activeTouches.size < 2) {
+        initialPinchDist = 0;
+        lastPinchDist = 0;
+      }
+    };
+
+    window.addEventListener('touchend', removeTouches, { passive: true });
+    window.addEventListener('touchcancel', removeTouches, { passive: true });
+  }
+
+  // --- Gamepad Connection Notification ---
+  function showGamepadToast(name) {
+    if (!gamepadBadge) return;
+    const txt = document.getElementById('sf-gp-name');
+    if (txt) txt.textContent = `🎮 ${name || 'GAMEPAD'} CONNECTED`;
+    gamepadBadge.classList.add('show');
+    setTimeout(() => {
+      if (gamepadBadge) gamepadBadge.classList.remove('show');
+    }, 3800);
+  }
+
+  // --- Gamepad Main Polling & Processing Loop ---
+  function pollGamepad(now) {
+    const dt = Math.min(0.05, Math.max(0.001, (now - lastFrameTime) / 1000));
+    lastFrameTime = now;
+
+    const gamepads = (navigator.getGamepads ? navigator.getGamepads() : []) || [];
+    let pad = null;
+
+    // Pick first connected gamepad
+    for (let i = 0; i < gamepads.length; i++) {
+      if (gamepads[i] && gamepads[i].connected) {
+        pad = gamepads[i];
+        activeGamepadIndex = i;
+        break;
+      }
+    }
+
+    if (pad) {
+      if (!gamepadConnected) {
+        gamepadConnected = true;
+        let padTitle = 'STANDARD CONTROLLER';
+        if (pad.id.includes('045e') || pad.id.toLowerCase().includes('xbox')) padTitle = 'XBOX CONTROLLER';
+        else if (pad.id.includes('054c') || pad.id.toLowerCase().includes('dualsense') || pad.id.toLowerCase().includes('wireless controller')) padTitle = 'PLAYSTATION CONTROLLER';
+        showGamepadToast(padTitle);
+        playRumble(pad, { duration: 180, weakMagnitude: 0.5, strongMagnitude: 0.5 });
+      }
+
+      // --- 1. Left Stick: Flight Steering ---
+      let lx = pad.axes[0] || 0;
+      let ly = pad.axes[1] || 0;
+      const lmag = Math.hypot(lx, ly);
+
+      if (lmag < DEADZONE_LEFT) {
+        lx = 0;
+        ly = 0;
+      } else {
+        const factor = (lmag - DEADZONE_LEFT) / (1 - DEADZONE_LEFT);
+        lx = (lx / lmag) * factor;
+        ly = (ly / lmag) * factor;
+      }
+
+      // If virtual touch joystick isn't overriding, use gamepad left stick
+      if (!joyActive) {
+        targetSteerX = lx;
+        targetSteerY = ly;
+      }
+
+      // --- 2. Right Stick: Free Camera Rotation ---
+      let rx = pad.axes[2] || 0;
+      let ry = pad.axes[3] || 0;
+      const rmag = Math.hypot(rx, ry);
+
+      if (rmag > DEADZONE_RIGHT) {
+        const factor = (rmag - DEADZONE_RIGHT) / (1 - DEADZONE_RIGHT);
+        const dyaw = (rx / rmag) * factor * CAMERA_YAW_SPEED * dt;
+        const dpitch = (ry / rmag) * factor * CAMERA_PITCH_SPEED * dt;
+        Engine.rotateCamera(dyaw, dpitch);
+      }
+
+      // --- 3. Buttons & Triggers ---
+      const buttons = pad.buttons || [];
+      const isPressed = (idx) => buttons[idx] && (buttons[idx].pressed || buttons[idx].value > 0.5);
+      const isJustPressed = (idx) => isPressed(idx) && !prevButtons[idx];
+
+      // South Button A (buttons[0]): Slingshot Boost / Warp Burst
+      if (isJustPressed(0)) {
+        if (!Engine.isFlightStarted()) {
+          Engine.beginFlight();
+        } else {
+          Engine.slingshotBoost();
+          Engine.setWarpHold(true);
+          playRumble(pad, { duration: 250, strongMagnitude: 0.85, weakMagnitude: 0.6 });
+        }
+      } else if (!isPressed(0) && prevButtons[0]) {
+        Engine.setWarpHold(false);
+      }
+
+      // East Button B (buttons[1]): Close Modal / Back
+      if (isJustPressed(1)) {
+        Engine.closeModal();
+      }
+
+      // West Button X (buttons[2]): Toggle Deep Space Photo Mode ('P')
+      if (isJustPressed(2)) {
+        Engine.togglePhoto();
+      }
+
+      // North Button Y (buttons[3]): Toggle Codex ('Tab' / 'J')
+      if (isJustPressed(3)) {
+        Engine.toggleCodex();
+      }
+
+      // Triggers & Bumpers: Throttle Speed Up / Slow Down
+      // LB (buttons[4]) or LT (buttons[6]): Slow Down
+      if (isJustPressed(4) || isJustPressed(6)) {
+        Engine.throttleDown();
+        playRumble(pad, { duration: 120, weakMagnitude: 0.4, strongMagnitude: 0.2 });
+      }
+
+      // RB (buttons[5]) or RT (buttons[7]): Speed Up
+      if (isJustPressed(5) || isJustPressed(7)) {
+        Engine.throttleUp();
+        playRumble(pad, { duration: 140, weakMagnitude: 0.5, strongMagnitude: 0.4 });
+      }
+
+      // Start / Menu Button (buttons[9]): System Settings ('ESC')
+      if (isJustPressed(9)) {
+        if (!Engine.isFlightStarted()) {
+          Engine.beginFlight();
+        } else {
+          Engine.toggleSettings();
+        }
+      }
+
+      // D-Pad Up (buttons[12]): Toggle Cockpit View ('V')
+      if (isJustPressed(12)) {
+        Engine.toggleCockpit();
+        playRumble(pad, { duration: 80, weakMagnitude: 0.3, strongMagnitude: 0.2 });
+      }
+
+      // D-Pad Down (buttons[13]): Toggle Director Camera ('C')
+      if (isJustPressed(13)) {
+        Engine.toggleCamera();
+        playRumble(pad, { duration: 80, weakMagnitude: 0.3, strongMagnitude: 0.2 });
+      }
+
+      // D-Pad Left (buttons[14]): Cycle Formations backward
+      if (isJustPressed(14)) {
+        Engine.cycleFormation(-1);
+        playRumble(pad, { duration: 100, weakMagnitude: 0.3, strongMagnitude: 0.3 });
+      }
+
+      // D-Pad Right (buttons[15]): Cycle Formations forward
+      if (isJustPressed(15)) {
+        Engine.cycleFormation(1);
+        playRumble(pad, { duration: 100, weakMagnitude: 0.3, strongMagnitude: 0.3 });
+      }
+
+      // --- 4. Haptic Vibration Event Triggers ---
+      // Slingshot Surge Rumble
+      const curSurge = Engine.isSlingshotSurge();
+      if (curSurge && !prevSurge) {
+        playRumble(pad, { duration: 650, strongMagnitude: 0.9, weakMagnitude: 0.95 });
+      }
+      prevSurge = curSurge;
+
+      // Wormhole Passing Rumble
+      const curGateT = Engine.getGateT();
+      if (curGateT >= 3.0 && prevGateT < 3.0) {
+        playRumble(pad, { duration: 850, strongMagnitude: 1.0, weakMagnitude: 0.75 });
+      }
+      prevGateT = curGateT;
+
+      // Black Hole Event Horizon Skimming Rumble
+      const curCapturePhase = Engine.getCapturePhase();
+      if (curCapturePhase > 0 && prevCapturePhase === 0) {
+        playRumble(pad, { duration: 700, strongMagnitude: 0.85, weakMagnitude: 0.45 });
+      }
+      prevCapturePhase = curCapturePhase;
+
+      // Update button edge history
+      prevButtons = buttons.map(b => b.pressed || b.value > 0.5);
+    } else {
+      if (gamepadConnected) {
+        gamepadConnected = false;
+        activeGamepadIndex = -1;
+      }
+    }
+
+    // --- 5. Smooth Interpolation for Steering ---
+    const smoothFactor = Math.min(1.0, dt * 8.5);
+    steerX += (targetSteerX - steerX) * smoothFactor;
+    steerY += (targetSteerY - steerY) * smoothFactor;
+
+    if (Math.abs(steerX) > 0.001 || Math.abs(steerY) > 0.001 || joyActive) {
+      Engine.applySteer(steerX, steerY);
+    }
+
+    // Continue frame loop
+    rafId = requestAnimationFrame(pollGamepad);
+  }
+
+  // --- Gamepad Connection Events ---
+  function setupGamepadEvents() {
+    window.addEventListener('gamepadconnected', (e) => {
+      const gp = e.gamepad || (navigator.getGamepads ? navigator.getGamepads()[0] : null);
+      if (gp) {
+        activeGamepadIndex = gp.index || 0;
+        gamepadConnected = true;
+        showGamepadToast(gp.id);
+      }
+    });
+
+    window.addEventListener('gamepaddisconnected', (e) => {
+      const gp = e.gamepad;
+      if (!gp || activeGamepadIndex === gp.index) {
+        activeGamepadIndex = -1;
+        gamepadConnected = false;
+        targetSteerX = 0;
+        targetSteerY = 0;
+      }
+    });
+  }
+
+  // --- Auto Detection for Touch ---
+  function detectTouch() {
+    isTouchCapable = (
+      ('ontouchstart' in window) ||
+      (navigator.maxTouchPoints > 0) ||
+      (window.matchMedia && window.matchMedia('(pointer: coarse)').matches)
+    );
+
+    if (isTouchCapable) {
+      createTouchHUD();
+      touchHudVisible = true;
+    } else {
+      // First touch listener: reveal HUD dynamically if user touches screen
+      const onFirstTouch = () => {
+        isTouchCapable = true;
+        createTouchHUD();
+        touchHudVisible = true;
+        window.removeEventListener('touchstart', onFirstTouch);
+      };
+      window.addEventListener('touchstart', onFirstTouch, { passive: true, once: true });
+    }
+  }
+
+  // --- Public Interface ---
+  const GamepadTouchControls = {
+    version: '1.0.0',
+
+    init(options = {}) {
+      if (isInitialized) return this;
+
+      detectTouch();
+      setupGamepadEvents();
+
+      lastFrameTime = performance.now();
+      rafId = requestAnimationFrame(pollGamepad);
+
+      isInitialized = true;
+      return this;
+    },
+
+    destroy() {
+      if (rafId) {
+        cancelAnimationFrame(rafId);
+        rafId = null;
+      }
+      const overlay = document.getElementById('starfield-touch-overlay');
+      if (overlay) overlay.remove();
+      const style = document.getElementById('starfield-gamepad-touch-styles');
+      if (style) style.remove();
+      isInitialized = false;
+    },
+
+    isInitialized() {
+      return isInitialized;
+    },
+
+    isTouchDevice() {
+      return isTouchCapable;
+    },
+
+    isGamepadConnected() {
+      return gamepadConnected;
+    },
+
+    getGamepadState() {
+      return {
+        connected: gamepadConnected,
+        index: activeGamepadIndex,
+        steerX,
+        steerY
+      };
+    },
+
+    getTouchState() {
+      return {
+        capable: isTouchCapable,
+        hudVisible: touchHudVisible,
+        joyActive,
+        joyOffset: { ...joyOffset }
+      };
+    },
+
+    simulateTouchSteer(sx, sy) {
+      targetSteerX = Math.max(-1, Math.min(1, sx));
+      targetSteerY = Math.max(-1, Math.min(1, sy));
+      Engine.applySteer(targetSteerX, targetSteerY);
+    },
+
+    simulatePinchZoom(factor) {
+      Engine.zoomCamera(factor);
+    },
+
+    playRumble(effectType = 'dual-rumble', params = {}) {
+      const gamepads = (navigator.getGamepads ? navigator.getGamepads() : []) || [];
+      const pad = gamepads[activeGamepadIndex] || gamepads[0];
+      if (pad) {
+        playRumble(pad, params);
+      }
+    },
+
+    setTouchControlsVisible(visible) {
+      const overlay = document.getElementById('starfield-touch-overlay');
+      if (overlay) {
+        overlay.style.display = visible ? '' : 'none';
+        touchHudVisible = visible;
+      }
+    }
+  };
+
+  // Expose to window
+  window.GamepadTouchControls = GamepadTouchControls;
+
+  // Auto-initialize when ready
+  if (document.readyState === 'complete' || document.readyState === 'interactive') {
+    GamepadTouchControls.init();
+  } else {
+    window.addEventListener('DOMContentLoaded', () => GamepadTouchControls.init());
+  }
+
+})(typeof window !== 'undefined' ? window : this);
+
+</script>
+<script>
+/* ANOMALY SCANNER & RELIC TUNER MODULE INLINED */
+/**
+ * ============================================================================
+ * STARFIELD // DEEP SPACE ANOMALY SCANNING & RELIC DECIPHERING GAMEPLAY SYSTEM
+ * File: tools/anomaly_scanner.js
+ * 
+ * Features:
+ * 1. Deep-Space Long-Range Radar Ping (ScannerRadar):
+ *    - Hotkey R or click '#radar-toggle' [ 📡 巡天雷达 ]
+ *    - Concentric 3D holographic ripple pulses forward from flagship (spanning 15,000 units)
+ *    - Sonar acoustic ping via Web Audio API (sine tone with pitch drop & stereo reverb)
+ *    - Dynamic detection of derelicts, anomalies, and resource nodes with glowing papercraft HUD markers
+ * 
+ * 2. Interactive Origami Relic Deciphering Minigame (RelicTuner):
+ *    - Proximity prompt when within 2,500 units of an anomaly or derelict: [ 按 E 或点击 调谐深空信号 ]
+ *    - Minimalist papercraft waveform signal alignment puzzle with Carrier Wave (Target) & Receiver Wave (Adjustable)
+ *    - Harmonic resonance locking (>95% alignment for 1.2 seconds)
+ *    - Static noise resolving into celestial chime chord & Golden Discovery Toast
+ *    - Classified deep-space lore entry unlocked into Celestial Codex (Codex.unlock / Codex.discover)
+ * ============================================================================
+ */
+
+(function(window) {
+  'use strict';
+
+  // Prevent multiple initializations
+  if (window.AnomalyScanner && window.AnomalyScanner.isInitialized && window.AnomalyScanner.isInitialized()) {
+    return;
+  }
+
+  // ============================================================================
+  // 1. CLASSIFIED DEEP-SPACE RELIC LORE DATABASE
+  // ============================================================================
+  const RELIC_ARCHIVE = [
+    {
+      id: 'relic_zero_fold',
+      type: 'derelict',
+      name: '先行者信标手札 · 零号折叠',
+      en: 'First-Fold Beacon Relic #0',
+      tag: '密文 / R1',
+      desc: '“在光线无法逃逸的深渊边缘，我们曾折叠过第七个维度。所有旅者在星海留下的折痕，最终都会在奇点原点重聚。若你拾得此卷，请将引力帆调谐至 432 赫兹……”'
+    },
+    {
+      id: 'relic_black_hole_echo',
+      type: 'spatial_anomaly',
+      name: '加甘图亚引力回声黑匣',
+      en: 'Gargantua Gravitational Echo',
+      tag: '密文 / R2',
+      desc: '“测得吸积盘视界反向光子环中夹杂着规律的晶体脉冲。五维时间窗并非自然演化形成，而是超越纪元的折纸文明遗留在宇宙边缘的立构档案馆。”'
+    },
+    {
+      id: 'relic_derelict_flagship',
+      type: 'derelict',
+      name: '破晓幽灵号巡航日志 · 终末航标',
+      en: 'Ghost Flagship Final Log',
+      tag: '密文 / R3',
+      desc: '“全舰三联装折光偏折力场破损率 88%，已无法脱离当前引力阱。我们在核心舱铭刻了最后这串谐振密码，留给未来掠过此地的同道飞翔者——星空无涯，无需抵达。”'
+    },
+    {
+      id: 'relic_quantum_monolith',
+      type: 'spatial_anomaly',
+      name: '黑色方尖碑谐振碑文 · 1:4:9 几何之谜',
+      en: 'Monolith Harmonic Geometric Codex',
+      tag: '密文 / R4',
+      desc: '“1:4:9 的比例不是建筑，而是超空间天线。纯黑外壁在谐振锁定下变得晶莹剔透，内部是一整片凝固的光态超立方体，记载着贯穿 48 个星区的折跃航线。”'
+    },
+    {
+      id: 'relic_void_fissure',
+      type: 'spatial_anomaly',
+      name: '莫比乌斯曲率拓扑刻印',
+      en: 'Mobius Curvature Topological Engraving',
+      tag: '密文 / R5',
+      desc: '“空间曲率在此处发生了自旋反转。高维光子环以纸艺结的形式紧密编织在一起，证明了远古折叠者曾用微观奇点重写过当前星域的物理常数。”'
+    },
+    {
+      id: 'relic_crystal_resonance',
+      type: 'resource_node',
+      name: '原生折光晶体簇共振图谱',
+      en: 'Protoss Crystal Nexus Resonance Map',
+      tag: '矿藏 / M1',
+      desc: '“高纯度幽能晶体在真空中维持着稳定的八面体纸构形态。微量折射即可产生超距共鸣，是重塑舰载引力帆涂层的顶级稀有材料。”'
+    }
+  ];
+
+  // ============================================================================
+  // 2. WEB AUDIO ACOUSTIC & HARMONIC SOUND ENGINE
+  // ============================================================================
+  const ScannerAudio = {
+    ac: null,
+    masterGain: null,
+    tuningHissGain: null,
+    tuningHissNode: null,
+    tuningDroneGain: null,
+    tuningDroneOsc: null,
+    isHissActive: false,
+
+    init() {
+      if (this.ac) {
+        if (this.ac.state === 'suspended') this.ac.resume().catch(() => {});
+        return;
+      }
+      try {
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if (!AC) return;
+        this.ac = new AC();
+        this.masterGain = this.ac.createGain();
+        this.masterGain.gain.value = 0.85;
+        this.masterGain.connect(this.ac.destination);
+      } catch (e) {
+        console.warn('[ScannerAudio] AudioContext init deferred:', e);
+      }
+    },
+
+    ensureContext() {
+      if (!this.ac) this.init();
+      if (this.ac && this.ac.state === 'suspended') {
+        this.ac.resume().catch(() => {});
+      }
+      return this.ac;
+    },
+
+    // 1. Resonant Sonar Acoustic Ping (Sine with subtle pitch drop & stereo reverb)
+    playSonarPing() {
+      const ac = this.ensureContext();
+      if (!ac) return;
+
+      const now = ac.currentTime;
+
+      // Master sonar gain
+      const sonarGain = ac.createGain();
+      sonarGain.gain.setValueAtTime(0.001, now);
+      sonarGain.gain.linearRampToValueAtTime(0.48, now + 0.02);
+      sonarGain.gain.exponentialRampToValueAtTime(0.0001, now + 2.4);
+
+      // Stereo delay simulation (left 180ms, right 240ms)
+      const splitter = ac.createChannelSplitter(2);
+      const merger = ac.createChannelMerger(2);
+
+      const delayL = ac.createDelay(1.0);
+      delayL.delayTime.value = 0.18;
+      const delayR = ac.createDelay(1.0);
+      delayR.delayTime.value = 0.24;
+
+      const feedbackL = ac.createGain();
+      feedbackL.gain.value = 0.28;
+      const feedbackR = ac.createGain();
+      feedbackR.gain.value = 0.28;
+
+      const filter = ac.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.value = 1400;
+
+      // Connect delay feedback loop
+      sonarGain.connect(filter);
+      filter.connect(delayL);
+      filter.connect(delayR);
+
+      delayL.connect(feedbackL);
+      feedbackL.connect(delayL);
+      delayR.connect(feedbackR);
+      feedbackR.connect(delayR);
+
+      delayL.connect(merger, 0, 0);
+      delayR.connect(merger, 0, 1);
+
+      sonarGain.connect(this.masterGain);
+      merger.connect(this.masterGain);
+
+      // Main Sine Oscillator: 784 Hz (G5) dropping to 330 Hz (E4)
+      const oscMain = ac.createOscillator();
+      oscMain.type = 'sine';
+      oscMain.frequency.setValueAtTime(784, now);
+      oscMain.frequency.exponentialRampToValueAtTime(329.63, now + 1.8);
+      oscMain.connect(sonarGain);
+      oscMain.start(now);
+      oscMain.stop(now + 2.5);
+
+      // Sub-harmonic sine for deep cosmic body: 392 Hz dropping to 165 Hz
+      const oscSub = ac.createOscillator();
+      oscSub.type = 'sine';
+      oscSub.frequency.setValueAtTime(392, now);
+      oscSub.frequency.exponentialRampToValueAtTime(164.81, now + 1.8);
+      const subGain = ac.createGain();
+      subGain.gain.value = 0.25;
+      oscSub.connect(subGain);
+      subGain.connect(sonarGain);
+      oscSub.start(now);
+      oscSub.stop(now + 2.5);
+
+      // Papercraft subtle initial air transient (20ms whisper)
+      try {
+        const buf = ac.createBuffer(1, Math.floor(ac.sampleRate * 0.03), ac.sampleRate);
+        const data = buf.getChannelData(0);
+        for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * 0.15;
+        const noise = ac.createBufferSource();
+        noise.buffer = buf;
+        const nFilter = ac.createBiquadFilter();
+        nFilter.type = 'highpass';
+        nFilter.frequency.value = 2800;
+        noise.connect(nFilter);
+        nFilter.connect(sonarGain);
+        noise.start(now);
+      } catch (_) {}
+    },
+
+    // 2. High Sonar Detection Blip (when wavefront reaches target)
+    playDetectionBlip(freq = 1046.5) {
+      const ac = this.ensureContext();
+      if (!ac) return;
+
+      const now = ac.currentTime;
+      const osc = ac.createOscillator();
+      const gain = ac.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, now);
+      osc.frequency.exponentialRampToValueAtTime(freq * 1.5, now + 0.14);
+
+      gain.gain.setValueAtTime(0.001, now);
+      gain.gain.linearRampToValueAtTime(0.22, now + 0.015);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.45);
+
+      osc.connect(gain);
+      gain.connect(this.masterGain);
+      osc.start(now);
+      osc.stop(now + 0.48);
+    },
+
+    // 3. Relic Tuner Static Hiss & Harmonic Resonance Drone
+    startTuningAudio() {
+      const ac = this.ensureContext();
+      if (!ac || this.isHissActive) return;
+
+      try {
+        const now = ac.currentTime;
+        // White noise buffer
+        const bufSize = ac.sampleRate * 2;
+        const noiseBuf = ac.createBuffer(1, bufSize, ac.sampleRate);
+        const output = noiseBuf.getChannelData(0);
+        for (let i = 0; i < bufSize; i++) {
+          output[i] = Math.random() * 2 - 1;
+        }
+
+        this.tuningHissNode = ac.createBufferSource();
+        this.tuningHissNode.buffer = noiseBuf;
+        this.tuningHissNode.loop = true;
+
+        this.tuningHissFilter = ac.createBiquadFilter();
+        this.tuningHissFilter.type = 'bandpass';
+        this.tuningHissFilter.frequency.value = 1800;
+        this.tuningHissFilter.Q.value = 3.5;
+
+        this.tuningHissGain = ac.createGain();
+        this.tuningHissGain.gain.setValueAtTime(0.08, now);
+
+        this.tuningHissNode.connect(this.tuningHissFilter);
+        this.tuningHissFilter.connect(this.tuningHissGain);
+        this.tuningHissGain.connect(this.masterGain);
+
+        this.tuningHissNode.start(now);
+
+        // Harmonic drone
+        this.tuningDroneOsc = ac.createOscillator();
+        this.tuningDroneOsc.type = 'triangle';
+        this.tuningDroneOsc.frequency.setValueAtTime(260, now);
+
+        this.tuningDroneGain = ac.createGain();
+        this.tuningDroneGain.gain.setValueAtTime(0.001, now);
+
+        this.tuningDroneOsc.connect(this.tuningDroneGain);
+        this.tuningDroneGain.connect(this.masterGain);
+        this.tuningDroneOsc.start(now);
+
+        this.isHissActive = true;
+      } catch (err) {
+        console.warn('[ScannerAudio] startTuningAudio failed:', err);
+      }
+    },
+
+    updateTuningAudio(freq, alignment) {
+      if (!this.ac || !this.isHissActive) return;
+      const now = this.ac.currentTime;
+      const safeAlign = Math.max(0, Math.min(1, alignment));
+
+      if (this.tuningHissFilter) {
+        this.tuningHissFilter.frequency.setTargetAtTime(800 + freq * 400, now, 0.05);
+      }
+      if (this.tuningHissGain) {
+        // Hiss attenuates as alignment approaches 100%
+        const hissVol = Math.max(0.001, (1 - safeAlign) * 0.12);
+        this.tuningHissGain.gain.setTargetAtTime(hissVol, now, 0.05);
+      }
+      if (this.tuningDroneOsc && this.tuningDroneGain) {
+        // Drone pitch tracks frequency and rises in volume with alignment
+        this.tuningDroneOsc.frequency.setTargetAtTime(140 + freq * 60, now, 0.05);
+        const droneVol = safeAlign * 0.18;
+        this.tuningDroneGain.gain.setTargetAtTime(droneVol, now, 0.05);
+      }
+    },
+
+    stopTuningAudio() {
+      if (!this.ac || !this.isHissActive) return;
+      const now = this.ac.currentTime;
+      try {
+        if (this.tuningHissGain) {
+          this.tuningHissGain.gain.linearRampToValueAtTime(0.0001, now + 0.1);
+        }
+        if (this.tuningDroneGain) {
+          this.tuningDroneGain.gain.linearRampToValueAtTime(0.0001, now + 0.1);
+        }
+        setTimeout(() => {
+          if (this.tuningHissNode) {
+            try { this.tuningHissNode.stop(); } catch (_) {}
+            this.tuningHissNode.disconnect();
+          }
+          if (this.tuningDroneOsc) {
+            try { this.tuningDroneOsc.stop(); } catch (_) {}
+            this.tuningDroneOsc.disconnect();
+          }
+          this.isHissActive = false;
+        }, 120);
+      } catch (_) {
+        this.isHissActive = false;
+      }
+    },
+
+    // 4. Celestial Chime Chord (Signal Lock Resolution)
+    playCelestialChime() {
+      const ac = this.ensureContext();
+      if (!ac) return;
+
+      const now = ac.currentTime;
+      // Golden Pentatonic Celestial Chord: C5, E5, G5, C6, E6, G6
+      const chord = [523.25, 659.25, 783.99, 1046.50, 1318.51, 1567.98];
+
+      chord.forEach((freq, idx) => {
+        const osc = ac.createOscillator();
+        const gain = ac.createGain();
+
+        osc.type = 'sine';
+        // Micro-detune for lush celestial bell shimmer
+        osc.frequency.setValueAtTime(freq + (idx % 2 === 0 ? 0.8 : -0.8), now);
+
+        const startT = now + idx * 0.035;
+        gain.gain.setValueAtTime(0.0001, startT);
+        gain.gain.linearRampToValueAtTime(0.18 / Math.sqrt(idx + 1), startT + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.0001, startT + 3.2);
+
+        osc.connect(gain);
+        gain.connect(this.masterGain);
+
+        osc.start(startT);
+        osc.stop(startT + 3.5);
+      });
+    }
+  };
+
+  // ============================================================================
+  // 3. SCANNER RADAR ENGINE (3D Ripple Pulse & Dynamic Detection)
+  // ============================================================================
+  const ScannerRadar = {
+    active: false,
+    startTime: 0,
+    duration: 3200,      // ms for wavefront to reach 15,000 units
+    maxDistance: 15000,  // scanning range corridor in units
+    waveDist: 0,
+    cooldownUntil: 0,
+    detectedTargets: new Map(), // key -> target metadata
+    candidates: [],
+
+    ping() {
+      const now = performance.now();
+      if (now < this.cooldownUntil) return;
+      this.cooldownUntil = now + 900;
+
+      this.active = true;
+      this.startTime = now;
+      this.waveDist = 0;
+
+      // Play sonar acoustic ping
+      ScannerAudio.playSonarPing();
+
+      // Gather candidate targets along corridor
+      this.gatherCandidates();
+
+      // Golden HUD radar button ripple effect
+      const radarBtn = document.getElementById('radar-toggle');
+      if (radarBtn) {
+        radarBtn.classList.add('pinging');
+        setTimeout(() => radarBtn.classList.remove('pinging'), 1200);
+      }
+    },
+
+    gatherCandidates() {
+      this.candidates = [];
+      const SF = window.Starfield;
+      if (!SF) return;
+
+      const travel = SF.getTravel ? SF.getTravel() : 0;
+      const k0 = Math.floor(travel / 3200);
+
+      // Scan chunks from k0 - 1 to k0 + 6 (spanning ~22,000 units forward)
+      for (let k = k0 - 1; k <= k0 + 6; k++) {
+        const c = SF.getChunk ? SF.getChunk(k) : null;
+        if (!c) continue;
+
+        // 1. Events in chunk
+        if (c.events && Array.isArray(c.events)) {
+          c.events.forEach((ev, evIdx) => {
+            const key = `chunk_${k}_ev_${evIdx}_${ev.type}`;
+            let name = '深空未知异常';
+            let icon = '✦';
+            let category = 'spatial_anomaly';
+
+            if (ev.type === 'derelict') {
+              name = '废弃信标浮标';
+              icon = '⟐';
+              category = 'derelict';
+            } else if (ev.type === 'voyager_probe') {
+              name = '旅行者深空探测器';
+              icon = '⟐';
+              category = 'derelict';
+            } else if (ev.type === 'monolith_artifact') {
+              name = '黑色方尖碑 1:4:9';
+              icon = '◈';
+              category = 'spatial_anomaly';
+            } else if (ev.type === 'ghost_fleet') {
+              name = '远古幽灵旗舰遗骸';
+              icon = '⟐';
+              category = 'derelict';
+            } else if (ev.type === 'wormhole_sphere') {
+              name = '莫比乌斯虫洞折射体';
+              icon = '✦';
+              category = 'spatial_anomaly';
+            } else if (ev.type === 'dimension_foil') {
+              name = '二向箔卷曲裂隙';
+              icon = '✦';
+              category = 'spatial_anomaly';
+            } else if (ev.type === 'asteroid_field') {
+              name = '高密小行星晶体群';
+              icon = '◈';
+              category = 'resource_node';
+            }
+
+            this.candidates.push({
+              key,
+              id: key,
+              name,
+              icon,
+              category,
+              x: ev.x,
+              y: ev.y,
+              z: ev.z,
+              targetFreq: 2.2 + ((k * 37 + evIdx * 19) % 50) * 0.1,
+              solved: this.detectedTargets.has(key) ? this.detectedTargets.get(key).solved : false,
+              pinged: false
+            });
+          });
+        }
+
+        // 2. Procedural Hidden Relic Anchor (Ensures rich cosmic discoveries in every sector)
+        const hasRelicType = (k % 2 === 0);
+        if (hasRelicType) {
+          const key = `relic_anchor_k${k}`;
+          const pz = k * 3200 + 1600;
+          const px = SF.corridorPoint ? SF.corridorPoint(pz)[0] + ((k % 3 === 0 ? 1 : -1) * 1450) : 1200;
+          const py = SF.corridorPoint ? SF.corridorPoint(pz)[1] + 320 : 220;
+
+          const archiveIndex = Math.abs(k) % RELIC_ARCHIVE.length;
+          const lore = RELIC_ARCHIVE[archiveIndex];
+
+          this.candidates.push({
+            key,
+            id: key,
+            name: lore.name,
+            icon: lore.type === 'derelict' ? '⟐' : '✦',
+            category: lore.type,
+            lore,
+            x: px,
+            y: py,
+            z: pz,
+            targetFreq: 2.5 + (archiveIndex * 0.95),
+            solved: this.detectedTargets.has(key) ? this.detectedTargets.get(key).solved : false,
+            pinged: false
+          });
+        }
+      }
+    },
+
+    update(dt) {
+      const SF = window.Starfield;
+      if (!SF) return;
+
+      const ship = SF.getFlagship ? SF.getFlagship() : [0, 196, SF.getTravel ? SF.getTravel() : 0];
+      const now = performance.now();
+
+      if (this.active) {
+        const progress = (now - this.startTime) / this.duration;
+        if (progress >= 1.0) {
+          this.active = false;
+          this.waveDist = this.maxDistance;
+        } else {
+          this.waveDist = progress * this.maxDistance;
+
+          // Check candidate encounters reached by wavefront
+          for (const cand of this.candidates) {
+            const dist = Math.hypot(cand.x - ship[0], cand.y - ship[1], cand.z - ship[2]);
+            if (dist <= this.waveDist && !cand.pinged) {
+              cand.pinged = true;
+              cand.revealedAt = now;
+              this.detectedTargets.set(cand.key, cand);
+              ScannerAudio.playDetectionBlip(cand.category === 'derelict' ? 987.77 : 1318.51);
+            }
+          }
+        }
+      }
+
+      // Check proximity prompt for undeciphered targets within 2,500 units
+      let nearestUndeciphered = null;
+      let minPromptDist = 2500;
+
+      for (const target of this.detectedTargets.values()) {
+        const d = Math.hypot(target.x - ship[0], target.y - ship[1], target.z - ship[2]);
+        target.currentDist = d;
+        if (!target.solved && d <= minPromptDist) {
+          minPromptDist = d;
+          nearestUndeciphered = target;
+        }
+      }
+
+      RelicTuner.updateProximityPrompt(nearestUndeciphered, minPromptDist);
+    },
+
+    // 3D Concentric Holographic Ripple Pulse Drawing
+    draw3D(ctx, width, height, dpr) {
+      const SF = window.Starfield;
+      if (!SF) return;
+
+      const cam = SF.getCamera ? SF.getCamera() : null;
+      if (!cam) return;
+
+      const project = SF.project || function(p) {
+        const x = p[0] - cam.eye[0], y = p[1] - cam.eye[1], z = p[2] - cam.eye[2];
+        const vx = x * cam.right[0] + y * cam.right[1] + z * cam.right[2];
+        const vy = x * cam.up[0] + y * cam.up[1] + z * cam.up[2];
+        const vz = x * cam.forward[0] + y * cam.forward[1] + z * cam.forward[2];
+        if (vz < 18) return null;
+        const k = cam.focal / vz;
+        return [cam.cx + vx * k, cam.cy - vy * k, vz, k];
+      };
+
+      const ship = SF.getFlagship ? SF.getFlagship() : [0, 196, SF.getTravel ? SF.getTravel() : 0];
+      const now = performance.now();
+
+      // 1. Draw Active 3D Holographic Pulse Wavefronts
+      if (this.active) {
+        const ringOffsets = [0, 480, 960]; // 3 concentric ripple rings
+        const progress = Math.min(1.0, (now - this.startTime) / this.duration);
+        const baseAlpha = Math.max(0, (1 - progress) * (1 - progress * 0.4));
+
+        ctx.save();
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+
+        ringOffsets.forEach((offset, rIdx) => {
+          const d = this.waveDist - offset;
+          if (d <= 0 || d > this.maxDistance) return;
+
+          const ringZ = ship[2] + d;
+          const center = SF.corridorPoint ? SF.corridorPoint(ringZ) : [ship[0], ship[1], ringZ];
+
+          // Compute forward tangent vector along flight corridor
+          const ahead = SF.corridorPoint ? SF.corridorPoint(ringZ + 12) : [center[0], center[1], ringZ + 12];
+          const behind = SF.corridorPoint ? SF.corridorPoint(ringZ - 12) : [center[0], center[1], ringZ - 12];
+          let tx = ahead[0] - behind[0], ty = ahead[1] - behind[1], tz = ahead[2] - behind[2];
+          const tLen = Math.hypot(tx, ty, tz) || 1;
+          tx /= tLen; ty /= tLen; tz /= tLen;
+
+          // Normal & Binormal for plane perpendicular to corridor
+          let nx = -tz, ny = 0, nz = tx;
+          const nLen = Math.hypot(nx, nz) || 1;
+          nx /= nLen; nz /= nLen;
+          const bx = ty * nz - tz * ny, by = tz * nx - tx * nz, bz = tx * ny - ty * nx;
+
+          // Expanding radius: from 520 units at ship to 2,400 units at 15,000 units
+          const radius = 520 + d * 0.125;
+          const ringPoints = [];
+          const stepCount = 36;
+
+          for (let s = 0; s <= stepCount; s++) {
+            const th = (s / stepCount) * Math.PI * 2;
+            const cosT = Math.cos(th), sinT = Math.sin(th);
+            const px = center[0] + (nx * cosT + bx * sinT) * radius;
+            const py = center[1] + (ny * cosT + by * sinT) * radius;
+            const pz = center[2] + (nz * cosT + bz * sinT) * radius;
+
+            const sp = project([px, py, pz]);
+            if (sp) ringPoints.push(sp);
+          }
+
+          if (ringPoints.length > 3) {
+            const ringAlpha = baseAlpha * (1 - rIdx * 0.22);
+            // Papercraft dashed holographic stroke
+            ctx.setLineDash(rIdx === 0 ? [8, 4] : [4, 6]);
+            ctx.lineWidth = rIdx === 0 ? 2.0 : 1.2;
+            ctx.strokeStyle = `rgba(224, 192, 96, ${ringAlpha * 0.85})`;
+            ctx.beginPath();
+            ctx.moveTo(ringPoints[0][0], ringPoints[0][1]);
+            for (let i = 1; i < ringPoints.length; i++) {
+              ctx.lineTo(ringPoints[i][0], ringPoints[i][1]);
+            }
+            ctx.closePath();
+            ctx.stroke();
+
+            // Center range marker readout on primary wave
+            if (rIdx === 0) {
+              const cp = project(center);
+              if (cp && cp[0] > 0 && cp[0] < width && cp[1] > 0 && cp[1] < height) {
+                ctx.setLineDash([]);
+                ctx.fillStyle = `rgba(242, 220, 135, ${ringAlpha * 0.9})`;
+                ctx.font = '10px "SF Mono", Consolas, monospace';
+                ctx.textAlign = 'center';
+                ctx.fillText(`+${Math.round(d)} U`, cp[0], cp[1] - 8);
+
+                // Crosshair tick marks
+                ctx.strokeStyle = `rgba(242, 220, 135, ${ringAlpha * 0.6})`;
+                ctx.beginPath();
+                ctx.moveTo(cp[0] - 8, cp[1]); ctx.lineTo(cp[0] + 8, cp[1]);
+                ctx.moveTo(cp[0], cp[1] - 8); ctx.lineTo(cp[0], cp[1] + 8);
+                ctx.stroke();
+              }
+            }
+          }
+        });
+
+        ctx.restore();
+      }
+
+      // 2. Draw Glowing Papercraft HUD Markers for Detected Targets
+      ctx.save();
+      for (const target of this.detectedTargets.values()) {
+        const tp = project([target.x, target.y, target.z]);
+        if (!tp) continue;
+
+        const sx = tp[0], sy = tp[1];
+        if (sx < -80 || sx > width + 80 || sy < -80 || sy > height + 80) continue;
+
+        const dist = Math.round(target.currentDist || 0);
+        const isSolved = !!target.solved;
+        const isReady = !isSolved && dist <= 2500;
+
+        // Papercraft Origami Diamond Bracket
+        const boxSize = 14;
+        const color = isSolved ? 'rgba(168, 230, 207, 0.85)' : isReady ? 'rgba(255, 215, 0, 0.95)' : 'rgba(224, 192, 96, 0.75)';
+
+        ctx.strokeStyle = color;
+        ctx.fillStyle = color;
+        ctx.lineWidth = 1.3;
+        ctx.setLineDash([]);
+
+        // Diamond Bracket Corners
+        ctx.beginPath();
+        // Top Corner
+        ctx.moveTo(sx - 5, sy - boxSize + 5); ctx.lineTo(sx, sy - boxSize); ctx.lineTo(sx + 5, sy - boxSize + 5);
+        // Bottom Corner
+        ctx.moveTo(sx - 5, sy + boxSize - 5); ctx.lineTo(sx, sy + boxSize); ctx.lineTo(sx + 5, sy + boxSize - 5);
+        // Left Corner
+        ctx.moveTo(sx - boxSize + 5, sy - 5); ctx.lineTo(sx - boxSize, sy); ctx.lineTo(sx - boxSize + 5, sy + 5);
+        // Right Corner
+        ctx.moveTo(sx + boxSize - 5, sy - 5); ctx.lineTo(sx + boxSize, sy); ctx.lineTo(sx + boxSize - 5, sy + 5);
+        ctx.stroke();
+
+        // Central Icon Symbol
+        ctx.font = '12px "SF Mono", Consolas, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(target.icon || '✦', sx, sy);
+
+        // Holographic Labels & Distance Readouts
+        ctx.font = '10px "SF Mono", Consolas, monospace';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'bottom';
+        const labelX = sx + boxSize + 8;
+        const labelY = sy - 2;
+
+        ctx.fillText(`${target.name}`, labelX, labelY);
+
+        ctx.font = '9px "SF Mono", Consolas, monospace';
+        ctx.fillStyle = isSolved ? 'rgba(168, 230, 207, 0.7)' : 'rgba(235, 240, 245, 0.7)';
+        ctx.fillText(`DIST: ${dist} U  // ${isSolved ? '已破译 [SOLVED]' : isReady ? '可调谐 [按 E]' : '未破译'}`, labelX, labelY + 13);
+
+        // Ground/corridor dotted drop-line
+        ctx.setLineDash([2, 4]);
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+        ctx.beginPath();
+        ctx.moveTo(sx, sy + boxSize + 2);
+        ctx.lineTo(sx, sy + boxSize + 18);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+  };
+
+  // ============================================================================
+  // 4. RELIC TUNER MINIGAME ENGINE (Origami Waveform Alignment Puzzle)
+  // ============================================================================
+  const RelicTuner = {
+    isOpen: false,
+    currentTarget: null,
+    targetFreq: 3.40,
+    playerFreq: 1.80,
+    alignment: 0.0,
+    lockHoldTime: 0.0,
+    lockRequired: 1.2,    // 1.2 seconds of >95% resonance
+    isLocked: false,
+    animTime: 0,
+    scopeCanvas: null,
+    scopeCtx: null,
+
+    init() {
+      this.injectStyles();
+      this.injectDOM();
+      this.bindEvents();
+    },
+
+    injectStyles() {
+      if (document.getElementById('anomaly-scanner-styles')) return;
+      const style = document.createElement('style');
+      style.id = 'anomaly-scanner-styles';
+      style.textContent = `
+        /* Radar Button in HUD */
+        #radar-toggle.pinging {
+          border-color: #f2dc87 !important;
+          box-shadow: 0 0 16px rgba(242, 220, 135, 0.45);
+          transform: scale(1.05);
+        }
+        #radar-toggle .radar-icon {
+          color: #f2dc87;
+        }
+
+        /* 3D Scanner Overlay Canvas */
+        #scanner-overlay-canvas {
+          position: absolute;
+          inset: 0;
+          width: 100%;
+          height: 100%;
+          pointer-events: none;
+          z-index: 5;
+        }
+
+        /* Proximity HUD Prompt */
+        #relic-proximity-prompt {
+          position: absolute;
+          left: 50%;
+          bottom: calc(var(--pad, 36px) + 64px);
+          transform: translateX(-50%);
+          display: none;
+          align-items: center;
+          gap: 12px;
+          padding: 9px 20px;
+          border: 1px solid rgba(242, 220, 135, 0.35);
+          border-radius: 30px;
+          background: rgba(17, 27, 39, 0.88);
+          backdrop-filter: blur(14px);
+          cursor: pointer;
+          z-index: 9;
+          transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+          box-shadow: 0 6px 24px rgba(0, 0, 0, 0.35), 0 0 14px rgba(242, 220, 135, 0.15);
+          user-select: none;
+        }
+        #relic-proximity-prompt.visible {
+          display: flex;
+          animation: promptPulse 2.4s ease-in-out infinite;
+        }
+        #relic-proximity-prompt:hover {
+          border-color: rgba(242, 220, 135, 0.85);
+          background: rgba(26, 40, 58, 0.95);
+          transform: translateX(-50%) translateY(-2px);
+          box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45), 0 0 20px rgba(242, 220, 135, 0.3);
+        }
+        @keyframes promptPulse {
+          0%, 100% { border-color: rgba(242, 220, 135, 0.35); box-shadow: 0 0 10px rgba(242, 220, 135, 0.15); }
+          50% { border-color: rgba(242, 220, 135, 0.75); box-shadow: 0 0 22px rgba(242, 220, 135, 0.35); }
+        }
+        .prompt-radar-icon {
+          font-size: 16px;
+          color: #f2dc87;
+        }
+        .prompt-content {
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+        }
+        .prompt-headline {
+          font-family: var(--serif, serif);
+          font-size: 13px;
+          letter-spacing: 0.08em;
+          color: #f5f9fc;
+        }
+        .prompt-detail {
+          font-family: var(--mono, monospace);
+          font-size: 9px;
+          color: rgba(212, 175, 55, 0.9);
+          letter-spacing: 0.05em;
+        }
+
+        /* Relic Tuner Modal Window */
+        #relic-tuner-modal {
+          position: absolute;
+          inset: 0;
+          background: rgba(10, 16, 24, 0.72);
+          backdrop-filter: blur(18px);
+          display: none;
+          align-items: center;
+          justify-content: center;
+          z-index: 100;
+          opacity: 0;
+          pointer-events: none;
+          transition: opacity 0.3s ease;
+        }
+        #relic-tuner-modal.open {
+          display: flex;
+          opacity: 1;
+          pointer-events: auto;
+        }
+        .relic-modal-frame {
+          width: 680px;
+          max-width: 92vw;
+          border: 1px solid rgba(255, 255, 255, 0.14);
+          border-radius: 12px;
+          background: #111b27;
+          box-shadow: 0 24px 64px rgba(0, 0, 0, 0.65), 0 0 32px rgba(212, 175, 55, 0.18);
+          overflow: hidden;
+          position: relative;
+        }
+        .relic-modal-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 18px 24px;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+          background: rgba(255, 255, 255, 0.02);
+        }
+        .relic-tag-badge {
+          display: inline-block;
+          font-family: var(--mono, monospace);
+          font-size: 9px;
+          letter-spacing: 0.12em;
+          color: #d4af37;
+          border: 1px solid rgba(212, 175, 55, 0.35);
+          padding: 2px 7px;
+          border-radius: 3px;
+          margin-bottom: 5px;
+        }
+        .relic-heading {
+          font-family: var(--serif, serif);
+          font-size: 19px;
+          font-weight: 400;
+          color: #f7f9fb;
+          margin: 0;
+          letter-spacing: 0.04em;
+        }
+        .relic-subheading {
+          font-family: var(--mono, monospace);
+          font-size: 10px;
+          color: rgba(255, 255, 255, 0.45);
+          margin-top: 3px;
+        }
+        .relic-close-btn {
+          background: transparent;
+          border: 1px solid rgba(255, 255, 255, 0.15);
+          color: rgba(255, 255, 255, 0.65);
+          border-radius: 4px;
+          padding: 6px 14px;
+          font-family: var(--mono, monospace);
+          font-size: 11px;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+        .relic-close-btn:hover {
+          color: #fff;
+          border-color: rgba(255, 255, 255, 0.4);
+          background: rgba(255, 255, 255, 0.05);
+        }
+
+        /* Oscilloscope Display */
+        .relic-scope-wrapper {
+          position: relative;
+          background: #090e15;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+          padding: 12px 18px;
+        }
+        #relic-waveform-canvas {
+          display: block;
+          width: 100%;
+          height: 220px;
+          border-radius: 6px;
+          cursor: ew-resize;
+        }
+        .relic-scope-info {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-top: 10px;
+          font-family: var(--mono, monospace);
+          font-size: 10px;
+          color: rgba(255, 255, 255, 0.6);
+        }
+        .scope-legend-group {
+          display: flex;
+          gap: 16px;
+        }
+        .legend-carrier {
+          color: #d4af37;
+        }
+        .legend-receiver {
+          color: #7ec8e3;
+        }
+        .scope-status-metric {
+          font-weight: 600;
+          color: #f7f9fb;
+        }
+
+        /* Tuning Controls */
+        .relic-controls-box {
+          padding: 20px 24px;
+          background: rgba(255, 255, 255, 0.015);
+        }
+        .relic-slider-container {
+          display: flex;
+          align-items: center;
+          gap: 14px;
+        }
+        .relic-freq-tag {
+          font-family: var(--mono, monospace);
+          font-size: 11px;
+          color: rgba(255, 255, 255, 0.5);
+          width: 55px;
+        }
+        .relic-freq-tag.right {
+          text-align: right;
+        }
+        .paper-range-slider {
+          flex: 1;
+          -webkit-appearance: none;
+          appearance: none;
+          height: 6px;
+          background: rgba(255, 255, 255, 0.12);
+          border-radius: 3px;
+          outline: none;
+        }
+        .paper-range-slider::-webkit-slider-thumb {
+          -webkit-appearance: none;
+          appearance: none;
+          width: 18px;
+          height: 18px;
+          border-radius: 50%;
+          background: #d4af37;
+          border: 2px solid #fff;
+          cursor: pointer;
+          box-shadow: 0 0 10px rgba(212, 175, 55, 0.6);
+          transition: transform 0.1s ease;
+        }
+        .paper-range-slider::-webkit-slider-thumb:hover {
+          transform: scale(1.15);
+        }
+        .relic-tuner-guide {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-top: 12px;
+          font-family: var(--mono, monospace);
+          font-size: 10px;
+          color: rgba(255, 255, 255, 0.45);
+        }
+        .relic-lock-bar {
+          height: 3px;
+          background: rgba(255, 255, 255, 0.08);
+          border-radius: 2px;
+          margin-top: 10px;
+          overflow: hidden;
+        }
+        .relic-lock-bar-fill {
+          height: 100%;
+          width: 0%;
+          background: linear-gradient(90deg, #7ec8e3, #d4af37);
+          transition: width 0.08s linear;
+        }
+
+        /* Lock Victory Banner */
+        .relic-victory-panel {
+          padding: 24px;
+          background: linear-gradient(180deg, rgba(212, 175, 55, 0.08) 0%, rgba(17, 27, 39, 0.95) 100%);
+          border-top: 1px solid rgba(212, 175, 55, 0.35);
+          display: none;
+          animation: bannerFadeIn 0.4s ease forwards;
+        }
+        .relic-victory-panel.visible {
+          display: block;
+        }
+        @keyframes bannerFadeIn {
+          from { opacity: 0; transform: translateY(6px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .victory-title {
+          font-family: var(--serif, serif);
+          font-size: 16px;
+          color: #f2dc87;
+          margin: 0 0 8px 0;
+          letter-spacing: 0.06em;
+        }
+        .victory-lore-text {
+          font-family: var(--serif, serif);
+          font-size: 12px;
+          line-height: 1.7;
+          color: #d1dde8;
+          margin: 0 0 16px 0;
+          font-style: italic;
+        }
+        .victory-actions {
+          display: flex;
+          gap: 12px;
+        }
+        .victory-btn {
+          font-family: var(--mono, monospace);
+          font-size: 11px;
+          padding: 7px 18px;
+          border-radius: 4px;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+        .victory-btn.primary {
+          background: #d4af37;
+          color: #0b1118;
+          border: 1px solid #d4af37;
+          font-weight: 600;
+        }
+        .victory-btn.primary:hover {
+          background: #f2dc87;
+          box-shadow: 0 0 14px rgba(242, 220, 135, 0.45);
+        }
+        .victory-btn.secondary {
+          background: transparent;
+          color: rgba(255, 255, 255, 0.7);
+          border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .victory-btn.secondary:hover {
+          color: #fff;
+          border-color: rgba(255, 255, 255, 0.4);
+        }
+
+        /* Golden Toast Notification Overlay */
+        #scanner-golden-toast {
+          position: absolute;
+          top: 14%;
+          left: 50%;
+          transform: translateX(-50%) translateY(-10px);
+          padding: 12px 26px;
+          border: 1px solid rgba(242, 220, 135, 0.6);
+          border-radius: 28px;
+          background: rgba(17, 27, 39, 0.94);
+          backdrop-filter: blur(16px);
+          box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), 0 0 24px rgba(242, 220, 135, 0.25);
+          color: #f7f9fb;
+          font-family: var(--serif, serif);
+          font-size: 12px;
+          letter-spacing: 0.06em;
+          z-index: 999;
+          opacity: 0;
+          pointer-events: none;
+          transition: all 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+          text-align: center;
+        }
+        #scanner-golden-toast.show {
+          opacity: 1;
+          transform: translateX(-50%) translateY(0);
+        }
+      `;
+      document.head.appendChild(style);
+    },
+
+    injectDOM() {
+      // 1. Scanner 3D Overlay Canvas
+      let canvas = document.getElementById('scanner-overlay-canvas');
+      if (!canvas) {
+        canvas = document.createElement('canvas');
+        canvas.id = 'scanner-overlay-canvas';
+        const world = document.getElementById('world') || document.body;
+        world.appendChild(canvas);
+      }
+
+      // 2. Proximity HUD Prompt
+      let prompt = document.getElementById('relic-proximity-prompt');
+      if (!prompt) {
+        prompt = document.createElement('div');
+        prompt.id = 'relic-proximity-prompt';
+        prompt.innerHTML = `
+          <div class="prompt-radar-icon">📡</div>
+          <div class="prompt-content">
+            <span class="prompt-headline">[ 按 E 或点击 调谐深空信号 ]</span>
+            <span class="prompt-detail" id="prompt-target-detail">未知信标 // 距离: 1,840 U</span>
+          </div>
+        `;
+        const world = document.getElementById('world') || document.body;
+        world.appendChild(prompt);
+      }
+
+      // 3. Relic Tuner Modal
+      let modal = document.getElementById('relic-tuner-modal');
+      if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'relic-tuner-modal';
+        modal.innerHTML = `
+          <div class="relic-modal-frame">
+            <div class="relic-modal-header">
+              <div class="relic-header-titles">
+                <span class="relic-tag-badge mono" id="tuner-category-tag">ORIGAMI RELIC // 信号破译</span>
+                <h3 class="relic-heading serif" id="tuner-title-text">深空折纸信标破译仪</h3>
+                <div class="relic-subheading mono" id="tuner-coord-text">TARGET: UNKNOWN // COORD: CHUNK-00</div>
+              </div>
+              <button class="relic-close-btn mono" id="tuner-close-button">关闭 [ESC]</button>
+            </div>
+
+            <div class="relic-scope-wrapper">
+              <canvas id="relic-waveform-canvas" width="640" height="220"></canvas>
+              <div class="relic-scope-info">
+                <div class="scope-legend-group">
+                  <span class="legend-carrier">── 载波信号 (Carrier Wave)</span>
+                  <span class="legend-receiver">── 接收波形 (Receiver Wave)</span>
+                </div>
+                <div class="scope-status-metric mono" id="tuner-metric-text">谐振度: 0.0%</div>
+              </div>
+            </div>
+
+            <div class="relic-controls-box" id="tuner-controls-box">
+              <div class="relic-slider-container">
+                <span class="relic-freq-tag mono">1.0 GHz</span>
+                <input type="range" class="paper-range-slider" id="tuner-slider-input" min="1.0" max="8.0" step="0.01" value="1.8">
+                <span class="relic-freq-tag right mono">8.0 GHz</span>
+              </div>
+              <div class="relic-tuner-guide">
+                <span>滑动滑块 / 拖动画布 / 按 A-D 键匹配载波波形</span>
+                <span id="tuner-lock-counter">锁定累积: 0.0s / 1.2s</span>
+              </div>
+              <div class="relic-lock-bar">
+                <div class="relic-lock-bar-fill" id="tuner-lock-bar-fill"></div>
+              </div>
+            </div>
+
+            <div class="relic-victory-panel" id="tuner-victory-panel">
+              <h4 class="victory-title serif">✦ 谐振锁定 · 远古折纸密文破译完成 ✦</h4>
+              <p class="victory-lore-text serif" id="tuner-lore-content">“在光线无法逃逸的深渊边缘，我们曾折叠过第七个维度……”</p>
+              <div class="victory-actions">
+                <button class="victory-btn primary mono" id="tuner-view-codex-btn">查阅星图手札 [Tab]</button>
+                <button class="victory-btn secondary mono" id="tuner-continue-flight-btn">继续星海巡游</button>
+              </div>
+            </div>
+          </div>
+        `;
+        document.body.appendChild(modal);
+      }
+
+      // 4. Golden Toast Element
+      let goldenToast = document.getElementById('scanner-golden-toast');
+      if (!goldenToast) {
+        goldenToast = document.createElement('div');
+        goldenToast.id = 'scanner-golden-toast';
+        document.body.appendChild(goldenToast);
+      }
+
+      this.scopeCanvas = document.getElementById('relic-waveform-canvas');
+      if (this.scopeCanvas) {
+        this.scopeCtx = this.scopeCanvas.getContext('2d');
+      }
+    },
+
+    bindEvents() {
+      // 1. Radar button click
+      const radarBtn = document.getElementById('radar-toggle');
+      if (radarBtn) {
+        radarBtn.addEventListener('click', () => ScannerRadar.ping());
+      }
+
+      // 2. Proximity Prompt click
+      const prompt = document.getElementById('relic-proximity-prompt');
+      if (prompt) {
+        prompt.addEventListener('click', () => {
+          if (this.currentTarget) this.open(this.currentTarget);
+        });
+      }
+
+      // 3. Modal close button
+      const closeBtn = document.getElementById('tuner-close-button');
+      if (closeBtn) {
+        closeBtn.addEventListener('click', () => this.close());
+      }
+
+      const contBtn = document.getElementById('tuner-continue-flight-btn');
+      if (contBtn) {
+        contBtn.addEventListener('click', () => this.close());
+      }
+
+      const codexBtn = document.getElementById('tuner-view-codex-btn');
+      if (codexBtn) {
+        codexBtn.addEventListener('click', () => {
+          this.close();
+          if (window.Codex && window.Codex.open) {
+            window.Codex.open();
+          } else if (window.Starfield && window.Starfield.toggleCodex) {
+            window.Starfield.toggleCodex();
+          }
+        });
+      }
+
+      // 4. Frequency Slider
+      const slider = document.getElementById('tuner-slider-input');
+      if (slider) {
+        slider.addEventListener('input', (e) => {
+          this.setFrequency(parseFloat(e.target.value));
+        });
+      }
+
+      // 5. Canvas Drag to Tune
+      if (this.scopeCanvas) {
+        let isDragging = false;
+        let startX = 0;
+        let startFreq = 0;
+
+        const onDown = (clientX) => {
+          if (this.isLocked) return;
+          isDragging = true;
+          startX = clientX;
+          startFreq = this.playerFreq;
+        };
+
+        const onMove = (clientX) => {
+          if (!isDragging || this.isLocked) return;
+          const dx = clientX - startX;
+          const newFreq = Math.max(1.0, Math.min(8.0, startFreq + dx * 0.015));
+          this.setFrequency(newFreq);
+          if (slider) slider.value = newFreq;
+        };
+
+        const onUp = () => { isDragging = false; };
+
+        this.scopeCanvas.addEventListener('mousedown', (e) => onDown(e.clientX));
+        window.addEventListener('mousemove', (e) => onMove(e.clientX));
+        window.addEventListener('mouseup', onUp);
+
+        this.scopeCanvas.addEventListener('touchstart', (e) => {
+          if (e.touches.length > 0) onDown(e.touches[0].clientX);
+        }, { passive: true });
+        window.addEventListener('touchmove', (e) => {
+          if (e.touches.length > 0) onMove(e.touches[0].clientX);
+        }, { passive: true });
+        window.addEventListener('touchend', onUp);
+      }
+
+      // 6. Global Keydown Handlers (R, E, A, D, Left, Right, Escape)
+      window.addEventListener('keydown', (e) => {
+        if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+
+        // Hotkey R: Radar Ping
+        if (e.code === 'KeyR' || e.key.toLowerCase() === 'r') {
+          if (!this.isOpen) {
+            e.preventDefault();
+            ScannerRadar.ping();
+          }
+        }
+
+        // Hotkey E: Open Relic Tuner when prompt visible
+        if (e.code === 'KeyE' || e.key.toLowerCase() === 'e') {
+          if (!this.isOpen && this.currentTarget) {
+            e.preventDefault();
+            this.open(this.currentTarget);
+          }
+        }
+
+        // Tuner controls when modal is open
+        if (this.isOpen && !this.isLocked) {
+          if (e.code === 'KeyA' || e.key === 'ArrowLeft') {
+            e.preventDefault();
+            const nf = Math.max(1.0, this.playerFreq - 0.05);
+            this.setFrequency(nf);
+            if (slider) slider.value = nf;
+          } else if (e.code === 'KeyD' || e.key === 'ArrowRight') {
+            e.preventDefault();
+            const nf = Math.min(8.0, this.playerFreq + 0.05);
+            this.setFrequency(nf);
+            if (slider) slider.value = nf;
+          } else if (e.key === 'Escape') {
+            e.preventDefault();
+            this.close();
+          }
+        }
+      });
+    },
+
+    updateProximityPrompt(nearestTarget, dist) {
+      const prompt = document.getElementById('relic-proximity-prompt');
+      if (!prompt) return;
+
+      if (nearestTarget && !this.isOpen) {
+        this.currentTarget = nearestTarget;
+        prompt.classList.add('visible');
+        const detailEl = document.getElementById('prompt-target-detail');
+        if (detailEl) {
+          detailEl.textContent = `${nearestTarget.name} // 距离: ${Math.round(dist)} U`;
+        }
+      } else {
+        prompt.classList.remove('visible');
+        if (!this.isOpen) this.currentTarget = null;
+      }
+    },
+
+    open(target) {
+      if (!target) return;
+      this.isOpen = true;
+      this.currentTarget = target;
+      this.targetFreq = target.targetFreq || 3.42;
+      // Start slightly detuned for engaging gameplay
+      this.playerFreq = Math.max(1.0, Math.min(8.0, this.targetFreq + (Math.random() > 0.5 ? 1.5 : -1.5)));
+      this.alignment = 0.0;
+      this.lockHoldTime = 0.0;
+      this.isLocked = false;
+
+      // Update Header Text
+      const titleEl = document.getElementById('tuner-title-text');
+      if (titleEl) titleEl.textContent = `${target.name} · 信号调谐`;
+      const tagEl = document.getElementById('tuner-category-tag');
+      if (tagEl) tagEl.textContent = `TARGET [${target.id.toUpperCase()}] // FREQ: ${this.targetFreq.toFixed(2)} GHz`;
+      const coordEl = document.getElementById('tuner-coord-text');
+      if (coordEl) coordEl.textContent = `SPATIAL COORD: [${Math.round(target.x)}, ${Math.round(target.y)}, ${Math.round(target.z)}]`;
+
+      const slider = document.getElementById('tuner-slider-input');
+      if (slider) slider.value = this.playerFreq;
+
+      const victoryPanel = document.getElementById('tuner-victory-panel');
+      if (victoryPanel) victoryPanel.classList.remove('visible');
+      const controlsBox = document.getElementById('tuner-controls-box');
+      if (controlsBox) controlsBox.style.display = 'block';
+
+      const modal = document.getElementById('relic-tuner-modal');
+      if (modal) modal.classList.add('open');
+
+      // Hide proximity prompt while modal is active
+      const prompt = document.getElementById('relic-proximity-prompt');
+      if (prompt) prompt.classList.remove('visible');
+
+      // Start Web Audio Static Hiss & Resonance Tone
+      ScannerAudio.startTuningAudio();
+    },
+
+    close() {
+      this.isOpen = false;
+      const modal = document.getElementById('relic-tuner-modal');
+      if (modal) modal.classList.remove('open');
+      ScannerAudio.stopTuningAudio();
+    },
+
+    setFrequency(freq) {
+      this.playerFreq = Math.max(1.0, Math.min(8.0, freq));
+    },
+
+    // Programmatic auto-solve (useful for tests or assistive actions)
+    solve() {
+      if (!this.isOpen) {
+        if (this.currentTarget) this.open(this.currentTarget);
+        else if (ScannerRadar.candidates.length > 0) this.open(ScannerRadar.candidates[0]);
+        else return;
+      }
+      this.playerFreq = this.targetFreq;
+      this.alignment = 1.0;
+      this.lockHoldTime = this.lockRequired;
+      this.triggerSignalLock();
+    },
+
+    triggerSignalLock() {
+      if (this.isLocked) return;
+      this.isLocked = true;
+
+      // 1. Audio: Static noise fades into clear celestial chime chord!
+      ScannerAudio.stopTuningAudio();
+      ScannerAudio.playCelestialChime();
+
+      // 2. Mark target as deciphered
+      if (this.currentTarget) {
+        this.currentTarget.solved = true;
+        ScannerRadar.detectedTargets.set(this.currentTarget.key, this.currentTarget);
+      }
+
+      // 3. Unlock classified lore into Codex
+      let lore = this.currentTarget && this.currentTarget.lore;
+      if (!lore) {
+        lore = RELIC_ARCHIVE[Math.floor(Math.random() * RELIC_ARCHIVE.length)];
+      }
+
+      if (window.Codex && window.Codex.unlock) {
+        window.Codex.unlock(lore.id, lore);
+      } else if (window.Codex && window.Codex.discover) {
+        window.Codex.discover(lore.id, lore.name);
+      }
+
+      // 4. Trigger Golden Discovery Toast
+      this.showGoldenToast(`✦ 信号谐振锁定！已破译深空密文【${lore.name}】 · 已录入星图手札`);
+
+      // 5. Update Victory Panel
+      const victoryPanel = document.getElementById('tuner-victory-panel');
+      const loreContent = document.getElementById('tuner-lore-content');
+      if (loreContent) loreContent.textContent = lore.desc;
+      if (victoryPanel) victoryPanel.classList.add('visible');
+
+      const controlsBox = document.getElementById('tuner-controls-box');
+      if (controlsBox) controlsBox.style.display = 'none';
+    },
+
+    showGoldenToast(text) {
+      // Also invoke game's internal toast if present
+      if (typeof window.toast === 'function') {
+        window.toast(text);
+      } else {
+        const gameToast = document.getElementById('toast');
+        if (gameToast) {
+          gameToast.textContent = text;
+          gameToast.style.opacity = '1';
+          setTimeout(() => { gameToast.style.opacity = '0'; }, 4000);
+        }
+      }
+
+      // Standalone Golden Shimmer Banner
+      const gToast = document.getElementById('scanner-golden-toast');
+      if (gToast) {
+        gToast.textContent = text;
+        gToast.classList.add('show');
+        setTimeout(() => gToast.classList.remove('show'), 4200);
+      }
+    },
+
+    update(dt) {
+      if (!this.isOpen) return;
+      this.animTime += dt;
+
+      // Calculate harmonic resonance alignment
+      const delta = Math.abs(this.playerFreq - this.targetFreq);
+      // Resonance drops off as delta grows: tolerance curve
+      const resonance = Math.max(0, 1 - Math.pow(delta / 0.42, 1.35));
+      this.alignment = resonance;
+
+      // Update Audio Filter & Volumes
+      ScannerAudio.updateTuningAudio(this.playerFreq, this.alignment);
+
+      // Check Harmonic Lock Requirement (>95% for 1.2s)
+      if (!this.isLocked) {
+        if (this.alignment >= 0.95) {
+          this.lockHoldTime += dt;
+          if (this.lockHoldTime >= this.lockRequired) {
+            this.triggerSignalLock();
+          }
+        } else {
+          this.lockHoldTime = Math.max(0, this.lockHoldTime - dt * 1.5);
+        }
+      }
+
+      // Update UI Metrics
+      const metricEl = document.getElementById('tuner-metric-text');
+      if (metricEl) {
+        const pct = (this.alignment * 100).toFixed(1);
+        metricEl.textContent = this.isLocked
+          ? '✦ 谐振锁定已达成 (100.0%)'
+          : `谐振度: ${pct}% ${this.alignment >= 0.95 ? ' [锁定中...]' : ''}`;
+        metricEl.style.color = this.isLocked ? '#f2dc87' : this.alignment >= 0.95 ? '#d4af37' : '#f7f9fb';
+      }
+
+      const counterEl = document.getElementById('tuner-lock-counter');
+      if (counterEl) {
+        counterEl.textContent = `锁定累积: ${this.lockHoldTime.toFixed(1)}s / ${this.lockRequired.toFixed(1)}s`;
+      }
+
+      const barFill = document.getElementById('tuner-lock-bar-fill');
+      if (barFill) {
+        const fillPct = Math.min(100, (this.lockHoldTime / this.lockRequired) * 100);
+        barFill.style.width = `${fillPct}%`;
+      }
+
+      // Render Oscilloscope
+      this.drawScope();
+    },
+
+    drawScope() {
+      if (!this.scopeCtx || !this.scopeCanvas) return;
+      const ctx = this.scopeCtx;
+      const w = this.scopeCanvas.width;
+      const h = this.scopeCanvas.height;
+      const cy = h * 0.5;
+
+      // Dark Paper Canvas Background
+      ctx.fillStyle = '#080d14';
+      ctx.fillRect(0, 0, w, h);
+
+      // Oscilloscope Grid Lines (Papercraft ticks)
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      for (let x = 0; x <= w; x += 40) { ctx.moveTo(x, 0); ctx.lineTo(x, h); }
+      for (let y = 0; y <= h; y += 30) { ctx.moveTo(0, y); ctx.lineTo(w, y); }
+      ctx.stroke();
+
+      // Center baseline
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
+      ctx.beginPath();
+      ctx.moveTo(0, cy); ctx.lineTo(w, cy);
+      ctx.stroke();
+
+      const t = this.animTime;
+      const amp = 46;
+
+      // 1. Target Carrier Wave (Golden Harmonic Curve)
+      ctx.save();
+      ctx.strokeStyle = this.isLocked ? 'rgba(255, 240, 180, 0.95)' : '#d4af37';
+      ctx.lineWidth = this.isLocked ? 3.0 : 2.0;
+      ctx.shadowBlur = this.isLocked ? 14 : 6;
+      ctx.shadowColor = '#d4af37';
+      ctx.beginPath();
+
+      for (let x = 0; x < w; x++) {
+        const nx = (x / w) * 16;
+        const y = cy + amp * Math.sin(nx * this.targetFreq + t * 2.2)
+                     + (amp * 0.35) * Math.sin(nx * (this.targetFreq * 2.1) - t * 1.4);
+        if (x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+      ctx.restore();
+
+      // 2. Player Receiver Wave (Adjustable Cyan Curve)
+      if (!this.isLocked) {
+        ctx.save();
+        ctx.strokeStyle = '#7ec8e3';
+        ctx.lineWidth = 1.8;
+        ctx.shadowBlur = 6;
+        ctx.shadowColor = '#7ec8e3';
+        ctx.beginPath();
+
+        for (let x = 0; x < w; x++) {
+          const nx = (x / w) * 16;
+          const y = cy + amp * Math.sin(nx * this.playerFreq + t * 2.2)
+                       + (amp * 0.35) * Math.sin(nx * (this.playerFreq * 2.1) - t * 1.4);
+          if (x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      // 3. Locked Harmonic Beam effect
+      if (this.isLocked) {
+        ctx.save();
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
+        ctx.lineWidth = 1.5;
+        ctx.shadowBlur = 20;
+        ctx.shadowColor = '#fff';
+        ctx.beginPath();
+        for (let x = 0; x < w; x++) {
+          const nx = (x / w) * 16;
+          const y = cy + (amp * 0.8) * Math.sin(nx * this.targetFreq + t * 2.2);
+          if (x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+        ctx.restore();
+      }
+    }
+  };
+
+  // ============================================================================
+  // 5. MAIN SCANNER ENGINE FACADE & ANIMATION LOOP
+  // ============================================================================
+  let isInitialized = false;
+  let lastFrameTime = performance.now();
+
+  function onFrame(now) {
+    const dt = Math.min(0.1, Math.max(0.001, (now - lastFrameTime) / 1000));
+    lastFrameTime = now;
+
+    // Update Radar & Proximity
+    ScannerRadar.update(dt);
+
+    // Update Tuner
+    RelicTuner.update(dt);
+
+    // Draw 3D Overlay Canvas
+    const canvas = document.getElementById('scanner-overlay-canvas');
+    if (canvas) {
+      const w = window.innerWidth, h = window.innerHeight;
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      if (canvas.width !== Math.round(w * dpr) || canvas.height !== Math.round(h * dpr)) {
+        canvas.width = Math.round(w * dpr);
+        canvas.height = Math.round(h * dpr);
+      }
+      const ctx = canvas.getContext('2d');
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, w, h);
+
+      // Render 3D Radar Wave & HUD Markers
+      ScannerRadar.draw3D(ctx, w, h, dpr);
+    }
+
+    requestAnimationFrame(onFrame);
+  }
+
+  const AnomalyScanner = {
+    version: '1.0.0-origami-radar',
+
+    isInitialized() {
+      return isInitialized;
+    },
+
+    init() {
+      if (isInitialized) return;
+      isInitialized = true;
+
+      ScannerAudio.init();
+      RelicTuner.init();
+
+      lastFrameTime = performance.now();
+      requestAnimationFrame(onFrame);
+
+      console.log('📡 [AnomalyScanner] Deep Space Radar & Relic Deciphering System initialized.');
+    },
+
+    ping() {
+      ScannerAudio.init();
+      ScannerRadar.ping();
+    },
+
+    openTuner(target) {
+      if (target) {
+        RelicTuner.open(target);
+      } else if (ScannerRadar.candidates.length > 0) {
+        RelicTuner.open(ScannerRadar.candidates[0]);
+      } else {
+        ScannerRadar.gatherCandidates();
+        if (ScannerRadar.candidates.length > 0) {
+          RelicTuner.open(ScannerRadar.candidates[0]);
+        }
+      }
+    },
+
+    closeTuner() {
+      RelicTuner.close();
+    },
+
+    tune(freq) {
+      RelicTuner.setFrequency(freq);
+      const slider = document.getElementById('tuner-slider-input');
+      if (slider) slider.value = freq;
+    },
+
+    solveTuner() {
+      RelicTuner.solve();
+    },
+
+    unlockRelic(target) {
+      let lore = (target && target.lore) || RELIC_ARCHIVE[0];
+      if (window.Codex && window.Codex.unlock) {
+        window.Codex.unlock(lore.id, lore);
+      }
+      RelicTuner.showGoldenToast(`✦ 已录入图鉴密文【${lore.name}】`);
+    },
+
+    getState() {
+      return {
+        radarActive: ScannerRadar.active,
+        radarWaveDist: ScannerRadar.waveDist,
+        detectedCount: ScannerRadar.detectedTargets.size,
+        tunerOpen: RelicTuner.isOpen,
+        tunerFrequency: RelicTuner.playerFreq,
+        targetFrequency: RelicTuner.targetFreq,
+        alignment: RelicTuner.alignment,
+        lockHoldTime: RelicTuner.lockHoldTime,
+        isLocked: RelicTuner.isLocked
+      };
+    },
+
+    getTargets() {
+      return Array.from(ScannerRadar.detectedTargets.values());
+    },
+
+    getCandidates() {
+      return ScannerRadar.candidates;
+    }
+  };
+
+  // Expose to window
+  window.AnomalyScanner = AnomalyScanner;
+
+  // Auto-initialize when ready
+  if (document.readyState === 'complete' || document.readyState === 'interactive') {
+    AnomalyScanner.init();
+  } else {
+    window.addEventListener('DOMContentLoaded', () => AnomalyScanner.init());
+  }
+
+})(typeof window !== 'undefined' ? window : this);
 
 </script>
 </body>
