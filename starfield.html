@@ -5072,6 +5072,12 @@ function drawWorld(m, q, p, t, rad, tint) {
   if (rad > 20 && typeof Codex !== 'undefined') Codex.checkCelestialEncounter(m);
   const cx = q[0], cy = q[1];
 
+  // Frustum Culling: discard worlds completely outside the screen boundary [0..W, 0..H]
+  const cullR = rad * 1.85;
+  if (cx + cullR < 0 || cx - cullR > W || cy + cullR < 0 || cy - cullR > H) {
+    return;
+  }
+
   let l = [-.40, -.50, .77];
   if (m.orb) {
     const dx = m.orb.cx - m.x, dy = m.orb.cy - m.y, dz = m.orb.cz - m.z;
@@ -5150,13 +5156,12 @@ function drawWorld(m, q, p, t, rad, tint) {
       }
 
       // Three.js 3D Procedural Living Planet Engine (Islands, Oceans, Trees, Monuments, Birds & Whales)
-      // Rendered with pixel-exact orthographic sizing and high-quality smoothing; seamless from rad >= 3.0
-      if (typeof LivingPlanetEngine !== 'undefined' && LivingPlanetEngine.enabled && rad >= 3.0 && typeof THREE !== 'undefined') {
+      // Rendered with pixel-exact orthographic sizing and high-performance hardware filtering (rad >= 8.0)
+      if (typeof LivingPlanetEngine !== 'undefined' && LivingPlanetEngine.enabled && rad >= 8.0 && typeof THREE !== 'undefined') {
         const offCanvas = LivingPlanetEngine.renderPlanet(m, rad, [lx, ly, lz]);
         if (offCanvas) {
           const drawD = LivingPlanetEngine.getDrawSize(rad);
           ctx.imageSmoothingEnabled = true;
-          ctx.imageSmoothingQuality = 'high';
           ctx.drawImage(offCanvas, cx - drawD * 0.5, cy - drawD * 0.5, drawD, drawD);
           return;
         }
@@ -6011,7 +6016,7 @@ function drawHole(m, q, p, t, rad){
 const lensRoll=0.34;
 // The sprite buffer cap. 1536 was sized for a shadow of ~300 px; the shadow can
 // now reach ~600 px, and a buffer that does not grow with it turns into upscale.
-const SPRITE_CAP=2048;
+const SPRITE_CAP=1280;
 let massVis=1; // set by bodies() so a mass can fade in
 let holeDraws=0,holeLastRad=0;
 let tintHole=[255,236,214];
@@ -12724,10 +12729,8 @@ requestAnimationFrame(frame);
       const neededPixels = Math.round(drawD * dpr);
 
       let target = 512;
-      if (neededPixels > 1150 || rad >= 230) {
-        target = 1536; // Ultra-HD 1536x1536 for close encounters, zenith/nadir skimming
-      } else if (neededPixels > 550 || rad >= 110) {
-        target = 1024; // High-res 1024x1024 for approaching planets
+      if (neededPixels > 550 || rad >= 80) {
+        target = 1024; // High-res 1024x1024 for approaching planets & close encounters
       } else {
         target = 512;  // Lightweight 512x512 for cruise phase
       }
@@ -12738,8 +12741,8 @@ requestAnimationFrame(frame);
         this._resizeBuffer(target);
       } else if (target < this.currentBufferSize) {
         this.shrinkCounter++;
-        // 45-frame hysteresis before downscaling to prevent GPU context thrashing
-        if (this.shrinkCounter > 45) {
+        // 60-frame hysteresis before downscaling to prevent GPU context thrashing
+        if (this.shrinkCounter > 60) {
           this.currentBufferSize = target;
           this.shrinkCounter = 0;
           this._resizeBuffer(target);
@@ -12806,13 +12809,6 @@ requestAnimationFrame(frame);
 
       const model = this.createProceduralPlanet(m, pId);
       model.pId = pId;
-      model.hasRendered = false;
-      // Dedicated isolated 2D snapshot canvas for this specific planet: 100% prevents cross-planet texture contamination!
-      model.dedicatedCanvas = document.createElement('canvas');
-      model.dedicatedCanvas.width = this.currentBufferSize;
-      model.dedicatedCanvas.height = this.currentBufferSize;
-      model.dedicatedCtx = model.dedicatedCanvas.getContext('2d');
-
       this.planetsContainer.add(model.group);
       this.planetCache.set(pId, model);
       return model;
@@ -13111,13 +13107,6 @@ requestAnimationFrame(frame);
           else obj.material.dispose();
         }
       });
-      // Explicitly release dedicated canvas GPU backing store memory
-      if (model.dedicatedCanvas) {
-        model.dedicatedCanvas.width = 0;
-        model.dedicatedCanvas.height = 0;
-        model.dedicatedCanvas = null;
-        model.dedicatedCtx = null;
-      }
     },
 
     // Renders the living planet to the offscreen canvas and returns the canvas
@@ -13130,24 +13119,6 @@ requestAnimationFrame(frame);
       if (!model) return null;
 
       this.ensureBufferSize(rad);
-
-      // Keep dedicated canvas size synced with current buffer size
-      if (model.dedicatedCanvas.width !== this.currentBufferSize) {
-        model.dedicatedCanvas.width = this.currentBufferSize;
-        model.dedicatedCanvas.height = this.currentBufferSize;
-        model.hasRendered = false; // Force re-render on resize to prevent 1-frame blank
-      }
-
-      this.frameCount++;
-
-      // Adaptive WebGL throttling: full 60 FPS for close encounters (rad >= 180), sub-frame throttled for distant
-      const throttleRate = rad >= 180 ? 1 : (rad < 35.0 ? 3 : 2);
-      
-      // Per-planet throttle tracking: independent of global currentRenderedId
-      if (model.hasRendered && model.lastRenderFrame && (this.frameCount - model.lastRenderFrame < throttleRate)) {
-        return model.dedicatedCanvas;
-      }
-      model.lastRenderFrame = this.frameCount;
 
       const now = performance.now() * 0.001;
       const dt = Math.min(0.05, now - this.lastTime);
@@ -13185,15 +13156,9 @@ requestAnimationFrame(frame);
         model.whalesGroup.rotation.y += dt * 0.14;
       }
 
-      // Render crisp WebGL frame to WebGL canvas
+      // Render crisp WebGL frame directly to WebGL canvas with zero pipeline copy overhead
       this.renderer.render(this.scene, this.camera);
-
-      // Snapshot to planet's dedicated canvas to guarantee 100% physical buffer isolation between planets
-      model.dedicatedCtx.clearRect(0, 0, this.currentBufferSize, this.currentBufferSize);
-      model.dedicatedCtx.drawImage(this.canvas, 0, 0);
-      model.hasRendered = true;
-
-      return model.dedicatedCanvas;
+      return this.canvas;
     }
   };
 

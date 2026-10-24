@@ -51,7 +51,7 @@ def run_tests():
             const sz_mid = eng.currentBufferSize;
             const canvas_mid = eng.canvas.width;
 
-            // Simulate close encounter skimming world (rad = 450, like screenshot) -> immediate upgrade to 1536
+            // Simulate close encounter skimming world (rad = 450) -> crisp 1024 buffer
             eng.ensureBufferSize(450);
             const sz_close = eng.currentBufferSize;
             const canvas_close = eng.canvas.width;
@@ -63,14 +63,14 @@ def run_tests():
             };
         }""")
 
-        print(f"   - Distant planet (rad=30, after 50 frames): buffer = {tiers['distant']['size']}x{tiers['distant']['size']} (Canvas: {tiers['distant']['canvasW']})")
+        print(f"   - Distant planet (rad=30, after 65 frames): buffer = {tiers['distant']['size']}x{tiers['distant']['size']} (Canvas: {tiers['distant']['canvasW']})")
         print(f"   - Approaching planet (rad=140, immediate): buffer = {tiers['approaching']['size']}x{tiers['approaching']['size']} (Canvas: {tiers['approaching']['canvasW']})")
         print(f"   - Close encounter planet (rad=450, immediate): buffer = {tiers['closeEncounter']['size']}x{tiers['closeEncounter']['size']} (Canvas: {tiers['closeEncounter']['canvasW']})")
 
         assert tiers['distant']['size'] == 512, f"Distant buffer must be 512, got {tiers['distant']['size']}"
         assert tiers['approaching']['size'] == 1024, f"Approaching buffer must be 1024, got {tiers['approaching']['size']}"
-        assert tiers['closeEncounter']['size'] == 1536, f"Close encounter buffer must be 1536, got {tiers['closeEncounter']['size']}"
-        print("   >>> PASS: Dynamic Adaptive Multi-Tier Buffer scales and protects GPU perfectly!")
+        assert tiers['closeEncounter']['size'] == 1024, f"Close encounter buffer must be 1024, got {tiers['closeEncounter']['size']}"
+        print("   >>> PASS: Dynamic Adaptive Buffer scales and protects GPU perfectly!")
 
         # -------------------------------------------------------------
         # TEST B: In-flight close encounter rendering & screenshot

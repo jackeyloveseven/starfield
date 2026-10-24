@@ -183,10 +183,8 @@
       const neededPixels = Math.round(drawD * dpr);
 
       let target = 512;
-      if (neededPixels > 1150 || rad >= 230) {
-        target = 1536; // Ultra-HD 1536x1536 for close encounters, zenith/nadir skimming
-      } else if (neededPixels > 550 || rad >= 110) {
-        target = 1024; // High-res 1024x1024 for approaching planets
+      if (neededPixels > 550 || rad >= 80) {
+        target = 1024; // High-res 1024x1024 for approaching planets & close encounters
       } else {
         target = 512;  // Lightweight 512x512 for cruise phase
       }
@@ -197,8 +195,8 @@
         this._resizeBuffer(target);
       } else if (target < this.currentBufferSize) {
         this.shrinkCounter++;
-        // 45-frame hysteresis before downscaling to prevent GPU context thrashing
-        if (this.shrinkCounter > 45) {
+        // 60-frame hysteresis before downscaling to prevent GPU context thrashing
+        if (this.shrinkCounter > 60) {
           this.currentBufferSize = target;
           this.shrinkCounter = 0;
           this._resizeBuffer(target);
@@ -265,13 +263,6 @@
 
       const model = this.createProceduralPlanet(m, pId);
       model.pId = pId;
-      model.hasRendered = false;
-      // Dedicated isolated 2D snapshot canvas for this specific planet: 100% prevents cross-planet texture contamination!
-      model.dedicatedCanvas = document.createElement('canvas');
-      model.dedicatedCanvas.width = this.currentBufferSize;
-      model.dedicatedCanvas.height = this.currentBufferSize;
-      model.dedicatedCtx = model.dedicatedCanvas.getContext('2d');
-
       this.planetsContainer.add(model.group);
       this.planetCache.set(pId, model);
       return model;
@@ -570,13 +561,6 @@
           else obj.material.dispose();
         }
       });
-      // Explicitly release dedicated canvas GPU backing store memory
-      if (model.dedicatedCanvas) {
-        model.dedicatedCanvas.width = 0;
-        model.dedicatedCanvas.height = 0;
-        model.dedicatedCanvas = null;
-        model.dedicatedCtx = null;
-      }
     },
 
     // Renders the living planet to the offscreen canvas and returns the canvas
@@ -589,24 +573,6 @@
       if (!model) return null;
 
       this.ensureBufferSize(rad);
-
-      // Keep dedicated canvas size synced with current buffer size
-      if (model.dedicatedCanvas.width !== this.currentBufferSize) {
-        model.dedicatedCanvas.width = this.currentBufferSize;
-        model.dedicatedCanvas.height = this.currentBufferSize;
-        model.hasRendered = false; // Force re-render on resize to prevent 1-frame blank
-      }
-
-      this.frameCount++;
-
-      // Adaptive WebGL throttling: full 60 FPS for close encounters (rad >= 180), sub-frame throttled for distant
-      const throttleRate = rad >= 180 ? 1 : (rad < 35.0 ? 3 : 2);
-      
-      // Per-planet throttle tracking: independent of global currentRenderedId
-      if (model.hasRendered && model.lastRenderFrame && (this.frameCount - model.lastRenderFrame < throttleRate)) {
-        return model.dedicatedCanvas;
-      }
-      model.lastRenderFrame = this.frameCount;
 
       const now = performance.now() * 0.001;
       const dt = Math.min(0.05, now - this.lastTime);
@@ -644,15 +610,9 @@
         model.whalesGroup.rotation.y += dt * 0.14;
       }
 
-      // Render crisp WebGL frame to WebGL canvas
+      // Render crisp WebGL frame directly to WebGL canvas with zero pipeline copy overhead
       this.renderer.render(this.scene, this.camera);
-
-      // Snapshot to planet's dedicated canvas to guarantee 100% physical buffer isolation between planets
-      model.dedicatedCtx.clearRect(0, 0, this.currentBufferSize, this.currentBufferSize);
-      model.dedicatedCtx.drawImage(this.canvas, 0, 0);
-      model.hasRendered = true;
-
-      return model.dedicatedCanvas;
+      return this.canvas;
     }
   };
 
