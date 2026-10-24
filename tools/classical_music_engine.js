@@ -363,8 +363,10 @@
 
       const filter = ac.createBiquadFilter();
       filter.type = 'lowpass';
-      filter.frequency.setValueAtTime(1400 + velocity * 2200, t0);
-      filter.Q.value = 2.0;
+      // Solo Violin Acoustic Formant & Bridge Hill (小提琴独奏高频穿透力与泛音共振)
+      const filterCutoff = Math.max(1800, freq * 2.8 + velocity * 1800);
+      filter.frequency.setValueAtTime(filterCutoff, t0);
+      filter.Q.value = 2.4;
 
       const noteGain = ac.createGain();
       const peakGain = 0.12 * velocity;

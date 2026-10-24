@@ -3466,7 +3466,7 @@ function line(points,c,alpha=1,width=1){
 }
 /* A soft radial bloom that takes part in the depth sort, so a glow can sit
  * behind the nearer shards instead of over everything. No 60px sprite clamp. */
-function glow(world,size,c,alpha=1,spread=3){const p=project(world);if(!p)return;queue.push({type:3,p,d:p[2],s:clamp(size*p[3],1,Math.max(W,H)*.7),c,alpha,spread});}
+function glow(world,size,c,alpha=1,spread=3){const p=project(world);if(!p)return;const s=clamp(size*p[3],1,Math.max(W,H)*.7);const r=s*spread;if(p[0]+r<-20||p[0]-r>W+20||p[1]+r<-20||p[1]-r>H+20)return;queue.push({type:3,p,d:p[2],s,c,alpha,spread});}
 function sprite(world,size,c,kind,alpha=1,rotation=0){const p=project(world);if(!p||p[0]<-40||p[0]>W+40||p[1]<-40||p[1]>H+40)return;queue.push({type:2,p,d:p[2],s:clamp(size*p[3],.4,60),c:css(haze(c,p[2])),alpha,kind,rotation});}
 function flush(){
  queue.sort((a,b)=>b.d-a.d);
@@ -4070,6 +4070,10 @@ const SpaceEventEngine = {
       else if (ev.type === 'monolith_artifact') toast('⬛ 黑色方尖碑 · 1:4:9 ALIEN MONOLITH', 5);
       else if (ev.type === 'ghost_fleet') toast('⚔️ 古战场幽灵旗舰 · DREADNOUGHT GHOST FLEET', 5);
     }
+
+    // Frustum Culling on cosmic events
+    const evPad = (ev.type === 'asteroid_field' || ev.type === 'pillars_of_creation' || ev.type === 'dyson_ring') ? (800 * q[3] + 160) : (350 * q[3] + 100);
+    if (q[0] + evPad < 0 || q[0] - evPad > W || q[1] + evPad < 0 || q[1] - evPad > H) return;
 
     const evAlpha = clamp((65000 - q[2]) / 35000, 0, 1);
 
@@ -6357,37 +6361,57 @@ function drawGalaxy(g,p,t){
 }
 function bodies(){
  activeShips.length=0;
- const k0=Math.floor(camera.eye[2]/CHUNK),radius=lowQuality?14:22,active=[];
- for(let k=k0-radius;k<=k0+radius;k++)active.push(chunk(k));
- for(const [k] of chunks)if(Math.abs(k-k0)>radius+2)chunks.delete(k);
+ const k0=Math.floor(camera.eye[2]/CHUNK);
+ const backRadius = autoCamera ? 3 : 6;
+ const fwdRadius = lowQuality ? 14 : 22;
+ const active = [];
+ for(let k=k0-backRadius;k<=k0+fwdRadius;k++)active.push(chunk(k));
+ for(const [k] of chunks)if(k < k0 - backRadius - 2 || k > k0 + fwdRadius + 2)chunks.delete(k);
  for(const c of active){
-  // The shard and plate draw loops were here. drawShard/drawPlate are now
-  // unreferenced; left in place rather than deleted blind.
-
-  // Smooth distance fade for galaxies
-  for(const g of c.galaxies){const pj=project([g.x,g.y,g.z]);if(!pj||pj[2]>34000)continue;massVis=clamp((34000-pj[2])/8000);if(massVis<=0)continue;drawGalaxy(g,region(g.x,g.z),time);massVis=1;}
-  // Render procedural space events
+  // Frustum-culled distance fade for galaxies
+  for(const g of c.galaxies){
+   const pj=project([g.x,g.y,g.z]);if(!pj||pj[2]>34000)continue;
+   const R=g.rad*pj[3];if(R<10)continue;
+   if(pj[0]+R<-50||pj[0]-R>W+50||pj[1]+R<-50||pj[1]-R>H+50)continue;
+   massVis=clamp((34000-pj[2])/8000);if(massVis<=0)continue;
+   drawGalaxy(g,region(g.x,g.z),time);massVis=1;
+  }
+  // Render procedural space events (frustum-culled)
   for(const ev of (c.events||[])){SpaceEventEngine.drawEvent(ev,time);}
-  for(const b of (c.battles||[]))drawBattle(b,time);
-  // A body held at full alpha until a cutoff appears in one frame. Keep
- // them much longer and fade them in over the last 12,000 units.
- for(const g of (c.gates||[])){const pj=project([g.x,g.y,g.z]);if(!pj||pj[2]>52000)continue;
-  massVis=clamp((52000-pj[2])/18000);if(massVis<=0)continue;
-  drawGate(g,pj,time);massVis=1;}
- for(const s of c.ships){const pj=project([s.x,s.y,s.z]);if(!pj||pj[2]>52000)continue;
-  if(pj[2]<18000&&activeShips.length<8)activeShips.push(s);
-  massVis=clamp((52000-pj[2])/18000);if(massVis<=0)continue;
-  drawShip(s,pj,time);massVis=1;}
- for(const m of c.masses){const pj=project([m.x,m.y,m.z]);if(!pj||pj[2]>70000)continue;
-  massVis=clamp((70000-pj[2])/45000);if(massVis<=0)continue;
-  // A world that fills the plate blows out: its lit side and its atmosphere were
-  // tuned for a 100 px disc. Dim it as it grows, the way the eye would.
-  {const rp=m.r*pj[3];if(rp>H*.42)massVis*=clamp(H*.42/rp,.30,1);}
-  drawMass(m,region(m.x,m.z),time);massVis=1;}
+  // Frustum-culled space skirmishes
+  for(const b of (c.battles||[])){
+   const pj=project([b.x,b.y,b.z]);if(!pj||pj[2]>34000)continue;
+   if(pj[0]<-250||pj[0]>W+250||pj[1]<-250||pj[1]>H+250)continue;
+   drawBattle(b,time);
+  }
+  // Frustum-culled jump gates
+  for(const g of (c.gates||[])){
+   const pj=project([g.x,g.y,g.z]);if(!pj||pj[2]>52000)continue;
+   const R=Math.max(6,g.r*pj[3]);if(R<5)continue;
+   if(pj[0]+R<-40||pj[0]-R>W+40||pj[1]+R<-40||pj[1]-R>H+40)continue;
+   massVis=clamp((52000-pj[2])/18000);if(massVis<=0)continue;
+   drawGate(g,pj,time);massVis=1;
+  }
+  // Frustum-culled encounter ships
+  for(const s of c.ships){
+   const pj=project([s.x,s.y,s.z]);if(!pj||pj[2]>52000)continue;
+   const L=s.len*pj[3];if(L<9)continue;
+   if(pj[0]+L<-40||pj[0]-L>W+40||pj[1]+L<-40||pj[1]-L>H+40)continue;
+   if(pj[2]<18000&&activeShips.length<8)activeShips.push(s);
+   massVis=clamp((52000-pj[2])/18000);if(massVis<=0)continue;
+   drawShip(s,pj,time);massVis=1;
+  }
+  // Frustum-culled celestial masses & stars
+  for(const m of c.masses){
+   const pj=project([m.x,m.y,m.z]);if(!pj||pj[2]>70000)continue;
+   const rad=m.r*pj[3];
+   const cullR=(m.kind===4)?Math.max(rad*4.5,320):(rad*2.2+20);
+   if(pj[0]+cullR<0||pj[0]-cullR>W||pj[1]+cullR<0||pj[1]-cullR>H)continue;
+   massVis=clamp((70000-pj[2])/45000);if(massVis<=0)continue;
+   {const rp=m.r*pj[3];if(rp>H*.42)massVis*=clamp(H*.42/rp,.30,1);}
+   drawMass(m,region(m.x,m.z),time);massVis=1;
+  }
  }
- // No flush here: bodies used to empty the queue before drawFleet() and
- // drawParticles() ran, so the cranes and the dust were painted over every
- // world regardless of depth. The frame's last flush sorts them together.
 }
 /* Every craft owns its spring, phase, damping and power-law boldness. Pairwise
  * repulsion is capped, inverse-square and heavily damped: sliding, not impacts. */
@@ -8430,8 +8454,10 @@ const SCORES=[
 
       const filter = ac.createBiquadFilter();
       filter.type = 'lowpass';
-      filter.frequency.setValueAtTime(1400 + velocity * 2200, t0);
-      filter.Q.value = 2.0;
+      // Solo Violin Acoustic Formant & Bridge Hill (小提琴独奏高频穿透力与泛音共振)
+      const filterCutoff = Math.max(1800, freq * 2.8 + velocity * 1800);
+      filter.frequency.setValueAtTime(filterCutoff, t0);
+      filter.Q.value = 2.4;
 
       const noteGain = ac.createGain();
       const peakGain = 0.12 * velocity;
@@ -12806,6 +12832,7 @@ requestAnimationFrame(frame);
       this.canvas.height = sz;
       this.renderer.setSize(sz, sz, false);
       this.renderer.setPixelRatio(1.0);
+      this._bufferResized = true;
     },
 
     // Pre-generates upcoming planets in activeMasses ahead of time during cruise
@@ -12825,7 +12852,7 @@ requestAnimationFrame(frame);
         const m = masses[i];
         if (m && (m.w || m.kind === 1 || m.kind === 8 || m.kind === 6)) {
           const dz = m.z - travel;
-          if (dz > 0 && dz < 75000) {
+          if (dz > 0 && dz < 28000) {
             const pId = this.getPlanetId(m);
             if (!this.planetCache.has(pId)) {
               this.getPlanetModel(m);
@@ -13204,8 +13231,22 @@ requestAnimationFrame(frame);
         model.whalesGroup.rotation.y += dt * 0.14;
       }
 
-      // Render crisp WebGL frame directly to WebGL canvas with zero pipeline copy overhead
-      this.renderer.render(this.scene, this.camera);
+      // Adaptive Sub-Frame LOD Throttling (游戏级错帧降频渲染):
+      // rad < 35 (远距离行星): 每3帧刷新1次 WebGL，其余帧直接复用高质量画布，减少66%着色开销
+      // 35 <= rad < 70 (中距离接近): 每2帧刷新1次 WebGL
+      // rad >= 70 (近距离特写): 全速 1:1 实时 120 FPS 刷新
+      const isSwitch = (this.currentRenderedId !== pId);
+      const isBufferChange = (this._bufferResized === true);
+      this._bufferResized = false;
+      model.renderAge = (model.renderAge || 0) + 1;
+
+      const refreshInterval = rad < 35 ? 3 : (rad < 70 ? 2 : 1);
+      const shouldRenderWebGL = isSwitch || isBufferChange || (model.renderAge >= refreshInterval);
+
+      if (shouldRenderWebGL) {
+        model.renderAge = 0;
+        this.renderer.render(this.scene, this.camera);
+      }
       return this.canvas;
     }
   };
