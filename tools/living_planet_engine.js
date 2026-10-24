@@ -566,6 +566,13 @@
           else obj.material.dispose();
         }
       });
+      // Explicitly release dedicated canvas GPU backing store memory
+      if (model.dedicatedCanvas) {
+        model.dedicatedCanvas.width = 0;
+        model.dedicatedCanvas.height = 0;
+        model.dedicatedCanvas = null;
+        model.dedicatedCtx = null;
+      }
     },
 
     // Renders the living planet to the offscreen canvas and returns the canvas
@@ -583,6 +590,7 @@
       if (model.dedicatedCanvas.width !== this.currentBufferSize) {
         model.dedicatedCanvas.width = this.currentBufferSize;
         model.dedicatedCanvas.height = this.currentBufferSize;
+        model.hasRendered = false; // Force re-render on resize to prevent 1-frame blank
       }
 
       this.frameCount++;

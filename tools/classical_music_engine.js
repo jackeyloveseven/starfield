@@ -416,7 +416,10 @@
       this.activeTimers = [];
 
       const now = this.ac.currentTime;
-      this.activeNodes.forEach(node => {
+      const nodesToDisconnect = this.activeNodes.slice();
+      this.activeNodes = [];
+
+      nodesToDisconnect.forEach(node => {
         try {
           if (node.gain) {
             node.gain.cancelScheduledValues(now);
@@ -426,7 +429,13 @@
           if (node.stop) node.stop(now + 0.12);
         } catch (_) {}
       });
-      this.activeNodes = [];
+
+      // Defensive memory cleanup: disconnect audio nodes from graph after ramp-down
+      setTimeout(() => {
+        nodesToDisconnect.forEach(node => {
+          try { if (node.disconnect) node.disconnect(); } catch (_) {}
+        });
+      }, 180);
     }
 
     get currentTrack() {
