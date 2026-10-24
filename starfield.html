@@ -662,7 +662,7 @@
 <button class="control" id="pause-toggle" aria-pressed="true" title="暂停 / 继续（空格）" aria-label="暂停飞行"><i class="icon pause-icon" aria-hidden="true"></i></button>
 <button class="control" id="fullscreen-toggle" title="全屏（F）" aria-label="切换全屏"><i class="icon fullscreen-icon" aria-hidden="true"></i></button>
 </nav>
-<div id="hint">移动光标引航 &nbsp; · &nbsp; 滚轮远眺 &nbsp; · &nbsp; G 曲速 &nbsp; · &nbsp; H 折纸坞 &nbsp; · &nbsp; C 镜头 &nbsp; · &nbsp; N 领航员 &nbsp; · &nbsp; V 驾驶舱</div><div id="toast" role="status" aria-live="polite"></div><div id="pause-label" class="serif">星光在等你</div>
+<div id="hint">移动光标引航 &nbsp; · &nbsp; 滚轮远眺 &nbsp; · &nbsp; G 曲速 &nbsp; · &nbsp; H 折纸坞 &nbsp; · &nbsp; C 镜头 &nbsp; · &nbsp; N 切歌 · 古典名曲 &nbsp; · &nbsp; V 驾驶舱</div><div id="toast" role="status" aria-live="polite"></div><div id="pause-label" class="serif">星光在等你</div>
 <section id="comms-hud" class="hud" aria-label="领航员通信"><div class="comms-header"><div class="comms-dot"></div><span class="comms-title mono">COMMS // NAVIGATOR-07</span><div class="comms-wave" id="comms-wave"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div><div id="comms-text" class="comms-body serif"></div></section>
 
 <!-- CELESTIAL CODEX MODAL -->
@@ -753,17 +753,13 @@
           <button id="btn-next-track" class="photo-btn" style="padding:2px 8px; font-size:11px;" title="下一首">▶</button>
         </div>
       </div>
-      <div id="classical-track-title" style="font-size:12px; font-weight:500; color:#e6edf2; line-height:1.4;">德彪西 ·《月光》</div>
-      <div id="classical-track-composer" style="font-size:10px; opacity:0.6; margin-top:2px;">Claude Debussy (1862–1918)</div>
-      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:5px; margin-top:8px;">
-        <button class="photo-btn track-select-btn active" data-track="0" style="padding:4px 6px; font-size:10px; text-align:left; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">1. 德彪西 · 月光</button>
-        <button class="photo-btn track-select-btn" data-track="1" style="padding:4px 6px; font-size:10px; text-align:left; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">2. 萨蒂 · 裸体歌舞</button>
-        <button class="photo-btn track-select-btn" data-track="2" style="padding:4px 6px; font-size:10px; text-align:left; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">3. 贝多芬 · 月光</button>
-        <button class="photo-btn track-select-btn" data-track="3" style="padding:4px 6px; font-size:10px; text-align:left; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">4. 巴赫 · G弦咏叹</button>
-        <button class="photo-btn track-select-btn" data-track="4" style="padding:4px 6px; font-size:10px; text-align:left; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">5. 肖邦 · 夜曲</button>
-        <button class="photo-btn track-select-btn" data-track="5" style="padding:4px 6px; font-size:10px; text-align:left; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">6. 施特劳斯 · 蓝瑙河</button>
-        <button class="photo-btn track-select-btn" data-track="6" style="padding:4px 6px; font-size:10px; text-align:left; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">7. 圣-桑 · 引子随想曲</button>
-        <button class="photo-btn track-select-btn" data-track="7" style="padding:4px 6px; font-size:10px; text-align:left; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">8. 维瓦尔第 · 春</button>
+      <div id="classical-track-title" style="font-size:12px; font-weight:500; color:#e6edf2; line-height:1.4;">圣-桑 ·《引子与回旋随想曲》</div>
+      <div id="classical-track-composer" style="font-size:10px; opacity:0.6; margin-top:2px;">Camille Saint-Saëns (1835–1921)</div>
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px; margin-top:8px;">
+        <button class="photo-btn track-select-btn active" data-track="0" style="padding:5px 8px; font-size:11px; text-align:left; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">1. 圣-桑 · 引子随想曲</button>
+        <button class="photo-btn track-select-btn" data-track="1" style="padding:5px 8px; font-size:11px; text-align:left; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">2. 维瓦尔第 · 春</button>
+        <button class="photo-btn track-select-btn" data-track="2" style="padding:5px 8px; font-size:11px; text-align:left; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">3. 维瓦尔第 · 冬</button>
+        <button class="photo-btn track-select-btn" data-track="3" style="padding:5px 8px; font-size:11px; text-align:left; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">4. 圣-桑 · 天鹅</button>
       </div>
     </div>
     <div class="slider-group">
@@ -4783,6 +4779,8 @@ function chunk(k){
     flybyDist: 930,
     poseType,
     reach,
+    encIndex: encIndex,
+    seed: wD.seed || (encIndex * 7919 + 101),
     spinSpeed: 0.02 + r() * 0.03,
     notifiedSkim: false,
     isEncounter: true
@@ -8109,402 +8107,176 @@ const SCORES=[
     return convolver;
   }
 
-  // Classical Pieces Score Data [BPM, Meter, InstrumentType, NoteEvents]
+  // Classical Pieces Score Data: Exclusively Curated Saint-Saëns & Vivaldi Masterpieces
   // NoteEvent: [beatTime, midiNote, durationBeats, velocity]
   const CLASSICAL_PIECES = [
-    {
-      id: 'clair_de_lune',
-      title: '德彪西 ·《月光》',
-      originalTitle: 'Claude Debussy - Clair de Lune',
-      composer: 'Claude Debussy (1862–1918)',
-      bpm: 52,
-      inst: 'piano',
-      // Iconic impressionist opening in Db major
-      notes: [
-        // Measure 1 - 2
-        [0.0, 77, 2.0, 0.65], [0.0, 73, 2.0, 0.55], // F5, Db5
-        [2.0, 75, 1.5, 0.60], [2.0, 68, 1.5, 0.50], // Eb5, Ab4
-        [3.5, 73, 2.5, 0.68], [3.5, 65, 2.5, 0.52], // Db5, F4
-        [6.0, 72, 1.5, 0.55], [6.0, 63, 1.5, 0.48], // C5, Eb4
-        [7.5, 70, 2.0, 0.60], [7.5, 61, 2.0, 0.50], // Bb4, Db4
-        [9.5, 68, 3.0, 0.65], [9.5, 56, 3.0, 0.52], // Ab4, Ab3
-        
-        // Measure 3 - 4 (Arpeggiated starlight waves)
-        [12.5, 65, 1.0, 0.55], [13.5, 68, 1.0, 0.58], [14.5, 73, 2.0, 0.68],
-        [16.5, 72, 1.0, 0.60], [17.5, 70, 1.5, 0.62], [19.0, 68, 2.0, 0.65],
-        [21.0, 65, 1.5, 0.58], [22.5, 61, 3.0, 0.60],
-        
-        // Left hand arpeggios
-        [0.5, 49, 4.0, 0.45], [2.5, 56, 3.0, 0.42], [4.5, 61, 3.0, 0.45],
-        [6.5, 48, 4.0, 0.42], [8.5, 56, 3.0, 0.40], [10.5, 60, 3.0, 0.42],
-        [12.5, 46, 4.0, 0.45], [14.5, 53, 3.0, 0.42], [16.5, 58, 3.0, 0.44],
-        [18.5, 44, 4.0, 0.45], [20.5, 51, 3.0, 0.42], [22.5, 56, 3.0, 0.45],
-        
-        // Measure 5 - 8 (Swell)
-        [25.5, 73, 2.0, 0.72], [27.5, 75, 1.5, 0.75], [29.0, 77, 3.0, 0.82],
-        [32.0, 75, 1.5, 0.70], [33.5, 73, 1.5, 0.68], [35.0, 70, 2.5, 0.65],
-        [37.5, 68, 4.0, 0.60], [37.5, 49, 6.0, 0.55], [39.5, 56, 4.0, 0.50], [41.5, 61, 4.0, 0.52]
-      ]
-    },
-    {
-      id: 'gymnopedie_1',
-      title: '萨蒂 ·《第一号裸体歌舞》',
-      originalTitle: 'Erik Satie - Gymnopédie No. 1',
-      composer: 'Erik Satie (1866–1925)',
-      bpm: 64,
-      inst: 'piano',
-      // Iconic Gmaj7 / Dmaj7 alternating bass & tranquil soaring melody
-      notes: [
-        // Bar 1 (Gmaj7 bass + chord)
-        [0.0, 43, 3.0, 0.52], // Bass G2
-        [1.0, 59, 2.0, 0.45], [1.0, 62, 2.0, 0.45], [1.0, 66, 2.0, 0.48], // B3, D4, F#4
-        
-        // Bar 2 (Dmaj7 bass + chord)
-        [3.0, 38, 3.0, 0.50], // Bass D2
-        [4.0, 54, 2.0, 0.42], [4.0, 57, 2.0, 0.42], [4.0, 61, 2.0, 0.45], // F#3, A3, C#4
-        
-        // Bar 3
-        [6.0, 43, 3.0, 0.52],
-        [7.0, 59, 2.0, 0.45], [7.0, 62, 2.0, 0.45], [7.0, 66, 2.0, 0.48],
-        
-        // Bar 4
-        [9.0, 38, 3.0, 0.50],
-        [10.0, 54, 2.0, 0.42], [10.0, 57, 2.0, 0.42], [10.0, 61, 2.0, 0.45],
-        
-        // Bar 5 - Melody Enters! (F#4 -> A4)
-        [12.0, 43, 3.0, 0.50],
-        [13.0, 59, 2.0, 0.44], [13.0, 62, 2.0, 0.44], [13.0, 66, 2.0, 0.46],
-        [12.0, 66, 2.0, 0.68], [14.0, 69, 1.0, 0.72], // F#4, A4
-        
-        // Bar 6 (G4 -> F#4)
-        [15.0, 38, 3.0, 0.48],
-        [16.0, 54, 2.0, 0.40], [16.0, 57, 2.0, 0.40], [16.0, 61, 2.0, 0.42],
-        [15.0, 67, 2.0, 0.70], [17.0, 66, 1.0, 0.65], // G4, F#4
-        
-        // Bar 7 (C#4 -> B3)
-        [18.0, 43, 3.0, 0.50],
-        [19.0, 59, 2.0, 0.44], [19.0, 62, 2.0, 0.44],
-        [18.0, 61, 2.0, 0.64], [20.0, 59, 1.0, 0.60], // C#4, B3
-        
-        // Bar 8 (C#4 -> D4)
-        [21.0, 38, 3.0, 0.48],
-        [22.0, 54, 2.0, 0.40], [22.0, 57, 2.0, 0.40], [22.0, 61, 2.0, 0.42],
-        [21.0, 61, 1.5, 0.62], [22.5, 62, 1.5, 0.66], // C#4, D4
-        
-        // Bar 9 (B3 sustained)
-        [24.0, 43, 3.0, 0.50],
-        [25.0, 59, 2.0, 0.44], [25.0, 62, 2.0, 0.44], [25.0, 66, 2.0, 0.46],
-        [24.0, 59, 3.0, 0.62],
-        
-        // Bar 10
-        [27.0, 38, 3.0, 0.48],
-        [28.0, 54, 2.0, 0.40], [28.0, 57, 2.0, 0.40], [28.0, 61, 2.0, 0.42],
-        
-        // Bar 11 - 14 (Second phrase)
-        [30.0, 43, 3.0, 0.50],
-        [31.0, 59, 2.0, 0.44], [31.0, 62, 2.0, 0.44], [31.0, 66, 2.0, 0.46],
-        [30.0, 66, 2.0, 0.70], [32.0, 69, 1.0, 0.74],
-        
-        [33.0, 38, 3.0, 0.48],
-        [34.0, 54, 2.0, 0.40], [34.0, 57, 2.0, 0.40], [34.0, 61, 2.0, 0.42],
-        [33.0, 67, 2.0, 0.72], [35.0, 66, 1.0, 0.68],
-        
-        [36.0, 43, 3.0, 0.50],
-        [37.0, 59, 2.0, 0.44], [37.0, 62, 2.0, 0.44],
-        [36.0, 61, 2.0, 0.64], [38.0, 62, 1.0, 0.66],
-        
-        [39.0, 38, 3.0, 0.50],
-        [40.0, 54, 2.0, 0.42], [40.0, 57, 2.0, 0.42], [40.0, 61, 2.0, 0.45],
-        [39.0, 66, 3.0, 0.70]
-      ]
-    },
-    {
-      id: 'moonlight_sonata',
-      title: '贝多芬 ·《月光奏鸣曲 第一乐章》',
-      originalTitle: 'Ludwig van Beethoven - Moonlight Sonata',
-      composer: 'Ludwig van Beethoven (1770–1827)',
-      bpm: 50,
-      inst: 'piano',
-      // Continuous C# minor triplets + profound solemn bass + singing melody
-      notes: [
-        // Measure 1
-        [0.0, 37, 4.0, 0.58], [0.0, 49, 4.0, 0.52], // Bass C#2, C#3
-        [0.0, 56, 0.33, 0.40], [0.33, 61, 0.33, 0.42], [0.66, 64, 0.33, 0.44], // G#3, C#4, E4
-        [1.0, 56, 0.33, 0.40], [1.33, 61, 0.33, 0.42], [1.66, 64, 0.33, 0.44],
-        [2.0, 56, 0.33, 0.40], [2.33, 61, 0.33, 0.42], [2.66, 64, 0.33, 0.44],
-        [3.0, 56, 0.33, 0.40], [3.33, 61, 0.33, 0.42], [3.66, 64, 0.33, 0.44],
-
-        // Measure 2
-        [4.0, 35, 4.0, 0.55], [4.0, 47, 4.0, 0.50], // Bass B1, B2
-        [4.0, 56, 0.33, 0.40], [4.33, 61, 0.33, 0.42], [4.66, 64, 0.33, 0.44],
-        [5.0, 56, 0.33, 0.40], [5.33, 61, 0.33, 0.42], [5.66, 64, 0.33, 0.44],
-        [6.0, 56, 0.33, 0.40], [6.33, 61, 0.33, 0.42], [6.66, 64, 0.33, 0.44],
-        [7.0, 56, 0.33, 0.40], [7.33, 61, 0.33, 0.42], [7.66, 64, 0.33, 0.44],
-
-        // Measure 3
-        [8.0, 33, 2.0, 0.55], [8.0, 45, 2.0, 0.50], // Bass A1, A2
-        [8.0, 57, 0.33, 0.42], [8.33, 61, 0.33, 0.44], [8.66, 64, 0.33, 0.46], // A3, C#4, E4
-        [9.0, 57, 0.33, 0.42], [9.33, 61, 0.33, 0.44], [9.66, 64, 0.33, 0.46],
-        [10.0, 30, 2.0, 0.52], [10.0, 42, 2.0, 0.48], // Bass F#1, F#2
-        [10.0, 57, 0.33, 0.42], [10.33, 62, 0.33, 0.44], [10.66, 66, 0.33, 0.46], // A3, D4, F#4
-        [11.0, 57, 0.33, 0.42], [11.33, 62, 0.33, 0.44], [11.66, 66, 0.33, 0.46],
-
-        // Measure 4
-        [12.0, 32, 4.0, 0.56], [12.0, 44, 4.0, 0.50], // Bass G#1, G#2
-        [12.0, 56, 0.33, 0.40], [12.33, 61, 0.33, 0.42], [12.66, 65, 0.33, 0.44],
-        [13.0, 56, 0.33, 0.40], [13.33, 60, 0.33, 0.42], [13.66, 63, 0.33, 0.44],
-        [14.0, 56, 0.33, 0.40], [14.33, 60, 0.33, 0.42], [14.66, 63, 0.33, 0.44],
-        [15.0, 56, 0.33, 0.40], [15.33, 60, 0.33, 0.42], [15.66, 63, 0.33, 0.44],
-
-        // Measure 5 - Dotted Melody Enters! (G#4 ... G#4 ... G#4 ... A4 ...)
-        [16.0, 37, 4.0, 0.58], [16.0, 49, 4.0, 0.52],
-        [16.0, 56, 0.33, 0.38], [16.33, 61, 0.33, 0.40], [16.66, 64, 0.33, 0.42],
-        [17.0, 56, 0.33, 0.38], [17.33, 61, 0.33, 0.40], [17.66, 64, 0.33, 0.42],
-        [18.0, 56, 0.33, 0.38], [18.33, 61, 0.33, 0.40], [18.66, 64, 0.33, 0.42],
-        [19.0, 56, 0.33, 0.38], [19.33, 61, 0.33, 0.40], [19.66, 64, 0.33, 0.42],
-        
-        [18.0, 68, 1.5, 0.74], [19.5, 68, 0.5, 0.65], // G#4 dotted quarter + eighth
-        
-        // Measure 6
-        [20.0, 37, 4.0, 0.58], [20.0, 49, 4.0, 0.52],
-        [20.0, 56, 0.33, 0.38], [20.33, 61, 0.33, 0.40], [20.66, 64, 0.33, 0.42],
-        [21.0, 56, 0.33, 0.38], [21.33, 61, 0.33, 0.40], [21.66, 64, 0.33, 0.42],
-        [22.0, 56, 0.33, 0.38], [22.33, 61, 0.33, 0.40], [22.66, 64, 0.33, 0.42],
-        [23.0, 56, 0.33, 0.38], [23.33, 61, 0.33, 0.40], [23.66, 64, 0.33, 0.42],
-        
-        [20.0, 68, 2.0, 0.72], [22.0, 69, 1.5, 0.78], [23.5, 68, 0.5, 0.68], // G#4 -> A4 -> G#4
-
-        // Measure 7
-        [24.0, 36, 4.0, 0.55], [24.0, 48, 4.0, 0.50],
-        [24.0, 67, 2.0, 0.70], [26.0, 65, 1.5, 0.68], [27.5, 64, 0.5, 0.65]
-      ]
-    },
-    {
-      id: 'air_on_g_string',
-      title: '巴赫 ·《G弦上的咏叹调》',
-      originalTitle: 'J.S. Bach - Air on the G String',
-      composer: 'Johann Sebastian Bach (1685–1750)',
-      bpm: 46,
-      inst: 'strings',
-      // The historic track aboard Voyager Golden Record; stepping octave bass & soaring cantabile violin
-      notes: [
-        // Measure 1 (Walking bass D3 -> D2 -> C#3 -> C#2)
-        [0.0, 50, 0.9, 0.65], [1.0, 38, 0.9, 0.60], [2.0, 49, 0.9, 0.65], [3.0, 37, 0.9, 0.60],
-        // Violin 1 Long Sustained Breath (F#5)
-        [0.0, 78, 3.8, 0.72],
-        // Inner String Harmony
-        [1.0, 66, 2.8, 0.48], [1.0, 62, 2.8, 0.45],
-
-        // Measure 2 (Walking bass B2 -> B1 -> A2 -> A1)
-        [4.0, 47, 0.9, 0.62], [5.0, 35, 0.9, 0.58], [6.0, 45, 0.9, 0.62], [7.0, 33, 0.9, 0.58],
-        // Violin 1 Expressive Descent
-        [4.0, 78, 1.5, 0.75], [5.5, 76, 0.5, 0.70], [6.0, 74, 1.0, 0.72], [7.0, 73, 1.0, 0.68],
-        // Harmony
-        [4.5, 59, 3.2, 0.46], [4.5, 62, 3.2, 0.44],
-
-        // Measure 3 (Walking bass G2 -> G1 -> F#2 -> F#1)
-        [8.0, 43, 0.9, 0.60], [9.0, 31, 0.9, 0.55], [10.0, 42, 0.9, 0.60], [11.0, 30, 0.9, 0.55],
-        // Violin 1 Suspension & Resolution
-        [8.0, 71, 1.5, 0.74], [9.5, 69, 0.5, 0.68], [10.0, 68, 1.0, 0.70], [11.0, 69, 1.0, 0.72],
-        
-        // Measure 4 (Cadence in A major)
-        [12.0, 40, 1.8, 0.65], [14.0, 45, 2.0, 0.68],
-        [12.0, 71, 1.0, 0.70], [13.0, 73, 1.0, 0.72], [14.0, 69, 2.0, 0.75]
-      ]
-    },
-    {
-      id: 'chopin_nocturne',
-      title: '肖邦 ·《降E大调夜曲 Op. 9 No. 2》',
-      originalTitle: 'Frédéric Chopin - Nocturne Op. 9 No. 2',
-      composer: 'Frédéric Chopin (1810–1849)',
-      bpm: 56,
-      inst: 'piano',
-      // Bel canto lyrical romance soaring over celestial oceans
-      notes: [
-        // Measure 1 - Accompaniment
-        [0.0, 39, 3.0, 0.55], // Eb2 bass
-        [1.0, 55, 1.0, 0.44], [1.0, 58, 1.0, 0.44], [1.0, 63, 1.0, 0.46], // G3, Bb3, Eb4
-        [2.0, 55, 1.0, 0.44], [2.0, 58, 1.0, 0.44], [2.0, 63, 1.0, 0.46],
-        [3.0, 44, 3.0, 0.52], // Ab2 bass
-        [4.0, 56, 1.0, 0.42], [4.0, 60, 1.0, 0.42], [4.0, 63, 1.0, 0.45],
-        [5.0, 56, 1.0, 0.42], [5.0, 60, 1.0, 0.42], [5.0, 63, 1.0, 0.45],
-
-        // Measure 1 - Melody (Bb4 -> G5 -> F5 -> Eb5 -> Bb4)
-        [0.0, 70, 0.75, 0.68], // Bb4
-        [0.75, 79, 1.75, 0.78], // G5
-        [2.5, 77, 0.5, 0.72], // F5
-        [3.0, 75, 1.5, 0.74], // Eb5
-        [4.5, 70, 1.5, 0.68], // Bb4
-
-        // Measure 2 - Melody (C5 -> C6 -> Bb5 -> Ab5 ...)
-        [6.0, 72, 0.75, 0.70],
-        [6.75, 84, 1.75, 0.82],
-        [8.5, 82, 0.5, 0.75],
-        [9.0, 80, 1.5, 0.76],
-        [10.5, 75, 1.5, 0.70],
-
-        // Measure 2 - Accompaniment
-        [6.0, 43, 3.0, 0.52],
-        [7.0, 55, 1.0, 0.42], [7.0, 58, 1.0, 0.42], [7.0, 63, 1.0, 0.45],
-        [8.0, 55, 1.0, 0.42], [8.0, 58, 1.0, 0.42], [8.0, 63, 1.0, 0.45],
-        [9.0, 41, 3.0, 0.50],
-        [10.0, 53, 1.0, 0.40], [10.0, 58, 1.0, 0.40], [10.0, 62, 1.0, 0.43],
-        [11.0, 53, 1.0, 0.40], [11.0, 58, 1.0, 0.40], [11.0, 62, 1.0, 0.43]
-      ]
-    },
-    {
-      id: 'blue_danube',
-      title: '施特劳斯 ·《蓝色多瑙河》',
-      originalTitle: 'Johann Strauss II - The Blue Danube',
-      composer: 'Johann Strauss II (1825–1899)',
-      bpm: 96,
-      inst: 'strings',
-      // Iconic 2001: A Space Odyssey orbital spacecraft waltz
-      notes: [
-        // Bar 1 - 2 (Gentle introduction)
-        [0.0, 38, 2.5, 0.55], // D2 bass
-        [1.0, 62, 0.8, 0.45], [1.0, 66, 0.8, 0.48], // F#4, A4
-        [2.0, 62, 0.8, 0.45], [2.0, 66, 0.8, 0.48],
-        
-        [0.0, 62, 1.0, 0.65], [1.0, 62, 1.0, 0.65], // D4, D4
-        [2.0, 66, 1.0, 0.72], // F#4
-        [3.0, 69, 1.0, 0.76], [4.0, 69, 1.0, 0.76], // A4, A4
-        
-        // Bar 3 - 4
-        [3.0, 38, 2.5, 0.55],
-        [4.0, 62, 0.8, 0.45], [4.0, 66, 0.8, 0.48],
-        [5.0, 62, 0.8, 0.45], [5.0, 66, 0.8, 0.48],
-        
-        [5.0, 66, 1.0, 0.72], // F#4
-        [6.0, 62, 2.0, 0.68], // D4
-        
-        // Bar 5 - 6 (Triad Waltz Swell)
-        [6.0, 38, 2.5, 0.58],
-        [7.0, 62, 0.8, 0.48], [7.0, 66, 0.8, 0.50],
-        [8.0, 62, 0.8, 0.48], [8.0, 66, 0.8, 0.50],
-        
-        [8.0, 62, 1.0, 0.70], [9.0, 62, 1.0, 0.70],
-        [10.0, 67, 1.0, 0.78], // G4
-        [11.0, 71, 1.0, 0.82], [12.0, 71, 1.0, 0.82], // B4, B4
-        [13.0, 67, 1.0, 0.75],
-        [14.0, 62, 2.0, 0.70]
-      ]
-    },
     {
       id: 'saint_saens_rondo',
       title: '圣-桑 ·《引子与回旋随想曲》',
       originalTitle: 'Camille Saint-Saëns - Introduction and Rondo Capriccioso, Op. 28',
       composer: 'Camille Saint-Saëns (1835–1921)',
-      bpm: 76,
+      bpm: 72,
       inst: 'strings',
       notes: [
-        // --- Introduction (Andante malinconico) ---
-        [0.0, 33, 4.0, 0.55], // A1 bass
-        [0.0, 45, 2.0, 0.40], [1.0, 52, 1.0, 0.38], [1.0, 57, 1.0, 0.42], [2.0, 52, 1.0, 0.38], [2.0, 57, 1.0, 0.42],
+        // --- MOVEMENT 1: Andante malinconico (忧郁而崇高的引子) ---
+        [0.0, 69, 1.5, 0.75], [1.5, 71, 0.5, 0.65], [2.0, 72, 2.0, 0.82], // A4, B4, C5
+        [4.0, 71, 1.0, 0.70], [5.0, 69, 1.0, 0.65], [6.0, 68, 2.0, 0.85], // B4, A4, G#4
+        [8.0, 69, 3.0, 0.90], [11.0, 72, 1.0, 0.70], [12.0, 76, 3.0, 0.92], // A4, C5, E5
+        [15.0, 75, 1.0, 0.75], [16.0, 74, 2.0, 0.80], [18.0, 72, 1.0, 0.70], // D#5, D5, C5
+        [19.0, 71, 2.5, 0.85], [21.5, 68, 0.5, 0.65], [22.0, 69, 3.0, 0.88], // B4, G#4, A4
         
-        // Solo Violin entrance (Expressive melancholic lament in A minor)
-        [0.0, 69, 1.5, 0.75], // A4
-        [1.5, 71, 0.5, 0.65], // B4
-        [2.0, 72, 1.5, 0.82], // C5
-        [3.5, 71, 0.5, 0.70], // B4
+        // Counterpoint cello / viola accompaniment (Andante)
+        [0.0, 45, 4.0, 0.55], [4.0, 40, 4.0, 0.52], [8.0, 45, 4.0, 0.58],
+        [12.0, 48, 4.0, 0.60], [16.0, 50, 4.0, 0.58], [20.0, 40, 4.0, 0.55],
         
-        // Measure 2 (E7 harmony)
-        [4.0, 28, 4.0, 0.55], // E1 bass
-        [4.0, 69, 1.0, 0.78], // A4
-        [5.0, 68, 1.0, 0.80], // G#4
-        [6.0, 69, 1.0, 0.75], // A4
-        [7.0, 71, 1.0, 0.72], // B4
-        [4.0, 40, 2.0, 0.40], [5.0, 56, 1.0, 0.38], [5.0, 59, 1.0, 0.40], [6.0, 56, 1.0, 0.38], [6.0, 59, 1.0, 0.40],
+        // Expressive violin cadence swell (华彩长音与装饰音)
+        [24.0, 76, 2.0, 0.92], [26.0, 77, 1.0, 0.88], [27.0, 76, 1.0, 0.85],
+        [28.0, 81, 3.0, 0.95], [31.0, 80, 1.0, 0.80], [32.0, 79, 2.0, 0.88],
+        [34.0, 77, 2.0, 0.82], [36.0, 76, 4.0, 0.90],
+        [24.0, 45, 6.0, 0.52], [30.0, 41, 6.0, 0.55], [36.0, 40, 6.0, 0.50],
         
-        // Measure 3 - 4 (Rising passion towards high E5)
-        [8.0, 33, 4.0, 0.58],
-        [8.0, 72, 1.5, 0.82], // C5
-        [9.5, 74, 0.5, 0.75], // D5
-        [10.0, 76, 2.0, 0.88], // E5
-        [12.0, 74, 1.0, 0.78], // D5
-        [13.0, 72, 1.0, 0.75], // C5
-        [14.0, 71, 1.0, 0.72], // B4
-        [15.0, 69, 1.0, 0.75], // A4
+        // --- MOVEMENT 2: Allegro ma non troppo (火热奔放的西班牙随想回旋) ---
+        [42.0, 69, 0.5, 0.85], [42.5, 69, 0.5, 0.80], [43.0, 72, 0.5, 0.88], [43.5, 76, 1.0, 0.95],
+        [44.5, 74, 0.5, 0.82], [45.0, 72, 0.5, 0.78], [45.5, 71, 1.0, 0.85],
+        [46.5, 69, 0.5, 0.80], [47.0, 68, 0.5, 0.75], [47.5, 69, 1.5, 0.90],
+        [49.0, 72, 0.5, 0.85], [49.5, 76, 0.5, 0.90], [50.0, 81, 2.0, 0.98],
         
-        // Measure 5 - 6 (Dramatic Spanish half-cadence)
-        [16.0, 28, 4.0, 0.60],
-        [16.0, 76, 1.5, 0.85], // E5
-        [17.5, 77, 0.5, 0.90], // F5
-        [18.0, 76, 1.5, 0.85], // E5
-        [19.5, 75, 0.5, 0.80], // D#5
-        [20.0, 76, 2.0, 0.92], // E5
-        [22.0, 80, 2.0, 0.95], // G#5 harmonic peak!
+        // Staccato rhythmic bass
+        [42.0, 45, 1.0, 0.65], [43.0, 52, 1.0, 0.60], [44.0, 57, 1.0, 0.62],
+        [45.0, 52, 1.0, 0.60], [46.0, 40, 1.0, 0.65], [47.0, 47, 1.0, 0.60],
+        [48.0, 52, 1.0, 0.62], [49.0, 45, 1.0, 0.65], [50.0, 57, 2.0, 0.70],
         
-        // --- Rondo Capriccioso (Allegro ma non troppo) ---
-        [24.0, 33, 2.0, 0.60], [24.0, 45, 1.0, 0.45], [25.0, 57, 1.0, 0.48], [25.0, 60, 1.0, 0.48],
-        [24.0, 69, 0.5, 0.85], // A4
-        [24.5, 72, 0.5, 0.80], // C5
-        [25.0, 76, 1.0, 0.90], // E5
+        // --- MOVEMENT 3: Con morbidezza (柔美舒展的如歌副题) ---
+        [53.0, 76, 1.5, 0.82], [54.5, 74, 0.5, 0.75], [55.0, 72, 1.5, 0.80],
+        [56.5, 71, 0.5, 0.70], [57.0, 69, 2.0, 0.88], [59.0, 71, 1.0, 0.78],
+        [60.0, 72, 1.5, 0.85], [61.5, 74, 0.5, 0.80], [62.0, 76, 3.0, 0.92],
+        [53.0, 48, 4.0, 0.55], [57.0, 45, 4.0, 0.58], [61.0, 40, 4.0, 0.55],
         
-        // Capriccioso turn
-        [26.0, 33, 2.0, 0.60],
-        [26.0, 75, 0.5, 0.82], // D#5
-        [26.5, 76, 0.5, 0.85], // E5
-        [27.0, 77, 0.5, 0.90], // F5
-        [27.5, 76, 0.5, 0.85], // E5
-        
-        // Descending cascade
-        [28.0, 26, 2.0, 0.58], [28.0, 50, 1.0, 0.45], [29.0, 57, 1.0, 0.48], [29.0, 62, 1.0, 0.48],
-        [28.0, 74, 0.5, 0.82], // D5
-        [28.5, 72, 0.5, 0.80], // C5
-        [29.0, 71, 0.5, 0.78], // B4
-        [29.5, 69, 0.5, 0.75], // A4
-        
-        // Cadential flourish
-        [30.0, 28, 2.0, 0.62],
-        [30.0, 68, 0.5, 0.82], // G#4
-        [30.5, 71, 0.5, 0.85], // B4
-        [31.0, 74, 0.5, 0.88], // D5
-        [31.5, 71, 0.5, 0.82], // B4
-        
-        // Final Triumph in A
-        [32.0, 33, 3.0, 0.70], [32.0, 45, 3.0, 0.55], [32.0, 57, 3.0, 0.55],
-        [32.0, 69, 3.0, 0.92], [32.0, 76, 3.0, 0.92], [32.0, 81, 3.0, 0.95]
+        // --- MOVEMENT 4: Coda Brillante (辉煌壮丽的随想回旋高潮) ---
+        [65.0, 81, 0.5, 0.95], [65.5, 83, 0.5, 0.92], [66.0, 84, 1.5, 0.98],
+        [67.5, 83, 0.5, 0.90], [68.0, 81, 1.0, 0.88], [69.0, 79, 1.0, 0.85],
+        [70.0, 77, 1.5, 0.90], [71.5, 76, 0.5, 0.85], [72.0, 74, 1.5, 0.88],
+        [73.5, 72, 0.5, 0.82], [74.0, 71, 1.5, 0.85], [75.5, 68, 0.5, 0.80],
+        [76.0, 69, 4.5, 0.95], [76.0, 81, 4.5, 0.98],
+        [65.0, 45, 3.0, 0.72], [68.0, 41, 3.0, 0.70], [71.0, 43, 3.0, 0.72],
+        [74.0, 40, 3.0, 0.75], [76.0, 45, 5.0, 0.82]
       ]
     },
     {
       id: 'vivaldi_spring',
       title: '维瓦尔第 ·《四季 · 春》',
-      originalTitle: 'Antonio Vivaldi - The Four Seasons: Spring',
+      originalTitle: 'Antonio Vivaldi - The Four Seasons: Spring, RV 269',
       composer: 'Antonio Vivaldi (1678–1741)',
       bpm: 88,
       inst: 'strings',
       notes: [
-        // Main theme tutti (E major: E - G# - B)
-        [0.0, 28, 2.0, 0.60], [0.0, 40, 2.0, 0.50], [0.0, 64, 1.0, 0.85], // E4
-        [1.0, 68, 1.0, 0.88], // G#4
-        [2.0, 71, 1.0, 0.92], // B4
+        // --- MOVEMENT 1: Allegro (春临大地 · 经典赋格呈示部) ---
+        [0.0, 64, 1.0, 0.85], [1.0, 68, 1.0, 0.88], [2.0, 71, 1.0, 0.92], // E4, G#4, B4
+        [3.0, 71, 0.5, 0.82], [3.5, 71, 0.5, 0.80], [4.0, 71, 1.0, 0.90],
+        [5.0, 73, 0.5, 0.85], [5.5, 71, 0.5, 0.80], [6.0, 69, 0.5, 0.78], [6.5, 68, 0.5, 0.75],
+        [7.0, 69, 1.5, 0.88], [8.5, 68, 0.5, 0.78], [9.0, 66, 2.0, 0.85], // F#4
+        [11.0, 64, 2.0, 0.90], // E4
         
-        // Triplet cheer
-        [3.0, 71, 0.5, 0.82], [3.5, 69, 0.5, 0.78], [4.0, 68, 1.0, 0.85],
-        [5.0, 64, 1.0, 0.80],
+        // Baroque basso continuo octave stepping
+        [0.0, 40, 2.0, 0.65], [2.0, 47, 2.0, 0.60], [4.0, 40, 2.0, 0.65],
+        [6.0, 45, 2.0, 0.62], [8.0, 42, 2.0, 0.60], [10.0, 40, 2.0, 0.68],
         
-        // Repeat phrase with baroque echo
-        [6.0, 28, 2.0, 0.50], [6.0, 64, 1.0, 0.70],
-        [7.0, 68, 1.0, 0.72],
-        [8.0, 71, 1.0, 0.76],
-        [9.0, 71, 0.5, 0.68], [9.5, 69, 0.5, 0.65], [10.0, 68, 1.0, 0.70],
-        [11.0, 64, 1.0, 0.68],
+        // --- MOVEMENT 2: Canto degl'uccelli (雀跃欢鸣的林间百鸟) ---
+        [13.0, 76, 0.5, 0.88], [13.5, 78, 0.5, 0.90], [14.0, 80, 1.0, 0.95], // E5, F#5, G#5
+        [15.0, 80, 0.33, 0.85], [15.33, 80, 0.33, 0.82], [15.66, 80, 0.33, 0.85], // trills
+        [16.0, 83, 1.0, 0.95], [17.0, 81, 0.5, 0.88], [17.5, 80, 0.5, 0.85],
+        [18.0, 78, 1.5, 0.90], [19.5, 76, 0.5, 0.82], [20.0, 75, 2.0, 0.88],
+        [13.0, 52, 4.0, 0.50], [17.0, 49, 4.0, 0.52],
         
-        // Soaring second phrase
-        [12.0, 33, 2.0, 0.60], [12.0, 69, 1.0, 0.85],
-        [13.0, 71, 1.0, 0.88],
-        [14.0, 73, 1.5, 0.92],
-        [15.5, 71, 0.5, 0.82],
-        [16.0, 69, 1.0, 0.85],
-        [17.0, 68, 1.0, 0.82],
-        [18.0, 66, 1.5, 0.85],
-        [19.5, 64, 1.5, 0.88],
+        // --- MOVEMENT 3: Scorrono i fonti (微风吹拂 · 泉水淙淙) ---
+        [22.0, 71, 1.0, 0.80], [23.0, 73, 1.0, 0.82], [24.0, 75, 1.5, 0.85],
+        [25.5, 76, 0.5, 0.88], [26.0, 78, 1.5, 0.90], [27.5, 76, 0.5, 0.85],
+        [28.0, 75, 1.0, 0.82], [29.0, 73, 1.0, 0.80], [30.0, 71, 2.5, 0.88],
+        [22.0, 47, 4.0, 0.55], [26.0, 44, 4.0, 0.52], [30.0, 47, 3.0, 0.55],
         
-        // Brilliant birdsong violin trill
-        [21.0, 76, 0.4, 0.85], [21.4, 78, 0.4, 0.85], [21.8, 76, 0.4, 0.85], [22.2, 78, 0.4, 0.85],
-        [22.6, 76, 0.4, 0.85], [23.0, 78, 0.4, 0.85], [23.4, 80, 1.5, 0.95],
-        [25.0, 76, 3.0, 0.90], [25.0, 28, 3.0, 0.65]
+        // --- MOVEMENT 4: Tuoni e lampi (春雷阵阵 · 电闪雷鸣骤雨) ---
+        [33.0, 68, 0.33, 0.92], [33.33, 68, 0.33, 0.90], [33.66, 68, 0.33, 0.92],
+        [34.0, 71, 0.33, 0.95], [34.33, 71, 0.33, 0.92], [34.66, 71, 0.33, 0.95],
+        [35.0, 76, 1.5, 0.98], [36.5, 75, 0.5, 0.88], [37.0, 73, 1.0, 0.85],
+        [38.0, 71, 1.5, 0.90], [39.5, 69, 0.5, 0.82], [40.0, 68, 2.0, 0.88],
+        [33.0, 40, 1.0, 0.85], [34.0, 40, 1.0, 0.85], [35.0, 47, 2.0, 0.80],
+        [37.0, 45, 2.0, 0.75], [39.0, 42, 2.0, 0.72],
+        
+        // --- MOVEMENT 5: Tutti Finale (凯旋再现与盛大春光) ---
+        [42.0, 64, 1.0, 0.90], [43.0, 68, 1.0, 0.92], [44.0, 71, 1.0, 0.95],
+        [45.0, 71, 0.5, 0.85], [45.5, 71, 0.5, 0.82], [46.0, 71, 1.0, 0.92],
+        [47.0, 73, 0.5, 0.88], [47.5, 71, 0.5, 0.85], [48.0, 69, 0.5, 0.82], [48.5, 68, 0.5, 0.80],
+        [49.0, 69, 1.5, 0.90], [50.5, 71, 0.5, 0.85], [51.0, 73, 1.0, 0.88],
+        [52.0, 75, 1.0, 0.92], [53.0, 76, 3.5, 0.98], [53.0, 64, 3.5, 0.92],
+        [42.0, 40, 2.0, 0.70], [44.0, 47, 2.0, 0.68], [46.0, 40, 2.0, 0.70],
+        [48.0, 45, 2.0, 0.68], [50.0, 42, 2.0, 0.72], [52.0, 47, 1.5, 0.75], [53.5, 40, 3.5, 0.85]
+      ]
+    },
+    {
+      id: 'vivaldi_winter',
+      title: '维瓦尔第 ·《四季 · 冬》',
+      originalTitle: 'Antonio Vivaldi - The Four Seasons: Winter, RV 297',
+      composer: 'Antonio Vivaldi (1678–1741)',
+      bpm: 96,
+      inst: 'strings',
+      notes: [
+        // --- MOVEMENT 1: Allegro non molto (冰封荒原 · 冷峻切分律动) ---
+        [0.0, 65, 0.5, 0.70], [0.5, 65, 0.5, 0.75], [1.0, 65, 0.5, 0.78], [1.5, 65, 0.5, 0.80], // F4
+        [2.0, 68, 0.5, 0.82], [2.5, 68, 0.5, 0.80], [3.0, 72, 0.5, 0.85], [3.5, 72, 0.5, 0.88], // Ab4, C5
+        [4.0, 77, 1.0, 0.92], [5.0, 76, 0.5, 0.85], [5.5, 73, 0.5, 0.82], [6.0, 72, 1.5, 0.88], // F5, E5, Db5, C5
+        [7.5, 70, 0.5, 0.80], [8.0, 68, 2.0, 0.85],
+        [0.0, 41, 1.0, 0.65], [1.0, 41, 1.0, 0.68], [2.0, 41, 1.0, 0.70], [3.0, 41, 1.0, 0.72],
+        [4.0, 48, 2.0, 0.65], [6.0, 46, 2.0, 0.62], [8.0, 44, 2.0, 0.65],
+        
+        // --- MOVEMENT 2: Orrida bufera (暴风雪呼啸 · 急速提琴旋风) ---
+        [10.0, 77, 0.5, 0.90], [10.5, 75, 0.5, 0.85], [11.0, 73, 0.5, 0.88], [11.5, 72, 0.5, 0.85],
+        [12.0, 70, 0.5, 0.88], [12.5, 68, 0.5, 0.82], [13.0, 67, 0.5, 0.85], [13.5, 65, 0.5, 0.80],
+        [14.0, 64, 1.0, 0.92], [15.0, 65, 0.5, 0.85], [15.5, 67, 0.5, 0.88], [16.0, 68, 2.0, 0.95],
+        [10.0, 41, 2.0, 0.75], [12.0, 43, 2.0, 0.72], [14.0, 40, 2.0, 0.78], [16.0, 41, 2.0, 0.80],
+        
+        // --- MOVEMENT 3: Largo (炉火旁的温馨深思 · 广板如歌) ---
+        [18.5, 72, 2.0, 0.85], [20.5, 70, 1.0, 0.78], [21.5, 68, 1.5, 0.82],
+        [23.0, 67, 1.0, 0.78], [24.0, 65, 2.5, 0.88], [26.5, 67, 0.5, 0.80],
+        [27.0, 68, 2.0, 0.85], [29.0, 70, 1.0, 0.82], [30.0, 72, 3.0, 0.90],
+        [18.5, 48, 4.0, 0.55], [22.5, 46, 4.0, 0.52], [26.5, 44, 4.0, 0.55],
+        
+        // --- MOVEMENT 4: Allegro finale (冰上滑行与傲雪凯旋) ---
+        [33.5, 77, 0.5, 0.95], [34.0, 76, 0.5, 0.90], [34.5, 77, 1.0, 0.95],
+        [35.5, 80, 1.0, 0.98], [36.5, 79, 0.5, 0.92], [37.0, 77, 0.5, 0.90],
+        [37.5, 76, 1.5, 0.92], [39.0, 73, 1.0, 0.88], [40.0, 72, 2.0, 0.95],
+        [42.0, 68, 1.0, 0.88], [43.0, 67, 1.0, 0.85], [44.0, 65, 4.0, 0.98],
+        [33.5, 41, 3.0, 0.78], [36.5, 43, 3.0, 0.75], [39.5, 40, 3.0, 0.80], [42.5, 41, 5.5, 0.88]
+      ]
+    },
+    {
+      id: 'saint_saens_swan',
+      title: '圣-桑 ·《动物狂欢节 · 天鹅》',
+      originalTitle: 'Camille Saint-Saëns - The Carnival of the Animals: The Swan',
+      composer: 'Camille Saint-Saëns (1835–1921)',
+      bpm: 58,
+      inst: 'strings',
+      notes: [
+        // --- MOVEMENT 1: Cantabile sereno (静谧星海 · 大提琴安详入场) ---
+        [0.0, 67, 3.0, 0.85], [3.0, 69, 1.0, 0.78], [4.0, 71, 2.0, 0.88], // G4, A4, B4
+        [6.0, 72, 1.0, 0.82], [7.0, 74, 3.0, 0.92], // C5, D5
+        [10.0, 72, 1.5, 0.85], [11.5, 71, 0.5, 0.80], [12.0, 69, 2.0, 0.82], // C5, B4, A4
+        [14.0, 67, 1.0, 0.78], [15.0, 66, 3.0, 0.88], // F#4
+        
+        // Piano gentle water ripple arpeggios
+        [0.0, 43, 4.0, 0.52], [4.0, 47, 4.0, 0.50], [8.0, 50, 4.0, 0.55],
+        [12.0, 45, 4.0, 0.52], [16.0, 42, 4.0, 0.50],
+        
+        // --- MOVEMENT 2: Espressivo ed appassionato (展翼翱翔 · 高八度如歌主旋律) ---
+        [18.0, 74, 2.5, 0.90], [20.5, 76, 0.5, 0.85], [21.0, 78, 2.0, 0.95], // D5, E5, F#5
+        [23.0, 79, 1.0, 0.90], [24.0, 81, 3.5, 0.98], // G5 (高潮翱翔顶峰)
+        [27.5, 79, 1.0, 0.88], [28.5, 78, 1.0, 0.85], [29.5, 76, 2.0, 0.90], // G5, F#5, E5
+        [31.5, 74, 1.0, 0.85], [32.5, 72, 3.0, 0.88], // D5, C5
+        [18.0, 43, 4.0, 0.55], [22.0, 48, 4.0, 0.58], [26.0, 50, 4.0, 0.60], [30.0, 45, 4.0, 0.55],
+        
+        // --- MOVEMENT 3: Svanendo (余音回荡 · 悠远宁静尾声) ---
+        [36.0, 71, 2.0, 0.85], [38.0, 69, 1.0, 0.80], [39.0, 67, 2.5, 0.88],
+        [41.5, 66, 0.5, 0.78], [42.0, 67, 5.0, 0.95], [42.0, 55, 5.0, 0.85], // G4, G3
+        [36.0, 47, 3.0, 0.52], [39.0, 43, 3.0, 0.55], [42.0, 43, 6.0, 0.65]
       ]
     }
   ];
@@ -8682,7 +8454,7 @@ const SCORES=[
       }
 
       // Schedule next track with 3-second gentle cosmic pause
-      const totalDurationMs = Math.max(10000, (maxEndTime - now + 3.0) * 1000);
+      const totalDurationMs = Math.max(15000, (maxEndTime - now + 4.0) * 1000);
       const timerId = setTimeout(() => {
         if (this.isPlaying) {
           this.nextTrack(true);
@@ -8717,6 +8489,10 @@ const SCORES=[
         } catch (_) {}
       });
       this.activeNodes = [];
+    }
+
+    get currentTrack() {
+      return CLASSICAL_PIECES[this.currentTrackIndex];
     }
 
     getCurrentPiece() {
@@ -12975,6 +12751,14 @@ requestAnimationFrame(frame);
 
     // Pre-generates upcoming planets in activeMasses ahead of time during cruise
     // to completely eliminate runtime compilation/generation hitches when approaching worlds
+    getPlanetId(m) {
+      if (!m) return 0;
+      if (m.seed !== undefined) return m.seed;
+      if (m.w && m.w.seed !== undefined) return m.w.seed;
+      if (m.encIndex !== undefined) return (m.encIndex * 7919 + 101) >>> 0;
+      return (Math.imul(Math.round(m.x || 0), 31) ^ Math.round(m.z || 0)) >>> 0;
+    },
+
     prewarmUpcoming(masses, travel) {
       if (!this.initialized) this.init();
       if (!this.initialized || !masses) return;
@@ -12983,7 +12767,7 @@ requestAnimationFrame(frame);
         if (m && (m.w || m.kind === 1 || m.kind === 8 || m.kind === 6)) {
           const dz = m.z - travel;
           if (dz > 0 && dz < 75000) {
-            const pId = m.seed || (m.encIndex ? m.encIndex * 7919 : (m.x ^ m.z));
+            const pId = this.getPlanetId(m);
             if (!this.planetCache.has(pId)) {
               this.getPlanetModel(m);
               break; // At most one per frame to keep FPS completely flat
@@ -12993,15 +12777,15 @@ requestAnimationFrame(frame);
       }
     },
 
-    // Build or retrieve a procedurally living 3D planet model
+    // Build or retrieve a procedurally living 3D planet model with dedicated isolated canvas
     getPlanetModel(m) {
-      const pId = m.seed || (m.encIndex ? m.encIndex * 7919 : (m.x ^ m.z));
+      const pId = this.getPlanetId(m);
       if (this.planetCache.has(pId)) {
         return this.planetCache.get(pId);
       }
 
-      // Evict old cache if size exceeds 6 planets to keep memory minimal
-      if (this.planetCache.size > 6) {
+      // Evict old cache if size exceeds 8 planets to keep memory minimal
+      if (this.planetCache.size > 8) {
         const firstKey = this.planetCache.keys().next().value;
         const old = this.planetCache.get(firstKey);
         this.disposeModel(old);
@@ -13009,6 +12793,14 @@ requestAnimationFrame(frame);
       }
 
       const model = this.createProceduralPlanet(m, pId);
+      model.pId = pId;
+      model.hasRendered = false;
+      // Dedicated isolated 2D snapshot canvas for this specific planet: 100% prevents cross-planet texture contamination!
+      model.dedicatedCanvas = document.createElement('canvas');
+      model.dedicatedCanvas.width = this.currentBufferSize;
+      model.dedicatedCanvas.height = this.currentBufferSize;
+      model.dedicatedCtx = model.dedicatedCanvas.getContext('2d');
+
       this.planetsContainer.add(model.group);
       this.planetCache.set(pId, model);
       return model;
@@ -13312,33 +13104,41 @@ requestAnimationFrame(frame);
     // Renders the living planet to the offscreen canvas and returns the canvas
     renderPlanet(m, rad, lightDir) {
       if (!this.initialized) this.init();
-      if (!this.initialized) return null;
+      if (!this.initialized || !m) return null;
 
-      // Ensure offscreen WebGL buffer resolution dynamically adapts to screen draw diameter
+      const pId = this.getPlanetId(m);
+      const model = this.getPlanetModel(m);
+      if (!model) return null;
+
       this.ensureBufferSize(rad);
+
+      // Keep dedicated canvas size synced with current buffer size
+      if (model.dedicatedCanvas.width !== this.currentBufferSize) {
+        model.dedicatedCanvas.width = this.currentBufferSize;
+        model.dedicatedCanvas.height = this.currentBufferSize;
+      }
 
       this.frameCount++;
 
       // Adaptive WebGL throttling: full 60 FPS for close encounters (rad >= 180), sub-frame throttled for distant
       const throttleRate = rad >= 180 ? 1 : (rad < 35.0 ? 3 : 2);
-      if (this.currentRenderedId === (m.seed || (m.encIndex ? m.encIndex * 7919 : (m.x ^ m.z))) && (this.frameCount % throttleRate !== 0)) {
-        return this.canvas;
+      
+      // If this planet already has a rendered dedicated frame and can be throttled, return its dedicated canvas directly!
+      if (model.hasRendered && this.currentRenderedId === pId && (this.frameCount % throttleRate !== 0)) {
+        return model.dedicatedCanvas;
       }
 
       const now = performance.now() * 0.001;
       const dt = Math.min(0.05, now - this.lastTime);
       this.lastTime = now;
 
-      const model = this.getPlanetModel(m);
-
-      // Fast visibility switch with zero scene graph mutations
-      if (this.currentRenderedId !== model.seed) {
-        for (let i = 0; i < this.planetsContainer.children.length; i++) {
-          const child = this.planetsContainer.children[i];
-          child.visible = (child === model.group);
-        }
-        this.currentRenderedId = model.seed;
+      // Fast visibility switch with zero scene graph mutations:
+      // ONLY make this planet's group visible; hide all other cached planets
+      for (let i = 0; i < this.planetsContainer.children.length; i++) {
+        const child = this.planetsContainer.children[i];
+        child.visible = (child === model.group);
       }
+      this.currentRenderedId = pId;
 
       // Update Sun light direction from Starfield light coordinates
       if (lightDir) {
@@ -13364,9 +13164,15 @@ requestAnimationFrame(frame);
         model.whalesGroup.rotation.y += dt * 0.14;
       }
 
-      // Render crisp WebGL frame
+      // Render crisp WebGL frame to WebGL canvas
       this.renderer.render(this.scene, this.camera);
-      return this.canvas;
+
+      // Snapshot to planet's dedicated canvas to guarantee 100% physical buffer isolation between planets
+      model.dedicatedCtx.clearRect(0, 0, this.currentBufferSize, this.currentBufferSize);
+      model.dedicatedCtx.drawImage(this.canvas, 0, 0);
+      model.hasRendered = true;
+
+      return model.dedicatedCanvas;
     }
   };
 

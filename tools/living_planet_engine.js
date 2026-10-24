@@ -218,6 +218,14 @@
 
     // Pre-generates upcoming planets in activeMasses ahead of time during cruise
     // to completely eliminate runtime compilation/generation hitches when approaching worlds
+    getPlanetId(m) {
+      if (!m) return 0;
+      if (m.seed !== undefined) return m.seed;
+      if (m.w && m.w.seed !== undefined) return m.w.seed;
+      if (m.encIndex !== undefined) return (m.encIndex * 7919 + 101) >>> 0;
+      return (Math.imul(Math.round(m.x || 0), 31) ^ Math.round(m.z || 0)) >>> 0;
+    },
+
     prewarmUpcoming(masses, travel) {
       if (!this.initialized) this.init();
       if (!this.initialized || !masses) return;
@@ -226,7 +234,7 @@
         if (m && (m.w || m.kind === 1 || m.kind === 8 || m.kind === 6)) {
           const dz = m.z - travel;
           if (dz > 0 && dz < 75000) {
-            const pId = m.seed || (m.encIndex ? m.encIndex * 7919 : (m.x ^ m.z));
+            const pId = this.getPlanetId(m);
             if (!this.planetCache.has(pId)) {
               this.getPlanetModel(m);
               break; // At most one per frame to keep FPS completely flat
@@ -236,15 +244,15 @@
       }
     },
 
-    // Build or retrieve a procedurally living 3D planet model
+    // Build or retrieve a procedurally living 3D planet model with dedicated isolated canvas
     getPlanetModel(m) {
-      const pId = m.seed || (m.encIndex ? m.encIndex * 7919 : (m.x ^ m.z));
+      const pId = this.getPlanetId(m);
       if (this.planetCache.has(pId)) {
         return this.planetCache.get(pId);
       }
 
-      // Evict old cache if size exceeds 6 planets to keep memory minimal
-      if (this.planetCache.size > 6) {
+      // Evict old cache if size exceeds 8 planets to keep memory minimal
+      if (this.planetCache.size > 8) {
         const firstKey = this.planetCache.keys().next().value;
         const old = this.planetCache.get(firstKey);
         this.disposeModel(old);
@@ -252,6 +260,14 @@
       }
 
       const model = this.createProceduralPlanet(m, pId);
+      model.pId = pId;
+      model.hasRendered = false;
+      // Dedicated isolated 2D snapshot canvas for this specific planet: 100% prevents cross-planet texture contamination!
+      model.dedicatedCanvas = document.createElement('canvas');
+      model.dedicatedCanvas.width = this.currentBufferSize;
+      model.dedicatedCanvas.height = this.currentBufferSize;
+      model.dedicatedCtx = model.dedicatedCanvas.getContext('2d');
+
       this.planetsContainer.add(model.group);
       this.planetCache.set(pId, model);
       return model;
@@ -555,33 +571,41 @@
     // Renders the living planet to the offscreen canvas and returns the canvas
     renderPlanet(m, rad, lightDir) {
       if (!this.initialized) this.init();
-      if (!this.initialized) return null;
+      if (!this.initialized || !m) return null;
 
-      // Ensure offscreen WebGL buffer resolution dynamically adapts to screen draw diameter
+      const pId = this.getPlanetId(m);
+      const model = this.getPlanetModel(m);
+      if (!model) return null;
+
       this.ensureBufferSize(rad);
+
+      // Keep dedicated canvas size synced with current buffer size
+      if (model.dedicatedCanvas.width !== this.currentBufferSize) {
+        model.dedicatedCanvas.width = this.currentBufferSize;
+        model.dedicatedCanvas.height = this.currentBufferSize;
+      }
 
       this.frameCount++;
 
       // Adaptive WebGL throttling: full 60 FPS for close encounters (rad >= 180), sub-frame throttled for distant
       const throttleRate = rad >= 180 ? 1 : (rad < 35.0 ? 3 : 2);
-      if (this.currentRenderedId === (m.seed || (m.encIndex ? m.encIndex * 7919 : (m.x ^ m.z))) && (this.frameCount % throttleRate !== 0)) {
-        return this.canvas;
+      
+      // If this planet already has a rendered dedicated frame and can be throttled, return its dedicated canvas directly!
+      if (model.hasRendered && this.currentRenderedId === pId && (this.frameCount % throttleRate !== 0)) {
+        return model.dedicatedCanvas;
       }
 
       const now = performance.now() * 0.001;
       const dt = Math.min(0.05, now - this.lastTime);
       this.lastTime = now;
 
-      const model = this.getPlanetModel(m);
-
-      // Fast visibility switch with zero scene graph mutations
-      if (this.currentRenderedId !== model.seed) {
-        for (let i = 0; i < this.planetsContainer.children.length; i++) {
-          const child = this.planetsContainer.children[i];
-          child.visible = (child === model.group);
-        }
-        this.currentRenderedId = model.seed;
+      // Fast visibility switch with zero scene graph mutations:
+      // ONLY make this planet's group visible; hide all other cached planets
+      for (let i = 0; i < this.planetsContainer.children.length; i++) {
+        const child = this.planetsContainer.children[i];
+        child.visible = (child === model.group);
       }
+      this.currentRenderedId = pId;
 
       // Update Sun light direction from Starfield light coordinates
       if (lightDir) {
@@ -607,9 +631,15 @@
         model.whalesGroup.rotation.y += dt * 0.14;
       }
 
-      // Render crisp WebGL frame
+      // Render crisp WebGL frame to WebGL canvas
       this.renderer.render(this.scene, this.camera);
-      return this.canvas;
+
+      // Snapshot to planet's dedicated canvas to guarantee 100% physical buffer isolation between planets
+      model.dedicatedCtx.clearRect(0, 0, this.currentBufferSize, this.currentBufferSize);
+      model.dedicatedCtx.drawImage(this.canvas, 0, 0);
+      model.hasRendered = true;
+
+      return model.dedicatedCanvas;
     }
   };
 
