@@ -335,13 +335,14 @@
       osc2.type = 'triangle';
       osc2.frequency.setValueAtTime(freq * 1.002, t0);
 
-      // Natural violin/cello vibrato (5.4 Hz)
+      // Natural violin/cello vibrato (5.4 Hz) with dynamic pitch-proportional depth
       const vibrato = ac.createOscillator();
       const vibGain = ac.createGain();
       vibrato.frequency.value = 5.4;
       vibGain.gain.value = freq * 0.008; // subtle vibrato depth
-      vibrato.connect(osc1.frequency);
-      vibrato.connect(osc2.frequency);
+      vibrato.connect(vibGain);
+      vibGain.connect(osc1.frequency);
+      vibGain.connect(osc2.frequency);
       vibrato.start(t0 + 0.2); // vibrato begins after bow onset
 
       osc1.connect(filter);

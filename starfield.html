@@ -5125,8 +5125,8 @@ function drawWorld(m, q, p, t, rad, tint) {
         ctx.translate(cx, cy);
         if (isOblate) { ctx.rotate(spinRoll); ctx.scale(oblateScaleX, oblateScaleY); }
 
-        // Adaptive atmo scale: keep glow delicate and non-smearing when planet is massive close-up (rad > 180)
-        const atmoOuterScale = rad > 180 ? 1.0 + (0.35 * (180 / rad)) : 1.45;
+        // Adaptive atmo scale: perfectly continuous (C0 smooth) at rad = 180 without popping
+        const atmoOuterScale = rad > 180 ? 1.0 + (0.45 * (180 / rad)) : 1.45;
         const rGrad = ctx.createRadialGradient(0, 0, rad * 0.94, 0, 0, rad * atmoOuterScale);
         rGrad.addColorStop(0.00, css(atmoRay, 0.0));
         rGrad.addColorStop(0.20, css(atmoRay, 0.35 * ak));
@@ -5136,7 +5136,7 @@ function drawWorld(m, q, p, t, rad, tint) {
         ctx.beginPath(); ctx.arc(0, 0, rad * atmoOuterScale, 0, TAU);
         ctx.fillStyle = rGrad; ctx.fill();
 
-        const mieOuterScale = rad > 180 ? 1.0 + (0.45 * (180 / rad)) : 1.62;
+        const mieOuterScale = rad > 180 ? 1.0 + (0.62 * (180 / rad)) : 1.62;
         const mieOffsetX = ux * rad * 0.20, mieOffsetY = uy * rad * 0.20;
         const mGrad = ctx.createRadialGradient(mieOffsetX, mieOffsetY, rad * 0.96, mieOffsetX, mieOffsetY, rad * mieOuterScale);
         mGrad.addColorStop(0.00, css(atmoMie, 0.28 * ak));
@@ -8397,13 +8397,14 @@ const SCORES=[
       osc2.type = 'triangle';
       osc2.frequency.setValueAtTime(freq * 1.002, t0);
 
-      // Natural violin/cello vibrato (5.4 Hz)
+      // Natural violin/cello vibrato (5.4 Hz) with dynamic pitch-proportional depth
       const vibrato = ac.createOscillator();
       const vibGain = ac.createGain();
       vibrato.frequency.value = 5.4;
       vibGain.gain.value = freq * 0.008; // subtle vibrato depth
-      vibrato.connect(osc1.frequency);
-      vibrato.connect(osc2.frequency);
+      vibrato.connect(vibGain);
+      vibGain.connect(osc1.frequency);
+      vibGain.connect(osc2.frequency);
       vibrato.start(t0 + 0.2); // vibrato begins after bow onset
 
       osc1.connect(filter);
@@ -12788,7 +12789,11 @@ requestAnimationFrame(frame);
     getPlanetModel(m) {
       const pId = this.getPlanetId(m);
       if (this.planetCache.has(pId)) {
-        return this.planetCache.get(pId);
+        const model = this.planetCache.get(pId);
+        // True LRU: refresh key order by moving hit to the end
+        this.planetCache.delete(pId);
+        this.planetCache.set(pId, model);
+        return model;
       }
 
       // Evict old cache if size exceeds 8 planets to keep memory minimal
@@ -13138,10 +13143,11 @@ requestAnimationFrame(frame);
       // Adaptive WebGL throttling: full 60 FPS for close encounters (rad >= 180), sub-frame throttled for distant
       const throttleRate = rad >= 180 ? 1 : (rad < 35.0 ? 3 : 2);
       
-      // If this planet already has a rendered dedicated frame and can be throttled, return its dedicated canvas directly!
-      if (model.hasRendered && this.currentRenderedId === pId && (this.frameCount % throttleRate !== 0)) {
+      // Per-planet throttle tracking: independent of global currentRenderedId
+      if (model.hasRendered && model.lastRenderFrame && (this.frameCount - model.lastRenderFrame < throttleRate)) {
         return model.dedicatedCanvas;
       }
+      model.lastRenderFrame = this.frameCount;
 
       const now = performance.now() * 0.001;
       const dt = Math.min(0.05, now - this.lastTime);

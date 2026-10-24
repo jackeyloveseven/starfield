@@ -248,7 +248,11 @@
     getPlanetModel(m) {
       const pId = this.getPlanetId(m);
       if (this.planetCache.has(pId)) {
-        return this.planetCache.get(pId);
+        const model = this.planetCache.get(pId);
+        // True LRU: refresh key order by moving hit to the end
+        this.planetCache.delete(pId);
+        this.planetCache.set(pId, model);
+        return model;
       }
 
       // Evict old cache if size exceeds 8 planets to keep memory minimal
@@ -598,10 +602,11 @@
       // Adaptive WebGL throttling: full 60 FPS for close encounters (rad >= 180), sub-frame throttled for distant
       const throttleRate = rad >= 180 ? 1 : (rad < 35.0 ? 3 : 2);
       
-      // If this planet already has a rendered dedicated frame and can be throttled, return its dedicated canvas directly!
-      if (model.hasRendered && this.currentRenderedId === pId && (this.frameCount % throttleRate !== 0)) {
+      // Per-planet throttle tracking: independent of global currentRenderedId
+      if (model.hasRendered && model.lastRenderFrame && (this.frameCount - model.lastRenderFrame < throttleRate)) {
         return model.dedicatedCanvas;
       }
+      model.lastRenderFrame = this.frameCount;
 
       const now = performance.now() * 0.001;
       const dt = Math.min(0.05, now - this.lastTime);
