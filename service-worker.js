@@ -38,8 +38,10 @@ self.addEventListener('activate', (event) => {
 async function networkFirst(request) {
   const cache = await caches.open(CACHE_NAME);
   try {
-    // reload bypasses the HTTP cache so a stale page can never win here.
-    const response = await fetch(request, { cache: 'reload' });
+    // A release-scoped URL defeats any stale browser/CDN copy on browser restart.
+    const networkUrl = new URL(request.url);
+    networkUrl.searchParams.set('__sw', CACHE_VERSION);
+    const response = await fetch(networkUrl.toString(), { cache: 'reload' });
     if (response.ok) {
       cache.put(request, response.clone()).catch(() => {});
     }

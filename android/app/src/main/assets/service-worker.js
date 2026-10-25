@@ -38,8 +38,10 @@ self.addEventListener('activate', (event) => {
 async function networkFirst(request) {
   const cache = await caches.open(CACHE_NAME);
   try {
-    // no-cache still revalidates with the server instead of trusting HTTP freshness.
-    const response = await fetch(new Request(request, { cache: 'no-cache' }));
+    // A release-scoped URL defeats any stale browser/CDN copy on browser restart.
+    const networkUrl = new URL(request.url);
+    networkUrl.searchParams.set('__sw', CACHE_VERSION);
+    const response = await fetch(networkUrl.toString(), { cache: 'reload' });
     if (response.ok) {
       cache.put(request, response.clone()).catch(() => {});
     }
@@ -54,7 +56,7 @@ async function networkFirst(request) {
 async function staleWhileRevalidate(event, request) {
   const cache = await caches.open(CACHE_NAME);
   const cached = await cache.match(request);
-  const update = fetch(new Request(request, { cache: 'no-cache' })).then((response) => {
+  const update = fetch(request, { cache: 'no-cache' }).then((response) => {
     if (response.ok) {
       cache.put(request, response.clone()).catch(() => {});
     }
