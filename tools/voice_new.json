@@ -1,0 +1,17 @@
+[
+  {"id": "voice_reconnected", "text": "通信信道重新接通。量子领航员折痕恢复监听。"},
+
+  {"id": "tesseract_in", "text": "等等。窗外没有星星了。我们进到纸的另一面了。"},
+  {"id": "tesseract_in_alt1", "text": "三面墙，一片白光。领航员，你最好相信这也是设计的一部分。"},
+  {"id": "tesseract_in_alt2", "text": "坐标失效，时间读数在跳。我们在第五个维度里，别乱动。"},
+  {"id": "tesseract_in_alt3", "text": "这里每一扇窗都是一种可能。挑一扇你喜欢的，我们只停九秒。"},
+
+  {"id": "tesseract_out", "text": "回来了。星星还在原地，真好。"},
+  {"id": "tesseract_out_alt1", "text": "纸的这一面翻过去了。继续航行。"},
+
+  {"id": "idle_alt20", "text": "又是安静的一刻。我都快忘了引擎还在响。"},
+  {"id": "idle_alt21", "text": "如果你在数星星，别数了，它们会重排。"},
+  {"id": "idle_alt22", "text": "这片区域连尘埃都懒得动。"},
+  {"id": "idle_alt23", "text": "纸做的宇宙，折痕比星星多。"},
+  {"id": "idle_alt24", "text": "航程还长。你可以先睡一会儿，我盯着。"}
+]

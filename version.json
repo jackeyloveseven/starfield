@@ -1,11 +1,11 @@
 {
-  "version": "1.1.7",
-  "build": 109,
-  "updated_at": "2026-10-25T13:40:00+08:00",
+  "version": "1.1.8",
+  "build": 110,
+  "updated_at": "2026-10-25T14:10:00+08:00",
   "min_native_version": "1.0.0",
-  "title": "星空 · 高刷屏与 GPU 分档",
-  "changelog": "帧率上限改为屏幕刷新率（自动测 60/90/120/144/240Hz 并按 92% 目标自适应画质）；GPU 分档与高性能上下文；画布直通合成、掉帧先降分辨率",
+  "title": "星空 · 语音补全、图标重做、穿孔屏适配",
+  "changelog": "补 12 条语音（五维空间进出、重连、五条闲谈，247 条）；图标改成黑洞+斜射流，黑白高对比；取消左下摇杆外环与首屏横竖屏按钮；APK 适配穿孔屏（shortEdges + 隐藏系统栏）",
   "entry": "starfield.html",
   "download_url": "https://jackeyloveseven.github.io/starfield/starfield.html",
-  "apk_release_url": "https://github.com/jackeyloveseven/starfield/releases/tag/v1.1.7-focus-apk"
+  "apk_release_url": "https://github.com/jackeyloveseven/starfield/releases/tag/v1.1.8-focus-apk"
 }

@@ -10,5 +10,9 @@
         <item name="android:windowContentOverlay">@null</item>
         <item name="android:windowTranslucentNavigation">true</item>
         <item name="android:windowTranslucentStatus">true</item>
+        <!-- Draw into the punch-hole area: without shortEdges a 1280x2772 phone
+             letterboxes the app below the status bar, which reads as "the top
+             is not filled". -->
+        <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
     </style>
 </resources>
