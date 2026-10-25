@@ -43,6 +43,11 @@ jobs:
           cp icon-192.png android/app/src/main/assets/icon-192.png
           cp icon-512.png android/app/src/main/assets/icon-512.png
           cp version.json android/app/src/main/assets/version.json
+          # The page loads ./libs/three.min.js and links ./planet_studio.html.
+          # Without these the APK fell back to the CDN (or broke offline), and an
+          # OTA'd copy in filesDir could not resolve them at all.
+          cp -r libs android/app/src/main/assets/libs
+          cp planet_studio.html android/app/src/main/assets/planet_studio.html
 
       - name: Build Debug APK
         working-directory: ./android

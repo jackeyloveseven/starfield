@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.Build;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
@@ -34,9 +35,21 @@ public class MainActivity extends AppCompatActivity {
     private static final String KEY_VERSION = "ota_version";
     private static final String OTA_VERSION_URL = "https://jackeyloveseven.github.io/starfield/version.json";
     private static final String OTA_HTML_URL = "https://jackeyloveseven.github.io/starfield/starfield.html";
+    /** The page is ~21 MB. Anything under this is a truncated download, not a build. */
+    private static final long MIN_HTML_BYTES = 4_000_000L;
+    /** Assets the page resolves relatively; they must sit next to the OTA'd HTML. */
+    private static final String[] MIRRORED_ASSETS = {
+        "libs/three.min.js", "libs/tween.umd.js", "libs/OrbitControls.js",
+        "manifest.json", "icon-192.png", "icon-512.png",
+        "service-worker.js", "version.json", "planet_studio.html"
+    };
 
     private WebView webView;
     private final ExecutorService otaExecutor = Executors.newSingleThreadExecutor();
+    /** True once the page has finished loading; before that its inline script may
+     *  still be parsing and would drop an evaluateJavascript() call. */
+    private volatile boolean pageReady = false;
+    private String pendingNotify = null;
 
     @SuppressLint("SetJavaScriptEnabled")
     @Override
@@ -67,10 +80,24 @@ public class MainActivity extends AppCompatActivity {
         webView.setBackgroundColor(0xFF0B1118);
 
         webView.setWebChromeClient(new WebChromeClient());
-        webView.setWebViewClient(new WebViewClient());
+        webView.setWebViewClient(new WebViewClient() {
+            @Override
+            public void onPageFinished(WebView view, String url) {
+                pageReady = true;
+                if (pendingNotify != null) {
+                    String js = pendingNotify;
+                    pendingNotify = null;
+                    view.evaluateJavascript(js, null);
+                }
+            }
+        });
 
         // Expose Native Bridge for JS In-App Hot Updates
         webView.addJavascriptInterface(new StarfieldNativeBridge(), "StarfieldNative");
+
+        // The OTA'd page lives in filesDir, where ./libs/... and ./manifest.json
+        // do not exist unless they are copied out of the APK first.
+        syncAssets();
 
         // 1. Initial Page Load (Cached active update file or bundled asset fallback)
         File activeHtml = new File(getFilesDir(), "starfield_active.html");
@@ -101,8 +128,53 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * Copies the small assets the page resolves relatively into filesDir, so the
+     * OTA'd copy of starfield.html can still find libs/three.min.js, its manifest
+     * and its icons. Skipped when already present.
+     */
+    private void syncAssets() {
+        for (String name : MIRRORED_ASSETS) {
+            try {
+                File out = new File(getFilesDir(), name);
+                if (out.exists() && out.length() > 0) continue;
+                if (out.getParentFile() != null) out.getParentFile().mkdirs();
+                try (InputStream in = getAssets().open(name)) {
+                    copyStream(in, out);
+                }
+            } catch (Exception e) {
+                // Not packaged, or not copyable: the page has a CDN fallback for
+                // three.js and degrades quietly for the rest.
+                Log.w("StarfieldOTA", "asset " + name + " not mirrored: " + e);
+            }
+        }
+    }
+
+    private void copyStream(InputStream in, File to) throws Exception {
+        try (FileOutputStream out = new FileOutputStream(to)) {
+            byte[] buffer = new byte[16384];
+            int read;
+            while ((read = in.read(buffer)) != -1) out.write(buffer, 0, read);
+        }
+    }
+
+    /** A truncated download ends mid-JSON or mid-script; a real build ends with </html>. */
+    private boolean endsWithHtmlClose(File f) {
+        try (java.io.RandomAccessFile raf = new java.io.RandomAccessFile(f, "r")) {
+            long len = raf.length();
+            int n = (int) Math.min(96, len);
+            byte[] tail = new byte[n];
+            raf.seek(len - n);
+            raf.readFully(tail);
+            return new String(tail, "UTF-8").toLowerCase().contains("</html");
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
     public void triggerOtaCheck(final boolean isManual) {
         otaExecutor.execute(() -> {
+            String stage = "版本查询";
             try {
                 SharedPreferences prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
                 long currentBuild = prefs.getLong(KEY_BUILD, 0L);
@@ -110,14 +182,17 @@ public class MainActivity extends AppCompatActivity {
                 // 1. Fetch remote version descriptor
                 URL vUrl = new URL(OTA_VERSION_URL);
                 HttpURLConnection conn = (HttpURLConnection) vUrl.openConnection();
-                conn.setConnectTimeout(4000);
-                conn.setReadTimeout(4000);
+                // 4 s was tight for GitHub Pages on a mobile network; a timeout
+                // there was reported as "network error" and nothing else.
+                conn.setConnectTimeout(15000);
+                conn.setReadTimeout(20000);
                 conn.setRequestMethod("GET");
                 conn.setUseCaches(false);
+                conn.setRequestProperty("Cache-Control", "no-cache");
 
                 int code = conn.getResponseCode();
                 if (code != 200) {
-                    if (isManual) notifyJs("OTA_ERROR", "云端检查失败 (HTTP " + code + ")");
+                    fail(isManual, "云端检查失败 (HTTP " + code + ")");
                     return;
                 }
 
@@ -130,69 +205,96 @@ public class MainActivity extends AppCompatActivity {
                 JSONObject obj = new JSONObject(sb.toString());
                 long remoteBuild = obj.optLong("timestamp", obj.optLong("build", 0L));
                 String remoteVersion = obj.optString("version", "1.1.0");
+                String changelog = obj.optString("changelog", "");
 
-                if (remoteBuild <= currentBuild && !isManual) {
-                    // Up to date
+                // A manual check used to re-download 21 MB even when nothing had
+                // changed, and then said nothing about it.
+                if (remoteBuild <= currentBuild) {
+                    if (isManual) notifyJs("OTA_UP_TO_DATE", JSONObject.quote(remoteVersion));
                     return;
                 }
 
                 // 2. Download latest starfield.html
+                stage = "下载更新包";
                 URL htmlUrl = new URL(OTA_HTML_URL);
                 HttpURLConnection htmlConn = (HttpURLConnection) htmlUrl.openConnection();
-                htmlConn.setConnectTimeout(6000);
-                htmlConn.setReadTimeout(12000);
+                htmlConn.setConnectTimeout(15000);
+                htmlConn.setReadTimeout(45000);
                 htmlConn.setRequestMethod("GET");
                 htmlConn.setUseCaches(false);
+                htmlConn.setRequestProperty("Cache-Control", "no-cache");
 
                 if (htmlConn.getResponseCode() != 200) {
-                    if (isManual) notifyJs("OTA_ERROR", "下载热更新包失败");
+                    fail(isManual, "下载热更新包失败 (HTTP " + htmlConn.getResponseCode() + ")");
                     return;
                 }
+                long declared = htmlConn.getContentLengthLong();
 
                 File tempFile = new File(getFilesDir(), "starfield_temp.html");
-                InputStream in = htmlConn.getInputStream();
-                FileOutputStream out = new FileOutputStream(tempFile);
-
-                byte[] buffer = new byte[8192];
-                int read;
-                while ((read = in.read(buffer)) != -1) {
-                    out.write(buffer, 0, read);
+                try (InputStream in = htmlConn.getInputStream()) {
+                    copyStream(in, tempFile);
                 }
-                out.flush();
-                out.close();
-                in.close();
 
-                // 3. Verify download integrity
-                if (tempFile.length() < 500000) {
+                // 3. Verify download integrity. 500 KB was the old floor, which
+                // let a half-downloaded 21 MB page through and brick the app.
+                stage = "校验更新包";
+                long size = tempFile.length();
+                if ((declared > 0 && size != declared) || size < MIN_HTML_BYTES
+                        || !endsWithHtmlClose(tempFile)) {
                     tempFile.delete();
-                    if (isManual) notifyJs("OTA_ERROR", "更新包校验不完整");
+                    fail(isManual, "更新包不完整 (" + size + "/" + declared + ")");
                     return;
                 }
 
                 // 4. Atomically commit new active version
+                stage = "写入新版本";
                 File activeFile = new File(getFilesDir(), "starfield_active.html");
-                if (activeFile.exists()) activeFile.delete();
-                tempFile.renameTo(activeFile);
+                File previous = new File(getFilesDir(), "starfield_prev.html");
+                if (previous.exists()) previous.delete();
+                if (activeFile.exists()) activeFile.renameTo(previous);
+                if (!tempFile.renameTo(activeFile)) {
+                    // renameTo fails silently on some devices/filesystems.
+                    copyStream(new java.io.FileInputStream(tempFile), activeFile);
+                    tempFile.delete();
+                }
+                if (activeFile.length() < MIN_HTML_BYTES) {
+                    fail(isManual, "写入失败，保留旧版本");
+                    return;
+                }
 
                 prefs.edit().putLong(KEY_BUILD, remoteBuild).putString(KEY_VERSION, remoteVersion).apply();
 
                 // 5. Notify web app of hot update readiness
-                notifyJs("OTA_READY", remoteVersion);
+                JSONObject payload = new JSONObject();
+                payload.put("version", remoteVersion);
+                payload.put("build", remoteBuild);
+                payload.put("changelog", changelog);
+                notifyJs("OTA_READY", payload.toString());
 
             } catch (Exception e) {
-                if (isManual) notifyJs("OTA_ERROR", "网络异常: " + e.getMessage());
+                Log.w("StarfieldOTA", "check failed at " + stage, e);
+                if (isManual) notifyJs("OTA_ERROR", JSONObject.quote(stage + "时出错: " + e.getMessage()));
             }
         });
     }
 
+    private void fail(boolean isManual, String message) {
+        Log.w("StarfieldOTA", message);
+        if (isManual) notifyJs("OTA_ERROR", JSONObject.quote(message));
+    }
+
+    /** payload is already valid JSON: a quoted string, or an object literal. */
     private void notifyJs(final String type, final String payload) {
+        final String js = "if(typeof window.onStarfieldOtaNotify==='function'){window.onStarfieldOtaNotify("
+                + JSONObject.quote(type) + "," + payload + ");}";
         runOnUiThread(() -> {
-            if (webView != null) {
-                String safePayload = payload.replace("'", "\\'");
-                webView.evaluateJavascript(
-                    "if(typeof window.onStarfieldOtaNotify==='function'){ window.onStarfieldOtaNotify('" + type + "', '" + safePayload + "'); }",
-                    null
-                );
+            if (webView == null) return;
+            if (pageReady) {
+                webView.evaluateJavascript(js, null);
+            } else {
+                // The page is 21 MB; its inline script can still be parsing when
+                // the download finishes. Hold the message for onPageFinished.
+                pendingNotify = js;
             }
         });
     }
@@ -206,6 +308,7 @@ public class MainActivity extends AppCompatActivity {
         @JavascriptInterface
         public void reloadApp() {
             runOnUiThread(() -> {
+                pageReady = false;
                 File active = new File(getFilesDir(), "starfield_active.html");
                 if (active.exists() && active.length() > 500000) {
                     webView.loadUrl("file://" + active.getAbsolutePath());
@@ -219,6 +322,13 @@ public class MainActivity extends AppCompatActivity {
         public String getAppVersion() {
             SharedPreferences prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
             return prefs.getString(KEY_VERSION, "1.1.0");
+        }
+
+        /** The settings sheet has always called this; it simply did not exist. */
+        @JavascriptInterface
+        public long getBuildNumber() {
+            SharedPreferences prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+            return prefs.getLong(KEY_BUILD, 0L);
         }
 
         @JavascriptInterface
