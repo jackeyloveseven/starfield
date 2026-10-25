@@ -4,3 +4,4 @@ starfield.js
 work-*.html
 tmp-*
 __pycache__/
+*.apk
