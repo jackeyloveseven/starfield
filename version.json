@@ -1,11 +1,11 @@
 {
-  "version": "1.9.2",
-  "build": 131,
-  "updated_at": "2026-10-25T17:55:00+08:00",
+  "version": "1.9.3",
+  "build": 132,
+  "updated_at": "2026-10-25T18:15:00+08:00",
   "min_native_version": "1.0.0",
-  "title": "源义经 · 座舱重做",
-  "changelog": "座舱按构图重做：机位下压 10°、竖屏视野从 23° 扩到 47°、近船淡出半径 350→70..190（领队永不淡出）、上梁/立柱/仪表台重画（浅灰纸色而不是隐形暗色）、仪表台放大并独占屏幕（座舱内隐藏常规 HUD）",
+  "title": "源义经 · 星体不再突然消失",
+  "changelog": "天体在 7 万单位处被硬切导致屏幕内整块消失；改为逐天体 fade 连续淡出（每帧上限 1.2%），远距信标延到 8.5 万归零，kind 5–7 也吃淡出；注视权重改连续",
   "entry": "starfield.html",
   "download_url": "https://jackeyloveseven.github.io/starfield/starfield.html",
-  "apk_release_url": "https://github.com/jackeyloveseven/starfield/releases/tag/v1.9.2-focus-apk"
+  "apk_release_url": "https://github.com/jackeyloveseven/starfield/releases/tag/v1.9.3-focus-apk"
 }

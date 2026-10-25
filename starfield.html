@@ -4049,7 +4049,7 @@ function updateDirector(dt){
  }
 
  if(started && autoCamera && !capturePhase && (!skimRes || !skimRes.active) && !hm && activeMasses.length){
-  let gm = null, gd = 1e9;
+  let gm = null, gd = 1e9, gGaze = 1;
   for(const m of activeShips){
    const dx = m.x - routeX(travel), dy = m.y - courseY(travel), dz = m.z - travel;
    const d = Math.hypot(dx, dy, dz);
@@ -4067,8 +4067,14 @@ function updateDirector(dt){
    // ahead and big enough to read on the plate before it may pull the gaze -
    // otherwise the frame is empty sky with the flock pushed to the edge.
    const ang = Math.atan2(Math.hypot(dx, dy), Math.max(1, dz));
-   if(ang > .62 || m.r / Math.max(1, d) < .05) continue;
-   if(d < gd){gd = d; gm = m;}
+   /* v137-pop-fade: the old `continue` switched the gaze off in one frame the
+    * moment a world crossed .62 rad or .05 relative size. Weight the pull
+    * instead, and let it reach zero before the candidate drops out. */
+   const angW = clamp((.62 - ang) / .18, 0, 1);
+   const sizeW = clamp((m.r / Math.max(1, d) - .02) / .03, 0, 1);
+   const gaze = angW * sizeW;
+   if(gaze <= 0) continue;
+   if(d < gd){gd = d; gm = m; gGaze = gaze;}
   }
 
   if(gm){
@@ -4079,6 +4085,7 @@ function updateDirector(dt){
    } else {
     w = clamp((6000 - gd) / 5000, 0, 1) * 0.32 + 0.10;
    }
+   w *= gGaze; /* v137-pop-fade: fade the gaze pull out continuously */
    lookTarget = [mix(routeX(travel), gm.x, w), mix(courseY(travel) + camera.aimY, gm.y, w), mix(travel, gm.z, w * 0.80)];
   } else {
    lookTarget = [routeX(travel), courseY(travel) + camera.aimY, travel];
@@ -6693,11 +6700,11 @@ function drawHole(m, q, p, t, rad){
   // Even when kilometers away or center outside immediate viewport boundary,
   // radiates relativistic golden lensing flares across deep space!
   // =========================================================================
-  const dist = q[2];
-  const farFade = clamp((85000 - dist) / 45000, 0, 1);
-  if (farFade > 0.01) {
+  /* v137-pop-fade: bodies() now hands kind 4 a fade that reaches zero at
+   * 85,000 units, so the beacon is no longer cut off at 70,000. */
+  if (massVis > 0.001) {
     queue.push({
-      type: 4, d: q[2] + 50, alpha: farFade, fn: () => {
+      type: 4, d: q[2] + 50, alpha: massVis, fn: () => {
         // Relativistic Golden Lensing Core
         const coreFlareR = Math.max(3.5, rad * 1.25);
         const gL = ctx.createRadialGradient(cx, cy, 0, cx, cy, coreFlareR * 3.8);
@@ -6971,7 +6978,7 @@ function drawMass(m, p, t){
   const cx = q[0], cy = q[1];
   const lit = m.kind === 7 ? blackbody(14000) : m.kind === 6 ? blackbody(3000) : blackbody(4800);
   const halo = m.kind === 7 ? 11 : m.kind === 6 ? 2.6 : 2.0;
-  queue.push({type: 4, d: q[2], alpha: 1, fn: () => {
+  queue.push({type: 4, d: q[2], alpha: massVis, fn: () => {
    const R = Math.max(m.kind === 7 ? 2.4 : 1.6, rad), g = ctx.createRadialGradient(cx, cy, 0, cx, cy, R * 1.06);
    g.addColorStop(0, css(blend(lit, [255, 255, 255], .70), .98));
    g.addColorStop(.52, css(lit, .96));
@@ -6979,8 +6986,8 @@ function drawMass(m, p, t){
    g.addColorStop(1, css(lit, 0));
    ctx.beginPath(); ctx.arc(cx, cy, R * 1.06, 0, TAU); ctx.fillStyle = g; ctx.fill();
   }});
-  glow([m.x, m.y, m.z], m.r * halo, lit, m.kind === 7 ? .46 : .24, 2.2);
-  glow([m.x, m.y, m.z], m.r * halo * .36, blend(lit, [255, 255, 255], .55), m.kind === 7 ? .85 : .52, 2.4);
+  glow([m.x, m.y, m.z], m.r * halo, lit, (m.kind === 7 ? .46 : .24) * massVis, 2.2);
+  glow([m.x, m.y, m.z], m.r * halo * .36, blend(lit, [255, 255, 255], .55), (m.kind === 7 ? .85 : .52) * massVis, 2.4);
   return;
  }
 
@@ -7131,6 +7138,13 @@ function drawGalaxy(g,p,t){
 }
 function bodies(){
  activeShips.length=0;
+ /* v137-pop-fade: distance / frame edge / angle only set a target. The
+  * rendered alpha eases toward it, capped at .012 per drawn frame, so no cull
+  * can remove a body that is still visible. */
+ const popDt=Math.max(0,Math.min(.1,time-(bodies._popT===undefined?time:bodies._popT)));
+ bodies._popT=time;
+ const popK=1-Math.exp(-2.0*popDt);
+ const popMax=.012;
  const k0=Math.floor(camera.eye[2]/CHUNK);
  const backRadius = 8;
  const fwdRadius = lowQuality ? 14 : 24;
@@ -7173,11 +7187,30 @@ function bodies(){
   }
   // Frustum-culled celestial masses & stars
   for(const m of c.masses){
-   const pj=project([m.x,m.y,m.z]);if(!pj||pj[2]>70000)continue;
+   const pj=project([m.x,m.y,m.z]);
+   if(!pj){
+    // Behind the near plane: no projection, so ease the fade out and stop.
+    if(m.fade!==undefined)m.fade=Math.max(0,m.fade-popMax);
+    continue;
+   }
    const rad=m.r*pj[3];
    const cullR=(m.kind>=5&&m.kind<=7)?(rad*12+100):(m.kind===4?Math.max(rad*8,500):(m.w&&m.w.hasRings||m.kind===8?rad*4+80:rad*2.8+80));
-   if(pj[0]+cullR<0||pj[0]-cullR>W||pj[1]+cullR<0||pj[1]-cullR>H)continue;
-   massVis=clamp((70000-pj[2])/45000);if(massVis<=0)continue;
+   /* v137-pop-fade: the 70k / offscreen / near-plane `continue`s become three
+    * continuous targets. kind 4 keeps drawHole's 85k beacon range. */
+   const farDist=(m.kind===4)?85000:70000;
+   const distFade=clamp((farDist-pj[2])/45000);
+   const vw=Math.min(pj[0]+cullR,W)-Math.max(pj[0]-cullR,0);
+   const vh=Math.min(pj[1]+cullR,H)-Math.max(pj[1]-cullR,0);
+   const edgeFade=clamp(Math.min(vw,vh)/Math.max(180,cullR*.45));
+   const bodyAng=Math.atan2(Math.hypot(pj[0]-camera.cx,pj[1]-camera.cy),camera.focal);
+   const cornerAng=Math.atan2(Math.hypot(W*.5,H*.5),camera.focal);
+   const angRad=Math.atan2(rad,Math.max(1,pj[2]));
+   const angFade=clamp((cornerAng+.12+angRad-bodyAng)/.12);
+   const target=Math.min(distFade,edgeFade,angFade);
+   if(m.fade===undefined)m.fade=0;
+   m.fade+=clamp((target-m.fade)*popK,-popMax,popMax);
+   if(m.fade<=0.0005){m.fade=0;continue;}
+   massVis=m.fade;
    {const rp=m.r*pj[3];if(rp>H*.42)massVis*=clamp(H*.42/rp,.30,1);}
    drawMass(m,region(m.x,m.z),time);massVis=1;
   }
