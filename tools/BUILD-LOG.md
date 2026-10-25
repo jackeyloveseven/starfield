@@ -294,3 +294,61 @@ python -I crop.py <图> <出图> <x> <y> <w> <h> <放大倍数>   # 裁切放大
 ```
 
 `crop.py` 需要 PIL。**「云比受光面暗」和「亮边浮在球外」这两个 bug 在 1 倍图上完全看不出来** —— 大尺寸天体的验收必须放大看。
+
+---
+
+# 手机端布局与 APK 热更新（v97–v100）
+
+## 先解决「手机截图是假的」这件事
+
+`shot.py` 用 `--window-size=390,844` 截出来的图**不是 390 宽的布局**：无头 Chrome 的窗口宽度有
+500px 下限，实际 innerWidth 是 500，截图只是把右边 110px 裁掉了。所以「右边被切了」这种结论
+有一半是工具造成的。两个新探针绕开它：
+
+```bash
+python -I mshot.py starfield.html shots/p.png --size 390x844 --mode fly --seek 40 --touch
+python -I uiprobe.py starfield.html --size 390x844 --mode flying --touch
+```
+
+`mshot.py` 把页面塞进一个**像素精确的 iframe**，截完再裁回 W×H；`--touch` 在 `<head>` 最前面
+注入 `window.ontouchstart=null` 和 `maxTouchPoints`，否则触控 HUD 根本不会构建。
+
+`uiprobe.py` 只量几何，不画图：逐元素 `getBoundingClientRect` + **祖先 opacity 连乘**（`.hud` 下
+opacity 为 0 的子元素仍然是 `opacity:1`，不做这件事会得到一堆假重叠），然后两两求交，输出
+重叠矩形的像素数。
+
+## 量出来的五个遮挡
+
+| 现象 | 实测 | 修法 |
+|---|---|---|
+| 通讯卡盖住镜头名 | `#comms-hud` 92vw 居中 @top 34，`#camera-hud` 占 y10–104 | 窄屏压到 `top 106`；短屏再缩成 `min(560px,66vw)` / 12.5px |
+| 诗句跑出屏幕 | `.poem-line{white-space:nowrap}`，块宽 36%×390=140，末字在 x=547 | 手机端放开换行、上限 66vw |
+| 起航点被切 | 纵向 flex 里的居中子项 = max-content 宽，永不折行 | `.destinations{width:100%}` |
+| 横竖屏按钮压标题 | 83×23 px 重叠 | 手机端改 `position:fixed` 到种子行下；飞行中 `pointer-events:none`（父级只是 opacity 0，仍然可点） |
+| 触控四键压住里程行 | 四键行 ~320px 宽，占住右下角 | 竖屏 `#journey` 上移 58px |
+
+改完重跑 `mshot.py` 三态（竖屏首页 / 竖屏飞行 / 横屏飞行），三张图逐一目视确认。
+
+## 热更新：五处静默失败
+
+`otaprobe.py` 注入一个假桥，跑一遍握手的四种终态，对比页面实际显示：
+
+| | v98（修前） | v99（修后） |
+|---|---|---|
+| `OTA_ERROR` | toast 还停在「正在查询…」 | 「热更新失败 · 云端检查失败 (HTTP 502)」 |
+| `OTA_READY`（对象） | 弹窗写死 v1.1.0 | v1.1.3 + 真实 changelog |
+| `OTA_READY`（字符串，旧桥） | v1.1.0 | v1.1.4 |
+| 已是最新 | 无任何反馈 | 「已是最新版本 · v1.1.2」 |
+
+原生侧（`MainActivity.java`）同时改了：超时 4s→15s / 12s→45s；校验 `Content-Length` + 4MB 下限
++ 尾部 `</html>`（旧的 500KB 门槛能放过半页 21MB 的下载）；`renameTo` 失败退回复制并保留上一版；
+`onPageFinished` 之前到达的通知挂起补发；启动时把 `libs/`、图标、manifest 从 assets 镜像到
+`filesDir`（热更新页落在那里，否则 `three.min.js` 404）；补上桥里一直缺失的 `getBuildNumber()`。
+
+`build-apk.yml` 也补了 `libs/` 与 `planet_studio.html` 的同步 —— 之前 APK 里根本没有 `libs/`，
+打包页的 `three.min.js` 一直在走 CDN 兜底。
+
+## 教训
+
+**「看起来没变」和「确实没变」之间隔着一个正确的视口。** 之前所有手机结论都建立在 500px 宽的
+假视口上；iframe 一进来，原来以为的三个 bug 里有一个直接消失，另外两个换了位置。

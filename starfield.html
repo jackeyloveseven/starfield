@@ -119,6 +119,43 @@
     top: calc(env(safe-area-inset-top, 0px) + 10px) !important;
     left: 14px !important;
   }
+
+  /* A centred flex item in a column becomes max-content wide, so the row never
+     wrapped and the last destination sat outside the screen. */
+  .destinations {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  /* The toggle was inside #masthead, on top of the title (83x23 px of overlap).
+     Fixed puts it under the seed line, clear of everything. */
+  #orientation-toggle-btn {
+    position: fixed !important;
+    top: calc(env(safe-area-inset-top, 0px) + 30px) !important;
+    right: 14px !important;
+    left: auto !important;
+  }
+  /* .flying fades #masthead to 0 but leaves it clickable; an invisible button
+     over the top-right of the scene would eat taps. */
+  .flying #orientation-toggle-btn {
+    pointer-events: none !important;
+  }
+
+  /* .poem-line is nowrap: at 36% of 390 px the lines ran off the right edge. */
+  #poem {
+    right: 6% !important;
+    max-width: 66vw !important;
+  }
+  .poem-line {
+    white-space: normal !important;
+    font-size: 15px !important;
+    line-height: 1.85 !important;
+  }
+
+  /* The touch action row is ~320 px wide and owns the bottom-right corner. */
+  #journey {
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 58px) !important;
+  }
 }
 
 /* Orientation Switcher Pill Button */
@@ -177,6 +214,9 @@
   #comms-hud {
     width: 92vw !important;
     left: 50% !important;
+    /* Below the lens name, not on it: #camera-hud owns y 10..104 and a centred
+       92vw card covers all of it on a phone. */
+    top: calc(env(safe-area-inset-top, 0px) + 106px) !important;
     transform: translateX(-50%) !important;
     padding: 10px 14px 12px 14px !important;
     box-sizing: border-box !important;
@@ -186,6 +226,22 @@
     line-height: 1.5 !important;
     word-break: break-word !important;
     overflow-wrap: break-word !important;
+  }
+}
+
+/* A short screen: the comms card is one line of speech, not a panel. */
+@media (max-width: 900px) and (max-height: 580px) {
+  #comms-hud {
+    width: min(560px, 66vw) !important;
+    padding: 8px 14px 9px 14px !important;
+  }
+  #comms-hud .comms-header {
+    margin-bottom: 4px !important;
+    font-size: 9.5px !important;
+  }
+  #comms-hud .comms-body {
+    font-size: 12.5px !important;
+    line-height: 1.45 !important;
   }
 }
 
@@ -1274,7 +1330,7 @@
     <div class="shortcut-list">
       <div class="shortcut-row">
         <span>客户端版本</span>
-        <span class="shortcut-key" id="sf-version-tag">v1.1.0 (Build 102)</span>
+        <span class="shortcut-key" id="sf-version-tag">v1.1.3 (Build 105)</span>
       </div>
       <div class="shortcut-row">
         <span>OTA 实时热更新</span>
@@ -3689,7 +3745,17 @@ const GameSettings = {
     }
     if (window.StarfieldNative && typeof window.StarfieldNative.getAppVersion === 'function') {
       const vTag = $('sf-version-tag');
-      if (vTag) vTag.textContent = `v${window.StarfieldNative.getAppVersion()} (Build ${window.StarfieldNative.getBuildNumber()})`;
+      if (vTag) {
+        // getBuildNumber() did not exist on the bridge, so this line threw and
+        // the tag stayed at its hard-coded value forever.
+        let build = '';
+        try {
+          if (typeof window.StarfieldNative.getBuildNumber === 'function') {
+            build = ' (Build ' + window.StarfieldNative.getBuildNumber() + ')';
+          }
+        } catch (e) { /* older APK */ }
+        vTag.textContent = 'v' + window.StarfieldNative.getAppVersion() + build;
+      }
     }
   },
 
@@ -10432,8 +10498,12 @@ window.addEventListener('resize', () => {
     const banner = document.createElement('div');
     banner.id = 'sf-ota-banner';
     banner.className = 'sf-ota-pill';
-    const version = payload && payload.version ? payload.version : 'v1.1.0';
-    const desc = payload && payload.changelog ? payload.changelog : '核心视觉与2K清晰度已优化，轻触立即热更新生效';
+    // The native bridge used to send a bare string, the new one sends
+    // {version, build, changelog}. Accept both.
+    const info = (payload && typeof payload === 'object') ? payload : { version: payload };
+    const rawVer = info.version ? String(info.version) : '1.1.0';
+    const version = 'v' + rawVer.replace(/^v/i, '');
+    const desc = info.changelog || '核心视觉与2K清晰度已优化，轻触立即热更新生效';
 
     banner.innerHTML = `
       <div class="sf-ota-sparkle">✦</div>
@@ -10465,6 +10535,13 @@ window.addEventListener('resize', () => {
     console.log('[OTA] onStarfieldOtaNotify received:', type, payload);
     if (type === 'OTA_READY') {
       showOtaNotification(payload);
+    } else if (type === 'OTA_ERROR') {
+      // A silent failure is indistinguishable from a dead button: the manual
+      // check said "querying" and then never said anything again.
+      if (window.toast) window.toast('热更新失败 · ' + (payload || '未知原因'), 7);
+      console.warn('[OTA] failed:', payload);
+    } else if (type === 'OTA_UP_TO_DATE') {
+      if (window.toast) window.toast('已是最新版本 · v' + String(payload).replace(/^v/i, ''), 4);
     }
   };
 
