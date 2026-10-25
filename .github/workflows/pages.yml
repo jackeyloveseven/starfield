@@ -33,6 +33,8 @@ jobs:
           mkdir -p _site
           cp starfield.html _site/index.html
           cp starfield.html _site/starfield.html
+          cp manifest.json _site/manifest.json
+          cp service-worker.js _site/service-worker.js
           cp migration.html _site/migration.html
           cp planet_studio.html _site/planet_studio.html
           cp -r libs _site/libs

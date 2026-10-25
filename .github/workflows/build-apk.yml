@@ -1,0 +1,71 @@
+name: Build Android APK
+
+on:
+  push:
+    paths:
+      - 'android/**'
+      - '.github/workflows/build-apk.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Download & Setup Gradle 8.5
+        run: |
+          wget -q https://services.gradle.org/distributions/gradle-8.5-bin.zip
+          unzip -q gradle-8.5-bin.zip
+          echo "$PWD/gradle-8.5/bin" >> $GITHUB_PATH
+
+      - name: Sync Web Assets to Android Project
+        run: |
+          mkdir -p android/app/src/main/assets
+          cp starfield.html android/app/src/main/assets/starfield.html
+          cp manifest.json android/app/src/main/assets/manifest.json
+          cp service-worker.js android/app/src/main/assets/service-worker.js
+
+      - name: Build Debug APK
+        working-directory: ./android
+        run: |
+          gradle assembleDebug --no-daemon --stacktrace
+
+      - name: Rename Output APK
+        run: |
+          cp android/app/build/outputs/apk/debug/app-debug.apk StarfieldFocus.apk
+
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: StarfieldFocus-APK
+          path: StarfieldFocus.apk
+
+      - name: Create or Update GitHub Release
+        uses: softprops/action-gh-release@v2
+        if: github.ref == 'refs/heads/master'
+        with:
+          tag_name: v1.0-focus-apk
+          name: "星空专注 (Starfield Focus) · Android 安装包 v1.0"
+          body: |
+            ### 🌌 星空 · STARFIELD // 挂机深空探索与专注番茄钟 Android 安装包 (APK)
+            
+            - **沉浸式全屏与屏幕常亮**：支持桌面挂机放置，探索浩瀚深空；
+            - **离场监测与黑洞坠毁**：10 秒宽限期，中途玩手机将耗尽燃料坠入黑洞奇点；
+            - **30/60 分钟成就勋礼**：解锁【专注曜金·泰坦折纸旗舰】与【黄金纪元引力波流光】；
+            - **原生触控优化**：人体工学左手浮动摇杆 + 右手扇形动作簇。
+          files: StarfieldFocus.apk
