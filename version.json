@@ -1,11 +1,11 @@
 {
-  "version": "1.3.0",
-  "build": 117,
-  "updated_at": "2026-10-25T17:20:00+08:00",
+  "version": "1.4.0",
+  "build": 118,
+  "updated_at": "2026-10-25T17:40:00+08:00",
   "min_native_version": "1.0.0",
-  "title": "源义经 · 孵化表（数据层）",
-  "changelog": "加入专注孵化星球的数据层：15/30/60 分钟三档稀有度表、按专注分钟计的保底、确定性播种、本地收藏；界面下一步",
+  "title": "源义经 · 孵化的那一下",
+  "changelog": "专注结算后可以「孵化这颗星球」：先只给轮廓与光色，轻触点亮现形；卡片带品级色、时长与日期，自动收入本地收藏",
   "entry": "starfield.html",
   "download_url": "https://jackeyloveseven.github.io/starfield/starfield.html",
-  "apk_release_url": "https://github.com/jackeyloveseven/starfield/releases/tag/v1.3.0-focus-apk"
+  "apk_release_url": "https://github.com/jackeyloveseven/starfield/releases/tag/v1.4.0-focus-apk"
 }
