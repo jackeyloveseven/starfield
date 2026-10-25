@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The ink paper behind the shadow: same centre-bright gradient as the PNGs. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <gradient
+        android:type="radial"
+        android:centerX="0.5"
+        android:centerY="0.5"
+        android:gradientRadius="78%p"
+        android:startColor="#1A2838"
+        android:endColor="#04070C" />
+</shape>
