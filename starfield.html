@@ -1383,7 +1383,7 @@ body.modal-open #comms-hud {
     <div class="shortcut-list">
       <div class="shortcut-row">
         <span>客户端版本</span>
-        <span class="shortcut-key" id="sf-version-tag">v1.2.1 (Build 113)</span>
+        <span class="shortcut-key" id="sf-version-tag">v1.2.2 (Build 114)</span>
       </div>
       <div class="shortcut-row">
         <span>OTA 实时热更新</span>
@@ -10420,13 +10420,21 @@ function __placeThumb(){
  __destThumb.style.transform='translate('+cur.offsetLeft+'px,'+cur.offsetTop+'px)';
  __destThumb.classList.add('on');
 }
+function stepDeparture(dt){
+ if(!__depart)return;
+ __depart.k=Math.min(1,__depart.k+dt/__depart.dur);
+ const k=__depart.k;
+ const e=k<.5?4*k*k*k:1-Math.pow(-2*k+2,3)/2;   // easeInOutCubic
+ travel=__depart.from+(__depart.to-__depart.from)*e;
+ if(k>=1){const i=__depart.i;__depart=null;chooseDeparture(i);}
+}
 function __departDolly(i){
  const from=travel, to=i*SEGMENT+SEGMENT*.5;
  for(const el of document.querySelectorAll('.destination'))el.setAttribute('aria-checked',String(Number(el.dataset.region)===i));
  __placeThumb();
  if(started||Math.abs(to-from)<80){chooseDeparture(i);return;}
  // longer jumps take longer; ~1s for a neighbouring band
- __depart={from:from,to:to,i:i,t0:performance.now(),dur:Math.min(2200,700+Math.abs(to-from)/14)};
+ __depart={from:from,to:to,i:i,k:0,dur:Math.min(2200,700+Math.abs(to-from)/14)};
  if(typeof gateFlash!=='undefined')gateFlash=0.18;
 }
 for(const el of document.querySelectorAll('.destination'))el.addEventListener('click',()=>__departDolly(Number(el.dataset.region)));
@@ -10707,12 +10715,7 @@ let __modalOpen=false;
 function frame(now){
  requestAnimationFrame(frame);const realDt=Math.min(.05,Math.max(.001,(now-last)/1000));last=now;
  if(document.hidden)return;
- if(__depart){
-  const k=Math.min(1,(now-__depart.t0)/__depart.dur);
-  const e=k<.5?4*k*k*k:1-Math.pow(-2*k+2,3)/2;   // easeInOutCubic
-  travel=__depart.from+(__depart.to-__depart.from)*e;
-  if(k>=1){const i=__depart.i;__depart=null;chooseDeparture(i);}
- }
+ stepDeparture(realDt);
  // Any sheet on top of the scene outranks the comms card (z 1000 > 400).
  // NB: the module object is window.Starfield; a bare `Engine` is out of scope
  // here and threw on every frame, which froze the scene.
@@ -10775,7 +10778,7 @@ window.Starfield=Object.freeze({
  palette:()=>({index:currentPalette.index,t:currentPalette.t,sky:currentPalette.sky,horizon:currentPalette.horizon,fog:currentPalette.fog,tree:currentPalette.tree,craft:currentPalette.craft,sun:currentPalette.sun,shimmer:currentPalette.shimmer,front:currentPalette.front}),
  flock:()=>{let mx=0,mv=0,bad=false;for(const b of fleet){const d=Math.hypot(b.x,b.y,b.z);if(d>mx)mx=d;const v=Math.hypot(b.vx,b.vy,b.vz);if(v>mv)mv=v;if(!Number.isFinite(b.x+b.y+b.z+b.vx+b.vy+b.vz))bad=true;}return {radius:Math.round(mx),speed:Math.round(mv),bad};},
  holeGL:!!holeGL,
- getState:()=>({seed:SEED,started,paused,autoCamera,region:rawStyles[currentPalette.index].en,regionMix:currentPalette.t,travel,flightTime,capture:capturePhase,captureT,sling:Math.round(sling*100)/100,masses:activeMasses.length,kinds:activeMasses.map(m=>m.kind).sort().join(''),lensSources:lensSources.length,nebTex:nebCache.size,nebGens,fillMPx:+(lastFillPx/1e6).toFixed(1),fleet:fleet.length,particles:particles.length,variation:cycle+1,lens:plans.get(cycle)[shot].name,distance:camera.distance,pitch:camera.pitch,yaw:camera.yaw,eye:[...camera.eye],fps:Math.round(fps),drawCalls,loadedChunks:chunks.size,rotated,width:W,height:H,dpr:DPR,audio:sound.ready?sound.ac.state:'not-started',track:sound.index+1,postMs:+(postMs).toFixed(2),postOn,holeGL:!!holeGL,gpu:_GPU.tier,gpuName:String(_GPU.name).slice(0,48),hz:refreshHz,dprCap:(window.STARFIELD_QUALITY?STARFIELD_QUALITY.tierCap[_GPU.tier]:null),holeDraws,holeLastRad}),
+ getState:()=>({seed:SEED,started,paused,autoCamera,region:rawStyles[currentPalette.index].en,regionMix:currentPalette.t,travel,flightTime,capture:capturePhase,captureT,sling:Math.round(sling*100)/100,masses:activeMasses.length,kinds:activeMasses.map(m=>m.kind).sort().join(''),lensSources:lensSources.length,nebTex:nebCache.size,nebGens,fillMPx:+(lastFillPx/1e6).toFixed(1),fleet:fleet.length,particles:particles.length,variation:cycle+1,lens:plans.get(cycle)[shot].name,distance:camera.distance,pitch:camera.pitch,yaw:camera.yaw,eye:[...camera.eye],fps:Math.round(fps),drawCalls,loadedChunks:chunks.size,rotated,width:W,height:H,dpr:DPR,audio:sound.ready?sound.ac.state:'not-started',track:sound.index+1,postMs:+(postMs).toFixed(2),postOn,holeGL:!!holeGL,warpGear:WarpDrive.gearIndex,departing:!!__depart,clips:(typeof NarratorClips!=='undefined')?Object.keys(NarratorClips).length:0,gpu:_GPU.tier,gpuName:String(_GPU.name).slice(0,48),hz:refreshHz,dprCap:(window.STARFIELD_QUALITY?STARFIELD_QUALITY.tierCap[_GPU.tier]:null),holeDraws,holeLastRad}),
  getLensSources:()=>lensSources.map(L=>({...L})),
  lensWarp:(x,y)=>lensWarp(x,y),
  updateLens:()=>updateLens(),
@@ -10885,6 +10888,7 @@ window.Starfield=Object.freeze({
   chunks.clear();
   return { encIndex: targetEncIndex, travel, k, world: worldFor(targetEncIndex) };
  },
+ stepDeparture:(dt)=>stepDeparture(dt),
  seek:(seconds)=>{
   const step=1/60,n=Math.max(0,Math.round(seconds/step));
   for(let i=0;i<n;i++){
@@ -10894,6 +10898,7 @@ window.Starfield=Object.freeze({
    flightTime += step;}else{previewTime+=step;travel+=SPEED*.15*step;}
    updateDirector(step);updateWind(step);updateGravity();updateBirds(step);updateCapture(step);updateSling(step);updateParticles(step);updatePoem(step);Narrator.update(step);
    if(tessT>0){tessT+=step;if(tessT>TESS_DUR)tessT=0;}
+   stepDeparture(step);
    currentPalette=region(routeX(travel),travel);
   }
   return {travel,time};

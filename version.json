@@ -1,11 +1,11 @@
 {
-  "version": "1.2.1",
-  "build": 113,
-  "updated_at": "2026-10-25T15:25:00+08:00",
+  "version": "1.2.2",
+  "build": 114,
+  "updated_at": "2026-10-25T15:55:00+08:00",
   "min_native_version": "1.0.0",
-  "title": "源义经 · 起航转场与选择滑块",
-  "changelog": "起航点选择改为 iOS 式滑块；切换起航点时镜头顺着航道飞过去而不是硬切；APK 更名为「源义经」",
+  "title": "源义经 · 转场按模拟时间推进",
+  "changelog": "起航转场改为按 dt 推进（暂停/seek 下也一致），修好长按加速与滑块的时序；getState 暴露 warpGear / departing / clips 便于验证",
   "entry": "starfield.html",
   "download_url": "https://jackeyloveseven.github.io/starfield/starfield.html",
-  "apk_release_url": "https://github.com/jackeyloveseven/starfield/releases/tag/v1.2.1-focus-apk"
+  "apk_release_url": "https://github.com/jackeyloveseven/starfield/releases/tag/v1.2.2-focus-apk"
 }
