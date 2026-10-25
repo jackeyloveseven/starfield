@@ -73,17 +73,25 @@ def render(size, with_bg=True, beam=True):
     out = bg
     out = out + (ring_col - out) * np.clip(ring * 1.9, 0, 1)[:, :, None]
     out = out + HOT[None, None, :] * (streak * 1.15)[:, :, None]
-    out = out + WARM[None, None, :] * (bloom if beam else 0)[:, :, None]
+    out = out + WARM[None, None, :] * ((bloom if beam else np.zeros_like(bloom)) * 0.30)[:, :, None]
     out = out + (DEEP - out) * shadow[:, :, None]
     # the ring's own faint glow, hugging the horizon
     glow = np.exp(-((R - RING) / 3.4) ** 2) * (R > RD)
     out = out + WARM[None, None, :] * (glow * 0.55)[:, :, None]
 
+    # the glow belongs to both layers: on the adaptive foreground it is the only
+    # thing that makes the ring read as light rather than as a drawn circle
+    bloom = np.exp(-((R - RING) / 9.0) ** 2) * (R > RD)
+    core = np.exp(-((R - RING) / 2.0) ** 2) * (R > RD - 0.5)
+    out = out + WARM[None, None, :] * (bloom * 0.30)[:, :, None]
+    out = out + HOT[None, None, :] * (core * 0.28)[:, :, None]
+    out = np.clip(out, 0, 255)
     if with_bg:
-        bloom = np.exp(-((R - RING) / 9.0) ** 2) * (R > RD * 0.9)
-        out = out + WARM[None, None, :] * (bloom * 0.28)[:, :, None]
-        out = out + HOT[None, None, :] * (np.exp(-((R - RING) / 2.0) ** 2) * 0.25)[:, :, None]
-    img = Image.fromarray(np.clip(out, 0, 255).astype(np.uint8), "RGB").convert("RGBA")
+        img = Image.fromarray(np.clip(out, 0, 255).astype(np.uint8), "RGB").convert("RGBA")
+    else:
+        cov = np.clip(ring * 1.9 + streak * 1.15 + bloom * 1.25 + core * 0.9, 0, 1)
+        rgba = np.dstack([np.clip(out, 0, 255), cov * 255.0]).astype(np.uint8)
+        img = Image.fromarray(rgba, "RGBA")
     if beam and with_bg:
         pass
     return img
@@ -99,9 +107,13 @@ def squircle_mask(S, mode="squircle"):
     return m
 
 
-def icon(size, mode="squircle"):
+def icon(size, mode="squircle", bleed=False):
     S = size * 4
     img = render(size, True)
+    if bleed:
+        # manifest declares purpose "any maskable": the platform crops it itself,
+        # so baked-in rounded corners become transparent notches
+        return img.resize((size, size), Image.LANCZOS)
     out = Image.new("RGBA", (S, S), (0, 0, 0, 0))
     out.paste(img, (0, 0), squircle_mask(S, mode))
     return out.resize((size, size), Image.LANCZOS)
@@ -142,6 +154,6 @@ if __name__ == "__main__":
         icon(px, "circle").save(os.path.join(folder, "ic_launcher_round.png"))
         foreground(FORE[dpi]).save(os.path.join(folder, "ic_launcher_foreground.png"))
         mono(FORE[dpi]).save(os.path.join(folder, "ic_launcher_mono.png"))
-    icon(192).save(os.path.join(ROOT, "icon-192.png"))
-    icon(512).save(os.path.join(ROOT, "icon-512.png"))
+    icon(192, bleed=True).save(os.path.join(ROOT, "icon-192.png"))
+    icon(512, bleed=True).save(os.path.join(ROOT, "icon-512.png"))
     print("icons written to", RES)

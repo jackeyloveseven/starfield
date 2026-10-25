@@ -150,7 +150,12 @@ public class MainActivity extends AppCompatActivity {
         for (String name : MIRRORED_ASSETS) {
             try {
                 File out = new File(getFilesDir(), name);
-                if (out.exists() && out.length() > 0) continue;
+                long assetLen = -1;
+                try (InputStream probe = getAssets().open(name)) { assetLen = probe.available(); }
+                catch (Exception ignored) {}
+                // Copy when the asset changed: the old "skip if it exists" left the
+                // previous icon and version.json in place forever after an upgrade.
+                if (out.exists() && out.length() > 0 && (assetLen <= 0 || out.length() == assetLen)) continue;
                 if (out.getParentFile() != null) out.getParentFile().mkdirs();
                 try (InputStream in = getAssets().open(name)) {
                     copyStream(in, out);
