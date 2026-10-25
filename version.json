@@ -1,11 +1,11 @@
 {
-  "version": "1.6.2",
-  "build": 124,
-  "updated_at": "2026-10-25T15:15:00+08:00",
+  "version": "1.7.0",
+  "build": 125,
+  "updated_at": "2026-10-25T15:40:00+08:00",
   "min_native_version": "1.0.0",
-  "title": "源义经 · 去掉按钮外框",
-  "changelog": "「更多」托盘不再自带磨砂底板，图标周围没有框；深渊区带不再生成星云",
+  "title": "源义经 · 古典弦乐换音色",
+  "changelog": "古典点播台的「小提琴」不再是固定共振峰的电子音：删掉 2.6kHz/480Hz 两个固定峰，改三支失谐锯齿+正弦基音、24dB/oct 低通、慢起音与弓噪瞬态、音高漂移打破完美颤音",
   "entry": "starfield.html",
   "download_url": "https://jackeyloveseven.github.io/starfield/starfield.html",
-  "apk_release_url": "https://github.com/jackeyloveseven/starfield/releases/tag/v1.6.2-focus-apk"
+  "apk_release_url": "https://github.com/jackeyloveseven/starfield/releases/tag/v1.7.0-focus-apk"
 }
