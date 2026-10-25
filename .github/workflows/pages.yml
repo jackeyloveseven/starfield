@@ -35,6 +35,9 @@ jobs:
           cp starfield.html _site/starfield.html
           cp manifest.json _site/manifest.json
           cp service-worker.js _site/service-worker.js
+          cp icon-192.png _site/icon-192.png
+          cp icon-512.png _site/icon-512.png
+          cp version.json _site/version.json
           cp migration.html _site/migration.html
           cp planet_studio.html _site/planet_studio.html
           cp -r libs _site/libs

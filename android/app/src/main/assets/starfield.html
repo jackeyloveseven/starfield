@@ -6,6 +6,9 @@
 <meta name="theme-color" content="#0b1118">
 <meta name="description" content="星空 · STARFIELD — 一场没有尽头的航行。挂机深空探索与专注番茄钟。">
 <link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="./icon-512.png">
+<link rel="apple-touch-icon" href="./icon-512.png">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -32,33 +35,107 @@
 @media(max-height:580px){:root{--pad:22px}.intro-inner{left:64%;right:4%;transform:translateY(-46%)}h1{font-size:56px;margin:14px 0 0}.english-title{font-size:10px;margin:8px 0 18px}.intro-poem{font-size:11px;margin-bottom:15px;line-height:1.8}.departure-label{font-size:8px;margin-bottom:7px}.destinations{margin-bottom:15px}.destination{font-size:10px;padding:5px 7px}.intro-kicker{font-size:8px}.intro-note{font-size:8px;margin-top:11px}#begin{font-size:11px;padding:11px 18px;min-width:172px}.intro-foot-right{display:none}#masthead .small-title{font-size:9px}.intro-footer{font-size:8px}#camera-name{font-size:15px}#camera-hud{gap:6px}#flight-stats{font-size:8px}#poem{top:48%;right:7%}.poem-line{font-size:15px}#poem-index{margin-bottom:14px}#poem-rule{margin-top:18px}#journey{width:200px}#route{width:170px;height:24px;margin-top:5px}#region-name{font-size:10px}#region-caption{font-size:7px;margin-top:6px}#controls{gap:2px}.control{height:31px;min-width:31px;font-size:10px}#hint{bottom:71px;font-size:9px}}
 @media(prefers-reduced-motion:reduce){.poem-line span{animation-duration:.2s;transform:none!important;filter:none!important}.sound-on .sound-icon i{animation:none}}
 
-/* --- Responsive Native Mobile Portrait & Tablet Layout --- */
+/* --- Responsive Native Mobile Portrait & Landscape Layout --- */
 @media (max-aspect-ratio: 1/1) {
   .intro-inner {
-    left: 8% !important;
-    right: 8% !important;
+    left: 6% !important;
+    right: 6% !important;
     top: 50% !important;
     transform: translateY(-50%) !important;
     display: flex;
     flex-direction: column;
     align-items: center;
     text-align: center;
+    max-width: 92vw !important;
+    box-sizing: border-box !important;
   }
   .intro-kicker { justify-content: center; }
   .destinations { justify-content: center; gap: 6px; }
-  h1 { font-size: clamp(40px, 11vw, 68px) !important; margin: 10px 0 2px !important; }
+  h1 { font-size: clamp(38px, 10vw, 68px) !important; margin: 10px 0 2px !important; }
   .english-title { font-size: 11px !important; margin: 6px 0 14px !important; }
-  .intro-poem { font-size: 13px !important; margin-bottom: 20px !important; line-height: 1.8; }
+  .intro-poem { font-size: clamp(12px, 3.4vw, 13px) !important; margin-bottom: 20px !important; line-height: 1.8; max-width: 88vw !important; }
   #begin { margin: 0 auto; min-width: 200px; }
   #journey { width: 190px; }
   #camera-hud { top: calc(var(--pad) + 8px); left: var(--pad); }
 }
 
-@media (max-width: 900px) and (pointer: coarse) {
+/* Clean Mobile View: Hide keyboard hints & desktop controls */
+.touch-show { display: none; }
+.touch-hide { display: block; }
+@media (max-width: 900px), (pointer: coarse) {
   #controls {
     display: none !important; /* Hide desktop toolbar on touch screens to eliminate collision */
   }
+  #hint {
+    display: none !important; /* Hide keyboard shortcut bar on mobile */
+  }
+  .kbd-hint {
+    display: none !important; /* Hide [ESC], [Tab] keyboard annotations on mobile */
+  }
+  .touch-show {
+    display: block !important;
+  }
+  .touch-hide {
+    display: none !important;
+  }
+  #toast {
+    top: auto !important;
+    bottom: 112px !important;
+    transform: translateX(-50%) !important;
+    font-size: 11.5px !important;
+    max-width: 86vw !important;
+    padding: 8px 16px !important;
+    box-sizing: border-box !important;
+  }
+  #comms-hud {
+    width: 92vw !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    padding: 10px 14px 12px 14px !important;
+    box-sizing: border-box !important;
+  }
+  .comms-body {
+    font-size: 13.5px !important;
+    line-height: 1.5 !important;
+    word-break: break-word !important;
+    overflow-wrap: break-word !important;
+  }
 }
+
+/* Floating Hot Update (OTA) Pill */
+.sf-ota-pill {
+  position: fixed;
+  top: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 16px;
+  border-radius: 30px;
+  background: rgba(11, 17, 24, 0.88);
+  border: 1px solid rgba(136, 192, 255, 0.45);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6), 0 0 20px rgba(136, 192, 255, 0.2);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  color: #d8eeff;
+  font-family: inherit;
+  animation: sfOtaSlideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+  max-width: 90vw;
+  box-sizing: border-box;
+}
+@keyframes sfOtaSlideIn {
+  from { opacity: 0; transform: translate(-50%, -24px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+.sf-ota-sparkle { color: #ffe066; font-size: 14px; }
+.sf-ota-content { display: flex; flex-direction: column; gap: 2px; }
+.sf-ota-title { font-size: 11px; font-weight: 600; letter-spacing: 0.06em; color: #ffffff; }
+.sf-ota-desc { font-size: 9.5px; opacity: 0.75; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 210px; }
+.sf-ota-apply { background: rgba(136, 192, 255, 0.2); border: 1px solid rgba(136, 192, 255, 0.6); color: #ffffff; border-radius: 14px; padding: 4px 12px; font-size: 10px; font-weight: 600; cursor: pointer; transition: all 0.2s ease; white-space: nowrap; }
+.sf-ota-apply:active { background: rgba(136, 192, 255, 0.4); }
+.sf-ota-close { background: transparent; border: none; color: rgba(255, 255, 255, 0.5); font-size: 12px; padding: 2px 6px; cursor: pointer; }
 
 /* --- Focus Expedition Ambient HUD & Modals --- */
 .sf-focus-ticker {
@@ -949,7 +1026,7 @@
         <h2 class="serif">星图手札 · 天体探索图鉴</h2>
         <p class="mono">CELESTIAL CODEX // DEEP SPACE EXPLORATION ARCHIVE</p>
       </div>
-      <button class="codex-close" id="codex-close-btn">关闭 [ESC]</button>
+      <button class="codex-close" id="codex-close-btn">关闭 <span class="kbd-hint">[ESC]</span></button>
     </div>
     <div class="codex-tabs">
       <button class="codex-tab active" data-tab="celestial">天体档案</button>
@@ -1050,6 +1127,14 @@
     <div class="settings-section-title mono">视觉渲染与画质 // GRAPHICS</div>
     <div class="shortcut-list">
       <div class="shortcut-row">
+        <span>超清分辨率模式</span>
+        <div style="display:flex;gap:4px;" id="sf-quality-switcher">
+          <button class="photo-btn active" id="btn-quality-2k" style="padding: 2px 7px;">2K超清</button>
+          <button class="photo-btn" id="btn-quality-balanced" style="padding: 2px 7px;">均衡</button>
+          <button class="photo-btn" id="btn-quality-powersave" style="padding: 2px 7px;">省电</button>
+        </div>
+      </div>
+      <div class="shortcut-row">
         <span>宣纸纸纹颗粒</span>
         <button class="photo-btn active" id="btn-toggle-grain" style="padding: 2px 8px;">开</button>
       </div>
@@ -1072,7 +1157,7 @@
       </div>
     </div>
   </div>
-  <div class="settings-section">
+  <div class="settings-section touch-hide">
     <div class="settings-section-title mono">键位操作速查 // SHORTCUTS</div>
     <div class="shortcut-list">
       <div class="shortcut-row"><span>移动光标</span><span class="shortcut-key">引航编队</span></div>
@@ -1085,6 +1170,29 @@
       <div class="shortcut-row"><span>N</span><span class="shortcut-key">切换下一首古典名曲</span></div>
       <div class="shortcut-row"><span>M / 空格</span><span class="shortcut-key">声音开关 / 暂停</span></div>
       <div class="shortcut-row"><span>ESC</span><span class="shortcut-key">打开/关闭本菜单</span></div>
+    </div>
+  </div>
+  <div class="settings-section touch-show">
+    <div class="settings-section-title mono">触控手势指南 // TOUCH GESTURES</div>
+    <div class="shortcut-list">
+      <div class="shortcut-row"><span>左下区域</span><span class="shortcut-key">引航虚拟舵</span></div>
+      <div class="shortcut-row"><span>右下按键</span><span class="shortcut-key">专注 / 镜头 / 舱内 / 阵型</span></div>
+      <div class="shortcut-row"><span>BOOST 按钮</span><span class="shortcut-key">脉冲加速 / 弹射爆冲</span></div>
+      <div class="shortcut-row"><span>双指捏合</span><span class="shortcut-key">缩放运镜景深</span></div>
+      <div class="shortcut-row"><span>滑动屏幕</span><span class="shortcut-key">自主机位自由巡航</span></div>
+    </div>
+  </div>
+  <div class="settings-section">
+    <div class="settings-section-title mono">热更新与版本 // OTA UPDATE</div>
+    <div class="shortcut-list">
+      <div class="shortcut-row">
+        <span>客户端版本</span>
+        <span class="shortcut-key" id="sf-version-tag">v1.1.0 (Build 102)</span>
+      </div>
+      <div class="shortcut-row">
+        <span>OTA 实时热更新</span>
+        <button class="photo-btn active" id="btn-check-ota" style="padding: 2px 8px; color: #88c0d0;">检查更新 ✦</button>
+      </div>
     </div>
   </div>
 </aside>
@@ -2053,7 +2161,7 @@
               </h2>
               <p class="mono">FLEET ORIGAMI HANGAR // COSMETIC & WARP TRAIL ENGINE</p>
             </div>
-            <button class="hangar-close-btn mono" id="hangar-close-btn">关闭 [ESC]</button>
+            <button class="hangar-close-btn mono" id="hangar-close-btn">关闭 <span class="kbd-hint">[ESC]</span></button>
           </div>
           <div class="hangar-body">
             <!-- Left: 3D Turntable Preview -->
@@ -3473,6 +3581,29 @@ const GameSettings = {
       b.textContent = isOn ? '开' : '关';
       postOn = isOn;
     });
+
+    // 2K Resolution Mode Switcher Bindings
+    ['2k', 'balanced', 'powersave'].forEach(mode => {
+      const btn = $(`btn-quality-${mode}`);
+      if (btn) {
+        btn.addEventListener('click', () => {
+          if (window.STARFIELD_QUALITY) window.STARFIELD_QUALITY.setProfile(mode);
+        });
+      }
+    });
+    if (window.STARFIELD_QUALITY) window.STARFIELD_QUALITY.updateUI();
+
+    // OTA Update Button Binding
+    const otaBtn = $('btn-check-ota');
+    if (otaBtn) {
+      otaBtn.addEventListener('click', () => {
+        if (typeof window.checkStarfieldUpdates === 'function') window.checkStarfieldUpdates(true);
+      });
+    }
+    if (window.StarfieldNative && typeof window.StarfieldNative.getAppVersion === 'function') {
+      const vTag = $('sf-version-tag');
+      if (vTag) vTag.textContent = `v${window.StarfieldNative.getAppVersion()} (Build ${window.StarfieldNative.getBuildNumber()})`;
+    }
   },
 
   toggle() {
@@ -10123,8 +10254,105 @@ window.addEventListener('keydown',e=>{
 });
 document.addEventListener('visibilitychange',()=>{last=performance.now();if(document.hidden){sound.suspend();if(wakeLock)wakeLock.release().catch(()=>{});}else{if(!paused)sound.resume();requestWake();}});
 window.addEventListener('blur',()=>{wind.active=false;wind.last=time;pointers.clear();});
+// --- 2K Ultra Resolution & Adaptive Performance Engine ---
+window.STARFIELD_QUALITY = {
+  profile: '2k', // '2k' (Native Ultra up to 3.0), 'balanced' (2.0), 'powersave' (1.5)
+  getMaxDPR() {
+    const raw = window.devicePixelRatio || 1.0;
+    if (this.profile === '2k') return Math.min(raw, 3.0);
+    if (this.profile === 'balanced') return Math.min(raw, 2.0);
+    return Math.min(raw, 1.5);
+  },
+  setProfile(p) {
+    if (!['2k', 'balanced', 'powersave'].includes(p)) return;
+    this.profile = p;
+    try { localStorage.setItem('sf_quality_profile', p); } catch(e) {}
+    this.updateUI();
+    if (typeof resize === 'function') resize();
+    if (window.toast) {
+      const labels = { '2k': '2K 极清模式 (Retina Ultra)', 'balanced': '均衡高刷模式 (Smooth 60fps)', 'powersave': '能效省电模式 (Battery Saver)' };
+      window.toast(`画质已切换: ${labels[p] || p}`);
+    }
+  },
+  updateUI() {
+    ['2k', 'balanced', 'powersave'].forEach(mode => {
+      const btn = document.getElementById(`btn-quality-${mode}`);
+      if (btn) btn.classList.toggle('active', this.profile === mode);
+    });
+  }
+};
+try {
+  const savedQuality = localStorage.getItem('sf_quality_profile');
+  if (savedQuality && ['2k', 'balanced', 'powersave'].includes(savedQuality)) {
+    window.STARFIELD_QUALITY.profile = savedQuality;
+  }
+} catch(e) {}
+
+// --- Hot Update (OTA) Frontend Listener & Dispatcher ---
+(function() {
+  function showOtaNotification(payload) {
+    if (document.getElementById('sf-ota-banner')) return;
+    const banner = document.createElement('div');
+    banner.id = 'sf-ota-banner';
+    banner.className = 'sf-ota-pill';
+    const version = payload && payload.version ? payload.version : 'v1.1.0';
+    const desc = payload && payload.changelog ? payload.changelog : '核心视觉与2K清晰度已优化，轻触立即热更新生效';
+
+    banner.innerHTML = `
+      <div class="sf-ota-sparkle">✦</div>
+      <div class="sf-ota-content">
+        <span class="sf-ota-title">发现热更新 ${version}</span>
+        <span class="sf-ota-desc">${desc}</span>
+      </div>
+      <button class="sf-ota-apply" id="sf-ota-apply-btn">立即生效</button>
+      <button class="sf-ota-close" id="sf-ota-close-btn" aria-label="关闭">✕</button>
+    `;
+    document.body.appendChild(banner);
+
+    document.getElementById('sf-ota-apply-btn').addEventListener('click', () => {
+      if (window.StarfieldNative && typeof window.StarfieldNative.reloadApp === 'function') {
+        window.StarfieldNative.reloadApp();
+      } else {
+        location.reload();
+      }
+    });
+
+    document.getElementById('sf-ota-close-btn').addEventListener('click', () => {
+      banner.style.opacity = '0';
+      banner.style.transform = 'translate(-50%, -20px)';
+      setTimeout(() => banner.remove(), 400);
+    });
+  }
+
+  window.onStarfieldOtaNotify = function(type, payload) {
+    console.log('[OTA] onStarfieldOtaNotify received:', type, payload);
+    if (type === 'OTA_READY') {
+      showOtaNotification(payload);
+    }
+  };
+
+  window.checkStarfieldUpdates = function(manual = false) {
+    if (window.StarfieldNative && typeof window.StarfieldNative.checkOtaUpdate === 'function') {
+      window.StarfieldNative.checkOtaUpdate();
+      if (manual && window.toast) window.toast('正在向 GitHub Pages 查询最新版本...');
+      return;
+    }
+    fetch('./version.json?t=' + Date.now())
+      .then(r => r.json())
+      .then(data => {
+        if (data && data.version) {
+          if (manual && window.toast) window.toast(`当前线上版本: v${data.version} (Build ${data.build})`);
+        }
+      })
+      .catch(e => {
+        if (manual && window.toast) window.toast('检查更新失败，请确认网络连接');
+      });
+  };
+})();
+
 function resize(){
- rotated=false;W=innerWidth;H=innerHeight;DPR=Math.min(devicePixelRatio||1,2);
+ rotated=false;W=innerWidth;H=innerHeight;
+ DPR=(window.STARFIELD_QUALITY ? window.STARFIELD_QUALITY.getMaxDPR() : Math.min(devicePixelRatio||1,2)); window.DPR = DPR;
  root.classList.remove('rotated');root.classList.toggle('compact',H<580);root.style.width=W+'px';root.style.height=H+'px';root.style.setProperty('--unit',W>=3200?'2':W>=2200?'1.5':'1');
  canvas.width=Math.round(W*DPR);canvas.height=Math.round(H*DPR);ctx.setTransform(DPR,0,0,DPR,0,0);grainPattern=ctx.createPattern(grainCanvas,'repeat');
  if(H<580)root.style.setProperty('--pad','22px');else root.style.setProperty('--pad',W>=3200?'80px':W>=2200?'60px':W<1000?'26px':'40px');
@@ -10132,7 +10360,7 @@ function resize(){
 }
 window.addEventListener('resize',resize);document.addEventListener('fullscreenchange',resize);
 $('edition-seed').textContent=`FIELD ${SEED.toString(16).toUpperCase().slice(0,6)}`;
-if(coarse){document.querySelector('.intro-footer').textContent='22 CRAFT.  ONE OPEN SKY.';document.querySelector('.intro-note').innerHTML='触摸屏幕，让风带路。<br>建议开启声音 · 无终点，无需抵达';$('hint').textContent='触摸引航 · 切换自主镜头后，可拖拽与双指缩放 · 驾驶舱见 V';}
+if(coarse){document.querySelector('.intro-footer').textContent='22 CRAFT.  ONE OPEN SKY.';document.querySelector('.intro-note').innerHTML='触摸屏幕，让风带路。<br>建议开启声音 · 无终点，无需抵达';$('hint').textContent='触摸引航 · 切换自主镜头后，可拖拽与双指缩放 · 轻触舱内键切换视角';}
 resize();updateUI();
 let lastFillPx=0,fps=60,framesInWindow=0,measureStart=performance.now(),slowWindows=0;
 function frame(now){
@@ -10641,18 +10869,17 @@ requestAnimationFrame(frame);
         touch-action: none;
       }
 
+      /* Floating Virtual Joystick - Pure Celestial Wireframe (NO Dark Box) */
       .sf-touch-joy-base {
         position: absolute;
-        width: 120px;
-        height: 120px;
+        width: 110px;
+        height: 110px;
         border-radius: 50%;
-        background: radial-gradient(circle, rgba(230, 237, 242, 0.05) 0%, rgba(11, 17, 24, 0.45) 80%);
-        border: 1.5px solid rgba(230, 237, 242, 0.28);
-        box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3), inset 0 0 16px rgba(180, 215, 255, 0.08);
-        backdrop-filter: blur(8px);
-        -webkit-backdrop-filter: blur(8px);
+        background: transparent !important;
+        border: 1.2px dashed rgba(255, 255, 255, 0.25) !important;
+        box-shadow: none !important;
         transform: translate(-50%, -50%);
-        opacity: 0.35;
+        opacity: 0.45;
         transition: opacity 0.25s ease, border-color 0.25s ease;
         pointer-events: none;
         box-sizing: border-box;
@@ -10660,8 +10887,8 @@ requestAnimationFrame(frame);
 
       .sf-touch-joy-base.active {
         opacity: 0.95;
-        border-color: rgba(136, 192, 255, 0.7);
-        box-shadow: 0 0 28px rgba(100, 180, 255, 0.35), inset 0 0 20px rgba(100, 180, 255, 0.15);
+        border-style: solid !important;
+        border-color: rgba(136, 192, 255, 0.75) !important;
       }
 
       .sf-touch-joy-base:before {
@@ -10669,23 +10896,23 @@ requestAnimationFrame(frame);
         position: absolute;
         top: 50%;
         left: 50%;
-        width: 6px;
-        height: 6px;
+        width: 5px;
+        height: 5px;
         transform: translate(-50%, -50%);
         border-radius: 50%;
-        background: rgba(230, 237, 242, 0.3);
+        background: rgba(255, 255, 255, 0.4);
       }
 
       .sf-touch-joy-knob {
         position: absolute;
         top: 50%;
         left: 50%;
-        width: 52px;
-        height: 52px;
+        width: 46px;
+        height: 46px;
         border-radius: 50%;
-        background: radial-gradient(circle at 35% 35%, rgba(255, 255, 255, 0.9) 0%, rgba(180, 215, 255, 0.6) 60%, rgba(100, 160, 230, 0.4) 100%);
-        border: 1.5px solid rgba(255, 255, 255, 0.85);
-        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5), 0 0 16px rgba(136, 192, 255, 0.6);
+        background: radial-gradient(circle at 35% 35%, rgba(255, 255, 255, 0.6) 0%, rgba(180, 215, 255, 0.2) 65%, transparent 100%) !important;
+        border: 1.2px solid rgba(255, 255, 255, 0.75) !important;
+        box-shadow: none !important;
         transform: translate(-50%, -50%);
         transition: transform 0.05s linear;
         pointer-events: none;
@@ -10696,15 +10923,15 @@ requestAnimationFrame(frame);
         transition: transform 0.22s cubic-bezier(0.18, 0.89, 0.32, 1.28);
       }
 
-      /* Virtual Action Button Cluster */
+      /* Virtual Action Button Cluster - Transparent Wireframe Glass (NO Black Box) */
       .sf-touch-cluster {
         position: absolute;
-        right: 20px;
-        bottom: 24px;
+        right: 16px;
+        bottom: 20px;
         display: flex;
         flex-direction: column;
         align-items: flex-end;
-        gap: 12px;
+        gap: 10px;
         pointer-events: auto;
         touch-action: none;
       }
@@ -10712,25 +10939,25 @@ requestAnimationFrame(frame);
       .sf-touch-btn-row {
         display: flex;
         align-items: center;
-        gap: 10px;
+        gap: 8px;
       }
 
       .sf-touch-btn {
-        width: 46px;
-        height: 46px;
-        border-radius: 12px;
-        background: rgba(14, 22, 32, 0.72);
-        border: 1px solid rgba(230, 237, 242, 0.16);
-        color: #e6edf2;
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        background: transparent !important;
+        border: 1px solid rgba(255, 255, 255, 0.25) !important;
+        color: rgba(255, 255, 255, 0.85);
         font-family: inherit;
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        gap: 2px;
-        backdrop-filter: blur(14px);
-        -webkit-backdrop-filter: blur(14px);
-        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+        gap: 1px;
+        backdrop-filter: blur(4px);
+        -webkit-backdrop-filter: blur(4px);
+        box-shadow: none !important;
         cursor: pointer;
         padding: 0;
         outline: none;
@@ -10742,54 +10969,54 @@ requestAnimationFrame(frame);
         display: flex;
         align-items: center;
         justify-content: center;
-        width: 20px;
-        height: 20px;
+        width: 19px;
+        height: 19px;
         color: inherit;
       }
 
       .sf-touch-btn .icon-wrap svg {
         display: block;
-        width: 18px;
-        height: 18px;
+        width: 17px;
+        height: 17px;
       }
 
       .sf-touch-btn:active, .sf-touch-btn.active {
         transform: scale(0.92);
-        background: rgba(56, 189, 248, 0.18);
-        border-color: rgba(56, 189, 248, 0.65);
-        color: #38bdf8;
-        box-shadow: 0 0 16px rgba(56, 189, 248, 0.35);
+        background: rgba(255, 255, 255, 0.16) !important;
+        border-color: rgba(255, 255, 255, 0.75) !important;
+        color: #ffffff;
+        box-shadow: none !important;
       }
 
       .sf-touch-btn span.label {
-        font-size: 8px;
+        font-size: 7.5px;
         letter-spacing: 0.08em;
         text-transform: uppercase;
-        opacity: 0.75;
+        opacity: 0.8;
         font-family: "SFMono-Regular", Consolas, monospace;
       }
 
-      /* Primary Slingshot Boost Button (Flat Gold Accent) */
+      /* Primary Slingshot Boost Button (Transparent Gold Wireframe) */
       .sf-touch-btn.boost {
-        width: 58px;
-        height: 58px;
-        border-radius: 16px;
-        background: rgba(255, 215, 0, 0.08);
-        border: 1.5px solid rgba(255, 215, 0, 0.55);
+        width: 52px;
+        height: 52px;
+        border-radius: 50%;
+        background: transparent !important;
+        border: 1.5px solid rgba(255, 215, 0, 0.6) !important;
         color: #ffd700;
-        box-shadow: 0 0 20px rgba(255, 215, 0, 0.2);
+        box-shadow: none !important;
       }
 
       .sf-touch-btn.boost .icon-wrap svg {
-        width: 22px;
-        height: 22px;
+        width: 20px;
+        height: 20px;
       }
 
       .sf-touch-btn.boost:active, .sf-touch-btn.boost.active {
         transform: scale(0.92);
-        background: rgba(255, 215, 0, 0.25);
-        border-color: #ffd700;
-        box-shadow: 0 0 28px rgba(255, 215, 0, 0.5);
+        background: rgba(255, 215, 0, 0.22) !important;
+        border-color: #ffe66d !important;
+        box-shadow: none !important;
       }
 
       /* Gamepad HUD Status Badge */
@@ -12558,7 +12785,7 @@ requestAnimationFrame(frame);
                 <h3 class="relic-heading serif" id="tuner-title-text">深空折纸信标破译仪</h3>
                 <div class="relic-subheading mono" id="tuner-coord-text">TARGET: UNKNOWN // COORD: CHUNK-00</div>
               </div>
-              <button class="relic-close-btn mono" id="tuner-close-button">关闭 [ESC]</button>
+              <button class="relic-close-btn mono" id="tuner-close-button">关闭 <span class="kbd-hint">[ESC]</span></button>
             </div>
 
             <div class="relic-scope-wrapper">
@@ -12591,7 +12818,7 @@ requestAnimationFrame(frame);
               <h4 class="victory-title serif">✦ 谐振锁定 · 远古折纸密文破译完成 ✦</h4>
               <p class="victory-lore-text serif" id="tuner-lore-content">“在光线无法逃逸的深渊边缘，我们曾折叠过第七个维度……”</p>
               <div class="victory-actions">
-                <button class="victory-btn primary mono" id="tuner-view-codex-btn">查阅星图手札 [Tab]</button>
+                <button class="victory-btn primary mono" id="tuner-view-codex-btn">查阅星图手札 <span class="kbd-hint">[Tab]</span></button>
                 <button class="victory-btn secondary mono" id="tuner-continue-flight-btn">继续星海巡游</button>
               </div>
             </div>
@@ -13029,7 +13256,7 @@ requestAnimationFrame(frame);
     const canvas = document.getElementById('scanner-overlay-canvas');
     if (canvas) {
       const w = window.innerWidth, h = window.innerHeight;
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const dpr = (window.STARFIELD_QUALITY ? window.STARFIELD_QUALITY.getMaxDPR() : Math.min(window.devicePixelRatio || 1, 2.0));
       if (canvas.width !== Math.round(w * dpr) || canvas.height !== Math.round(h * dpr)) {
         canvas.width = Math.round(w * dpr);
         canvas.height = Math.round(h * dpr);
@@ -13326,7 +13553,7 @@ requestAnimationFrame(frame);
     // Automatically upscales offscreen WebGL buffer to 1024x1024 or 1536x1536 during close encounters (rad >= 200)
     // so low-poly faceted geometry and trees remain 100% tack-sharp with ZERO bilinear blur!
     ensureBufferSize(rad) {
-      const dpr = (typeof window !== 'undefined' && window.devicePixelRatio) ? Math.min(window.devicePixelRatio, 2.0) : 1.0;
+      const dpr = (window.STARFIELD_QUALITY ? window.STARFIELD_QUALITY.getMaxDPR() : (typeof window !== 'undefined' && window.devicePixelRatio ? Math.min(window.devicePixelRatio, 2.0) : 1.0));
       const drawD = this.getDrawSize(rad);
       const neededPixels = Math.round(drawD * dpr);
 

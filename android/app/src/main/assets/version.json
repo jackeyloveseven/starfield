@@ -1,0 +1,8 @@
+{
+  "version": "1.1.0",
+  "build": 102,
+  "timestamp": 1729854500,
+  "changelog": "极简纯透明按键、2K视网膜超清渲染模式、横竖屏键盘提示优化、OTA动态热更新引擎、精美定制折纸图标",
+  "entry": "starfield.html",
+  "apk_url": "https://github.com/jackeyloveseven/starfield/releases/download/v1.0-focus-apk/StarfieldFocus.apk"
+}

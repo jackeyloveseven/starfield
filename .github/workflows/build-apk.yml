@@ -40,6 +40,9 @@ jobs:
           cp starfield.html android/app/src/main/assets/starfield.html
           cp manifest.json android/app/src/main/assets/manifest.json
           cp service-worker.js android/app/src/main/assets/service-worker.js
+          cp icon-192.png android/app/src/main/assets/icon-192.png
+          cp icon-512.png android/app/src/main/assets/icon-512.png
+          cp version.json android/app/src/main/assets/version.json
 
       - name: Build Debug APK
         working-directory: ./android

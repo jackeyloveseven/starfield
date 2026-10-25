@@ -11,9 +11,15 @@
   "categories": ["productivity", "games", "lifestyle"],
   "icons": [
     {
-      "src": "data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' fill='%230b1118' rx='96'/%3E%3Ccircle cx='256' cy='256' r='180' fill='none' stroke='%2338bdf8' stroke-width='4' opacity='0.3' stroke-dasharray='12 8'/%3E%3Cpath d='M256 96 L376 384 L256 312 L136 384 Z' fill='%23fef08a' stroke='%23ca8a04' stroke-width='8' stroke-linejoin='round'/%3E%3Cpath d='M256 96 L256 312' stroke='%23eab308' stroke-width='6'/%3E%3Ccircle cx='256' cy='256' r='14' fill='%23ffffff' filter='drop-shadow(0 0 8px %2338bdf8)'/%3E%3C/svg%3E",
-      "sizes": "192x192 512x512",
-      "type": "image/svg+xml",
+      "src": "./icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
       "purpose": "any maskable"
     }
   ]

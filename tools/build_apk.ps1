@@ -19,6 +19,9 @@ if (-not (Test-Path $AssetsDir)) {
 Copy-Item (Join-Path $ProjectRoot "starfield.html") (Join-Path $AssetsDir "starfield.html") -Force
 Copy-Item (Join-Path $ProjectRoot "manifest.json") (Join-Path $AssetsDir "manifest.json") -Force
 Copy-Item (Join-Path $ProjectRoot "service-worker.js") (Join-Path $AssetsDir "service-worker.js") -Force
+Copy-Item (Join-Path $ProjectRoot "version.json") (Join-Path $AssetsDir "version.json") -Force -ErrorAction SilentlyContinue
+Copy-Item (Join-Path $ProjectRoot "icon-192.png") (Join-Path $AssetsDir "icon-192.png") -Force -ErrorAction SilentlyContinue
+Copy-Item (Join-Path $ProjectRoot "icon-512.png") (Join-Path $AssetsDir "icon-512.png") -Force -ErrorAction SilentlyContinue
 
 Write-Host "   >>> Assets synchronized: starfield.html, manifest.json, service-worker.js" -ForegroundColor Green
 
