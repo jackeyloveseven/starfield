@@ -1,11 +1,11 @@
 {
-  "version": "1.2.5",
-  "build": 120,
-  "updated_at": "2026-10-25T18:20:00+08:00",
+  "version": "1.2.6",
+  "build": 121,
+  "updated_at": "2026-10-25T18:35:00+08:00",
   "min_native_version": "1.0.0",
-  "title": "源义经 · 回滚挖孔改动（修启动闪退）",
-  "changelog": "回滚 1.2.1 引入的挖孔/Insets 原生改动（启动闪退的首要嫌疑），全屏设置改为防御式调用，任何异常都不再阻断启动",
+  "title": "源义经 · 亮起来的图标",
+  "changelog": "图标按「要亮」重做：底色提亮到深海军蓝、环体近白并加大辉光、射流更饱满；启动闪退回滚见 1.2.5",
   "entry": "starfield.html",
   "download_url": "https://jackeyloveseven.github.io/starfield/starfield.html",
-  "apk_release_url": "https://github.com/jackeyloveseven/starfield/releases/tag/v1.2.5-focus-apk"
+  "apk_release_url": "https://github.com/jackeyloveseven/starfield/releases/tag/v1.2.6-focus-apk"
 }

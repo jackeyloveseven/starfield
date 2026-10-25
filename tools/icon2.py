@@ -21,10 +21,10 @@ ROOT = sys.argv[1] if len(sys.argv) > 1 else "."
 RES = os.path.join(ROOT, "android", "app", "src", "main", "res")
 U = 108.0
 
-BG = np.array([6, 8, 12], float)
-HOT = np.array([255, 253, 246], float)
-WARM = np.array([255, 186, 108], float)
-DEEP = np.array([2, 3, 6], float)
+BG = np.array([28, 44, 64], float)
+HOT = np.array([255, 255, 252], float)
+WARM = np.array([255, 205, 140], float)
+DEEP = np.array([6, 9, 14], float)
 
 
 def render(size, with_bg=True, beam=True):
@@ -47,7 +47,7 @@ def render(size, with_bg=True, beam=True):
     RING = 20.7
     ring = np.exp(-((R - RING) / 0.85) ** 2) * (R > RD - 0.2)
     beam_ang = 0.5 + 0.5 * np.cos(TH - np.pi)          # hotter on one side
-    ring = ring * (0.55 + 0.65 * beam_ang)
+    ring = ring * (0.85 + 0.55 * beam_ang)
     ring_col = WARM[None, None, :] + (HOT - WARM)[None, None, :] * \
         np.clip(beam_ang * 1.3, 0, 1)[:, :, None]
 
@@ -65,20 +65,24 @@ def render(size, with_bg=True, beam=True):
         bloom = bloom * (R > RD - 0.1) * 0.30
         # the part that passes in front: a short arc hugging the upper left
         front = np.exp(-((R - RD - 0.9) / 1.1) ** 2) * np.clip((along - 8) / 14, 0, 1)
-        streak = np.clip(streak + front * 0.55, 0, 1)
+        streak = np.clip(streak + front * 0.8, 0, 1)
     else:
         streak = np.zeros((S, S), float)
 
     # ---- composite: additive light on the dark ground ----
     out = bg
-    out = out + (ring_col - out) * np.clip(ring * 1.35, 0, 1)[:, :, None]
-    out = out + HOT[None, None, :] * (streak * 0.95)[:, :, None]
+    out = out + (ring_col - out) * np.clip(ring * 1.9, 0, 1)[:, :, None]
+    out = out + HOT[None, None, :] * (streak * 1.15)[:, :, None]
     out = out + WARM[None, None, :] * (bloom if beam else 0)[:, :, None]
     out = out + (DEEP - out) * shadow[:, :, None]
     # the ring's own faint glow, hugging the horizon
     glow = np.exp(-((R - RING) / 3.4) ** 2) * (R > RD)
-    out = out + WARM[None, None, :] * (glow * 0.16)[:, :, None]
+    out = out + WARM[None, None, :] * (glow * 0.55)[:, :, None]
 
+    if with_bg:
+        bloom = np.exp(-((R - RING) / 9.0) ** 2) * (R > RD * 0.9)
+        out = out + WARM[None, None, :] * (bloom * 0.28)[:, :, None]
+        out = out + HOT[None, None, :] * (np.exp(-((R - RING) / 2.0) ** 2) * 0.25)[:, :, None]
     img = Image.fromarray(np.clip(out, 0, 255).astype(np.uint8), "RGB").convert("RGBA")
     if beam and with_bg:
         pass
