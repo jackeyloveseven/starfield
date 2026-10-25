@@ -1110,6 +1110,11 @@ body.modal-open #comms-hud {
 }
 
 </style>
+<style id="sf-touch-guard">
+/* A long press on the artwork popped the browser's image search / context menu. */
+html,body,#world,#landscape{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+img,canvas{-webkit-user-drag:none;user-drag:none}
+</style>
 </head>
 <body>
 <main id="world" aria-label="星空，一场由引力引航的无限航行">
@@ -10763,7 +10768,7 @@ function frame(now){
   // less visible than a stutter. Go back up only after a long clean stretch.
   const cap=window.STARFIELD_QUALITY?window.STARFIELD_QUALITY.getMaxDPR():Math.min(devicePixelRatio||1,2);
   const target=Math.min(240,Math.max(60,refreshHz*0.92));
-  if(fps<target*0.75&&qualityScale>.55){qualityScale=Math.max(.55,qualityScale-.15);resize();}
+  if(fps<target*0.6&&qualityScale>.8){qualityScale=Math.max(.8,qualityScale-.1);resize();}
   else if(fps>target*0.95&&qualityScale<1&&++fastWindows>4){qualityScale=Math.min(1,qualityScale+.15);fastWindows=0;resize();}
   if(fps<=target*0.95)fastWindows=0;
 }
@@ -15322,6 +15327,19 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   function openList(){ render(); root.classList.add('on'); }
   window.StarfieldHatch=Object.assign(window.StarfieldHatch||{},{openList:openList});
+})();
+</script>
+<script>
+(function(){
+  document.addEventListener('contextmenu',function(e){ e.preventDefault(); },{passive:false});
+  // One place for system Back: close whatever is on top, else let the app exit.
+  window.__sfBack=function(){
+    var h=document.getElementById('sf-hatch'); if(h&&h.classList.contains('on')){h.classList.remove('on');return true;}
+    var l=document.getElementById('sf-hatch-list'); if(l&&l.classList.contains('on')){l.classList.remove('on');return true;}
+    var c=document.getElementById('codex-modal'); if(c&&c.classList.contains('open')){var b=c.querySelector('.codex-close');if(b){b.click();return true;}}
+    var d=document.getElementById('settings-drawer'); if(d&&d.classList.contains('open')){var s=document.getElementById('settings-close-btn');if(s){s.click();return true;}}
+    return false;
+  };
 })();
 </script>
 </body>

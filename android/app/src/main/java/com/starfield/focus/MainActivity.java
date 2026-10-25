@@ -391,11 +391,14 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     public void onBackPressed() {
-        if (webView != null && webView.canGoBack()) {
-            webView.goBack();
-        } else {
-            super.onBackPressed();
-        }
+        // Back used to fall straight through to onBackPressed() - the page is a
+        // single URL, so canGoBack() is false and the app quit even with a sheet
+        // open. Ask the page first: it closes whatever is on top.
+        if (webView == null) { super.onBackPressed(); return; }
+        webView.evaluateJavascript("(window.__sfBack && window.__sfBack())?'1':'0'", value -> {
+            if ("\"1\"".equals(value)) return;
+            if (webView.canGoBack()) webView.goBack(); else finish();
+        });
     }
 
     @Override

@@ -1,11 +1,11 @@
 {
-  "version": "1.2.8",
-  "build": 120,
-  "updated_at": "2026-10-25T14:15:00+08:00",
+  "version": "1.6.0",
+  "build": 122,
+  "updated_at": "2026-10-25T14:40:00+08:00",
   "min_native_version": "1.0.0",
-  "title": "源义经 · 图标内里有了深度",
-  "changelog": "图标黑洞内部不再是死黑：加入极弱的深蓝渐变与三颗暗星，洞里有纵深；环、射流与底色不动",
+  "title": "源义经 · 不再糊、长按不弹搜索、返回键先关面板",
+  "changelog": "自适应降分辨率的下限从 0.55x 提到 0.8x 且只在低于目标 60% 时触发（之前 75% 就降，画面发糊发像素）；长按不再触发浏览器图像识别/右键菜单；系统返回键先关浮层，不再一按就退出",
   "entry": "starfield.html",
   "download_url": "https://jackeyloveseven.github.io/starfield/starfield.html",
-  "apk_release_url": "https://github.com/jackeyloveseven/starfield/releases/tag/v1.2.8-focus-apk"
+  "apk_release_url": "https://github.com/jackeyloveseven/starfield/releases/tag/v1.6.0-focus-apk"
 }
