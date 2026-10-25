@@ -1,11 +1,11 @@
 {
-  "version": "1.9.1",
-  "build": 130,
-  "updated_at": "2026-10-25T17:35:00+08:00",
+  "version": "1.9.2",
+  "build": 131,
+  "updated_at": "2026-10-25T17:55:00+08:00",
   "min_native_version": "1.0.0",
-  "title": "源义经 · 旋转不再错位",
-  "changelog": "修横竖屏互转后的界面错乱：舞台不再被钉成上一方向的像素尺寸（会导致布局视口变成 844×1827、整页缩到左半边并自锁）；摇杆基座改到视口坐标系并在 resize/orientationchange 时重算",
+  "title": "源义经 · 座舱重做",
+  "changelog": "座舱按构图重做：机位下压 10°、竖屏视野从 23° 扩到 47°、近船淡出半径 350→70..190（领队永不淡出）、上梁/立柱/仪表台重画（浅灰纸色而不是隐形暗色）、仪表台放大并独占屏幕（座舱内隐藏常规 HUD）",
   "entry": "starfield.html",
   "download_url": "https://jackeyloveseven.github.io/starfield/starfield.html",
-  "apk_release_url": "https://github.com/jackeyloveseven/starfield/releases/tag/v1.9.1-focus-apk"
+  "apk_release_url": "https://github.com/jackeyloveseven/starfield/releases/tag/v1.9.2-focus-apk"
 }
