@@ -22,6 +22,7 @@ ap.add_argument('--size', default='1600x900')
 ap.add_argument('--keep-intro', action='store_true', help='do not press 起航')
 ap.add_argument('--keep-hud', action='store_true', help='leave the flying HUD hidden')
 ap.add_argument('--until-capture', action='store_true', help='seek until a capture begins')
+ap.add_argument('--cockpit', action='store_true', help='toggle the cockpit view before seeking')
 ap.add_argument('--after', type=float, default=0.0, help='extra seconds after detection')
 a = ap.parse_args()
 
@@ -33,6 +34,7 @@ click_dep = (f'const d=document.querySelectorAll(".destination")[{a.at}];if(d)d.
 click_begin = 'const b=document.getElementById("begin");if(b)b.click();' if not a.keep_intro else ''
 hide_intro = '' if a.keep_intro else "document.getElementById('intro').style.display='none';"
 show_hud = '' if a.keep_hud else "document.querySelectorAll('.hud').forEach(e=>e.style.opacity='1');"
+cock_key = "window.dispatchEvent(new KeyboardEvent('keydown',{key:'v'}));" if a.cockpit else ''
 
 probe = f'''<style>*,*::before,*::after{{animation:none!important;transition:none!important}}</style>
 <script>window.__errors=[];
@@ -40,6 +42,7 @@ window.addEventListener("error",e=>window.__errors.push(String(e.message)));
 try{{
  {click_dep}
  {click_begin}
+ {cock_key}
  const S=window.Starfield;
  let seeked=null;
  if(S&&S.seek&&{'true' if a.until_capture else 'false'}){{let g=0;while(g++<500&&S.getState().capture===0)S.seek(4);seeked={{phase:S.getState().capture,travel:S.getState().travel}};}}
@@ -93,8 +96,8 @@ if m:
         print('  errors :', d.get('errors'))
         print('  seeked :', d.get('seeked'))
         for k in ('region', 'regionMix', 'travel', 'fps', 'drawCalls', 'loadedChunks',
-                  'lens', 'distance', 'pitch', 'birds', 'particles',
-                  'capture', 'sling', 'masses', 'fillMPx', 'nebTex', 'nebGens', 'holeGL', 'postMs', 'holeDraws', 'holeLastRad'):
+                  'lens', 'distance', 'pitch', 'birds', 'particles', 'kinds',
+                  'capture', 'sling', 'masses', 'fillMPx', 'gpu', 'gpuName', 'dpr', 'hz', 'dprCap', 'nebTex', 'nebGens', 'holeGL', 'postMs', 'holeDraws', 'holeLastRad'):
             if k in st:
                 v = st[k]
                 print(f'  {k:<13}: {v if not isinstance(v, float) else round(v, 2)}')

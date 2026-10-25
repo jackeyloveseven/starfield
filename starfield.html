@@ -1373,7 +1373,7 @@ body.modal-open #comms-hud {
     <div class="shortcut-list">
       <div class="shortcut-row">
         <span>客户端版本</span>
-        <span class="shortcut-key" id="sf-version-tag">v1.1.6 (Build 108)</span>
+        <span class="shortcut-key" id="sf-version-tag">v1.1.7 (Build 109)</span>
       </div>
       <div class="shortcut-row">
         <span>OTA 实时热更新</span>
@@ -10652,6 +10652,9 @@ const btnOri = document.getElementById('orientation-toggle-btn'); if (btnOri) bt
 if(coarse){document.querySelector('.intro-footer').textContent='22 CRAFT.  ONE OPEN SKY.';document.querySelector('.intro-note').innerHTML='触摸屏幕，让风带路。<br>建议开启声音 · 无终点，无需抵达';$('hint').textContent='触摸引航 · 切换自主镜头后，可拖拽与双指缩放 · 轻触舱内键切换视角';}
 resize();updateUI();
 let lastFillPx=0,fps=60,framesInWindow=0,measureStart=performance.now(),slowWindows=0,fastWindows=0;
+// The display's refresh, measured from the first clean frames. rAF cannot run
+// faster than the panel, so this is the real ceiling - not 60.
+let refreshHz=60,hzSamples=[],hzDone=false;
 let __modalOpen=false;
 function frame(now){
  requestAnimationFrame(frame);const realDt=Math.min(.05,Math.max(.001,(now-last)/1000));last=now;
@@ -10684,6 +10687,14 @@ function frame(now){
  drawCockpit(time);paperFinish();postPass();
  uiAccumulator+=realDt;if(uiAccumulator>.12){uiAccumulator=0;updateUI();}
  frameCount++;framesInWindow++;lastFillPx=fillPx;fillPx=0;
+ if(!hzDone&&realDt>0.001){
+  hzSamples.push(realDt);
+  if(hzSamples.length>=90){
+   const a=hzSamples.slice(10).sort((x,y)=>x-y),med=a[a.length>>1]||1/60;
+   refreshHz=Math.max(60,Math.min(240,Math.round(1/med)));
+   hzDone=true;hzSamples=null;
+  }
+ }
  if(now-measureStart>3000){fps=framesInWindow*1000/(now-measureStart);framesInWindow=0;measureStart=now;
   if(fps<30)slowWindows++;else slowWindows=Math.max(0,slowWindows-1);
   // coarse pointers keep the thin detail path; everything else may recover it
@@ -10691,9 +10702,10 @@ function frame(now){
   // Below 45 fps, buy frames with resolution - the compositor's upscale is much
   // less visible than a stutter. Go back up only after a long clean stretch.
   const cap=window.STARFIELD_QUALITY?window.STARFIELD_QUALITY.getMaxDPR():Math.min(devicePixelRatio||1,2);
-  if(fps<45&&qualityScale>.55){qualityScale=Math.max(.55,qualityScale-.15);resize();}
-  else if(fps>57&&qualityScale<1&&++fastWindows>4){qualityScale=Math.min(1,qualityScale+.15);fastWindows=0;resize();}
-  if(fps<=57)fastWindows=0;
+  const target=Math.min(240,Math.max(60,refreshHz*0.92));
+  if(fps<target*0.75&&qualityScale>.55){qualityScale=Math.max(.55,qualityScale-.15);resize();}
+  else if(fps>target*0.95&&qualityScale<1&&++fastWindows>4){qualityScale=Math.min(1,qualityScale+.15);fastWindows=0;resize();}
+  if(fps<=target*0.95)fastWindows=0;
 }
 }
 // A small read-only diagnostic surface for inspecting a locally opened file.
@@ -10708,7 +10720,7 @@ window.Starfield=Object.freeze({
  palette:()=>({index:currentPalette.index,t:currentPalette.t,sky:currentPalette.sky,horizon:currentPalette.horizon,fog:currentPalette.fog,tree:currentPalette.tree,craft:currentPalette.craft,sun:currentPalette.sun,shimmer:currentPalette.shimmer,front:currentPalette.front}),
  flock:()=>{let mx=0,mv=0,bad=false;for(const b of fleet){const d=Math.hypot(b.x,b.y,b.z);if(d>mx)mx=d;const v=Math.hypot(b.vx,b.vy,b.vz);if(v>mv)mv=v;if(!Number.isFinite(b.x+b.y+b.z+b.vx+b.vy+b.vz))bad=true;}return {radius:Math.round(mx),speed:Math.round(mv),bad};},
  holeGL:!!holeGL,
- getState:()=>({seed:SEED,started,paused,autoCamera,region:rawStyles[currentPalette.index].en,regionMix:currentPalette.t,travel,flightTime,capture:capturePhase,captureT,sling:Math.round(sling*100)/100,masses:activeMasses.length,kinds:activeMasses.map(m=>m.kind).sort().join(''),lensSources:lensSources.length,nebTex:nebCache.size,nebGens,fillMPx:+(lastFillPx/1e6).toFixed(1),fleet:fleet.length,particles:particles.length,variation:cycle+1,lens:plans.get(cycle)[shot].name,distance:camera.distance,pitch:camera.pitch,yaw:camera.yaw,eye:[...camera.eye],fps:Math.round(fps),drawCalls,loadedChunks:chunks.size,rotated,width:W,height:H,dpr:DPR,audio:sound.ready?sound.ac.state:'not-started',track:sound.index+1,postMs:+(postMs).toFixed(2),postOn,holeGL:!!holeGL,gpu:_GPU.tier,gpuName:String(_GPU.name).slice(0,48),dprCap:(window.STARFIELD_QUALITY?STARFIELD_QUALITY.tierCap[_GPU.tier]:null),holeDraws,holeLastRad}),
+ getState:()=>({seed:SEED,started,paused,autoCamera,region:rawStyles[currentPalette.index].en,regionMix:currentPalette.t,travel,flightTime,capture:capturePhase,captureT,sling:Math.round(sling*100)/100,masses:activeMasses.length,kinds:activeMasses.map(m=>m.kind).sort().join(''),lensSources:lensSources.length,nebTex:nebCache.size,nebGens,fillMPx:+(lastFillPx/1e6).toFixed(1),fleet:fleet.length,particles:particles.length,variation:cycle+1,lens:plans.get(cycle)[shot].name,distance:camera.distance,pitch:camera.pitch,yaw:camera.yaw,eye:[...camera.eye],fps:Math.round(fps),drawCalls,loadedChunks:chunks.size,rotated,width:W,height:H,dpr:DPR,audio:sound.ready?sound.ac.state:'not-started',track:sound.index+1,postMs:+(postMs).toFixed(2),postOn,holeGL:!!holeGL,gpu:_GPU.tier,gpuName:String(_GPU.name).slice(0,48),hz:refreshHz,dprCap:(window.STARFIELD_QUALITY?STARFIELD_QUALITY.tierCap[_GPU.tier]:null),holeDraws,holeLastRad}),
  getLensSources:()=>lensSources.map(L=>({...L})),
  lensWarp:(x,y)=>lensWarp(x,y),
  updateLens:()=>updateLens(),
