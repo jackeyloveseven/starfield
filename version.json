@@ -1,11 +1,11 @@
 {
-  "version": "1.9.3",
-  "build": 132,
-  "updated_at": "2026-10-25T18:15:00+08:00",
+  "version": "1.9.4",
+  "build": 133,
+  "updated_at": "2026-10-25T18:30:00+08:00",
   "min_native_version": "1.0.0",
-  "title": "源义经 · 星体不再突然消失",
-  "changelog": "天体在 7 万单位处被硬切导致屏幕内整块消失；改为逐天体 fade 连续淡出（每帧上限 1.2%），远距信标延到 8.5 万归零，kind 5–7 也吃淡出；注视权重改连续",
+  "title": "源义经 · 不要摇杆",
+  "changelog": "摇杆彻底移除：外环与旋钮都不再绘制，左下角保持空白；触控拖动仍然改航向",
   "entry": "starfield.html",
   "download_url": "https://jackeyloveseven.github.io/starfield/starfield.html",
-  "apk_release_url": "https://github.com/jackeyloveseven/starfield/releases/tag/v1.9.3-focus-apk"
+  "apk_release_url": "https://github.com/jackeyloveseven/starfield/releases/tag/v1.9.4-focus-apk"
 }

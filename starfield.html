@@ -11513,8 +11513,9 @@ requestAnimationFrame(frame);
         box-sizing: border-box;
       }
 
-      /* The ring is furniture on an otherwise empty corner: it stays invisible
-         even while dragging. The knob is the only feedback. */
+      /* No joystick at all: the touch zone still steers, but nothing is drawn. */
+      .sf-touch-joy-base, .sf-touch-joy-knob { display: none !important; }
+      /* (previous note) the ring is furniture on an otherwise empty corner */
       .sf-touch-joy-base.active {
         opacity: 0 !important;
       }
