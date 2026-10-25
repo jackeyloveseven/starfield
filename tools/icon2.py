@@ -75,6 +75,15 @@ def render(size, with_bg=True, beam=True):
     out = out + HOT[None, None, :] * (streak * 1.15)[:, :, None]
     out = out + WARM[None, None, :] * ((bloom if beam else np.zeros_like(bloom)) * 0.30)[:, :, None]
     out = out + (DEEP - out) * shadow[:, :, None]
+    # A flat black disc reads as an empty hole, not as depth. Give the interior
+    # its own gradient and a few faint stars: information without breaking the
+    # silhouette (nothing bright enough to compete with the ring).
+    inner = np.clip(1.0 - R / RD, 0, 1) ** 1.6
+    depth = np.array([22, 34, 52], float)
+    out = out + (depth - out) * (inner * 0.85)[:, :, None]
+    for (sx, sy, sr, sa) in ((0.18, 0.16, 0.55, 0.55), (-0.22, -0.10, 0.42, 0.45), (0.05, -0.30, 0.36, 0.38)):
+        d2 = ((X - sx * RD) ** 2 + (Y - sy * RD) ** 2) / (sr * sr)
+        out = out + (np.array([210, 224, 240], float)[None, None, :] - out) * (np.exp(-d2) * sa)[:, :, None]
     # the ring's own faint glow, hugging the horizon
     glow = np.exp(-((R - RING) / 3.4) ** 2) * (R > RD)
     out = out + WARM[None, None, :] * (glow * 0.55)[:, :, None]

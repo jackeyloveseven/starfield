@@ -1,11 +1,11 @@
 {
-  "version": "1.2.7",
+  "version": "1.2.8",
   "build": 120,
-  "updated_at": "2026-10-25T13:55:00+08:00",
+  "updated_at": "2026-10-25T14:15:00+08:00",
   "min_native_version": "1.0.0",
-  "title": "源义经 · 图标真正生效（自适应前景带透明）",
-  "changelog": "修自适应图标前景层不透明（Android 8+ 一直是黑块盖住底色）、辉光画进阴影内部、maskable 图标带透明角；升级时资产会刷新。页面未改，故 build 仍为 120",
+  "title": "源义经 · 图标内里有了深度",
+  "changelog": "图标黑洞内部不再是死黑：加入极弱的深蓝渐变与三颗暗星，洞里有纵深；环、射流与底色不动",
   "entry": "starfield.html",
   "download_url": "https://jackeyloveseven.github.io/starfield/starfield.html",
-  "apk_release_url": "https://github.com/jackeyloveseven/starfield/releases/tag/v1.2.7-focus-apk"
+  "apk_release_url": "https://github.com/jackeyloveseven/starfield/releases/tag/v1.2.8-focus-apk"
 }
