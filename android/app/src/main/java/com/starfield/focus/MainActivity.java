@@ -220,6 +220,19 @@ public class MainActivity extends AppCompatActivity {
             SharedPreferences prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
             return prefs.getString(KEY_VERSION, "1.1.0");
         }
+
+        @JavascriptInterface
+        public void setOrientation(String mode) {
+            runOnUiThread(() -> {
+                if ("landscape".equalsIgnoreCase(mode)) {
+                    setRequestedOrientation(android.content.pm.ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE);
+                } else if ("portrait".equalsIgnoreCase(mode)) {
+                    setRequestedOrientation(android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+                } else {
+                    setRequestedOrientation(android.content.pm.ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
+                }
+            });
+        }
     }
 
     @Override
