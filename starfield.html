@@ -1369,7 +1369,7 @@ body.modal-open #comms-hud {
     <div class="shortcut-list">
       <div class="shortcut-row">
         <span>客户端版本</span>
-        <span class="shortcut-key" id="sf-version-tag">v1.1.8 (Build 110)</span>
+        <span class="shortcut-key" id="sf-version-tag">v1.1.9 (Build 111)</span>
       </div>
       <div class="shortcut-row">
         <span>OTA 实时热更新</span>
@@ -3793,7 +3793,16 @@ const GameSettings = {
             build = ' (Build ' + window.StarfieldNative.getBuildNumber() + ')';
           }
         } catch (e) { /* older APK */ }
-        vTag.textContent = 'v' + window.StarfieldNative.getAppVersion() + build;
+        // The page can be newer than the APK (that is the whole point of OTA),
+        // so say which page is running when one has been installed.
+        let ota = '';
+        try {
+          if (typeof window.StarfieldNative.getOtaBuild === 'function') {
+            const b = window.StarfieldNative.getOtaBuild();
+            if (b > 0) ota = ' · 页面 ' + b;
+          }
+        } catch (e) { /* older APK */ }
+        vTag.textContent = 'v' + window.StarfieldNative.getAppVersion() + build + ota;
       }
     }
   },

@@ -338,15 +338,33 @@ public class MainActivity extends AppCompatActivity {
             });
         }
 
+        /**
+         * The APK's own version, not the OTA state. Reporting the prefs fallback
+         * here is why a freshly installed app showed "v1.1.0 (Build 0)".
+         */
         @JavascriptInterface
         public String getAppVersion() {
-            SharedPreferences prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
-            return prefs.getString(KEY_VERSION, "1.1.0");
+            try {
+                return getPackageManager().getPackageInfo(getPackageName(), 0).versionName;
+            } catch (Exception e) {
+                return "1.1.0";
+            }
         }
 
-        /** The settings sheet has always called this; it simply did not exist. */
         @JavascriptInterface
         public long getBuildNumber() {
+            try {
+                android.content.pm.PackageInfo pi =
+                        getPackageManager().getPackageInfo(getPackageName(), 0);
+                return Build.VERSION.SDK_INT >= 28 ? pi.getLongVersionCode() : pi.versionCode;
+            } catch (Exception e) {
+                return 0L;
+            }
+        }
+
+        /** Which page build the OTA has landed on, 0 when still on the bundled copy. */
+        @JavascriptInterface
+        public long getOtaBuild() {
             SharedPreferences prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
             return prefs.getLong(KEY_BUILD, 0L);
         }
