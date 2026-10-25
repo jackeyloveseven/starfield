@@ -1,11 +1,11 @@
 {
-  "version": "1.4.0",
-  "build": 118,
-  "updated_at": "2026-10-25T17:40:00+08:00",
+  "version": "1.5.0",
+  "build": 119,
+  "updated_at": "2026-10-25T17:55:00+08:00",
   "min_native_version": "1.0.0",
-  "title": "源义经 · 孵化的那一下",
-  "changelog": "专注结算后可以「孵化这颗星球」：先只给轮廓与光色，轻触点亮现形；卡片带品级色、时长与日期，自动收入本地收藏",
+  "title": "源义经 · 我的星球",
+  "changelog": "新增「我的星球」收藏页（按 L 或调用 openList）：网格展示已孵化星球，品级色描边与色相球体，空态提示",
   "entry": "starfield.html",
   "download_url": "https://jackeyloveseven.github.io/starfield/starfield.html",
-  "apk_release_url": "https://github.com/jackeyloveseven/starfield/releases/tag/v1.4.0-focus-apk"
+  "apk_release_url": "https://github.com/jackeyloveseven/starfield/releases/tag/v1.5.0-focus-apk"
 }
