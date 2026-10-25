@@ -1,11 +1,11 @@
 {
-  "version": "1.6.1",
-  "build": 123,
-  "updated_at": "2026-10-25T15:00:00+08:00",
+  "version": "1.6.2",
+  "build": 124,
+  "updated_at": "2026-10-25T15:15:00+08:00",
   "min_native_version": "1.0.0",
-  "title": "源义经 · 星数随区带变化 + 返回键二次确认",
-  "changelog": "星点数量按区带调色板混合缩放（深渊稀、星核密），不再只有色相差；Android 返回键改为一次提醒、二次退出",
+  "title": "源义经 · 去掉按钮外框",
+  "changelog": "「更多」托盘不再自带磨砂底板，图标周围没有框；深渊区带不再生成星云",
   "entry": "starfield.html",
   "download_url": "https://jackeyloveseven.github.io/starfield/starfield.html",
-  "apk_release_url": "https://github.com/jackeyloveseven/starfield/releases/tag/v1.6.1-focus-apk"
+  "apk_release_url": "https://github.com/jackeyloveseven/starfield/releases/tag/v1.6.2-focus-apk"
 }

@@ -8146,6 +8146,9 @@ function drawSky(){
  const wash=.30+p.wash*1.35+p.core*.65;
  nebulaUpdate();
  if(wash>.06){
+  // The abyss has no clouds at all: nebulae were the one layer identical in
+  // every region, which is most of why the five read as the same place.
+  if((p.void||0) > 0.45) return;
   const list = lowQuality ? nebulae.slice(0, 8) : nebulae;
   const pal0 = NEB_PAL[p.index] || NEB_PAL[0];
   const aT = p.t, a0 = p.a, b0 = p.b, tw = p.t < 1, roll = camera.roll || 0;
@@ -11449,6 +11452,15 @@ requestAnimationFrame(frame);
       }
       .sf-touch-more-tray.open {
         display: flex;
+      }
+      /* The tray kept its own frosted panel, so the icons sat in a box again. */
+      .sf-touch-more-tray {
+        background: none !important;
+        border: none !important;
+        box-shadow: none !important;
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+        padding: 0 !important;
       }
       @media (max-width: 420px) {
         .sf-touch-more-tray .sf-touch-btn span.label {
