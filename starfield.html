@@ -1369,7 +1369,7 @@ body.modal-open #comms-hud {
     <div class="shortcut-list">
       <div class="shortcut-row">
         <span>客户端版本</span>
-        <span class="shortcut-key" id="sf-version-tag">v1.1.9 (Build 111)</span>
+        <span class="shortcut-key" id="sf-version-tag">v1.2.0 (Build 112)</span>
       </div>
       <div class="shortcut-row">
         <span>OTA 实时热更新</span>
@@ -9215,9 +9215,9 @@ const SCORES=[
       // Violin bridge hill formant (~2850 Hz) + Wood cavity resonance (~480 Hz)
       const bodyFilter = ac.createBiquadFilter();
       bodyFilter.type = 'peaking';
-      bodyFilter.frequency.setValueAtTime(2850, t0);
-      bodyFilter.Q.value = 3.0;
-      bodyFilter.gain.setValueAtTime(6.0, t0); // +6dB bridge hill brilliance
+      bodyFilter.frequency.setValueAtTime(2600, t0);
+      bodyFilter.Q.value = 1.1;
+      bodyFilter.gain.setValueAtTime(-3.0, t0); // +6dB bridge hill brilliance
 
       const warmFilter = ac.createBiquadFilter();
       warmFilter.type = 'peaking';
@@ -9230,7 +9230,7 @@ const SCORES=[
       lowpass.type = 'lowpass';
       // Solo melody vs soft accompaniment warmth
       const isSolo = midiNote >= 60;
-      const maxCut = isSolo ? 4200 : 2200;
+      const maxCut = isSolo ? 2600 : 1900;
       const cutoff = Math.min(maxCut, Math.max(1600, freq * 2.4 + velocity * 900));
       lowpass.frequency.setValueAtTime(cutoff, t0);
       lowpass.Q.value = 0.85; // Natural smooth slope without whistling resonance
@@ -9245,7 +9245,7 @@ const SCORES=[
       const noteGain = ac.createGain();
       const velScale = isSolo ? 1.0 : 0.65; // Accompaniment stays softly supporting the solo
       const peakGain = (isFast ? 0.14 : 0.11) * velocity * velScale;
-      const attackTime = isFast ? 0.022 : Math.min(0.14, Math.max(0.05, durationSeconds * 0.20));
+      const attackTime = isFast ? 0.045 : Math.min(0.14, Math.max(0.05, durationSeconds * 0.20));
 
       noteGain.gain.setValueAtTime(0.0001, t0);
       noteGain.gain.linearRampToValueAtTime(peakGain, t0 + attackTime);
@@ -9268,14 +9268,14 @@ const SCORES=[
       osc2.type = 'sawtooth';
       osc2.frequency.setValueAtTime(freq * 1.0018, t0);
       const g2 = ac.createGain();
-      g2.gain.value = 0.55;
+      g2.gain.value = 0.38;
       osc2.connect(g2);
 
       const osc3 = ac.createOscillator();
       osc3.type = 'triangle';
       osc3.frequency.setValueAtTime(freq, t0);
       const g3 = ac.createGain();
-      g3.gain.value = 0.35;
+      g3.gain.value = 0.55;
       osc3.connect(g3);
 
       // 4. Natural 5.4 Hz Violin Vibrato with realistic onset delay (120ms)
@@ -11325,10 +11325,30 @@ requestAnimationFrame(frame);
         opacity: 0.9;
       }
 
+      /* Icon only: the glyph is the label, and the pill was a second frame. */
+      .sf-touch-btn {
+        background: none !important;
+        border: none !important;
+        box-shadow: none !important;
+        padding: 0 !important;
+        width: 46px;
+        height: 46px;
+      }
+      .sf-touch-btn span.label {
+        display: none !important;
+      }
+      .sf-touch-btn .icon-wrap,
+      .sf-touch-btn .icon-wrap svg {
+        width: 21px !important;
+        height: 21px !important;
+      }
+      /* BOOST is the long press now. */
+      .sf-touch-btn.boost {
+        display: none !important;
+      }
       .sf-touch-btn:active, .sf-touch-btn.active {
-        transform: scale(0.94);
-        background: rgba(255, 255, 255, 0.18) !important;
-        border-color: rgba(255, 255, 255, 0.65) !important;
+        transform: scale(0.9);
+        background: none !important;
         color: #ffffff;
       }
 
@@ -11351,6 +11371,12 @@ requestAnimationFrame(frame);
       .sf-touch-more-tray {
         display: none;
         align-items: center;
+        /* Five buttons in one right-anchored row pushed 图鉴 off the left edge
+           on a narrow screen, where nothing could reach it. */
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        max-width: calc(100vw - 28px);
+        box-sizing: border-box;
         gap: 6px;
         padding: 5px 8px;
         border-radius: 24px;
@@ -11363,6 +11389,11 @@ requestAnimationFrame(frame);
       }
       .sf-touch-more-tray.open {
         display: flex;
+      }
+      @media (max-width: 420px) {
+        .sf-touch-more-tray .sf-touch-btn span.label {
+          display: none;
+        }
       }
       @keyframes sfTrayIn {
         from { opacity: 0; transform: translateY(8px) scale(0.96); }
@@ -11420,6 +11451,7 @@ requestAnimationFrame(frame);
   // --- Build Virtual Touch HUD ---
   function createTouchHUD() {
     if (document.getElementById('starfield-touch-overlay')) return;
+    setupLongPressSpeed();
 
     injectStyles();
 
@@ -11662,6 +11694,35 @@ requestAnimationFrame(frame);
 
     targetSteerX = normX;
     targetSteerY = normY;
+  }
+
+  // --- Press and hold to fast-forward ---------------------------------------
+  // The same gesture as holding a video: 320 ms to 5x, another 850 ms to 15x,
+  // release back to cruise. Anything that is already a control is excluded, so
+  // the joystick and the icon row keep their own pointer handling.
+  function setupLongPressSpeed() {
+    let t1 = 0, t2 = 0, stage = 0;
+    const gear = (i) => {
+      if (WarpDrive.gearIndex === i) return;
+      WarpDrive.gearIndex = i;
+      WarpDrive.updateUI();
+      toast(i === 0 ? '巡航 1×' : i === 1 ? '跃迁 5×' : '超曲 15×', 1.1);
+    };
+    const clear = () => { if (t1) clearTimeout(t1); if (t2) clearTimeout(t2); t1 = t2 = 0; };
+    const down = (e) => {
+      const t = e.target;
+      if (t && t.closest && t.closest('button,.sf-touch-joy-zone,.sf-touch-more-tray,#settings-drawer,#codex-modal')) return;
+      if (!Engine.isFlightStarted || !Engine.isFlightStarted()) return;
+      stage = 0;
+      t1 = setTimeout(() => {
+        stage = 1; gear(1);
+        t2 = setTimeout(() => { stage = 2; gear(2); }, 850);
+      }, 320);
+    };
+    const up = () => { clear(); if (stage > 0) gear(0); stage = 0; };
+    window.addEventListener('pointerdown', down, { passive: true });
+    window.addEventListener('pointerup', up, { passive: true });
+    window.addEventListener('pointercancel', up, { passive: true });
   }
 
   // --- Two-Finger Pinch-to-Zoom Handler ---
