@@ -10434,7 +10434,8 @@ function __departDolly(i){
  __placeThumb();
  if(started||Math.abs(to-from)<80){chooseDeparture(i);return;}
  // longer jumps take longer; ~1s for a neighbouring band
- __depart={from:from,to:to,i:i,k:0,dur:Math.min(2200,700+Math.abs(to-from)/14)};
+ // seconds, because dt is seconds
+ __depart={from:from,to:to,i:i,k:0,dur:Math.min(2.2,0.7+Math.abs(to-from)/14000)};
  if(typeof gateFlash!=='undefined')gateFlash=0.18;
 }
 for(const el of document.querySelectorAll('.destination'))el.addEventListener('click',()=>__departDolly(Number(el.dataset.region)));
@@ -10889,6 +10890,7 @@ window.Starfield=Object.freeze({
   return { encIndex: targetEncIndex, travel, k, world: worldFor(targetEncIndex) };
  },
  stepDeparture:(dt)=>stepDeparture(dt),
+ setWarpGear:(i)=>{WarpDrive.gearIndex=i;WarpDrive.updateUI();},
  seek:(seconds)=>{
   const step=1/60,n=Math.max(0,Math.round(seconds/step));
   for(let i=0;i<n;i++){
@@ -11752,10 +11754,10 @@ requestAnimationFrame(frame);
   function setupLongPressSpeed() {
     let t1 = 0, t2 = 0, stage = 0;
     const gear = (i) => {
-      if (WarpDrive.gearIndex === i) return;
-      WarpDrive.gearIndex = i;
-      WarpDrive.updateUI();
-      toast(i === 0 ? '巡航 1×' : i === 1 ? '跃迁 5×' : '超曲 15×', 1.1);
+      const S = window.Starfield;
+      if (!S || !S.setWarpGear) return;
+      S.setWarpGear(i);
+      if (window.toast) toast(i === 0 ? '巡航 1×' : i === 1 ? '跃迁 5×' : '超曲 15×', 1.1);
     };
     const clear = () => { if (t1) clearTimeout(t1); if (t2) clearTimeout(t2); t1 = t2 = 0; };
     const down = (e) => {

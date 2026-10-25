@@ -1,11 +1,11 @@
 {
-  "version": "1.2.2",
-  "build": 114,
-  "updated_at": "2026-10-25T15:55:00+08:00",
+  "version": "1.2.4",
+  "build": 116,
+  "updated_at": "2026-10-25T16:40:00+08:00",
   "min_native_version": "1.0.0",
-  "title": "源义经 · 转场按模拟时间推进",
-  "changelog": "起航转场改为按 dt 推进（暂停/seek 下也一致），修好长按加速与滑块的时序；getState 暴露 warpGear / departing / clips 便于验证",
+  "title": "源义经 · 长按加速接线",
+  "changelog": "长按加速改走公开 API（原来在触控模块里够不到 WarpDrive，按住不会换挡）；起航转场单位已修（1.2.3）",
   "entry": "starfield.html",
   "download_url": "https://jackeyloveseven.github.io/starfield/starfield.html",
-  "apk_release_url": "https://github.com/jackeyloveseven/starfield/releases/tag/v1.2.2-focus-apk"
+  "apk_release_url": "https://github.com/jackeyloveseven/starfield/releases/tag/v1.2.4-focus-apk"
 }
