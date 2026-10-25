@@ -35,6 +35,20 @@
 @media(max-height:580px){:root{--pad:22px}.intro-inner{left:64%;right:4%;transform:translateY(-46%)}h1{font-size:56px;margin:14px 0 0}.english-title{font-size:10px;margin:8px 0 18px}.intro-poem{font-size:11px;margin-bottom:15px;line-height:1.8}.departure-label{font-size:8px;margin-bottom:7px}.destinations{margin-bottom:15px}.destination{font-size:10px;padding:5px 7px}.intro-kicker{font-size:8px}.intro-note{font-size:8px;margin-top:11px}#begin{font-size:11px;padding:11px 18px;min-width:172px}.intro-foot-right{display:none}#masthead .small-title{font-size:9px}.intro-footer{font-size:8px}#camera-name{font-size:15px}#camera-hud{gap:6px}#flight-stats{font-size:8px}#poem{top:48%;right:7%}.poem-line{font-size:15px}#poem-index{margin-bottom:14px}#poem-rule{margin-top:18px}#journey{width:200px}#route{width:170px;height:24px;margin-top:5px}#region-name{font-size:10px}#region-caption{font-size:7px;margin-top:6px}#controls{gap:2px}.control{height:31px;min-width:31px;font-size:10px}#hint{bottom:71px;font-size:9px}}
 @media(prefers-reduced-motion:reduce){.poem-line span{animation-duration:.2s;transform:none!important;filter:none!important}.sound-on .sound-icon i{animation:none}}
 
+/* --- Departure row: one thumb that travels ---------------------------- */
+.destinations{position:relative}
+.dest-thumb{
+  position:absolute;left:0;top:0;border-radius:20px;
+  background:var(--soft);border:1px solid var(--line);
+  pointer-events:none;z-index:0;
+  transition:transform .5s cubic-bezier(.22,1,.36,1),width .5s cubic-bezier(.22,1,.36,1),
+             height .5s cubic-bezier(.22,1,.36,1),opacity .3s ease;
+  opacity:0;
+}
+.dest-thumb.on{opacity:1}
+.destination{position:relative;z-index:1}
+.destination[aria-checked=true]{background:transparent;border-color:transparent}
+
 /* --- Responsive Native Mobile Portrait & Landscape Layout (Zero Occlusion) --- */
 @media (max-aspect-ratio: 1/1), (max-width: 600px) {
   #masthead {
@@ -1369,7 +1383,7 @@ body.modal-open #comms-hud {
     <div class="shortcut-list">
       <div class="shortcut-row">
         <span>客户端版本</span>
-        <span class="shortcut-key" id="sf-version-tag">v1.2.0 (Build 112)</span>
+        <span class="shortcut-key" id="sf-version-tag">v1.2.1 (Build 113)</span>
       </div>
       <div class="shortcut-row">
         <span>OTA 实时热更新</span>
@@ -10393,7 +10407,31 @@ async function fullscreen(showFailure=false){
 function chooseDeparture(index){
  if(started)return;travel=index*SEGMENT+SEGMENT*.5;departure=travel;chunks.clear();currentPalette=region(routeX(travel),travel);plans.clear();makePlan(0,null);shot=0;shotTime=0;for(const p of particles)resetParticle(p,true);currentPalette=region(routeX(travel),travel);for(const el of document.querySelectorAll('.destination'))el.setAttribute('aria-checked',String(Number(el.dataset.region)===index));updateUI();
 }
-for(const el of document.querySelectorAll('.destination'))el.addEventListener('click',()=>chooseDeparture(Number(el.dataset.region)));
+// --- departure: a travelling thumb, and a sky that moves instead of cutting
+const __destRow=document.querySelector('.destinations');
+let __destThumb=null, __depart=null;
+function __placeThumb(){
+ if(!__destRow)return;
+ if(!__destThumb){__destThumb=document.createElement('span');__destThumb.className='dest-thumb';__destRow.appendChild(__destThumb);}
+ const cur=__destRow.querySelector('.destination[aria-checked="true"]');
+ if(!cur){__destThumb.classList.remove('on');return;}
+ __destThumb.style.width=cur.offsetWidth+'px';
+ __destThumb.style.height=cur.offsetHeight+'px';
+ __destThumb.style.transform='translate('+cur.offsetLeft+'px,'+cur.offsetTop+'px)';
+ __destThumb.classList.add('on');
+}
+function __departDolly(i){
+ const from=travel, to=i*SEGMENT+SEGMENT*.5;
+ for(const el of document.querySelectorAll('.destination'))el.setAttribute('aria-checked',String(Number(el.dataset.region)===i));
+ __placeThumb();
+ if(started||Math.abs(to-from)<80){chooseDeparture(i);return;}
+ // longer jumps take longer; ~1s for a neighbouring band
+ __depart={from:from,to:to,i:i,t0:performance.now(),dur:Math.min(2200,700+Math.abs(to-from)/14)};
+ if(typeof gateFlash!=='undefined')gateFlash=0.18;
+}
+for(const el of document.querySelectorAll('.destination'))el.addEventListener('click',()=>__departDolly(Number(el.dataset.region)));
+window.addEventListener('resize',()=>setTimeout(__placeThumb,60));
+setTimeout(__placeThumb,0);
 $('begin').addEventListener('click',()=>{
   Narrator.speak(Narrator.scripts.intro, { id: 'intro', priority: 2 });
  if(started)return;started=true;flightTime=0;departure=travel;shotTime=0;root.classList.add('flying');$('intro').classList.add('gone');$('intro').setAttribute('aria-hidden','true');$('intro').inert=true;
@@ -10669,6 +10707,12 @@ let __modalOpen=false;
 function frame(now){
  requestAnimationFrame(frame);const realDt=Math.min(.05,Math.max(.001,(now-last)/1000));last=now;
  if(document.hidden)return;
+ if(__depart){
+  const k=Math.min(1,(now-__depart.t0)/__depart.dur);
+  const e=k<.5?4*k*k*k:1-Math.pow(-2*k+2,3)/2;   // easeInOutCubic
+  travel=__depart.from+(__depart.to-__depart.from)*e;
+  if(k>=1){const i=__depart.i;__depart=null;chooseDeparture(i);}
+ }
  // Any sheet on top of the scene outranks the comms card (z 1000 > 400).
  // NB: the module object is window.Starfield; a bare `Engine` is out of scope
  // here and threw on every frame, which froze the scene.
