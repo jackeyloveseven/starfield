@@ -3209,6 +3209,22 @@ function region(x,z){
  p.front=Math.sin(Math.PI*t)*((a===4||b===4)?1:.38);
  return p;
 }
+/* v132: PAPER is the one region with no positive mix term - it is the
+ * remainder. The geometry is keyed off these continuous weights, so a
+ * crossing interpolates instead of stepping. No counts, no hues. */
+function paperW(p){return clamp(1-(p.wash||0)-(p.shimmer||0)-(p.core||0)-(p.void||0),0,1);}
+function regionGeom(p){
+ const pa=paperW(p),wa=p.wash||0,sh=p.shimmer||0,co=p.core||0,vo=p.void||0;
+ return {
+  pitch: pa*.105-wa*.025-sh*.085+co*.170-vo*.195,
+  roll:  pa*.022-wa*.040+sh*.055-co*.065+vo*.010,
+  horizon: pa*-.180+wa*.120+sh*-.050+co*.220+vo*.040,
+  neb:   clamp(pa*.62+wa*1.35+sh*.88+co*1.15-vo*.50,.35,1.6),
+  bandS: clamp(pa*.65+wa*.95+sh*.30+co*1.05-vo*.55,.08,1.25),
+  bandG: pa*.060-wa*.150+sh*.100-co*.020+vo*.200,
+  cross: clamp(pa*1.0+wa*1.25+sh*1.6+co*2.2-vo*.6,.25,2.4)
+ };
+}
 let W=0,H=0,DPR=1,rotated=false;
 // ctx.filter is the only way to get a negative intercept (a true black point)
 // out of Canvas2D; no chain of composite modes can produce one.
@@ -4001,6 +4017,11 @@ function updateDirector(dt){
   if(c.yaw != null) goal.yaw = mix(goal.yaw, c.yaw, c.blend);
   lookTarget = [mix(lookTarget[0], c.tx, c.blend), mix(lookTarget[1], c.ty, c.blend), mix(lookTarget[2], c.tz, c.blend)];
  }
+
+ // v132: the region moves the camera, not just its ink. Pitch and roll are
+ // the differences that survive a frame with no palette-bearing object in
+ // it. Auto only: a hand-driven camera keeps the pose the viewer chose.
+ if(autoCamera && started){const _rg=regionGeom(currentPalette);goal.pitch=clamp(goal.pitch+_rg.pitch,-.20,1.45);goal.roll+=_rg.roll;}
 
  // 6. Damped Camera Integration
  const isSkimmingActive = skimRes && skimRes.active;
@@ -7520,7 +7541,7 @@ function resetParticle(p,first=false){
 }
 for(let i=0;i<MAX_PARTICLES;i++){const p={};resetParticle(p,true);particles.push(p);}
 function updateParticles(dt){
- for(const p of particles){p.life+=dt;if(p.life>p.ttl||Math.abs(p.z-travel)>5700||p.y<2)resetParticle(p);const pal=region(p.x,p.z);p.x+=(p.drift+wind.x*29+Math.sin(time*.4+p.phase)*5)*dt;p.z+=Math.cos(p.phase)*7*dt;p.y-=(3+pal.wash*15)*dt;}
+ for(const p of particles){p.life+=dt;if(p.life>p.ttl||Math.abs(p.z-travel)>5700||p.y<2)resetParticle(p);const pal=region(p.x,p.z);p.x+=(p.drift+wind.x*29+Math.sin(time*.4+p.phase)*5)*dt;p.z+=Math.cos(p.phase)*7*dt;p.y-=(3+pal.wash*15+pal.shimmer*9-pal.void*1.5)*dt;}
 }
 function drawParticles(){
  for(const p of particles){
@@ -8138,7 +8159,9 @@ for(let i=0;i<grainImage.data.length;i+=4){const n=grainRng();grainImage.data[i]
 grainCtx.putImageData(grainImage,0,0);let grainPattern=ctx.createPattern(grainCanvas,'repeat');
 function drawSky(){
  const p=currentPalette,nova=novaState(),g=ctx.createLinearGradient(0,0,0,H);
- g.addColorStop(0,css(p.sky));g.addColorStop(.55,css(p.horizon));g.addColorStop(1,css(blend(p.fog,p.paper,.58)));
+ // v132: where the paper's horizon sits is a composition choice per region.
+ const _rg=regionGeom(p);
+ g.addColorStop(0,css(p.sky));g.addColorStop(clamp(.55+_rg.horizon,.30,.80),css(p.horizon));g.addColorStop(1,css(blend(p.fog,p.paper,.58)));
  fillPx+=W*H;ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
  updateLens();
  const dense=.36+p.void*.36+p.core*.46+p.shimmer*.28;
@@ -8156,7 +8179,7 @@ function drawSky(){
    const q = project([n.wx, n.wy, n.wz]); if (!q) continue;
    const d = q[2];
    if (d > 150000) continue;
-   const rad = n.wr * q[3];
+   const rad = n.wr * q[3] * _rg.neb;
    if (rad < 6) continue;
    const pad = rad * 0.62;
    if (q[0] < -pad || q[0] > W + pad || q[1] < -pad || q[1] > H + pad) continue;
@@ -8218,7 +8241,10 @@ function drawSky(){
  const effWarpS=Math.max(warp, WarpDrive.currentWarp); const burst=clamp(effWarpS/28+sling*.42,0,1);
  // eps is the drag in direction space. Low quality gets a shorter trail rather
  // than a dropped one, so the effect survives on a phone.
- const eps=burst*(lowQuality?.034:.075);
+ // v132: trail LENGTH is geometry, and it is a region property. Only the
+ // warp/sling drag is scaled; a still sky keeps its still-point stars.
+ const _trail=clamp(.50+(currentPalette.wash||0)*.85+(currentPalette.core||0)*.55+(currentPalette.shimmer||0)*.20-(currentPalette.void||0)*.45,.22,1.6);
+ const eps=burst*(lowQuality?.034:.075)*_trail;
  // u is the direction the fleet is travelling: the lane tangent, flat in y.
  // Every streak fans out from the point this direction projects to.
  const hd=laneD(travel)*.68,hl=Math.hypot(hd,1),ux=hd/hl,uz=1/hl;
@@ -8238,8 +8264,8 @@ function drawSky(){
    const ex=st.x+be*(st.x-du*ux),ey=st.y+be*st.y,ez=st.z+be*(st.z-du*uz);
    const el=Math.hypot(ex,ey,ez)||1,q2=skyPoint([ex/el,ey/el,ez/el]);
    if(q2){const w2=lensWarp(q2[0],q2[1]);ctx.moveTo(x,y);ctx.lineTo(w2[0],w2[1]);}
-   else{ctx.moveTo(x-r*3.2,y);ctx.lineTo(x+r*3.2,y);ctx.moveTo(x,y-r*3.2);ctx.lineTo(x,y+r*3.2);}
-  }else{ctx.moveTo(x-r*3.2,y);ctx.lineTo(x+r*3.2,y);ctx.moveTo(x,y-r*3.2);ctx.lineTo(x,y+r*3.2);}
+   else{ctx.moveTo(x-r*3.2*_rg.cross,y);ctx.lineTo(x+r*3.2*_rg.cross,y);ctx.moveTo(x,y-r*3.2*_rg.cross);ctx.lineTo(x,y+r*3.2*_rg.cross);}
+  }else{ctx.moveTo(x-r*3.2*_rg.cross,y);ctx.lineTo(x+r*3.2*_rg.cross,y);ctx.moveTo(x,y-r*3.2*_rg.cross);ctx.lineTo(x,y+r*3.2*_rg.cross);}
   ctx.stroke();
  }
  // The faint field, batched: a handful of fills (or strokes) instead of
@@ -8307,7 +8333,7 @@ function drawSky(){
   const col=blend(p.sun,p.paper,.34),segs=[];
   let cur=null;
   for(let i=0;i<=260;i++){
-   const a2=i/260*TAU,d=bdir(Math.cos(a2),Math.sin(a2),0),q=skyPoint(d);
+   const a2=i/260*TAU,d=bdir(Math.cos(a2),Math.sin(a2),_rg.bandG),q=skyPoint(d);
    if(!q){cur=null;continue;}
    const w=lensWarp(q[0],q[1]);
    if(!cur){cur=[];segs.push(cur);}
@@ -8316,7 +8342,7 @@ function drawSky(){
   ctx.save();ctx.lineCap='round';ctx.lineJoin='round';
   for(const seg of segs){
    if(seg.length<6)continue;
-   for(const L of [[300,.012],[120,.024],[40,.050]]){
+   for(const L of [[300*_rg.bandS,.012],[120*_rg.bandS,.024],[40*_rg.bandS,.050]]){
     ctx.beginPath();ctx.moveTo(seg[0],seg[1]);
     for(let j=2;j<seg.length;j+=2)ctx.lineTo(seg[j],seg[j+1]);
     ctx.strokeStyle=css(col,clamp(L[1]*bw*1.6,0,.34));ctx.lineWidth=L[0];ctx.stroke();
@@ -8333,7 +8359,7 @@ function drawSky(){
    ctx.strokeStyle=gCol;ctx.lineWidth=1.6;ctx.lineCap='round';
    for(let i=0;i<GK;i++){
     const a2=(i/GK)*TAU+time*.011+hash(i,77)*.04,sp=.020+hash(i,78)*.014;
-    const d1=bdir(Math.cos(a2),Math.sin(a2),0),d2=bdir(Math.cos(a2+sp),Math.sin(a2+sp),0);
+    const d1=bdir(Math.cos(a2),Math.sin(a2),_rg.bandG),d2=bdir(Math.cos(a2+sp),Math.sin(a2+sp),_rg.bandG);
     const q1=skyPoint(d1),q2=skyPoint(d2);
     if(!q1||!q2)continue;
     const w1=lensWarp(q1[0],q1[1]),w2=lensWarp(q2[0],q2[1]);
@@ -8348,7 +8374,7 @@ function drawSky(){
   if(eps>0){
    const bb=[];
    for(const st of bandStars){
-    const d=bdir(st.ca,st.sa,st.g),q=skyPoint(d);if(!q)continue;
+    const d=bdir(st.ca,st.sa,st.g+_rg.bandG),q=skyPoint(d);if(!q)continue;
     const w=lensWarp(q[0],q[1]),x=w[0],y=w[1];
     if(x<-6||x>W+6||y<-6||y>H+6)continue;
     const du=d[0]*ux+d[2]*uz;
@@ -8368,7 +8394,7 @@ function drawSky(){
   }else{
    const bb=[[],[],[],[]];
    for(const st of bandStars){
-    const q=skyPoint(bdir(st.ca,st.sa,st.g));if(!q)continue;
+    const q=skyPoint(bdir(st.ca,st.sa,st.g+_rg.bandG));if(!q)continue;
     const w=lensWarp(q[0],q[1]),x=w[0],y=w[1];
     if(x<-6||x>W+6||y<-6||y>H+6)continue;
     const ph = Math.floor(((Math.sin(time * 0.42 + st.phase) + 1) * 0.5) * 3.99);
