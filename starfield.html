@@ -10878,7 +10878,7 @@ window.addEventListener('resize', () => {
 function resize(){
  rotated=false;W=innerWidth;H=innerHeight;
  DPR=Math.max(1,(window.STARFIELD_QUALITY ? window.STARFIELD_QUALITY.getMaxDPR() : Math.min(devicePixelRatio||1,2))*qualityScale); window.DPR = DPR;
- root.classList.remove('rotated');root.classList.toggle('compact',H<580);root.style.width=W+'px';root.style.height=H+'px';root.style.setProperty('--unit',W>=3200?'2':W>=2200?'1.5':'1');
+ root.classList.remove('rotated');root.classList.toggle('compact',H<580);root.style.width='100%';root.style.height='100%';root.style.setProperty('--unit',W>=3200?'2':W>=2200?'1.5':'1');
  canvas.width=Math.round(W*DPR);canvas.height=Math.round(H*DPR);ctx.setTransform(DPR,0,0,DPR,0,0);grainPattern=ctx.createPattern(grainCanvas,'repeat');
  if(H<580)root.style.setProperty('--pad','22px');else root.style.setProperty('--pad',W>=3200?'80px':W>=2200?'60px':W<1000?'26px':'40px');
  updateDirector(.016);drawRoute();
@@ -11688,6 +11688,22 @@ requestAnimationFrame(frame);
     document.head.appendChild(style);
   }
 
+  // --- Viewport-dependent touch geometry --------------------------------
+  // Anything measured from innerWidth/innerHeight lives here, never in a
+  // creation-time const: the phone can be turned while the HUD is mounted.
+  function layoutTouch() {
+    if (!joyBase || joyActive) return;   // a live drag keeps its own origin
+    joyBase.style.left = Math.max(70, window.innerWidth * 0.14) + 'px';
+    joyBase.style.top = (window.innerHeight - 100) + 'px';
+  }
+  window.addEventListener('resize', layoutTouch);
+  // Android fires resize before innerWidth has flipped; the delayed pass is
+  // the one that lands in the new orientation.
+  window.addEventListener('orientationchange', () => {
+    layoutTouch();
+    setTimeout(layoutTouch, 160);
+  });
+
   // --- Build Virtual Touch HUD ---
   function createTouchHUD() {
     if (document.getElementById('starfield-touch-overlay')) return;
@@ -11710,14 +11726,15 @@ requestAnimationFrame(frame);
     joyKnob.className = 'sf-touch-joy-knob';
 
     joyBase.appendChild(joyKnob);
-    joyContainer.appendChild(joyBase);
+    // v139: the base is drawn in viewport coordinates - pointerdown copies
+    // clientX/clientY straight into left/top. Nested in the 45vw x 55vh touch
+    // zone it inherited that zone's offset (45% of the screen height), which
+    // put the resting base below the screen and the knob far below the finger.
+    // The zone still catches the gesture; only the artwork moves out.
     overlay.appendChild(joyContainer);
+    overlay.appendChild(joyBase);
 
-    // Initial default position for joystick base (resting position)
-    const defaultX = Math.max(70, window.innerWidth * 0.14);
-    const defaultY = window.innerHeight - 100;
-    joyBase.style.left = defaultX + 'px';
-    joyBase.style.top = defaultY + 'px';
+    layoutTouch();
 
     // 2. Quick Action Cluster
     actionCluster = document.createElement('div');
