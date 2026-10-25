@@ -1,11 +1,11 @@
 {
-  "version": "1.8.0",
-  "build": 128,
-  "updated_at": "2026-10-25T16:40:00+08:00",
+  "version": "1.9.0",
+  "build": 129,
+  "updated_at": "2026-10-25T17:10:00+08:00",
   "min_native_version": "1.0.0",
-  "title": "源义经 · 五个区带终于不是同一片海",
-  "changelog": "区带改用几何差异而不是色相：相机俯仰与侧倾、视平线高度、星云尺度、银河带宽度与位置、亮星十字长度、拖尾与尘埃速度；同区带前后整帧 ΔL 分别 7.4/9.5/10.5",
+  "title": "源义经 · 孵化的绑定",
+  "changelog": "孵化绑定你遇见的星球：天体掠过或事件首次进入视野时记录身份，专注结束后用它生成卡（稀有度仍由时长决定）；没有遇见目标时退回随机",
   "entry": "starfield.html",
   "download_url": "https://jackeyloveseven.github.io/starfield/starfield.html",
-  "apk_release_url": "https://github.com/jackeyloveseven/starfield/releases/tag/v1.8.0-focus-apk"
+  "apk_release_url": "https://github.com/jackeyloveseven/starfield/releases/tag/v1.9.0-focus-apk"
 }
