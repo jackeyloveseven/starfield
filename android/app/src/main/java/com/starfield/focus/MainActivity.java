@@ -117,34 +117,27 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void setupImmersiveFullscreen() {
-        Window window = getWindow();
-        // Draw behind the punch-hole as well. Without SHORT_EDGES a 1280x2772
-        // phone letterboxes the app and leaves a band at the top - which reads
-        // as "the page does not fill the screen".
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-            WindowManager.LayoutParams lp = window.getAttributes();
-            lp.layoutInDisplayCutoutMode =
-                    WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;
-            window.setAttributes(lp);
-        }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            window.setDecorFitsSystemWindows(false);
-            WindowInsetsController c = window.getInsetsController();
-            if (c != null) {
-                c.hide(WindowInsets.Type.systemBars());
-                c.setSystemBarsBehavior(
-                        WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
+        // Kept deliberately boring: the cutout/insets path added in 1.2.x is the
+        // newest native code and the prime suspect for the launch crash on a
+        // 1280x2772 device. Everything here is wrapped so a display quirk can
+        // never take the activity down before the WebView is on screen.
+        try {
+            Window window = getWindow();
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                window.setDecorFitsSystemWindows(false);
+            } else {
+                View decorView = window.getDecorView();
+                decorView.setSystemUiVisibility(
+                    View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+                    | View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                    | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                    | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                    | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                    | View.SYSTEM_UI_FLAG_FULLSCREEN
+                );
             }
-        } else {
-            View decorView = window.getDecorView();
-            decorView.setSystemUiVisibility(
-                View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
-                | View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-                | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-                | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-                | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-                | View.SYSTEM_UI_FLAG_FULLSCREEN
-            );
+        } catch (Throwable t) {
+            Log.w("StarfieldOTA", "fullscreen setup failed", t);
         }
     }
 
