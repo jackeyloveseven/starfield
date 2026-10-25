@@ -245,6 +245,49 @@
   }
 }
 
+/* The comms card stands down while any sheet is open. */
+body.modal-open #comms-hud {
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+/* Codex on a phone: the close button must not wrap, the tabs scroll instead of
+   ragging into two lines, and the footer's three items stack. */
+@media (max-width: 600px) {
+  .codex-close {
+    white-space: nowrap !important;
+    flex: 0 0 auto !important;
+  }
+  .codex-tabs {
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+    gap: 8px !important;
+    padding: 0 10px !important;
+  }
+  /* Measured: the four tabs are 64+64+108+78 = 314 px, so the strip needs
+     ~350 px and the 92vw card only offers 331. A little more card, a little
+     less type. */
+  .codex-container {
+    width: 96vw !important;
+  }
+  .codex-tab {
+    white-space: nowrap !important;
+    flex: 0 0 auto !important;
+    font-size: 11.5px !important;
+    padding: 0 1px !important;
+  }
+  .codex-footer {
+    flex-wrap: wrap !important;
+    gap: 6px 10px !important;
+    padding: 10px 16px !important;
+  }
+  /* "按下 TAB 或 J 随时呼出" is advice a phone cannot follow. */
+  .codex-footer > span:nth-child(2) {
+    display: none !important;
+  }
+}
+
 /* Floating Hot Update (OTA) Pill */
 .sf-ota-pill {
   position: fixed;
@@ -1330,7 +1373,7 @@
     <div class="shortcut-list">
       <div class="shortcut-row">
         <span>客户端版本</span>
-        <span class="shortcut-key" id="sf-version-tag">v1.1.3 (Build 105)</span>
+        <span class="shortcut-key" id="sf-version-tag">v1.1.4 (Build 106)</span>
       </div>
       <div class="shortcut-row">
         <span>OTA 实时热更新</span>
@@ -10578,9 +10621,15 @@ const btnOri = document.getElementById('orientation-toggle-btn'); if (btnOri) bt
 if(coarse){document.querySelector('.intro-footer').textContent='22 CRAFT.  ONE OPEN SKY.';document.querySelector('.intro-note').innerHTML='触摸屏幕，让风带路。<br>建议开启声音 · 无终点，无需抵达';$('hint').textContent='触摸引航 · 切换自主镜头后，可拖拽与双指缩放 · 轻触舱内键切换视角';}
 resize();updateUI();
 let lastFillPx=0,fps=60,framesInWindow=0,measureStart=performance.now(),slowWindows=0;
+let __modalOpen=false;
 function frame(now){
  requestAnimationFrame(frame);const realDt=Math.min(.05,Math.max(.001,(now-last)/1000));last=now;
  if(document.hidden)return;
+ // Any sheet on top of the scene outranks the comms card (z 1000 > 400).
+ // NB: the module object is window.Starfield; a bare `Engine` is out of scope
+ // here and threw on every frame, which froze the scene.
+ {const _S=window.Starfield;const _mo=!!(_S&&_S.isModalOpen&&_S.isModalOpen());
+  if(_mo!==__modalOpen){__modalOpen=_mo;document.body.classList.toggle('modal-open',_mo);}}
  const dt=paused?0:realDt;
  if(dt){time+=dt;if(started){WarpDrive.update(dt);
    const effWarp = Math.max(warp, WarpDrive.currentWarp);
