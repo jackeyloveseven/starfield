@@ -8394,11 +8394,12 @@ function drawSky(){
   const w=lensWarp(q[0],q[1]),x=w[0],y=w[1];
   if(x<-40||x>W+40||y<-40||y>H+40)continue;
   const tw=.42+.58*Math.sin(time*.5+st.phase)**2,r=st.size*(1+.35*tw);
+  const _skye=skyEventStarDim(st);
   const tint=st.warm?[255,236,206]:[226,240,255],gr=ctx.createRadialGradient(x,y,0,x,y,r*11);
-  gr.addColorStop(0,css(tint,.95*clamp(dense,0,1.3)));gr.addColorStop(.16,css(tint,.30*dense));gr.addColorStop(1,css(tint,0));
+  gr.addColorStop(0,css(tint,.95*clamp(dense,0,1.3)*_skye));gr.addColorStop(.16,css(tint,.30*dense*_skye));gr.addColorStop(1,css(tint,0));
   fillPx+=r*22*r*22;ctx.fillStyle=gr;ctx.fillRect(x-r*11,y-r*11,r*22,r*22);
-  ctx.fillStyle='rgba(255,255,255,.92)';ctx.beginPath();ctx.arc(x,y,r,0,TAU);ctx.fill();
-  ctx.strokeStyle=css(tint,.55);ctx.lineWidth=.7;ctx.beginPath();
+  ctx.fillStyle=_skye<.999?css([255,255,255],.92*_skye):'rgba(255,255,255,.92)';ctx.beginPath();ctx.arc(x,y,r,0,TAU);ctx.fill();
+  ctx.strokeStyle=css(tint,.55*_skye);ctx.lineWidth=.7;ctx.beginPath();
   if(eps>0){
    const du=st.x*ux+st.z*uz,be=eps*5;
    const ex=st.x+be*(st.x-du*ux),ey=st.y+be*st.y,ez=st.z+be*(st.z-du*uz);
@@ -8408,6 +8409,7 @@ function drawSky(){
   }else{ctx.moveTo(x-r*3.2*_rg.cross,y);ctx.lineTo(x+r*3.2*_rg.cross,y);ctx.moveTo(x,y-r*3.2*_rg.cross);ctx.lineTo(x,y+r*3.2*_rg.cross);}
   ctx.stroke();
  }
+ skyEventQueueRing();
  // The faint field, batched: a handful of fills (or strokes) instead of
  // thousands of individual draws. A star's slot is (x,y,size,twinkle) when the
  // sky is still, and (x,y,tipX,tipY,size) while it is being dragged - the tip
@@ -10979,7 +10981,8 @@ function frame(now){
  currentPalette=region(routeX(travel),travel);
  if(dt){updateWind(dt);updateGravity();updateBirds(dt);updateGate(dt);updateCapture(dt);updateSling(dt);updateParticles(dt);updatePoem(dt);Narrator.update(dt);}
  ctx.setTransform(DPR,0,0,DPR,0,0);drawCalls=0;queue.length=0;holeDraws=0;
- drawSky();deepfield();drawCraftShadows();bodies();drawFleet();drawParticles();flush();
+ updateSkyEvents(realDt);
+ drawSky();deepfield();drawCraftShadows();bodies();drawFleet();drawParticles();flush();drawSkyEvents();
  // The throat: a bell around the two seconds either side of the step.
  if(gateT>0){const b=gateT<3.0?clamp((gateT-.7)/2.3,0,1):clamp((6.2-gateT)/2.6,0,1);
   drawTunnel(b);}
@@ -11014,6 +11017,199 @@ function frame(now){
 }
 }
 // A small read-only diagnostic surface for inspecting a locally opened file.
+
+/* v142-sky-events ---------------------------------------------------------
+ * Two rare, observation-only sky events.
+ *
+ * Determinism: every choice comes from hash(SEED-derived, chunk, salt), which
+ * already mixes SEED in `hash`. No Math.random, no wall-clock. The world and
+ * star positions are the ones the page already has (activeMasses / brightStars).
+ *
+ * Rendering: the afterglow ring is a normal depth-queue item (type 4, far
+ * depth) so worlds and stars occlude it; the flash is one additive fillRect on
+ * the existing canvas, exactly like gateFlash, and it goes through postPass.
+ * No extra canvas, no new layer.
+ * ---------------------------------------------------------------------- */
+if (typeof window.SF_SKY_EVENTS === 'undefined') window.SF_SKY_EVENTS = true;
+
+let _skyEventsChunk = null, _skyFreeze = false;
+let _skyGrbT = -1, _skyGrbDur = 0, _skyGrbDir = null, _skyGrbChunk = 0;
+let _skyOccArmed = false, _skyOccChunk = -1, _skyOccStar = null;
+let _skyOccT = -1, _skyOccDur = 0, _skyOccDepth = 0;
+window.__grb = 0; window.__occ = 0; window.__grbDuration = 0;
+
+function skyEventsOn() { return window.SF_SKY_EVENTS !== false; }
+
+/* Flash: instantaneous rise, decay to zero at the end of the burst. The
+ * exponent keeps > 0.5 through the first third of the window. */
+function grbFlashAt(t) {
+ if (t < 0 || _skyGrbDur <= 0 || t > _skyGrbDur) return 0;
+ return Math.pow(1 - t / _skyGrbDur, .5);
+}
+function grbAfterglowAt() {
+ if (_skyGrbT < 0) return 0;
+ const a = _skyGrbT - _skyGrbDur;
+ if (a < 0 || a > 20) return 0;
+ return .16 * Math.pow(1 - a / 20, 1.7);
+}
+function skyTriggerGRB(age) {
+ if (!skyEventsOn()) return 0;
+ const k = Math.floor(travel / CHUNK);
+ _skyGrbChunk = k;
+ const d = .25 + .15 * hash(k, 7002);
+ _skyGrbDur = d; window.__grbDuration = Math.round(d * 1e4) / 1e4;
+ _skyGrbT = (typeof age === 'number' && isFinite(age)) ? Math.max(0, age) : 0;
+ /* Put the ring near where the camera is looking at trigger time, so it is
+  * on screen; it is a fixed world direction afterwards. */
+ const f = camera.forward, r = camera.right, u = camera.up;
+ const ax = (hash(k, 7003) - .5) * 1.1, ay = (hash(k, 7004) - .5) * .7;
+ let vx = f[0] + r[0] * ax + u[0] * ay;
+ let vy = f[1] + r[1] * ax + u[1] * ay;
+ let vz = f[2] + r[2] * ax + u[2] * ay;
+ const vl = Math.hypot(vx, vy, vz) || 1;
+ _skyGrbDir = [vx / vl, vy / vl, vz / vl];
+ window.__grb = grbFlashAt(_skyGrbT);
+ return window.__grb;
+}
+window.sfTriggerGRB = skyTriggerGRB;
+window.sfSkyEventFreeze = function (age) {
+ if (!skyEventsOn()) return 0;
+ if (_skyGrbT < 0) skyTriggerGRB(age);
+ else _skyGrbT = Math.max(0, Number(age) || 0);
+ _skyFreeze = true;
+ window.__grb = grbFlashAt(_skyGrbT);
+ window.__occ = _skyOccT >= 0 ? skyOccDip(_skyOccT) : 0;
+ return window.__grb;
+};
+window.sfSkyEventRelease = function () { _skyFreeze = false; };
+
+/* Occultation envelope: 18% ingress, flat, 22% egress. */
+function skyOccDip(t) {
+ if (_skyOccDur <= 0) return 0;
+ const x = clamp(t / _skyOccDur, 0, 1);
+ const n = smooth(clamp(x / .18, 0, 1)) * (1 - smooth(clamp((x - .78) / .22, 0, 1)));
+ return _skyOccDepth * n;
+}
+function skyEventStarDim(st) {
+ if (!skyEventsOn() || _skyOccT < 0 || st !== _skyOccStar) return 1;
+ return 1 - skyOccDip(_skyOccT);
+}
+
+/* Pick a bright star that is ALREADY behind a world disk on screen. Both
+ * sides come from existing tables/positions; nothing is invented and nothing
+ * is moved. lensWarp matches the transform drawSky applies to the star. */
+function skyFindOccultation() {
+ let best = null, bestScore = 1e9;
+ for (const m of activeMasses) {
+  if (!m.w || m.kind === 4 || m.isBlackHole) continue;
+  const q = project([m.x, m.y, m.z]);
+  if (!q) continue;
+  const rad = m.r * q[3];
+  if (rad < 14) continue;
+  if (q[0] < -rad || q[0] > W + rad || q[1] < -rad || q[1] > H + rad) continue;
+  for (let i = 0; i < brightStars.length; i++) {
+   const st = brightStars[i];
+   const s = skyPoint([st.x, st.y, st.z]);
+   if (!s) continue;
+   const w = lensWarp(s[0], s[1]);
+   if (w[0] < -40 || w[0] > W + 40 || w[1] < -40 || w[1] > H + 40) continue;
+   const d = Math.hypot(w[0] - q[0], w[1] - q[1]);
+   if (d > rad * 1.05) continue;
+   const score = d / (rad + 1) / (.6 + st.size * .18);
+   if (score < bestScore) { bestScore = score; best = { m, star: st }; }
+  }
+ }
+ return best;
+}
+
+function updateSkyEvents(dt) {
+ if (!skyEventsOn()) { window.__grb = 0; window.__occ = 0; return; }
+ if (_skyFreeze) {
+  window.__grb = grbFlashAt(_skyGrbT);
+  window.__occ = _skyOccT >= 0 ? skyOccDip(_skyOccT) : 0;
+  return;
+ }
+ if (_skyGrbT >= 0) {
+  _skyGrbT += dt;
+  window.__grb = grbFlashAt(_skyGrbT);
+  if (_skyGrbT > _skyGrbDur + 20.4) { _skyGrbT = -1; window.__grb = 0; }
+ }
+ const k = Math.floor(travel / CHUNK);
+ if (k !== _skyEventsChunk) {
+  _skyEventsChunk = k;
+  /* One roll per chunk: ~1 burst per 200 chunks. */
+  if (started && _skyGrbT < 0 && hash(k, 7001) < .005) skyTriggerGRB(0);
+  /* Occultations only where the page already placed a world. */
+  let hasWorld = false;
+  if (started) {
+   const c = chunk(k);
+   for (const m of c.masses) if (m.w && m.kind !== 4) { hasWorld = true; break; }
+  }
+  _skyOccArmed = hasWorld && hash(k, 7101) < .55 && _skyOccT < 0;
+  _skyOccChunk = k;
+ }
+ if (_skyOccArmed) {
+  if (k !== _skyOccChunk || !started) _skyOccArmed = false;
+  else {
+   const pair = skyFindOccultation();
+   if (pair) {
+    _skyOccStar = pair.star;
+    _skyOccDur = 4 + 4 * hash(k, 7102);
+    _skyOccDepth = .72 + .22 * hash(k, 7103);
+    _skyOccT = 0; _skyOccArmed = false; window.__occ = 0;
+   }
+  }
+ }
+ if (_skyOccT >= 0) {
+  _skyOccT += dt;
+  if (_skyOccT > _skyOccDur) { _skyOccT = -1; window.__occ = 0; }
+  else window.__occ = skyOccDip(_skyOccT);
+ }
+}
+
+/* Depth-queue item: a thin, very faint ring at far depth, so a world in front
+ * of it still hides it. Called from drawSky before the sky's own flush. */
+function skyEventQueueRing() {
+ if (!skyEventsOn()) return;
+ const a = grbAfterglowAt();
+ if (a <= .0005 || !_skyGrbDir) return;
+ const q = skyPoint(_skyGrbDir);
+ if (!q) return;
+ const x = q[0], y = q[1];
+ const R = (camera.focal || 900) * (.085 + .05 * hash(_skyGrbChunk, 7005));
+ const grow = 1 + (1 - a / .16) * .14, r = R * grow;
+ const w = Math.max(2, r * .075), outer = r + w;
+ if (outer < 3) return;
+ if (x + outer < -40 || x - outer > W + 40 || y + outer < -40 || y - outer > H + 40) return;
+ const aa = a.toFixed(3);
+ queue.push({ type: 4, d: 1e6, alpha: 1, fn: () => {
+  const g = ctx.createRadialGradient(x, y, 0, x, y, outer);
+  g.addColorStop(Math.max(0, (r - w) / outer), 'rgba(140,205,255,0)');
+  g.addColorStop(Math.max(0, r / outer), 'rgba(214,240,255,' + aa + ')');
+  g.addColorStop(1, 'rgba(140,205,255,0)');
+  ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = g;
+  ctx.beginPath(); ctx.arc(x, y, outer, 0, TAU); ctx.fill(); ctx.restore();
+ }});
+}
+
+/* The burst itself: one additive full-screen fill on the existing canvas,
+ * after the depth queue has been flushed, before the existing post pass. */
+function drawSkyEvents() {
+ if (!skyEventsOn()) return;
+ const I = grbFlashAt(_skyGrbT);
+ if (I <= .002) return;
+ ctx.save(); ctx.globalCompositeOperation = 'lighter';
+ ctx.fillStyle = css([238, 246, 255], .96 * I);
+ ctx.fillRect(0, 0, W, H);
+ ctx.restore();
+ fillPx += W * H;
+}
+window.__skyEventState = () => ({
+ grbT: _skyGrbT, grbDur: _skyGrbDur, flash: window.__grb,
+ afterglow: grbAfterglowAt(), occT: _skyOccT, occDur: _skyOccDur, occ: window.__occ,
+ chunk: _skyEventsChunk
+});
+
 window.Starfield=Object.freeze({
  version:'v68-true-nadir-zenith-master',
  fleetCustomizer:()=>window.FleetCustomizer,
@@ -11149,6 +11345,7 @@ window.Starfield=Object.freeze({
    if(tessT>0){tessT+=step;if(tessT>TESS_DUR)tessT=0;}
    stepDeparture(step);
    currentPalette=region(routeX(travel),travel);
+   updateSkyEvents(step);
   }
   return {travel,time};
  },

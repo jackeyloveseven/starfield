@@ -1,11 +1,11 @@
 {
-  "version": "1.9.4",
-  "build": 133,
-  "updated_at": "2026-10-25T18:30:00+08:00",
+  "version": "1.10.0",
+  "build": 134,
+  "updated_at": "2026-10-25T18:55:00+08:00",
   "min_native_version": "1.0.0",
-  "title": "源义经 · 不要摇杆",
-  "changelog": "摇杆彻底移除：外环与旋钮都不再绘制，左下角保持空白；触控拖动仍然改航向",
+  "title": "源义经 · 抬头才看得见的东西",
+  "changelog": "加入两种罕见天空事件：伽马射线暴（约每 200 区块，0.25–0.4s 极亮闪光 + 20s 余辉环）与掩星（行星遮住亮星，4–8s 先暗后亮）。全部由 SEED+区块号派生，SF_SKY_EVENTS 可关",
   "entry": "starfield.html",
   "download_url": "https://jackeyloveseven.github.io/starfield/starfield.html",
-  "apk_release_url": "https://github.com/jackeyloveseven/starfield/releases/tag/v1.9.4-focus-apk"
+  "apk_release_url": "https://github.com/jackeyloveseven/starfield/releases/tag/v1.10.0-focus-apk"
 }
