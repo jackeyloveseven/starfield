@@ -233,9 +233,17 @@
 
 ## 性能
 
-1600×900 下稳定 60 fps，`fillMPx ≈ 10`。DPR 上限 2；黑洞精灵按 `SPRITE_CAP = 2048` 封顶。
+1600×900 下稳定 60 fps，`fillMPx ≈ 10`。黑洞精灵按 `SPRITE_CAP = 2048` 封顶。
 无头截图必须强制 SwiftShader（`--use-angle=swiftshader --enable-unsafe-swiftshader`），
 否则重 WebGL 会打崩 NVIDIA 驱动。
+
+**掉帧时先降分辨率，不是掉帧。** 每 3 秒算一次真实 fps：低于 45 就按 0.15 步长收紧
+`qualityScale`（1.0 → 0.55，DPR 下限 1.0），连续 5 个干净窗口再放回去。合成器的放大比一帧
+卡顿难看出来得多。画质档位（2K / 均衡 / 省电）只决定**上限**，自适应在这个上限之下工作。
+
+**画布走直通合成**：`getContext('2d', {alpha:false, desynchronized:true})`，少一次拷贝。
+**APK 不要 `setLayerType(LAYER_TYPE_HARDWARE)`**：那会把整个 WebView 塞进一个硬件层，
+每帧重传整层，比默认的合成器路径更慢；硬件加速靠 `android:hardwareAccelerated="true"` 就够。
 
 ---
 

@@ -1,11 +1,11 @@
 {
-  "version": "1.1.4",
-  "build": 106,
-  "updated_at": "2026-10-25T12:45:00+08:00",
+  "version": "1.1.5",
+  "build": 107,
+  "updated_at": "2026-10-25T13:05:00+08:00",
   "min_native_version": "1.0.0",
-  "title": "星空 · 手机端遮挡修复与热更新可靠性",
-  "changelog": "修复竖屏通讯卡压住镜头名、诗句溢出右边缘、起航点被裁切、横屏按钮压标题、触控行盖住里程行；设置与图鉴打开时通讯卡不再压在面板上，图鉴标签页与页脚在手机上不再挤压；修复 APK 热更新静默失败、版本号恒为 1.1.0、更新后 three.js 失效；全新史瓦西图标（自适应/圆形/单色/网页）",
+  "title": "星空 · 手机性能与图标重做",
+  "changelog": "画布改走 desynchronized 直通合成，APK 去掉强制硬件层；掉帧时先降分辨率再掉落帧（1.0x–1.75x 自适应），低画质不再一票否决；全新史瓦西图标（自适应/圆形/单色/网页）",
   "entry": "starfield.html",
   "download_url": "https://jackeyloveseven.github.io/starfield/starfield.html",
-  "apk_release_url": "https://github.com/jackeyloveseven/starfield/releases/tag/v1.1.4-focus-apk"
+  "apk_release_url": "https://github.com/jackeyloveseven/starfield/releases/tag/v1.1.5-focus-apk"
 }

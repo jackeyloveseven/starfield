@@ -75,8 +75,11 @@ public class MainActivity extends AppCompatActivity {
         settings.setAllowFileAccessFromFileURLs(true);
         settings.setAllowUniversalAccessFromFileURLs(true);
 
-        // Hardware acceleration & 2K WebGL / Canvas rendering performance
-        webView.setLayerType(View.LAYER_TYPE_HARDWARE, null);
+        // Hardware acceleration comes from android:hardwareAccelerated="true".
+        // Do NOT call setLayerType(LAYER_TYPE_HARDWARE) here: it forces the whole
+        // WebView into one hardware layer, so every canvas frame re-uploads the
+        // layer instead of going through the normal compositor path, and on many
+        // devices that costs more than half the frame rate.
         webView.setBackgroundColor(0xFF0B1118);
 
         webView.setWebChromeClient(new WebChromeClient());

@@ -1373,7 +1373,7 @@ body.modal-open #comms-hud {
     <div class="shortcut-list">
       <div class="shortcut-row">
         <span>客户端版本</span>
-        <span class="shortcut-key" id="sf-version-tag">v1.1.4 (Build 106)</span>
+        <span class="shortcut-key" id="sf-version-tag">v1.1.5 (Build 107)</span>
       </div>
       <div class="shortcut-row">
         <span>OTA 实时热更新</span>
@@ -3143,7 +3143,7 @@ body.modal-open #comms-hud {
  */
 (() => {
 const $ = id => document.getElementById(id);
-const root = $('world'), canvas = $('landscape'), ctx = canvas.getContext('2d', {alpha:false});
+const root = $('world'), canvas = $('landscape'), ctx = canvas.getContext('2d', {alpha:false, desynchronized:true});
 if (!ctx) { $('begin').textContent = '此浏览器无法使用 Canvas'; return; }
 // Slower than it was: at 108 the encounters were over before the eye had
 // settled on them, which is part of why the piece read as a slideshow.
@@ -3217,7 +3217,7 @@ const lookSmooth=[0,0,0];let lookInit=false;
 // The jump: 0 = no gate in progress. t runs 0..6.2 s.
 let gateT=0,gateTo=0,gateMass=null,gateFlash=0;
 let travel=SEGMENT*.5,departure=travel,time=0,flightTime=0,previewTime=0,frameCount=0,last=performance.now(),currentPalette=region(0,travel);
-let toastUntil=0,uiAccumulator=0,wakeLock=null,lowQuality=coarse;
+let toastUntil=0,uiAccumulator=0,wakeLock=null,lowQuality=coarse,qualityScale=1;
 const reducedMotion=matchMedia('(prefers-reduced-motion:reduce)').matches;
 const camera={yaw:-29*DEG,pitch:1.10,distance:1490,aimY:0,lane:0,roll:0,eye:[0,0,0],right:[1,0,0],up:[0,1,0],forward:[0,0,1],cx:0,cy:0,focal:0};
 const manual={yaw:camera.yaw,pitch:camera.pitch,distance:camera.distance,aimY:0,lane:0};
@@ -10609,7 +10609,7 @@ window.addEventListener('resize', () => {
 
 function resize(){
  rotated=false;W=innerWidth;H=innerHeight;
- DPR=(window.STARFIELD_QUALITY ? window.STARFIELD_QUALITY.getMaxDPR() : Math.min(devicePixelRatio||1,2)); window.DPR = DPR;
+ DPR=Math.max(1,(window.STARFIELD_QUALITY ? window.STARFIELD_QUALITY.getMaxDPR() : Math.min(devicePixelRatio||1,2))*qualityScale); window.DPR = DPR;
  root.classList.remove('rotated');root.classList.toggle('compact',H<580);root.style.width=W+'px';root.style.height=H+'px';root.style.setProperty('--unit',W>=3200?'2':W>=2200?'1.5':'1');
  canvas.width=Math.round(W*DPR);canvas.height=Math.round(H*DPR);ctx.setTransform(DPR,0,0,DPR,0,0);grainPattern=ctx.createPattern(grainCanvas,'repeat');
  if(H<580)root.style.setProperty('--pad','22px');else root.style.setProperty('--pad',W>=3200?'80px':W>=2200?'60px':W<1000?'26px':'40px');
@@ -10620,7 +10620,7 @@ $('edition-seed').textContent=`FIELD ${SEED.toString(16).toUpperCase().slice(0,6
 const btnOri = document.getElementById('orientation-toggle-btn'); if (btnOri) btnOri.addEventListener('click', () => { if (window.STARFIELD_ORIENTATION) window.STARFIELD_ORIENTATION.toggle(); });
 if(coarse){document.querySelector('.intro-footer').textContent='22 CRAFT.  ONE OPEN SKY.';document.querySelector('.intro-note').innerHTML='触摸屏幕，让风带路。<br>建议开启声音 · 无终点，无需抵达';$('hint').textContent='触摸引航 · 切换自主镜头后，可拖拽与双指缩放 · 轻触舱内键切换视角';}
 resize();updateUI();
-let lastFillPx=0,fps=60,framesInWindow=0,measureStart=performance.now(),slowWindows=0;
+let lastFillPx=0,fps=60,framesInWindow=0,measureStart=performance.now(),slowWindows=0,fastWindows=0;
 let __modalOpen=false;
 function frame(now){
  requestAnimationFrame(frame);const realDt=Math.min(.05,Math.max(.001,(now-last)/1000));last=now;
@@ -10653,7 +10653,17 @@ function frame(now){
  drawCockpit(time);paperFinish();postPass();
  uiAccumulator+=realDt;if(uiAccumulator>.12){uiAccumulator=0;updateUI();}
  frameCount++;framesInWindow++;lastFillPx=fillPx;fillPx=0;
- if(now-measureStart>3000){fps=framesInWindow*1000/(now-measureStart);framesInWindow=0;measureStart=now;if(fps<25)slowWindows++;else slowWindows=Math.max(0,slowWindows-1);if(slowWindows>2)lowQuality=true;}
+ if(now-measureStart>3000){fps=framesInWindow*1000/(now-measureStart);framesInWindow=0;measureStart=now;
+  if(fps<30)slowWindows++;else slowWindows=Math.max(0,slowWindows-1);
+  // coarse pointers keep the thin detail path; everything else may recover it
+  lowQuality=coarse||slowWindows>2;
+  // Below 45 fps, buy frames with resolution - the compositor's upscale is much
+  // less visible than a stutter. Go back up only after a long clean stretch.
+  const cap=window.STARFIELD_QUALITY?window.STARFIELD_QUALITY.getMaxDPR():Math.min(devicePixelRatio||1,2);
+  if(fps<45&&qualityScale>.55){qualityScale=Math.max(.55,qualityScale-.15);resize();}
+  else if(fps>57&&qualityScale<1&&++fastWindows>4){qualityScale=Math.min(1,qualityScale+.15);fastWindows=0;resize();}
+  if(fps<=57)fastWindows=0;
+}
 }
 // A small read-only diagnostic surface for inspecting a locally opened file.
 window.Starfield=Object.freeze({

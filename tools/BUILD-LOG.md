@@ -372,3 +372,24 @@ opacity 为 0 的子元素仍然是 `opacity:1`，不做这件事会得到一堆
 
 新增 `dbg_modal.py` + `probe_modal.js`：开设置面板后读 `body.className`、`isModalOpen()`、
 `#comms-hud` 的计算 opacity、标签页宽度 —— 一次运行就能判断「类有没有加上」而不是靠看。
+
+## v103–v104：把「帧率低」拆成三种原因
+
+「允许 GPU 加速，现在帧率低得不像话」这句话对应三个互不相干的原因：
+
+1. **画布多走了一次合成。** `getContext('2d',{alpha:false})` 没有 `desynchronized`，缓冲要先交回
+   合成器再上屏；加上之后可以直接从绘制缓冲合成。
+2. **APK 里强制了一个硬件层。** `webView.setLayerType(LAYER_TYPE_HARDWARE, null)` 会把整个
+   WebView 塞进单个 hardware layer，每帧 canvas 更新都要重传整层 —— 很多设备上这比默认路径
+   慢一半以上。硬件加速由 `android:hardwareAccelerated="true"` 提供，`setLayerType` 删掉。
+3. **分辨率是死的。** 之前的 DPR 在启动时按画质档位定死，设备扛不住就只剩掉帧一条路。现在
+   每 3 秒量一次真实 fps：<45 按 0.15 步长降 `qualityScale`（下限 DPR 1.0），>57 连续 5 个窗口
+   再放回去。**先降分辨率，再谈掉帧** —— 合成器放大比卡顿难看出来。
+
+顺手修掉一个一直没回头的问题：`lowQuality` 只要连续 3 个窗口 <25fps 就置 true，**之后再也不会
+变回 false**，一次卡顿会让整场星空永远变稀。现在每个窗口重算（触摸设备仍强制走轻量路径，这是
+有意的）。
+
+`icon.py` 一并入库：环带按半径的高斯剖面逐像素算，不是描边圆弧；亮度按方位角不对称
+（迎面白热、背面余烬）。补了 `mipmap-anydpi-v26` 自适应图标与 monochrome 单色图标 ——
+没有它们，Android 8+ 会把旧 PNG 缩进一个白圆里。

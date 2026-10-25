@@ -68,8 +68,8 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: github.ref == 'refs/heads/master'
         with:
-          tag_name: v1.1.4-focus-apk
-          name: "星空专注 · Android v1.1.4"
+          tag_name: v1.1.5-focus-apk
+          name: "星空专注 · Android v1.1.5"
           body: |
             ### 🌌 星空 · STARFIELD // 挂机深空探索与专注番茄钟 Android 安装包 (APK)
             
