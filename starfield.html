@@ -8245,7 +8245,10 @@ function drawSky(){
  // is the star's own direction pushed away from the travel pole and projected,
  // so it is a real arc of the sphere, not a 2D offset.
  const buckets=[[],[],[],[]];
- const limit=lowQuality?Math.floor(stars.length*.26):stars.length;
+ // star COUNT per region: a dim sky with all its stars is still the same sky.
+ const _pm=(typeof p!=='undefined')?p:{core:.2,shimmer:.2,void:.2};
+ const _rc=clamp(.55+(_pm.core||0)*.95+(_pm.shimmer||0)*.25-(_pm.void||0)*.5,.12,1.4);
+ const limit=Math.floor((lowQuality?stars.length*.26:stars.length)*_rc);
  for(let i=0;i<limit;i++){
   const st=stars[i],q=skyPoint([st.x,st.y,st.z]);if(!q)continue;
   const w=lensWarp(q[0],q[1]),x=w[0],y=w[1];

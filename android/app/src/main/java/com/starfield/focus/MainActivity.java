@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.SystemClock;
 import android.util.Log;
 import android.view.View;
 import android.view.Window;
@@ -52,6 +53,7 @@ public class MainActivity extends AppCompatActivity {
      *  still be parsing and would drop an evaluateJavascript() call. */
     private volatile boolean pageReady = false;
     private String pendingNotify = null;
+    private long lastBack = 0L;
 
     @SuppressLint("SetJavaScriptEnabled")
     @Override
@@ -397,7 +399,12 @@ public class MainActivity extends AppCompatActivity {
         if (webView == null) { super.onBackPressed(); return; }
         webView.evaluateJavascript("(window.__sfBack && window.__sfBack())?'1':'0'", value -> {
             if ("\"1\"".equals(value)) return;
-            if (webView.canGoBack()) webView.goBack(); else finish();
+            // Double back to leave: the first press warns, the second one exits.
+            long now = SystemClock.uptimeMillis();
+            if (now - lastBack < 2000) { finish(); return; }
+            lastBack = now;
+            webView.evaluateJavascript(
+                "if(window.toast)toast('再按一次退出 · PRESS BACK AGAIN', 1.6)", null);
         });
     }
 
