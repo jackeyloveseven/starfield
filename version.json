@@ -1,11 +1,11 @@
 {
-  "version": "1.7.1",
-  "build": 126,
-  "updated_at": "2026-10-25T16:00:00+08:00",
+  "version": "1.7.2",
+  "build": 127,
+  "updated_at": "2026-10-25T16:15:00+08:00",
   "min_native_version": "1.0.0",
-  "title": "源义经 · 揭晓的那一下",
-  "changelog": "孵化揭晓加上情绪：点亮时上浮与闪光（品级越高越强），传说/神话多一圈 600ms 扩散光环，现场合成 3–5 音琶音；尊重 reduced-motion；AudioContext 只在点击手势内创建并静默失败",
+  "title": "源义经 · 卡面成为一件东西",
+  "changelog": "星球卡加质感：烫金编号、品级色内描边、纸纹点阵、厚度高光与内阴影，第二次点击翻面看轨道/日期/时长",
   "entry": "starfield.html",
   "download_url": "https://jackeyloveseven.github.io/starfield/starfield.html",
-  "apk_release_url": "https://github.com/jackeyloveseven/starfield/releases/tag/v1.7.1-focus-apk"
+  "apk_release_url": "https://github.com/jackeyloveseven/starfield/releases/tag/v1.7.2-focus-apk"
 }

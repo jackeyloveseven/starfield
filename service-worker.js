@@ -1,6 +1,6 @@
 // Bump CACHE_VERSION together with version.json on every web release.
 const CACHE_PREFIX = 'starfield-focus-';
-const CACHE_VERSION = 'v1.7.1-b126';
+const CACHE_VERSION = 'v1.7.2-b127';
 const CACHE_NAME = CACHE_PREFIX + CACHE_VERSION;
 const SHELL = './starfield.html';
 const PRECACHE = [
@@ -38,8 +38,8 @@ self.addEventListener('activate', (event) => {
 async function networkFirst(request) {
   const cache = await caches.open(CACHE_NAME);
   try {
-    // no-cache still revalidates with the server instead of trusting HTTP freshness.
-    const response = await fetch(request, { cache: 'no-cache' });
+    // reload bypasses the HTTP cache so a stale page can never win here.
+    const response = await fetch(request, { cache: 'reload' });
     if (response.ok) {
       cache.put(request, response.clone()).catch(() => {});
     }
