@@ -393,3 +393,19 @@ opacity 为 0 的子元素仍然是 `opacity:1`，不做这件事会得到一堆
 `icon.py` 一并入库：环带按半径的高斯剖面逐像素算，不是描边圆弧；亮度按方位角不对称
 （迎面白热、背面余烬）。补了 `mipmap-anydpi-v26` 自适应图标与 monochrome 单色图标 ——
 没有它们，Android 8+ 会把旧 PNG 缩进一个白圆里。
+
+## v105–v106：按 GPU 分档，而不是「一个上限管所有设备」
+
+同一份文件要跑在天玑 9400+（Mali-G925）、4K 屏的核显、5070 Ti，以及 SwiftShader 上。差别不在代码路径，
+只在**每帧画多少像素是合理的**，所以只让 DPR 上限随 GPU 走：
+
+| 渲染器串 | 档 | DPR 上限 |
+|---|---|---|
+| Mali / Adreno / PowerVR / Immortalis / Apple GPU | `mobile` | 1.75 |
+| Intel / Iris / UHD / Radeon(TM) Graphics | `igpu` | 1.6 |
+| GeForce / RTX / Radeon RX / Arc | `dgpu` | 2.0 |
+| SwiftShader / llvmpipe | `cpu` | 1.0 |
+
+探测一次、读完就释放上下文；`?gpu=mobile|igpu|dgpu|cpu` 可以在没有对应硬件时验证分档。
+黑洞着色器的上下文补上 `powerPreference:'high-performance'` —— **不写这一条，混合显卡笔记本
+可能把 WebGL 放到核显上**，而这正好是「拿着 5070 Ti 跑核显」。

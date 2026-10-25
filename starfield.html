@@ -1373,7 +1373,7 @@ body.modal-open #comms-hud {
     <div class="shortcut-list">
       <div class="shortcut-row">
         <span>客户端版本</span>
-        <span class="shortcut-key" id="sf-version-tag">v1.1.5 (Build 107)</span>
+        <span class="shortcut-key" id="sf-version-tag">v1.1.6 (Build 108)</span>
       </div>
       <div class="shortcut-row">
         <span>OTA 实时热更新</span>
@@ -6451,7 +6451,7 @@ function bootHoleGL(){
   let cv,gl,prog,u={},texOrganic,texNoise;
   try{
     cv=document.createElement('canvas');
-    gl=cv.getContext('webgl2',{alpha:true,antialias:false,premultipliedAlpha:true});
+    gl=cv.getContext('webgl2',{alpha:true,antialias:false,premultipliedAlpha:true,powerPreference:'high-performance'});
     if(!gl)return null;
     const vs=gl.createShader(gl.VERTEX_SHADER);
     gl.shaderSource(vs,`#version 300 es
@@ -10462,12 +10462,43 @@ document.addEventListener('visibilitychange',()=>{last=performance.now();if(docu
 window.addEventListener('blur',()=>{wind.active=false;wind.last=time;pointers.clear();});
 // --- 2K Ultra Resolution & Adaptive Performance Engine (Anti-Stutter & Battery Saver) ---
 const _isMobileDevice = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || (typeof window !== 'undefined' && 'ontouchstart' in window);
+// --- GPU tier ---------------------------------------------------------------
+// Read the renderer string once, at boot, and keep it: the only decision it
+// feeds is the DPR ceiling, and a WebGL context just for the string is cheap
+// once it is released again.
+function _detectGpu(){
+ let name='unknown',tier='balanced';
+ try{
+  const cv=document.createElement('canvas');
+  const gl=cv.getContext('webgl2',{powerPreference:'high-performance'})||cv.getContext('webgl');
+  if(gl){
+   const ext=gl.getExtension('WEBGL_debug_renderer_info');
+   if(ext)name=String(gl.getParameter(ext.UNMASKED_RENDERER_WEBGL)||'');
+   const lc=gl.getExtension('WEBGL_lose_context');
+   if(lc)lc.loseContext();
+  }
+ }catch(e){}
+ const s=name.toLowerCase();
+ if(/swiftshader|llvmpipe|software|basic render/.test(s))tier='cpu';
+ else if(/mali|adreno|powervr|immortalis|apple gpu/.test(s))tier='mobile';
+ else if(/intel|iris|uhd graphics|radeon\(tm\) graphics|vega \d+ graphics/.test(s))tier='igpu';
+ else if(/nvidia|geforce|rtx|radeon rx|arc a\d/.test(s))tier='dgpu';
+ // ?gpu= lets a tier be checked without owning the hardware
+ const q=/[?&]gpu=(\w+)/.exec(location.search);
+ if(q&&['cpu','mobile','igpu','dgpu','balanced'].includes(q[1]))tier=q[1];
+ return {tier:tier,name:name};
+}
+const _GPU=_detectGpu();
 window.STARFIELD_QUALITY = {
   profile: _isMobileDevice ? 'balanced' : '2k', // Mobile defaults to balanced for silky 60fps; Desktop defaults to 2K
+  // Fill-rate ceilings by GPU class. A phone panel is 3x, but drawing 6 MP per
+  // frame on a Mali is how a 60 fps piece becomes a 30 fps one.
+  tierCap: { cpu: 1.0, mobile: 1.75, igpu: 1.6, dgpu: 2.0, balanced: 2.0 },
   getMaxDPR() {
     const raw = window.devicePixelRatio || 1.0;
-    if (this.profile === '2k') return Math.min(raw, 3.0);
-    if (this.profile === 'balanced') return _isMobileDevice ? Math.min(raw, 1.75) : Math.min(raw, 2.0);
+    const cap = this.tierCap[_GPU.tier] || 2.0;
+    if (this.profile === '2k') return Math.min(raw, Math.min(3.0, cap + 0.5));
+    if (this.profile === 'balanced') return Math.min(raw, cap);
     return Math.min(raw, 1.25);
   },
   setProfile(p) {
@@ -10677,7 +10708,7 @@ window.Starfield=Object.freeze({
  palette:()=>({index:currentPalette.index,t:currentPalette.t,sky:currentPalette.sky,horizon:currentPalette.horizon,fog:currentPalette.fog,tree:currentPalette.tree,craft:currentPalette.craft,sun:currentPalette.sun,shimmer:currentPalette.shimmer,front:currentPalette.front}),
  flock:()=>{let mx=0,mv=0,bad=false;for(const b of fleet){const d=Math.hypot(b.x,b.y,b.z);if(d>mx)mx=d;const v=Math.hypot(b.vx,b.vy,b.vz);if(v>mv)mv=v;if(!Number.isFinite(b.x+b.y+b.z+b.vx+b.vy+b.vz))bad=true;}return {radius:Math.round(mx),speed:Math.round(mv),bad};},
  holeGL:!!holeGL,
- getState:()=>({seed:SEED,started,paused,autoCamera,region:rawStyles[currentPalette.index].en,regionMix:currentPalette.t,travel,flightTime,capture:capturePhase,captureT,sling:Math.round(sling*100)/100,masses:activeMasses.length,kinds:activeMasses.map(m=>m.kind).sort().join(''),lensSources:lensSources.length,nebTex:nebCache.size,nebGens,fillMPx:+(lastFillPx/1e6).toFixed(1),fleet:fleet.length,particles:particles.length,variation:cycle+1,lens:plans.get(cycle)[shot].name,distance:camera.distance,pitch:camera.pitch,yaw:camera.yaw,eye:[...camera.eye],fps:Math.round(fps),drawCalls,loadedChunks:chunks.size,rotated,width:W,height:H,dpr:DPR,audio:sound.ready?sound.ac.state:'not-started',track:sound.index+1,postMs:+(postMs).toFixed(2),postOn,holeGL:!!holeGL,holeDraws,holeLastRad}),
+ getState:()=>({seed:SEED,started,paused,autoCamera,region:rawStyles[currentPalette.index].en,regionMix:currentPalette.t,travel,flightTime,capture:capturePhase,captureT,sling:Math.round(sling*100)/100,masses:activeMasses.length,kinds:activeMasses.map(m=>m.kind).sort().join(''),lensSources:lensSources.length,nebTex:nebCache.size,nebGens,fillMPx:+(lastFillPx/1e6).toFixed(1),fleet:fleet.length,particles:particles.length,variation:cycle+1,lens:plans.get(cycle)[shot].name,distance:camera.distance,pitch:camera.pitch,yaw:camera.yaw,eye:[...camera.eye],fps:Math.round(fps),drawCalls,loadedChunks:chunks.size,rotated,width:W,height:H,dpr:DPR,audio:sound.ready?sound.ac.state:'not-started',track:sound.index+1,postMs:+(postMs).toFixed(2),postOn,holeGL:!!holeGL,gpu:_GPU.tier,gpuName:String(_GPU.name).slice(0,48),dprCap:(window.STARFIELD_QUALITY?STARFIELD_QUALITY.tierCap[_GPU.tier]:null),holeDraws,holeLastRad}),
  getLensSources:()=>lensSources.map(L=>({...L})),
  lensWarp:(x,y)=>lensWarp(x,y),
  updateLens:()=>updateLens(),
