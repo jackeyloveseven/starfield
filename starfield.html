@@ -492,6 +492,32 @@ body.modal-open #comms-hud {
   box-shadow: 0 0 10px #ffd700;
   animation: focusPulse 1.8s infinite ease-in-out;
 }
+/* v144: dilation readout in the focus HUD and panels. */
+.sf-focus-ticker-dilation {
+  font-size: 9px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(136, 192, 255, 0.13);
+  color: #9ecbff;
+  letter-spacing: 0.06em;
+}
+.sf-focus-ticker-warn {
+  font-size: 9px;
+  color: #ffb86b;
+  letter-spacing: 0.06em;
+}
+.sf-focus-dilation-note {
+  margin-top: 10px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 184, 107, 0.35);
+  background: rgba(255, 184, 107, 0.08);
+  color: #ffcf9a;
+  font-size: 11px;
+  line-height: 1.55;
+  letter-spacing: 0.04em;
+  text-align: center;
+}
 @keyframes focusPulse {
   0%, 100% { transform: scale(0.85); opacity: 0.6; }
   50% { transform: scale(1.25); opacity: 1.0; }
@@ -11210,8 +11236,45 @@ window.__skyEventState = () => ({
  chunk: _skyEventsChunk
 });
 
+/* v144: gravitational time dilation at the Gargantua horizon.
+ * d = sqrt(1 - rs/r) is the proper-time rate beside the hole relative to a
+ * distant clock. The shader's rs is 1 and its shadow radius is 2.598, while
+ * the sprite radius is m.r * focal / dist, so rs_world = m.r / 2.598. */
+if (typeof window.SF_TIME_DILATION === 'undefined') window.SF_TIME_DILATION = true;
+window.sfTimeDilation = function(rsRatio){
+ const x = Number(rsRatio);
+ if (!isFinite(x) || x <= 0) return 1;
+ if (x >= 1) return 0;
+ return Math.sqrt(1 - x);
+};
+window.sfFocusDilation = function(rsRatio){
+ if (window.SF_TIME_DILATION === false) return 1;
+ return window.sfTimeDilation(rsRatio);
+};
+window.sfFocusAdvance = function(elapsedSec, dtSec, d){
+ const e = Number(elapsedSec), dt = Number(dtSec), k = Number(d);
+ if (!isFinite(e)) return 0;
+ if (!isFinite(dt) || dt <= 0) return e;
+ const scale = isFinite(k) ? Math.max(0, Math.min(1, k)) : 1;
+ return e + dt * scale;
+};
+window.sfDilationInfo = function(){
+ const lw = craftWorld(fleet[LEAD]);
+ let best = null, bd = 1e9;
+ for (const m of activeMasses) {
+  if (m.kind !== 4) continue;
+  const dist = Math.hypot(lw[0] - m.x, lw[1] - m.y, lw[2] - m.z);
+  if (dist < bd) { bd = dist; best = m; }
+ }
+ if (!best) return { d: 1, ratio: 0, r: Infinity, rs: 0, active: false, enabled: window.SF_TIME_DILATION !== false };
+ const rs = (best.r || 3500) / 2.598;
+ const ratio = rs / Math.max(bd, 1e-9);
+ return { d: window.sfFocusDilation(ratio), ratio, r: bd, rs, active: true, enabled: window.SF_TIME_DILATION !== false };
+};
 window.Starfield=Object.freeze({
  version:'v68-true-nadir-zenith-master',
+ getDilationInfo:()=>window.sfDilationInfo(),
+ getTimeDilation:()=>window.sfDilationInfo().d,
  fleetCustomizer:()=>window.FleetCustomizer,
  holeDir:()=>{let best=null,bd=1e9;const lw=craftWorld(fleet[LEAD]);
  for(const m of activeMasses){if(m.kind!==4)continue;const d=Math.hypot(lw[0]-m.x,lw[1]-m.y,lw[2]-m.z);if(d<bd){bd=d;best=m;}}
@@ -15092,6 +15155,9 @@ document.addEventListener('DOMContentLoaded', () => {
       this.wakeLock = null;
       this.selectedPresetIndex = 2; // Default 30min
       this.isDashboardOpen = false;
+      // v144: wall-clock anchor and the last dilation factor used.
+      this.lastTickMs = 0;
+      this.dilation = 1;
 
       this.stats = this.loadStats();
       this.setupVisibilityListeners();
@@ -15185,9 +15251,15 @@ document.addEventListener('DOMContentLoaded', () => {
       const content = document.createElement('div');
       content.className = 'sf-focus-modal-box';
 
+      const _dil = (window.SF_TIME_DILATION !== false && window.Starfield && window.Starfield.getDilationInfo)
+        ? window.Starfield.getDilationInfo() : null;
+      const _dilLine = (_dil && _dil.active)
+        ? `<div class="sf-focus-dilation-note">当前引力时间 ×${_dil.d.toFixed(2)}${_dil.d < 0.95 ? '<br>你正在黑洞旁专注，洞外时间流逝更快' : ''}</div>`
+        : '';
       content.innerHTML = `
         <div class="sf-focus-badge">FOCUS EXPEDITION // CHRONO FLOW</div>
         <h2>深空专注远征 · 番茄钟心流</h2>
+        ${_dilLine}
         <div class="sf-focus-summary">
           把手机作为深空挂机摆件。星舰在浩瀚宇宙中默默前行，伴你进入深度心流。
           <div class="sf-focus-alert-text">
@@ -15255,6 +15327,9 @@ document.addEventListener('DOMContentLoaded', () => {
       this.targetDurationSec = Math.max(60, durationMinutes * 60);
       this.elapsedSec = 0;
       this.state = 'RUNNING';
+      // v144: ticks integrate wall-clock dt * d, so anchor on start.
+      this.lastTickMs = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+      this.dilation = this.currentDilation();
 
       const SF = window.Starfield;
       this.startTravel = (SF && SF.getTravel) ? SF.getTravel() : 0;
@@ -15289,13 +15364,31 @@ document.addEventListener('DOMContentLoaded', () => {
     tick() {
       if (this.state !== 'RUNNING') return;
 
-      this.elapsedSec++;
+      // v144: advance proper (in-hole) time by wall-clock dt * d. A minute
+      // beside the horizon is a longer minute outside; the target stays in
+      // proper time, so 15/30/60 still mean the minutes you experience.
+      const nowMs = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+      let dt = this.lastTickMs ? (nowMs - this.lastTickMs) / 1000 : 1;
+      this.lastTickMs = nowMs;
+      if (!isFinite(dt) || dt < 0) dt = 0;
+      const d = this.currentDilation();
+      this.dilation = d;
+      this.elapsedSec = (typeof window.sfFocusAdvance === 'function')
+        ? window.sfFocusAdvance(this.elapsedSec, dt, d)
+        : this.elapsedSec + dt * d;
       this.updateTickerHUD(true);
 
       // Check for mission completion
       if (this.elapsedSec >= this.targetDurationSec) {
         this.completeMission();
       }
+    }
+
+    currentDilation() {
+      if (window.SF_TIME_DILATION === false) return 1;
+      const SF = window.Starfield;
+      const d = (SF && SF.getTimeDilation) ? SF.getTimeDilation() : 1;
+      return isFinite(d) ? Math.max(0, Math.min(1, d)) : 1;
     }
 
     triggerWarning() {
@@ -15325,6 +15418,9 @@ document.addEventListener('DOMContentLoaded', () => {
         this.warningTimerId = null;
       }
       this.state = 'RUNNING';
+      // v144: the warning seconds were wall-clock but not focus time; do not
+      // dump that gap into the next tick.
+      this.lastTickMs = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
       showToast('[GRAVITY STABILIZED] 引力约束已恢复重稳 · 继续专注深空巡航', 4);
     }
 
@@ -15428,11 +15524,21 @@ document.addEventListener('DOMContentLoaded', () => {
       const m = Math.floor(rem / 60);
       const s = Math.floor(rem % 60);
       const timeStr = `${m < 10 ? '0' : ''}${m}:${s < 10 ? '0' : ''}${s}`;
+      const dilationOn = (window.SF_TIME_DILATION !== false);
+      const dNow = this.dilation || 1;
+      const dilTag = dilationOn
+        ? `<span class="sf-focus-ticker-dilation">引力时间 ×${dNow.toFixed(2)}</span>`
+        : '';
+      const dilWarn = (dilationOn && dNow < 0.95)
+        ? `<span class="sf-focus-ticker-warn">洞外时间更快</span>`
+        : '';
+      ticker.title = (dilationOn && dNow < 0.95) ? '你正在黑洞旁专注，洞外时间流逝更快' : '';
       ticker.innerHTML = `
         <div class="sf-focus-pulse-dot"></div>
         <span class="sf-focus-ticker-tag">FOCUS</span>
         <span class="sf-focus-ticker-time">${timeStr}</span>
         <span class="sf-focus-ticker-sub">AUTONOMOUS CRUISE</span>
+        ${dilTag}${dilWarn}
       `;
     }
 
@@ -15444,6 +15550,14 @@ document.addEventListener('DOMContentLoaded', () => {
       const SF = window.Starfield;
       const travelVal = SF && SF.getTravel ? SF.getTravel() : 0;
       const distance = (travelVal * 0.001).toFixed(1);
+      // v144: the live gravitational time rate, read at panel open.
+      const dilationOn = (window.SF_TIME_DILATION !== false);
+      const dilInfo = (dilationOn && window.Starfield && window.Starfield.getDilationInfo)
+        ? window.Starfield.getDilationInfo() : { d: 1 };
+      const dilD = (dilInfo && isFinite(dilInfo.d)) ? dilInfo.d : 1;
+      const dilRow = dilationOn ? `<div><span>引力时间</span><b>×${dilD.toFixed(2)}</b></div>` : '';
+      const dilNote = (dilationOn && dilD < 0.95)
+        ? '<div class="sf-focus-dilation-note">你正在黑洞旁专注，洞外时间流逝更快</div>' : '';
 
       const existing = document.getElementById('sf-focus-active-modal');
       if (existing) existing.remove();
@@ -15462,7 +15576,9 @@ document.addEventListener('DOMContentLoaded', () => {
           <div><span>剩余时间</span><b style="font-size:20px;color:#fff3a8;">${timeStr}</b></div>
           <div><span>当前里程</span><b>${distance} KLY</b></div>
           <div><span>目标时长</span><b>${Math.round(this.targetDurationSec / 60)} 分钟</b></div>
+          ${dilRow}
         </div>
+        ${dilNote}
         <p class="sf-focus-summary" style="text-align:center;">
           星舰正在深空自主巡航，请将手机放置在桌面享受星光与古典乐心流。<br>
           <span style="opacity:0.6;font-size:12px;">（屏幕常亮保护已开启 · 切出应用或离开界面将导致坠机）</span>

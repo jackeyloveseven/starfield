@@ -1,11 +1,11 @@
 {
-  "version": "1.11.0",
-  "build": 135,
-  "updated_at": "2026-10-25T19:20:00+08:00",
+  "version": "1.12.0",
+  "build": 136,
+  "updated_at": "2026-10-25T19:45:00+08:00",
   "min_native_version": "1.0.0",
-  "title": "源义经 · 给星球起名字",
-  "changelog": "命名权：卡面背面内联输入框，每颗只能命名一次（2–12 字），名字写进收藏、刷新与重开浏览器仍在，烫金行追加「自命名」；顺带修好卡面编号在回看旧星球时错位",
+  "title": "源义经 · 在黑洞旁专注",
+  "changelog": "引力时间膨胀：靠近黑洞时专注计时按 √(1−rs/r) 变慢，洞内 25 分钟洞外更久；面板显示「引力时间 ×0.90」并在低于 0.95 时提示洞外更快；SF_TIME_DILATION 可关",
   "entry": "starfield.html",
   "download_url": "https://jackeyloveseven.github.io/starfield/starfield.html",
-  "apk_release_url": "https://github.com/jackeyloveseven/starfield/releases/tag/v1.11.0-focus-apk"
+  "apk_release_url": "https://github.com/jackeyloveseven/starfield/releases/tag/v1.12.0-focus-apk"
 }
