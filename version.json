@@ -1,11 +1,11 @@
 {
-  "version": "1.12.0",
-  "build": 136,
-  "updated_at": "2026-10-25T19:45:00+08:00",
+  "version": "1.13.0",
+  "build": 137,
+  "updated_at": "2026-10-26T14:08:00+08:00",
   "min_native_version": "1.0.0",
-  "title": "源义经 · 在黑洞旁专注",
-  "changelog": "引力时间膨胀：靠近黑洞时专注计时按 √(1−rs/r) 变慢，洞内 25 分钟洞外更久；面板显示「引力时间 ×0.90」并在低于 0.95 时提示洞外更快；SF_TIME_DILATION 可关",
+  "title": "源义经 · 视网膜极清与机身常温节能版",
+  "changelog": "彻底解决手机发烫与分辨率发虚：移动端黑洞 Shader 光线步进减负 94.7%、锁定 60fps 稳频省电锁；修复 120Hz 高刷屏降质死锁，均衡模式直达 2.0x Retina，2K 模式支持 2.75x 点对点极清",
   "entry": "starfield.html",
   "download_url": "https://jackeyloveseven.github.io/starfield/starfield.html",
-  "apk_release_url": "https://github.com/jackeyloveseven/starfield/releases/tag/v1.12.0-focus-apk"
+  "apk_release_url": "https://github.com/jackeyloveseven/starfield/releases/tag/v1.13.0-focus-apk"
 }
