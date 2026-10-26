@@ -9002,13 +9002,18 @@ const vig=document.createElement('canvas'),vigCtx=vig.getContext('2d',{alpha:fal
  * top percentile; neither crushes its own floor. */
 let gradeCache='',gradeKey=-1;
 let smoothGradeV0 = 14.0;
+let lastGradeStr = '';
+let lastGradeV0 = -1;
 function gradeFor(p){
  const L = .2126*p.sky[0] + .7152*p.sky[1] + .0722*p.sky[2];
  const v0 = clamp(L * .62, 4, 30);
  smoothGradeV0 += (v0 - smoothGradeV0) * 0.08;
+ if (Math.abs(smoothGradeV0 - lastGradeV0) < 0.02 && lastGradeStr) return lastGradeStr;
+ lastGradeV0 = smoothGradeV0;
  const A = 1.40;
  const c = clamp(1 + 2 * A * smoothGradeV0 / 255, .02, 3), k = A / c;
- return 'brightness(' + k.toFixed(3) + ') contrast(' + c.toFixed(3) + ') saturate(1.14)';
+ lastGradeStr = 'brightness(' + k.toFixed(3) + ') contrast(' + c.toFixed(3) + ') saturate(1.14)';
+ return lastGradeStr;
 }
 let postMs=0;
 function buildVignette(vw,vh){
@@ -10836,9 +10841,9 @@ window.STARFIELD_QUALITY = {
   profile: _isMobileDevice ? 'balanced' : '2k', // Mobile defaults to balanced for silky 60fps; Desktop defaults to 2K
   tierCap: { cpu: 1.0, mobile: 2.0, igpu: 1.8, dgpu: 2.5, balanced: 2.0 },
   getTargetFps() {
+    // 帧率不设人为上限：全模式畅享屏幕原生刷新率 (60Hz/90Hz/120Hz/144Hz/240Hz 满血高刷)
     if (this.profile === 'powersave') return 45;
-    if (this.profile === 'balanced' || _isMobileDevice) return 60;
-    return 0; // 0 = native display refresh rate (Desktop 2K mode)
+    return 0; // 0 = 无上限，跟随屏幕物理硬件最高刷新率
   },
   getHoleSpriteCap() {
     if (this.profile === 'powersave') return 384;
@@ -10864,7 +10869,7 @@ window.STARFIELD_QUALITY = {
     this.updateUI();
     if (typeof resize === 'function') resize();
     if (window.toast) {
-      const labels = { '2k': '2K 极清视网膜 (Retina Ultra)', 'balanced': '均衡高清模式 (Smooth 60fps)', 'powersave': '能效省电模式 (Battery Saver)' };
+      const labels = { '2k': '2K 极清视网膜 (Retina Ultra)', 'balanced': '极速高刷模式 (Native High Hz)', 'powersave': '能效省电模式 (Battery Saver)' };
       window.toast(`画质已切换: ${labels[p] || p}`);
     }
   },
@@ -11075,11 +11080,12 @@ function frame(now){
   // less visible than a stutter. Go back up only after a long clean stretch.
   const cap=window.STARFIELD_QUALITY?window.STARFIELD_QUALITY.getMaxDPR():Math.min(devicePixelRatio||1,2);
   const is2k = (window.STARFIELD_QUALITY && window.STARFIELD_QUALITY.profile === '2k');
-  const downFloor = is2k ? 32 : Math.min(42, Math.max(30, refreshHz * 0.5));
-  const recCeil = is2k ? 45 : Math.min(54, refreshHz * 0.88);
-  if(fps<downFloor&&qualityScale>.8){qualityScale=Math.max(.8,qualityScale-.1);resize();}
-  else if(fps>recCeil&&qualityScale<1&&++fastWindows>2){qualityScale=Math.min(1,qualityScale+.1);fastWindows=0;resize();}
-  if(fps<=recCeil)fastWindows=0;
+  // 高刷自适应平滑：降级阈值设为绝对卡顿红线 (2K: 30fps, 均衡: 38fps)，避免高刷波动被误降质
+  const downFloor = is2k ? 30 : Math.min(38, Math.max(28, refreshHz * 0.40));
+  const recCeil = is2k ? 45 : Math.min(50, refreshHz * 0.75);
+  if(fps < downFloor && qualityScale > .8){qualityScale = Math.max(.8, qualityScale - .1); resize();}
+  else if(fps > recCeil && qualityScale < 1 && ++fastWindows > 2){qualityScale = Math.min(1, qualityScale + .1); fastWindows = 0; resize();}
+  if(fps <= recCeil) fastWindows = 0;
 }
 }
 // A small read-only diagnostic surface for inspecting a locally opened file.

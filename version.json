@@ -1,11 +1,11 @@
 {
-  "version": "1.13.0",
-  "build": 137,
-  "updated_at": "2026-10-26T14:08:00+08:00",
+  "version": "1.13.1",
+  "build": 138,
+  "updated_at": "2026-10-26T17:30:00+08:00",
   "min_native_version": "1.0.0",
-  "title": "源义经 · 视网膜极清与机身常温节能版",
-  "changelog": "彻底解决手机发烫与分辨率发虚：移动端黑洞 Shader 光线步进减负 94.7%、锁定 60fps 稳频省电锁；修复 120Hz 高刷屏降质死锁，均衡模式直达 2.0x Retina，2K 模式支持 2.75x 点对点极清",
+  "title": "源义经 · 原生高刷畅享与渲染管线优化",
+  "changelog": "彻底解锁帧率上限：全模式畅享 60/90/120/144/240Hz 屏幕硬件满血高刷；滤镜字符串与着色器动态调谐优化，高刷自适应平滑防掉质",
   "entry": "starfield.html",
   "download_url": "https://jackeyloveseven.github.io/starfield/starfield.html",
-  "apk_release_url": "https://github.com/jackeyloveseven/starfield/releases/tag/v1.13.0-focus-apk"
+  "apk_release_url": "https://github.com/jackeyloveseven/starfield/releases/tag/v1.13.1-focus-apk"
 }

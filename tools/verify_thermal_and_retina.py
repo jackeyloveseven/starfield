@@ -55,12 +55,12 @@ def verify_thermal_and_retina():
         raw_dpr = page.evaluate("() => window.devicePixelRatio")
 
         print(f"   - Profile: {profile} (Expected: balanced)")
-        print(f"   - Target FPS: {target_fps} (Expected: 60)")
+        print(f"   - Target FPS: {target_fps} (Expected: 0, Uncapped Native Hz)")
         print(f"   - Hole Sprite Cap: {sprite_cap} (Expected: 512)")
         print(f"   - Active DPR: {dpr} (Expected: 2.0, Raw: {raw_dpr})")
 
         assert profile == 'balanced', f"Expected profile 'balanced', got {profile}"
-        assert target_fps == 60, f"Expected mobile target FPS 60, got {target_fps}"
+        assert target_fps == 0, f"Expected uncapped target FPS 0, got {target_fps}"
         assert sprite_cap == 512, f"Expected mobile hole sprite cap 512, got {sprite_cap}"
         assert abs(dpr - 2.0) < 0.05, f"Expected mobile balanced DPR ~2.0, got {dpr}"
 
