@@ -523,6 +523,72 @@ body.modal-open #comms-hud {
   50% { transform: scale(1.25); opacity: 1.0; }
 }
 
+.sf-focus-ticker-eco {
+  font-size: 9px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(56, 189, 248, 0.18);
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  color: #38bdf8;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+}
+
+/* --- Real-Time Performance & FPS Telemetry HUD --- */
+#sf-perf-hud {
+  position: fixed;
+  top: calc(env(safe-area-inset-top, 0px) + 12px);
+  right: calc(env(safe-area-inset-right, 0px) + 14px);
+  z-index: 999;
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: 11px;
+  line-height: 1.4;
+  color: #e2e8f0;
+  background: rgba(15, 23, 42, 0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 20px;
+  padding: 3px 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.35);
+  pointer-events: auto;
+  cursor: pointer;
+  user-select: none;
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+#sf-perf-hud .fps-icon {
+  font-size: 11px;
+  color: #facc15;
+}
+#sf-perf-hud .fps-val {
+  font-weight: 700;
+  color: #4ade80;
+}
+#sf-perf-hud .fps-val.warn {
+  color: #facc15;
+}
+#sf-perf-hud .fps-val.crit {
+  color: #f43f5e;
+}
+#sf-perf-hud .perf-sub {
+  color: rgba(226, 232, 240, 0.6);
+  font-size: 9.5px;
+}
+#sf-perf-hud .perf-badge {
+  background: rgba(255, 255, 255, 0.08);
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-size: 9.5px;
+  color: #94a3b8;
+}
+body.modal-open #sf-perf-hud {
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
 /* Focus Modal Overlay & Cards */
 .sf-focus-modal-overlay {
   position: fixed;
@@ -1462,6 +1528,22 @@ img,canvas{-webkit-user-drag:none;user-drag:none}
           <button class="photo-btn" id="btn-quality-balanced" style="padding: 2px 7px;">均衡</button>
           <button class="photo-btn" id="btn-quality-powersave" style="padding: 2px 7px;">省电</button>
         </div>
+      </div>
+      <div class="shortcut-row">
+        <span>帧率上限偏好</span>
+        <div style="display:flex;gap:4px;" id="sf-fps-switcher">
+          <button class="photo-btn active" id="btn-fps-uncapped" style="padding: 2px 7px;">满血高刷</button>
+          <button class="photo-btn" id="btn-fps-60" style="padding: 2px 7px;">稳帧 60</button>
+          <button class="photo-btn" id="btn-fps-45" style="padding: 2px 7px;">节能 45</button>
+        </div>
+      </div>
+      <div class="shortcut-row">
+        <span>专注挂机智能防烫</span>
+        <button class="photo-btn active" id="btn-toggle-focus-eco" style="padding: 2px 8px;">开</button>
+      </div>
+      <div class="shortcut-row">
+        <span>实时性能监视器</span>
+        <button class="photo-btn" id="btn-toggle-perf-hud" style="padding: 2px 8px;">关</button>
       </div>
       <div class="shortcut-row">
         <span>宣纸纸纹颗粒</span>
@@ -3883,8 +3965,11 @@ const GameSettings = {
   voiceVol: 1.0,
   musicVol: 0.8,
   sfxVol: 0.85,
+  _initialized: false,
 
   init() {
+    if (this._initialized) return;
+    this._initialized = true;
     $('settings-toggle').addEventListener('click', () => this.toggle());
     $('settings-close-btn').addEventListener('click', () => this.close());
 
@@ -3938,6 +4023,33 @@ const GameSettings = {
         });
       }
     });
+
+    // Frame Rate Preference Switcher Bindings
+    ['uncapped', '60', '45'].forEach(mode => {
+      const btn = $(`btn-fps-${mode}`);
+      if (btn) {
+        btn.addEventListener('click', () => {
+          if (window.STARFIELD_QUALITY) window.STARFIELD_QUALITY.setFpsMode(mode);
+        });
+      }
+    });
+
+    // Focus Eco-Cruise Toggle Binding
+    const btnFocusEco = $('btn-toggle-focus-eco');
+    if (btnFocusEco) {
+      btnFocusEco.addEventListener('click', () => {
+        if (window.STARFIELD_QUALITY) window.STARFIELD_QUALITY.toggleFocusEco();
+      });
+    }
+
+    // Real-Time Perf HUD Toggle Binding
+    const btnPerfHud = $('btn-toggle-perf-hud');
+    if (btnPerfHud) {
+      btnPerfHud.addEventListener('click', () => {
+        if (window.STARFIELD_QUALITY) window.STARFIELD_QUALITY.togglePerfHud();
+      });
+    }
+
     if (window.STARFIELD_QUALITY) window.STARFIELD_QUALITY.updateUI();
 
     // OTA Update Button Binding
@@ -10840,9 +10952,16 @@ const _GPU=_detectGpu();
 window.STARFIELD_QUALITY = {
   profile: _isMobileDevice ? 'balanced' : '2k', // Mobile defaults to balanced for silky 60fps; Desktop defaults to 2K
   tierCap: { cpu: 1.0, mobile: 2.0, igpu: 1.8, dgpu: 2.5, balanced: 2.0 },
+  fpsMode: 'uncapped', // 'uncapped' (0), '60', '45'
+  perfHudEnabled: false,
+  focusEcoEnabled: true,
+  isFocusEcoThrottled: false,
   getTargetFps() {
-    // 帧率不设人为上限：全模式畅享屏幕原生刷新率 (60Hz/90Hz/120Hz/144Hz/240Hz 满血高刷)
+    if (this.isFocusEcoThrottled) return 45; // Auto cool-down when idle during focus cruise
     if (this.profile === 'powersave') return 45;
+    if (this.fpsMode === '60') return 60;
+    if (this.fpsMode === '45') return 45;
+    if (this.fpsMode === 'uncapped') return 0;
     return 0; // 0 = 无上限，跟随屏幕物理硬件最高刷新率
   },
   getHoleSpriteCap() {
@@ -10873,11 +10992,104 @@ window.STARFIELD_QUALITY = {
       window.toast(`画质已切换: ${labels[p] || p}`);
     }
   },
+  setFpsMode(m) {
+    if (!['uncapped', '60', '45'].includes(m)) return;
+    this.fpsMode = m;
+    try { localStorage.setItem('sf_fps_mode', m); } catch(e) {}
+    this.updateUI();
+    if (window.toast) {
+      const labels = {
+        'uncapped': '满血高刷 (无上限 · 跟随屏幕 90/120/144Hz)',
+        '60': '稳帧 60 FPS (标准流畅 · 控温防烫)',
+        '45': '节能 45 FPS (长效续航 · 极低发热)'
+      };
+      window.toast(`帧率偏好已切换: ${labels[m] || m}`);
+    }
+  },
+  toggleFocusEco(force) {
+    this.focusEcoEnabled = (typeof force === 'boolean') ? force : !this.focusEcoEnabled;
+    if (!this.focusEcoEnabled) this.isFocusEcoThrottled = false;
+    try { localStorage.setItem('sf_focus_eco', String(this.focusEcoEnabled)); } catch(e) {}
+    this.updateUI();
+    if (window.toast) {
+      window.toast(this.focusEcoEnabled ? '专注挂机智能防烫已开启 (挂机静置自动控温)' : '专注挂机智能防烫已关闭');
+    }
+  },
+  togglePerfHud(force) {
+    this.perfHudEnabled = (typeof force === 'boolean') ? force : !this.perfHudEnabled;
+    try { localStorage.setItem('sf_perf_hud', String(this.perfHudEnabled)); } catch(e) {}
+    this.updateUI();
+    if (window.toast) {
+      window.toast(this.perfHudEnabled ? '实时性能监视器已开启' : '实时性能监视器已关闭');
+    }
+  },
+  updatePerfHud(fps, hz, dpr, scale, ms) {
+    if (!this.perfHudEnabled) return;
+    let hud = document.getElementById('sf-perf-hud');
+    if (!hud) {
+      hud = document.createElement('div');
+      hud.id = 'sf-perf-hud';
+      hud.title = '点击查看完整性能遥测详情';
+      hud.innerHTML = `
+        <span class="fps-icon">⚡</span>
+        <span class="fps-val" id="sf-hud-fps">--</span>
+        <span class="perf-sub" id="sf-hud-hz">/--Hz</span>
+        <span class="perf-badge" id="sf-hud-dpr">--x</span>
+        <span class="perf-badge" id="sf-hud-ms">--ms</span>
+      `;
+      hud.addEventListener('click', () => {
+        if (window.toast) {
+          const modeName = this.isFocusEcoThrottled ? '专注挂机降温 (45FPS)' : (this.fpsMode === 'uncapped' ? '满血高刷 (无上限)' : `${this.fpsMode} FPS 锁定`);
+          window.toast(`渲染遥测: ${fps} FPS · 刷新率 ${hz}Hz · 视网膜 ${(dpr*scale).toFixed(2)}x (${modeName}) · 耗时 ${ms.toFixed(1)}ms`);
+        }
+      });
+      document.body.appendChild(hud);
+    }
+    if (hud.style.display === 'none') hud.style.display = 'flex';
+    const fpsEl = document.getElementById('sf-hud-fps');
+    const hzEl = document.getElementById('sf-hud-hz');
+    const dprEl = document.getElementById('sf-hud-dpr');
+    const msEl = document.getElementById('sf-hud-ms');
+    if (fpsEl) {
+      fpsEl.textContent = fps;
+      const target = this.getTargetFps() || hz || 60;
+      if (fps >= target - 6) fpsEl.className = 'fps-val';
+      else if (fps >= target * 0.7) fpsEl.className = 'fps-val warn';
+      else fpsEl.className = 'fps-val crit';
+    }
+    if (hzEl) {
+      hzEl.textContent = this.isFocusEcoThrottled ? ' ECO' : (hz ? `/${hz}Hz` : '');
+    }
+    if (dprEl) {
+      dprEl.textContent = `${(dpr * scale).toFixed(2)}x`;
+    }
+    if (msEl) {
+      msEl.textContent = `${ms.toFixed(1)}ms`;
+    }
+  },
   updateUI() {
     ['2k', 'balanced', 'powersave'].forEach(mode => {
       const btn = document.getElementById(`btn-quality-${mode}`);
       if (btn) btn.classList.toggle('active', this.profile === mode);
     });
+    ['uncapped', '60', '45'].forEach(mode => {
+      const btn = document.getElementById(`btn-fps-${mode}`);
+      if (btn) btn.classList.toggle('active', this.fpsMode === mode);
+    });
+    const hudBtn = document.getElementById('btn-toggle-perf-hud');
+    if (hudBtn) {
+      hudBtn.classList.toggle('active', this.perfHudEnabled);
+      hudBtn.textContent = this.perfHudEnabled ? '开' : '关';
+    }
+    const ecoBtn = document.getElementById('btn-toggle-focus-eco');
+    if (ecoBtn) {
+      ecoBtn.classList.toggle('active', this.focusEcoEnabled);
+      ecoBtn.textContent = this.focusEcoEnabled ? '开' : '关';
+    }
+    const hudEl = document.getElementById('sf-perf-hud');
+    if (hudEl) {
+      hudEl.style.display = this.perfHudEnabled ? 'flex' : 'none';
+    }
   }
 };
 try {
@@ -10885,7 +11097,31 @@ try {
   if (savedQuality && ['2k', 'balanced', 'powersave'].includes(savedQuality)) {
     window.STARFIELD_QUALITY.profile = savedQuality;
   }
+  const savedFps = localStorage.getItem('sf_fps_mode');
+  if (savedFps && ['uncapped', '60', '45'].includes(savedFps)) {
+    window.STARFIELD_QUALITY.fpsMode = savedFps;
+  }
+  const savedHud = localStorage.getItem('sf_perf_hud');
+  if (savedHud !== null) {
+    window.STARFIELD_QUALITY.perfHudEnabled = (savedHud === 'true');
+  }
+  const savedEco = localStorage.getItem('sf_focus_eco');
+  if (savedEco !== null) {
+    window.STARFIELD_QUALITY.focusEcoEnabled = (savedEco === 'true');
+  }
 } catch(e) {}
+
+// User Activity Monitor for Focus Eco-Cruise Thermal Throttle
+window.lastUserActiveTime = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+const _sfRecordUserActive = () => {
+  window.lastUserActiveTime = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+  if (window.STARFIELD_QUALITY && window.STARFIELD_QUALITY.isFocusEcoThrottled) {
+    window.STARFIELD_QUALITY.isFocusEcoThrottled = false;
+  }
+};
+window.addEventListener('pointerdown', _sfRecordUserActive, { passive: true });
+window.addEventListener('touchstart', _sfRecordUserActive, { passive: true });
+window.addEventListener('keydown', _sfRecordUserActive, { passive: true });
 
 // --- Screen Orientation Switcher Manager ---
 window.STARFIELD_ORIENTATION = {
@@ -11011,13 +11247,14 @@ window.addEventListener('resize',resize);document.addEventListener('fullscreench
 $('edition-seed').textContent=`FIELD ${SEED.toString(16).toUpperCase().slice(0,6)}`;
 const btnOri = document.getElementById('orientation-toggle-btn'); if (btnOri) btnOri.addEventListener('click', () => { if (window.STARFIELD_ORIENTATION) window.STARFIELD_ORIENTATION.toggle(); });
 if(coarse){document.querySelector('.intro-footer').textContent='22 CRAFT.  ONE OPEN SKY.';document.querySelector('.intro-note').innerHTML='触摸屏幕，让风带路。<br>建议开启声音 · 无终点，无需抵达';$('hint').textContent='触摸引航 · 切换自主镜头后，可拖拽与双指缩放 · 轻触舱内键切换视角';}
-resize();updateUI();
+resize();updateUI();GameSettings.init();if(window.STARFIELD_QUALITY)window.STARFIELD_QUALITY.updateUI();
 let lastFillPx=0,fps=60,framesInWindow=0,measureStart=performance.now(),slowWindows=0,fastWindows=0;
 // The display's refresh, measured from the first clean frames. rAF cannot run
 // faster than the panel, so this is the real ceiling - not 60.
 let refreshHz=60,hzSamples=[],hzDone=false;
 let __modalOpen=false;
 let lastRenderTime=0;
+let hudFrames=0,hudLastT=performance.now(),realFps=60,frameDurationMs=0;
 function frame(now){
  requestAnimationFrame(frame);
  if(document.hidden)return;
@@ -11032,6 +11269,7 @@ function frame(now){
  } else {
   lastRenderTime = now;
  }
+ const tFrameStart = performance.now();
  const realDt=Math.min(.05,Math.max(.001,(now-last)/1000));last=now;
  stepDeparture(realDt);
  // Any sheet on top of the scene outranks the comms card (z 1000 > 400).
@@ -11064,6 +11302,16 @@ function frame(now){
  drawCockpit(time);paperFinish();postPass();
  uiAccumulator+=realDt;if(uiAccumulator>.12){uiAccumulator=0;updateUI();}
  frameCount++;framesInWindow++;lastFillPx=fillPx;fillPx=0;
+ frameDurationMs = performance.now() - tFrameStart;
+ hudFrames++;
+ if (now - hudLastT >= 500) {
+  realFps = Math.round((hudFrames * 1000) / (now - hudLastT));
+  hudFrames = 0;
+  hudLastT = now;
+  if (window.STARFIELD_QUALITY && window.STARFIELD_QUALITY.updatePerfHud) {
+   window.STARFIELD_QUALITY.updatePerfHud(realFps, refreshHz, DPR, qualityScale, frameDurationMs);
+  }
+ }
  if(!hzDone&&realDt>0.001){
   hzSamples.push(realDt);
   if(hzSamples.length>=90){
@@ -11330,7 +11578,7 @@ window.Starfield=Object.freeze({
  palette:()=>({index:currentPalette.index,t:currentPalette.t,sky:currentPalette.sky,horizon:currentPalette.horizon,fog:currentPalette.fog,tree:currentPalette.tree,craft:currentPalette.craft,sun:currentPalette.sun,shimmer:currentPalette.shimmer,front:currentPalette.front}),
  flock:()=>{let mx=0,mv=0,bad=false;for(const b of fleet){const d=Math.hypot(b.x,b.y,b.z);if(d>mx)mx=d;const v=Math.hypot(b.vx,b.vy,b.vz);if(v>mv)mv=v;if(!Number.isFinite(b.x+b.y+b.z+b.vx+b.vy+b.vz))bad=true;}return {radius:Math.round(mx),speed:Math.round(mv),bad};},
  holeGL:!!holeGL,
- getState:()=>({seed:SEED,started,paused,autoCamera,region:rawStyles[currentPalette.index].en,regionMix:currentPalette.t,travel,flightTime,capture:capturePhase,captureT,sling:Math.round(sling*100)/100,masses:activeMasses.length,kinds:activeMasses.map(m=>m.kind).sort().join(''),lensSources:lensSources.length,nebTex:nebCache.size,nebGens,fillMPx:+(lastFillPx/1e6).toFixed(1),fleet:fleet.length,particles:particles.length,variation:cycle+1,lens:plans.get(cycle)[shot].name,distance:camera.distance,pitch:camera.pitch,yaw:camera.yaw,eye:[...camera.eye],fps:Math.round(fps),drawCalls,loadedChunks:chunks.size,rotated,width:W,height:H,dpr:DPR,audio:sound.ready?sound.ac.state:'not-started',track:sound.index+1,postMs:+(postMs).toFixed(2),postOn,holeGL:!!holeGL,warpGear:WarpDrive.gearIndex,departing:!!__depart,clips:(typeof NarratorClips!=='undefined')?Object.keys(NarratorClips).length:0,gpu:_GPU.tier,gpuName:String(_GPU.name).slice(0,48),hz:refreshHz,dprCap:(window.STARFIELD_QUALITY?STARFIELD_QUALITY.tierCap[_GPU.tier]:null),holeDraws,holeLastRad}),
+ getState:()=>({seed:SEED,started,paused,autoCamera,region:rawStyles[currentPalette.index].en,regionMix:currentPalette.t,travel,flightTime,capture:capturePhase,captureT,sling:Math.round(sling*100)/100,masses:activeMasses.length,kinds:activeMasses.map(m=>m.kind).sort().join(''),lensSources:lensSources.length,nebTex:nebCache.size,nebGens,fillMPx:+(lastFillPx/1e6).toFixed(1),fleet:fleet.length,particles:particles.length,variation:cycle+1,lens:plans.get(cycle)[shot].name,distance:camera.distance,pitch:camera.pitch,yaw:camera.yaw,eye:[...camera.eye],fps:Math.round(fps),drawCalls,loadedChunks:chunks.size,rotated,width:W,height:H,dpr:DPR,audio:sound.ready?sound.ac.state:'not-started',track:sound.index+1,postMs:+(postMs).toFixed(2),postOn,holeGL:!!holeGL,warpGear:WarpDrive.gearIndex,departing:!!__depart,clips:(typeof NarratorClips!=='undefined')?Object.keys(NarratorClips).length:0,gpu:_GPU.tier,gpuName:String(_GPU.name).slice(0,48),hz:refreshHz,dprCap:(window.STARFIELD_QUALITY?STARFIELD_QUALITY.tierCap[_GPU.tier]:null),fpsMode:(window.STARFIELD_QUALITY?STARFIELD_QUALITY.fpsMode:'uncapped'),perfHud:(window.STARFIELD_QUALITY?STARFIELD_QUALITY.perfHudEnabled:false),focusEco:(window.STARFIELD_QUALITY?STARFIELD_QUALITY.isFocusEcoThrottled:false),holeDraws,holeLastRad}),
  getLensSources:()=>lensSources.map(L=>({...L})),
  lensWarp:(x,y)=>lensWarp(x,y),
  updateLens:()=>updateLens(),
@@ -15433,6 +15681,18 @@ document.addEventListener('DOMContentLoaded', () => {
       this.elapsedSec = (typeof window.sfFocusAdvance === 'function')
         ? window.sfFocusAdvance(this.elapsedSec, dt, d)
         : this.elapsedSec + dt * d;
+
+      // Check idle eco thermal throttle
+      if (window.STARFIELD_QUALITY && window.STARFIELD_QUALITY.focusEcoEnabled) {
+        const idleMs = ((typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now()) - (window.lastUserActiveTime || 0);
+        const shouldEco = idleMs > 25000;
+        if (window.STARFIELD_QUALITY.isFocusEcoThrottled !== shouldEco) {
+          window.STARFIELD_QUALITY.isFocusEcoThrottled = shouldEco;
+        }
+      } else if (window.STARFIELD_QUALITY && window.STARFIELD_QUALITY.isFocusEcoThrottled) {
+        window.STARFIELD_QUALITY.isFocusEcoThrottled = false;
+      }
+
       this.updateTickerHUD(true);
 
       // Check for mission completion
@@ -15589,13 +15849,15 @@ document.addEventListener('DOMContentLoaded', () => {
       const dilWarn = (dilationOn && dNow < 0.95)
         ? `<span class="sf-focus-ticker-warn">洞外时间更快</span>`
         : '';
+      const isEco = (window.STARFIELD_QUALITY && window.STARFIELD_QUALITY.isFocusEcoThrottled);
+      const ecoTag = isEco ? `<span class="sf-focus-ticker-eco">❄ 控温巡航 45FPS</span>` : '';
       ticker.title = (dilationOn && dNow < 0.95) ? '你正在黑洞旁专注，洞外时间流逝更快' : '';
       ticker.innerHTML = `
         <div class="sf-focus-pulse-dot"></div>
         <span class="sf-focus-ticker-tag">FOCUS</span>
         <span class="sf-focus-ticker-time">${timeStr}</span>
         <span class="sf-focus-ticker-sub">AUTONOMOUS CRUISE</span>
-        ${dilTag}${dilWarn}
+        ${dilTag}${dilWarn}${ecoTag}
       `;
     }
 

@@ -1,11 +1,11 @@
 {
-  "version": "1.13.1",
-  "build": 138,
-  "updated_at": "2026-10-26T17:30:00+08:00",
+  "version": "1.14.0",
+  "build": 139,
+  "updated_at": "2026-10-26T17:55:00+08:00",
   "min_native_version": "1.0.0",
-  "title": "源义经 · 原生高刷畅享与渲染管线优化",
-  "changelog": "彻底解锁帧率上限：全模式畅享 60/90/120/144/240Hz 屏幕硬件满血高刷；滤镜字符串与着色器动态调谐优化，高刷自适应平滑防掉质",
+  "title": "深空遥测 · 独立帧率偏好与智能挂机控温",
+  "changelog": "1. 独立帧率上限偏好切换（满血高刷 / 稳帧60 / 节能45）；2. 实时性能与刷新率遥测监视器（FPS/Hz/DPR/耗时）；3. 专注挂机智能防烫降温（静置自动控温至45FPS，触碰秒级唤醒）",
   "entry": "starfield.html",
   "download_url": "https://jackeyloveseven.github.io/starfield/starfield.html",
-  "apk_release_url": "https://github.com/jackeyloveseven/starfield/releases/tag/v1.13.1-focus-apk"
+  "apk_release_url": "https://github.com/jackeyloveseven/starfield/releases/tag/v1.14.0-focus-apk"
 }
