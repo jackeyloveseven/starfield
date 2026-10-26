@@ -125,10 +125,10 @@
 #world{color:var(--ink);position:absolute;inset:0;overflow:hidden;touch-action:none;background:var(--paper);isolation:isolate}#landscape{position:absolute;width:100%;height:100%;inset:0;display:block;cursor:crosshair;touch-action:none;image-rendering:-webkit-optimize-contrast;-webkit-backface-visibility:hidden;backface-visibility:hidden;transform:translateZ(0)}#landscape.manual{cursor:grab}#landscape.dragging{cursor:grabbing}
 .serif{font-family:"Iowan Old Style","Palatino Linotype","Noto Serif CJK SC","Songti SC","SimSun",serif}.mono{font-family:"SFMono-Regular",Consolas,"Liberation Mono",monospace;font-variant-numeric:tabular-nums}.eyebrow{font-size:calc(10px * var(--unit));letter-spacing:.24em;text-transform:uppercase}.muted{opacity:.52}.hairline{height:1px;background:currentColor;opacity:.25}
 #masthead{position:absolute;left:var(--pad);top:calc(var(--pad) - 4px);z-index:4;pointer-events:none;display:flex;align-items:center;gap:14px}.craft-mark{width:36px;height:30px;position:relative;display:inline-block}.craft-mark:before,.craft-mark:after{content:"";position:absolute;background:currentColor;top:8px;width:25px;height:15px;clip-path:polygon(0 0,100% 56%,74% 100%)}.craft-mark:before{left:-3px;transform:rotate(8deg)}.craft-mark:after{right:-3px;transform:scaleX(-1) rotate(8deg)}#masthead .small-title{font-size:calc(11px * var(--unit));letter-spacing:.17em;line-height:1.9}#masthead .small-title span{font-size:calc(8px * var(--unit));letter-spacing:.20em;opacity:.5;display:block}#edition{position:absolute;right:var(--pad);top:var(--pad);font-size:calc(10px * var(--unit));letter-spacing:.15em;opacity:.48;z-index:4;pointer-events:none}
-#intro{position:absolute;inset:0;z-index:5;pointer-events:none;transition:opacity 1.8s ease,visibility 1.8s}#intro.gone{opacity:0;visibility:hidden}#intro:before{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent 36%,var(--soft) 80%);z-index:-1}.intro-inner{position:absolute;left:65%;right:6%;top:50%;transform:translateY(-48%);pointer-events:auto}.intro-kicker{display:flex;align-items:center;gap:12px;white-space:nowrap;opacity:.7}.intro-kicker:before{content:"";width:26px;height:1px;background:currentColor}h1{font-size:clamp(62px,6.6vw,148px);font-weight:400;letter-spacing:.12em;margin:23px 0 3px;line-height:1.18;text-indent:-.025em}.english-title{font-size:clamp(12px,1.1vw,23px);letter-spacing:.48em;margin:15px 0 33px;font-weight:400}.intro-poem{font-size:calc(15px * var(--unit));line-height:2.1;letter-spacing:.13em;margin:0 0 30px;opacity:.76}.departure-label{font-size:calc(10px * var(--unit));letter-spacing:.15em;opacity:.52;margin-bottom:12px}.destinations{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:25px}.destination{border:1px solid transparent;background:transparent;border-radius:20px;padding:7px 10px;font-size:calc(11px * var(--unit));transition:background .3s,border-color .3s;white-space:nowrap}.destination[aria-checked=true]{border-color:var(--line);background:var(--soft)}.destination:hover{border-color:var(--line)}.destination i{display:inline-block;width:5px;height:5px;margin-right:6px;vertical-align:2px;border-radius:50%;background:var(--dot)}#begin{border:0;background:var(--ink);color:var(--paper);border-radius:100px;padding:17px 26px;min-width:210px;font-size:calc(13px * var(--unit));letter-spacing:.13em;display:flex;align-items:center;justify-content:space-between;gap:35px;box-shadow:0 5px 24px #00000006;transition:transform .3s,background 1s,color 1s}#begin:hover{transform:translateX(4px)}#begin b{font-size:20px;font-weight:400}.intro-note{margin-top:19px;font-size:calc(9px * var(--unit));letter-spacing:.07em;opacity:.43;line-height:1.9}.intro-footer{position:absolute;left:var(--pad);bottom:var(--pad);display:flex;align-items:center;gap:14px;font-size:calc(10px * var(--unit));letter-spacing:.15em;opacity:.56}.intro-footer:before{content:"";width:40px;height:1px;background:currentColor}.intro-foot-right{position:absolute;bottom:var(--pad);right:var(--pad);font-size:calc(8px * var(--unit));letter-spacing:.21em;opacity:.38}
-.hud{transition:opacity 1.8s ease;opacity:0;pointer-events:none}.flying .hud{opacity:1}.flying #masthead{opacity:0;transition:opacity 1s}.flying #edition{opacity:.58}#camera-hud{position:absolute;top:var(--pad);left:var(--pad);z-index:3;display:flex;flex-direction:column;gap:10px}#camera-meta{display:flex;align-items:center;gap:10px}.record-dot{width:4px;height:4px;background:currentColor;border-radius:50%;opacity:.6}#camera-name{font-size:calc(19px * var(--unit));font-weight:400;letter-spacing:.14em;margin:0}#camera-progress{height:1px;width:95px;background:var(--line);margin-top:5px}#camera-progress i{height:1px;display:block;background:currentColor;transform-origin:left;width:100%;transform:scaleX(0);opacity:.62}#flight-stats{font-size:calc(9px * var(--unit));letter-spacing:.09em;line-height:1.9;opacity:.46;margin-top:3px}
+#intro{position:absolute;inset:0;z-index:5;pointer-events:none;transition:opacity 1.8s ease,visibility 1.8s}#intro.gone{opacity:0;visibility:hidden}#intro:before{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent 36%,var(--soft) 80%);z-index:-1}.intro-inner{position:absolute;left:65%;right:6%;top:50%;transform:translateY(-48%);pointer-events:auto}.intro-kicker{display:flex;align-items:center;gap:12px;white-space:nowrap;opacity:.7}.intro-kicker:before{content:"";width:26px;height:1px;background:currentColor}h1{font-size:clamp(62px,6.6vw,148px);font-weight:400;letter-spacing:.12em;margin:23px 0 3px;line-height:1.18;text-indent:-.025em}.english-title{font-size:clamp(12px,1.1vw,23px);letter-spacing:.48em;margin:15px 0 33px;font-weight:400}.intro-poem{font-size:calc(15px * var(--unit));line-height:2.1;letter-spacing:.13em;margin:0 0 30px;opacity:.76}.departure-label{font-size:calc(10px * var(--unit));letter-spacing:.15em;opacity:.52;margin-bottom:12px}.destinations{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:25px}.destination{border:1px solid transparent;background:transparent;border-radius:20px;padding:7px 10px;font-size:calc(11px * var(--unit));transition:background .3s,border-color .3s;white-space:nowrap}.destination[aria-checked=true]{border-color:var(--line);background:var(--soft)}.destination:hover{border-color:var(--line)}.destination i{display:inline-block;width:5px;height:5px;margin-right:6px;vertical-align:2px;border-radius:50%;background:var(--dot)}#begin{border:1px solid rgba(255,215,0,0.35);background:linear-gradient(135deg,rgba(255,215,0,0.18),rgba(15,23,42,0.88));color:#fce79a;border-radius:100px;padding:16px 26px;min-width:210px;font-size:calc(13px * var(--unit));letter-spacing:.15em;display:flex;align-items:center;justify-content:space-between;gap:35px;box-shadow:0 4px 25px rgba(255,215,0,0.18),inset 0 1px 0 rgba(255,255,255,0.22);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);transition:transform .25s ease,box-shadow .25s ease,border-color .25s ease}#begin:hover,#begin:active{transform:translateY(-2px) scale(1.02);box-shadow:0 6px 30px rgba(255,215,0,0.35),inset 0 1px 0 rgba(255,255,255,0.35);border-color:rgba(255,215,0,0.65)}#begin b{font-size:20px;font-weight:400}.intro-note{margin-top:19px;font-size:calc(9px * var(--unit));letter-spacing:.07em;opacity:.43;line-height:1.9}.intro-footer{position:absolute;left:var(--pad);bottom:var(--pad);display:flex;align-items:center;gap:14px;font-size:calc(10px * var(--unit));letter-spacing:.15em;opacity:.56}.intro-footer:before{content:"";width:40px;height:1px;background:currentColor}.intro-foot-right{position:absolute;bottom:var(--pad);right:var(--pad);font-size:calc(8px * var(--unit));letter-spacing:.21em;opacity:.38}
+.hud{transition:opacity 1.8s ease;opacity:0;pointer-events:none}.flying .hud{opacity:1}.flying #masthead{opacity:0;transition:opacity 1s}.flying #edition{opacity:.58}#camera-hud{position:absolute;top:var(--pad);left:var(--pad);z-index:3;display:flex;flex-direction:column;gap:10px;padding:10px 14px;border-radius:14px;background:rgba(10,16,26,0.45);border:1px solid rgba(255,255,255,0.08);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:0 4px 20px rgba(0,0,0,0.25);pointer-events:auto}#camera-meta{display:flex;align-items:center;gap:10px}.record-dot{width:4px;height:4px;background:currentColor;border-radius:50%;opacity:.6}#camera-name{font-size:calc(19px * var(--unit));font-weight:400;letter-spacing:.14em;margin:0}#camera-progress{height:1px;width:95px;background:var(--line);margin-top:5px}#camera-progress i{height:1px;display:block;background:currentColor;transform-origin:left;width:100%;transform:scaleX(0);opacity:.62}#flight-stats{font-size:calc(9px * var(--unit));letter-spacing:.09em;line-height:1.9;opacity:.46;margin-top:3px}
 #poem{position:absolute;right:8%;top:59%;max-width:34%;z-index:3;pointer-events:none;opacity:0;transition:opacity 1.8s;text-shadow:0 0 26px rgba(4,8,14,.78),0 0 4px rgba(4,8,14,.55)}#poem-index{font-size:calc(8px * var(--unit));letter-spacing:.23em;margin-bottom:22px;opacity:.48}.poem-line{font-size:calc(20px * var(--unit));letter-spacing:.18em;font-weight:400;line-height:2.05;white-space:nowrap}.poem-line span{display:inline-block;animation:letter-in 1.8s both;animation-delay:var(--delay)}@keyframes letter-in{from{opacity:0;transform:translateY(6px);filter:blur(3px)}to{opacity:1;transform:translateY(0);filter:blur(0)}}#poem-rule{margin-top:27px;width:80px;height:1px;background:currentColor;opacity:.42;transform-origin:left;animation:rule-in 3.8s both}@keyframes rule-in{from{transform:scaleX(0)}to{transform:scaleX(1)}}
-#journey{position:absolute;left:var(--pad);bottom:calc(var(--pad) - 3px);z-index:3;width:260px}#region-name{font-size:calc(12px * var(--unit));letter-spacing:.14em}#region-caption{font-size:calc(8px * var(--unit));letter-spacing:.17em;opacity:.45;margin-top:9px}#route{display:block;width:210px;height:31px;margin-top:12px;opacity:.78}.journey-bottom{display:flex;align-items:center;gap:18px;font-size:calc(9px * var(--unit));letter-spacing:.10em;opacity:.55}.journey-bottom .divider{width:23px;height:1px;background:currentColor;opacity:.45}
+#journey{position:absolute;left:var(--pad);bottom:calc(var(--pad) - 3px);z-index:3;width:260px;padding:10px 14px;border-radius:14px;background:rgba(10,16,26,0.45);border:1px solid rgba(255,255,255,0.08);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:0 4px 20px rgba(0,0,0,0.25);pointer-events:auto}#region-name{font-size:calc(12px * var(--unit));letter-spacing:.14em}#region-caption{font-size:calc(8px * var(--unit));letter-spacing:.17em;opacity:.45;margin-top:9px}#route{display:block;width:210px;height:31px;margin-top:12px;opacity:.78}.journey-bottom{display:flex;align-items:center;gap:18px;font-size:calc(9px * var(--unit));letter-spacing:.10em;opacity:.55}.journey-bottom .divider{width:23px;height:1px;background:currentColor;opacity:.45}
 #controls{position:absolute;right:var(--pad);bottom:var(--pad);z-index:6;display:flex;align-items:center;gap:10px;pointer-events:none}.flying #controls{pointer-events:auto}.control{height:36px;min-width:36px;display:flex;align-items:center;justify-content:center;gap:8px;padding:0 10px;border:1px solid transparent;border-radius:40px;background:transparent;opacity:.68;transition:opacity .2s,border-color .2s,background .2s;font-size:calc(11px * var(--unit));letter-spacing:.05em}.control:hover,.control:focus-visible{opacity:1;background:var(--soft);border-color:var(--line)}.control[aria-pressed=false]{opacity:.34}.control.camera{border:1px solid var(--line);padding:0 15px}.icon{position:relative;width:16px;height:16px;display:block}.orbit-icon{border:1px solid currentColor;border-radius:50%;transform:rotate(-30deg) scaleY(.58)}.orbit-icon:after{content:"";width:4px;height:4px;border-radius:50%;background:currentColor;position:absolute;right:-2px;top:5px}.sound-icon{display:flex;align-items:center;justify-content:center;gap:2px}.sound-icon i{width:1px;height:12px;background:currentColor;transform:scaleY(.35)}.sound-on .sound-icon i{animation:equalizer 1.2s ease-in-out infinite alternate}.sound-icon i:nth-child(2){animation-delay:-.65s}.sound-icon i:nth-child(3){animation-delay:-.22s}.sound-icon i:nth-child(4){animation-delay:-.85s}@keyframes equalizer{from{transform:scaleY(.28)}to{transform:scaleY(1)}}.poem-icon{border-top:1px solid currentColor;border-bottom:1px solid currentColor;height:10px;margin-top:3px}.poem-icon:after{content:"";position:absolute;top:4px;left:0;width:10px;height:1px;background:currentColor}.fullscreen-icon{background:linear-gradient(currentColor,currentColor) left top/5px 1px no-repeat,linear-gradient(currentColor,currentColor) left top/1px 5px no-repeat,linear-gradient(currentColor,currentColor) right top/5px 1px no-repeat,linear-gradient(currentColor,currentColor) right top/1px 5px no-repeat,linear-gradient(currentColor,currentColor) left bottom/5px 1px no-repeat,linear-gradient(currentColor,currentColor) left bottom/1px 5px no-repeat,linear-gradient(currentColor,currentColor) right bottom/5px 1px no-repeat,linear-gradient(currentColor,currentColor) right bottom/1px 5px no-repeat}.pause-icon:before,.pause-icon:after{content:"";position:absolute;top:2px;bottom:2px;width:2px;background:currentColor}.pause-icon:before{left:4px}.pause-icon:after{right:4px}.paused .pause-icon:before{top:2px;left:5px;width:10px;height:12px;clip-path:polygon(0 0,100% 50%,0 100%)}.paused .pause-icon:after{display:none}.control-separator{width:1px;height:15px;background:var(--line);margin:0 5px}
 #hint{position:absolute;left:50%;bottom:calc(var(--pad) + 52px);transform:translateX(-50%);z-index:4;font-size:calc(10px * var(--unit));letter-spacing:.12em;opacity:0;transition:opacity 2s;pointer-events:none;white-space:nowrap}#toast{position:absolute;left:50%;top:12%;transform:translate(-50%,0);padding:11px 19px;border:1px solid var(--line);border-radius:24px;background:var(--soft);backdrop-filter:blur(12px);font-size:calc(11px * var(--unit));letter-spacing:.05em;opacity:0;transition:opacity .4s;z-index:10;pointer-events:none;max-width:80%;text-align:center}#pause-label{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-size:13px;letter-spacing:.5em;opacity:0;transition:opacity .8s;pointer-events:none}.paused #pause-label{opacity:.65}
 @media(min-width:2200px){:root{--unit:1.5;--pad:60px}.control{height:48px;min-width:48px}.icon{transform:scale(1.3)}#journey{width:330px}.destinations{gap:9px}.destination{padding:9px 13px}#begin{padding:22px 34px;min-width:280px}.english-title{margin-bottom:44px}}
@@ -229,11 +229,13 @@
   #journey {
     width: 170px !important;
     left: 12px !important;
+    padding: 6px 10px !important;
     bottom: calc(env(safe-area-inset-bottom, 0px) + 10px) !important;
   }
   #camera-hud {
     top: calc(env(safe-area-inset-top, 0px) + 10px) !important;
     left: 14px !important;
+    padding: 6px 10px !important;
   }
 
   /* A centred flex item in a column becomes max-content wide, so the row never
@@ -1560,11 +1562,22 @@ img,canvas{-webkit-user-drag:none;user-drag:none}
     </div>
   </div>
   <div class="settings-section">
-    <div class="settings-section-title mono">3D 生态星球工坊 // PLANET STUDIO</div>
+    <div class="settings-section-title mono">深空领地与星球工坊 // PLANETS & CORES</div>
     <div class="shortcut-list">
       <div class="shortcut-row">
-        <span>Three.js 活体群岛与深渊行星</span>
-        <a href="./planet_studio.html" target="_blank" class="photo-btn active" style="text-decoration:none; padding:4px 10px; color:#f4d06f;">进入 ↗</a>
+        <span>我的深空星球馆</span>
+        <button class="photo-btn active" id="btn-open-hatch-list" style="padding: 2px 10px; color:#ffd700;">浏览星图 ↗</button>
+      </div>
+      <div class="shortcut-row">
+        <span>待孵化星核 (测试赠送)</span>
+        <div style="display:flex;gap:4px;">
+          <button class="photo-btn active" id="btn-hatch-core" style="padding: 2px 8px; color:#38bdf8;">立即开启 ✦</button>
+          <button class="photo-btn" id="btn-gift-cores" style="padding: 2px 8px;">+3 补充</button>
+        </div>
+      </div>
+      <div class="shortcut-row">
+        <span>Three.js 活体生态星球</span>
+        <a href="./planet_studio.html" target="_blank" class="photo-btn" style="text-decoration:none; padding:2px 8px; color:#f4d06f;">工坊 ↗</a>
       </div>
     </div>
   </div>
@@ -4047,6 +4060,32 @@ const GameSettings = {
     if (btnPerfHud) {
       btnPerfHud.addEventListener('click', () => {
         if (window.STARFIELD_QUALITY) window.STARFIELD_QUALITY.togglePerfHud();
+      });
+    }
+
+    // Planets & Cores Drawer Bindings
+    const btnOpenHatch = $('btn-open-hatch-list');
+    if (btnOpenHatch) {
+      btnOpenHatch.addEventListener('click', () => {
+        if (window.StarfieldHatch && window.StarfieldHatch.openList) {
+          window.StarfieldHatch.openList();
+        }
+      });
+    }
+    const btnHatchCore = $('btn-hatch-core');
+    if (btnHatchCore) {
+      btnHatchCore.addEventListener('click', () => {
+        if (window.StarfieldHatch && window.StarfieldHatch.openNextCore) {
+          window.StarfieldHatch.openNextCore();
+        }
+      });
+    }
+    const btnGiftCores = $('btn-gift-cores');
+    if (btnGiftCores) {
+      btnGiftCores.addEventListener('click', () => {
+        if (window.StarfieldHatch && window.StarfieldHatch.addCores) {
+          window.StarfieldHatch.addCores(3);
+        }
       });
     }
 
@@ -12134,23 +12173,24 @@ requestAnimationFrame(frame);
       }
 
       .sf-touch-btn {
-        height: 38px;
-        padding: 0 11px;
-        border-radius: 20px;
-        background: rgba(11, 17, 24, 0.55) !important;
-        border: 1px solid rgba(255, 255, 255, 0.22) !important;
-        backdrop-filter: blur(16px) saturate(140%) !important;
-        -webkit-backdrop-filter: blur(16px) saturate(140%) !important;
+        position: relative;
+        height: 42px;
+        width: 42px;
+        padding: 0 !important;
+        border-radius: 50% !important;
+        background: rgba(12, 18, 28, 0.52) !important;
+        border: 1px solid rgba(255, 255, 255, 0.16) !important;
+        backdrop-filter: blur(14px) saturate(130%) !important;
+        -webkit-backdrop-filter: blur(14px) saturate(130%) !important;
         box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35) !important;
-        color: #e6edf2;
+        color: #d6e8ff;
         font-family: inherit;
         display: flex;
         align-items: center;
         justify-content: center;
-        gap: 5px;
         cursor: pointer;
         outline: none;
-        transition: transform 0.12s ease, background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+        transition: transform 0.15s ease, background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
         -webkit-tap-highlight-color: transparent;
         user-select: none;
         -webkit-user-select: none;
@@ -12160,48 +12200,25 @@ requestAnimationFrame(frame);
         display: flex;
         align-items: center;
         justify-content: center;
-        width: 17px;
-        height: 17px;
+        width: 20px;
+        height: 20px;
         color: inherit;
       }
 
       .sf-touch-btn .icon-wrap svg {
         display: block;
-        width: 16px;
-        height: 16px;
+        width: 19px;
+        height: 19px;
       }
 
       .sf-touch-btn span.label {
-        font-size: 10px;
-        letter-spacing: 0.06em;
-        white-space: nowrap;
-        opacity: 0.9;
+        display: none !important;
       }
 
-      /* Icon only: the glyph is the label, and the pill was a second frame. */
-      .sf-touch-btn {
-        background: none !important;
-        border: none !important;
-        box-shadow: none !important;
-        padding: 0 !important;
-        width: 46px;
-        height: 46px;
-      }
-      .sf-touch-btn span.label {
-        display: none !important;
-      }
-      .sf-touch-btn .icon-wrap,
-      .sf-touch-btn .icon-wrap svg {
-        width: 21px !important;
-        height: 21px !important;
-      }
-      /* BOOST is the long press now. */
-      .sf-touch-btn.boost {
-        display: none !important;
-      }
       .sf-touch-btn:active, .sf-touch-btn.active {
-        transform: scale(0.9);
-        background: none !important;
+        transform: scale(0.92);
+        background: rgba(255, 255, 255, 0.16) !important;
+        border-color: rgba(255, 255, 255, 0.35) !important;
         color: #ffffff;
       }
 
@@ -12220,38 +12237,45 @@ requestAnimationFrame(frame);
         border-color: #ffe66d !important;
       }
 
-      /* Expandable Secondary Actions Drawer */
+      /* Secondary Expandable Action Tray (Frosted Glass Capsule) */
       .sf-touch-more-tray {
         display: none;
         align-items: center;
-        /* Five buttons in one right-anchored row pushed 图鉴 off the left edge
-           on a narrow screen, where nothing could reach it. */
         flex-wrap: wrap;
         justify-content: flex-end;
         max-width: calc(100vw - 28px);
         box-sizing: border-box;
-        gap: 6px;
-        padding: 5px 8px;
-        border-radius: 24px;
-        background: rgba(11, 17, 24, 0.72);
-        border: 1px solid rgba(255, 255, 255, 0.16);
-        backdrop-filter: blur(20px);
-        -webkit-backdrop-filter: blur(20px);
-        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+        gap: 8px;
+        padding: 6px 10px;
+        border-radius: 26px;
+        background: rgba(10, 16, 26, 0.68) !important;
+        border: 1px solid rgba(255, 255, 255, 0.15) !important;
+        backdrop-filter: blur(20px) saturate(140%) !important;
+        -webkit-backdrop-filter: blur(20px) saturate(140%) !important;
+        box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45) !important;
         animation: sfTrayIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) both;
       }
       .sf-touch-more-tray.open {
         display: flex;
       }
-      /* The tray kept its own frosted panel, so the icons sat in a box again. */
-      .sf-touch-more-tray {
-        background: none !important;
-        border: none !important;
+      .sf-touch-more-tray .sf-touch-btn {
+        width: 36px !important;
+        height: 36px !important;
+        border-radius: 50% !important;
+        background: rgba(255, 255, 255, 0.06) !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
         box-shadow: none !important;
-        backdrop-filter: none !important;
-        -webkit-backdrop-filter: none !important;
-        padding: 0 !important;
       }
+      .sf-touch-more-tray .sf-touch-btn .icon-wrap,
+      .sf-touch-more-tray .sf-touch-btn .icon-wrap svg {
+        width: 17px !important;
+        height: 17px !important;
+      }
+      .sf-touch-more-tray .sf-touch-btn:active {
+        background: rgba(255, 255, 255, 0.22) !important;
+        border-color: rgba(255, 255, 255, 0.35) !important;
+      }
+
       @media (max-width: 420px) {
         .sf-touch-more-tray .sf-touch-btn span.label {
           display: none;
@@ -12261,11 +12285,42 @@ requestAnimationFrame(frame);
         from { opacity: 0; transform: translateY(8px) scale(0.96); }
         to { opacity: 1; transform: translateY(0) scale(1); }
       }
-      .sf-touch-more-tray .sf-touch-btn {
-        height: 32px;
-        padding: 0 9px;
-        border-radius: 16px;
-        font-size: 9.5px;
+
+      /* Badges for unhatched planet cores */
+      .sf-touch-core-badge {
+        position: absolute;
+        top: -3px;
+        right: -3px;
+        min-width: 15px;
+        height: 15px;
+        padding: 0 4px;
+        border-radius: 8px;
+        background: linear-gradient(135deg, #ffd700, #ff8c00);
+        color: #050810;
+        font-size: 9px;
+        font-weight: 800;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        line-height: 15px;
+        text-align: center;
+        box-shadow: 0 0 8px rgba(255, 215, 0, 0.6);
+        pointer-events: none;
+        animation: sfBadgePulse 2s infinite ease-in-out;
+      }
+      .sf-more-core-dot {
+        position: absolute;
+        top: 5px;
+        right: 5px;
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: #ffd700;
+        box-shadow: 0 0 6px #ffd700;
+        pointer-events: none;
+        animation: sfBadgePulse 2s infinite ease-in-out;
+      }
+      @keyframes sfBadgePulse {
+        0%, 100% { transform: scale(1); box-shadow: 0 0 6px rgba(255, 215, 0, 0.5); }
+        50% { transform: scale(1.18); box-shadow: 0 0 12px rgba(255, 215, 0, 0.95); }
       }
 
       /* Gamepad HUD Status Badge */
@@ -12366,6 +12421,7 @@ requestAnimationFrame(frame);
     const SVG_ICONS = {
       focus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M12 5V2M10 2h4"/></svg>',
       camera: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>',
+      planet: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="6"/><path d="M3.5 14.5c4-5 13-5 17 0M2.5 13c5-7 14-7 19 0"/></svg>',
       cockpit: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 19V9l8-5 8 5v10M2 19h20M9 19v-4h6v4"/></svg>',
       formation: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l4 7h-8zM6 14l3 6h-6zM18 14l3 6h-6z"/></svg>',
       codex: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20M4 19.5A2.5 2.5 0 0 0 6.5 22H20V2H6.5A2.5 2.5 0 0 0 4 4.5v15zM8 7h8M8 11h5"/></svg>',
@@ -12379,6 +12435,12 @@ requestAnimationFrame(frame);
     moreTray.className = 'sf-touch-more-tray';
     moreTray.id = 'sf-touch-more-tray';
 
+    const btnPlanet = createTouchButton(SVG_ICONS.planet, '星球', () => {
+      if (window.StarfieldHatch && window.StarfieldHatch.openList) {
+        window.StarfieldHatch.openList();
+      }
+      moreTray.classList.remove('open');
+    });
     const btnCodex = createTouchButton(SVG_ICONS.codex, '图鉴', () => {
       Engine.toggleCodex();
       moreTray.classList.remove('open');
@@ -12400,6 +12462,7 @@ requestAnimationFrame(frame);
       moreTray.classList.remove('open');
     });
 
+    moreTray.appendChild(btnPlanet);
     moreTray.appendChild(btnCodex);
     moreTray.appendChild(btnCockpit);
     moreTray.appendChild(btnFormation);
@@ -12445,8 +12508,39 @@ requestAnimationFrame(frame);
     const btnMore = document.createElement('button');
     btnMore.className = 'sf-touch-btn';
     btnMore.innerHTML = `<span class="icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="1.5"/><circle cx="6" cy="12" r="1.5"/><circle cx="18" cy="12" r="1.5"/></svg></span><span class="label">更多</span>`;
+
+    // Unopened planetary cores badges updater
+    const updateCoreBadges = () => {
+      const cores = (window.StarfieldHatch && window.StarfieldHatch.getUnopenedCores) ? window.StarfieldHatch.getUnopenedCores() : 0;
+      let pBadge = btnPlanet.querySelector('.sf-touch-core-badge');
+      if (cores > 0) {
+        if (!pBadge) {
+          pBadge = document.createElement('span');
+          pBadge.className = 'sf-touch-core-badge';
+          btnPlanet.appendChild(pBadge);
+        }
+        pBadge.textContent = cores > 99 ? '99+' : String(cores);
+      } else if (pBadge) {
+        pBadge.remove();
+      }
+
+      let mDot = btnMore.querySelector('.sf-more-core-dot');
+      if (cores > 0) {
+        if (!mDot) {
+          mDot = document.createElement('span');
+          mDot.className = 'sf-more-core-dot';
+          btnMore.appendChild(mDot);
+        }
+      } else if (mDot) {
+        mDot.remove();
+      }
+    };
+    window.updateCoreBadges = updateCoreBadges;
+    window.addEventListener('storage', updateCoreBadges);
+
     btnMore.addEventListener('click', (e) => {
       e.stopPropagation();
+      updateCoreBadges();
       moreTray.classList.toggle('open');
       triggerHaptic(15);
     });
@@ -12462,6 +12556,7 @@ requestAnimationFrame(frame);
     rowPrimary.appendChild(btnCam);
     rowPrimary.appendChild(btnFocus);
     rowPrimary.appendChild(btnMore);
+    updateCoreBadges();
 
     actionCluster.appendChild(rowPrimary);
     overlay.appendChild(actionCluster);
@@ -16102,11 +16197,59 @@ document.addEventListener('DOMContentLoaded', () => {
     return item;
   }
 
+  // --- Unopened Planetary Cores (Default gift 3 cores for testing & initial exploration) ---
+  const CORE_KEY = 'sf_unopened_cores_v1';
+  function getUnopenedCores() {
+    try {
+      const stored = localStorage.getItem(CORE_KEY);
+      if (stored === null) {
+        // Default gift 3 cores for test & new users!
+        localStorage.setItem(CORE_KEY, '3');
+        return 3;
+      }
+      return Math.max(0, parseInt(stored, 10) || 0);
+    } catch (e) {
+      return 3;
+    }
+  }
+
+  function setUnopenedCores(n) {
+    try { localStorage.setItem(CORE_KEY, String(Math.max(0, n))); } catch (e) {}
+    if (window.updateCoreBadges) window.updateCoreBadges();
+  }
+
+  function addCores(n = 3) {
+    const cur = getUnopenedCores();
+    const next = cur + n;
+    setUnopenedCores(next);
+    if (window.toast) toast(`✦ 已获赠 ${n} 颗未孵化星核 (当前共 ${next} 颗)`);
+    return next;
+  }
+
+  function openNextCore() {
+    const cores = getUnopenedCores();
+    if (cores <= 0) {
+      if (window.toast) toast('暂无待孵化星核，已为你补充 3 颗测试星核！');
+      addCores(3);
+    }
+    const left = getUnopenedCores();
+    setUnopenedCores(left - 1);
+    const item = roll(30);
+    if (window.StarfieldHatch && typeof window.StarfieldHatch.openFor === 'function') {
+      window.StarfieldHatch.openFor(item);
+    }
+    return item;
+  }
+
   window.StarfieldHatch = {
     roll: roll,
     list: read,
     clear: function () { write([]); },
     tiers: TIERS,
+    getUnopenedCores: getUnopenedCores,
+    setUnopenedCores: setUnopenedCores,
+    addCores: addCores,
+    openNextCore: openNextCore,
     // exposed for the distribution probe; never used by the UI
     _pick: function (minutes, u) { return pick(minutes, u); }
   };
@@ -16195,24 +16338,247 @@ document.addEventListener('DOMContentLoaded', () => {
 </script>
 
 <style id="sf-hatch-list-css">
-#sf-hatch-list{position:fixed;inset:0;z-index:880;display:none;flex-direction:column;
- background:rgba(4,7,12,.9);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
- padding:calc(env(safe-area-inset-top,0px) + 26px) 18px 18px;box-sizing:border-box}
-#sf-hatch-list.on{display:flex}
-.sf-hl-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:16px}
-.sf-hl-title{font-size:15px;letter-spacing:.2em}
-.sf-hl-count{font-size:10px;letter-spacing:.14em;opacity:.5}
-.sf-hl-grid{flex:1;overflow-y:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:10px;
- -webkit-overflow-scrolling:touch}
-.sf-hl-item{display:flex;flex-direction:column;align-items:center;gap:7px;padding:10px 6px;border-radius:14px;
- background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08)}
-.sf-hl-orb{width:54px;height:54px;border-radius:50%;
- background:radial-gradient(circle at 34% 30%,hsl(var(--hue) 55% 62%),hsl(var(--hue) 60% 26%) 58%,#05070b 92%);
- box-shadow:0 0 16px var(--tier),inset 0 0 10px rgba(0,0,0,.6);border:1px solid var(--tier)}
-.sf-hl-name{font-size:10px;letter-spacing:.08em;opacity:.85;text-align:center}
-.sf-hl-empty{opacity:.4;font-size:11px;letter-spacing:.16em;margin:24px 0}
-.sf-hl-close{position:absolute;top:calc(env(safe-area-inset-top,0px) + 16px);right:18px;background:none;
- border:1px solid rgba(255,255,255,.25);border-radius:20px;color:#e6edf2;font-size:11px;padding:5px 12px;cursor:pointer}
+#sf-hatch-list {
+  position: fixed;
+  inset: 0;
+  z-index: 880;
+  display: none;
+  flex-direction: column;
+  background: rgba(6, 11, 20, 0.94);
+  backdrop-filter: blur(24px) saturate(160%);
+  -webkit-backdrop-filter: blur(24px) saturate(160%);
+  padding: calc(env(safe-area-inset-top, 0px) + 20px) 18px calc(env(safe-area-inset-bottom, 0px) + 20px);
+  box-sizing: border-box;
+}
+#sf-hatch-list.on { display: flex; }
+
+.sf-hl-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+.sf-hl-title {
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  color: #f1f5f9;
+}
+.sf-hl-count {
+  margin-left: 10px;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: #94a3b8;
+}
+.sf-hl-close {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 20px;
+  color: #e2e8f0;
+  font-size: 11px;
+  padding: 5px 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.sf-hl-close:hover {
+  background: rgba(255, 255, 255, 0.18);
+  color: #ffffff;
+}
+
+/* Core Action Banner */
+.sf-hl-core-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.12) 0%, rgba(14, 23, 38, 0.88) 100%);
+  border: 1px solid rgba(255, 215, 0, 0.4);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+.sf-hl-core-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.sf-hl-core-icon {
+  font-size: 26px;
+  filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.5));
+}
+.sf-hl-core-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #ffd700;
+  letter-spacing: 0.06em;
+}
+.sf-hl-core-badge {
+  background: rgba(255, 215, 0, 0.2);
+  border: 1px solid rgba(255, 215, 0, 0.5);
+  padding: 1px 7px;
+  border-radius: 10px;
+  font-size: 11px;
+  margin-left: 4px;
+}
+.sf-hl-core-desc {
+  font-size: 10px;
+  color: #94a3b8;
+  letter-spacing: 0.04em;
+  margin-top: 2px;
+}
+.sf-hl-core-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.sf-hl-btn-open {
+  padding: 7px 16px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  background: linear-gradient(135deg, #ffd700 0%, #f59e0b 100%);
+  border: none;
+  color: #0b1118;
+  box-shadow: 0 4px 14px rgba(255, 215, 0, 0.35);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.sf-hl-btn-open:hover { transform: scale(1.03); box-shadow: 0 6px 20px rgba(255, 215, 0, 0.5); }
+.sf-hl-btn-open:active { transform: scale(0.97); }
+.sf-hl-btn-open.pulse {
+  animation: goldPulse 2s infinite ease-in-out;
+}
+@keyframes goldPulse {
+  0%, 100% { box-shadow: 0 0 8px rgba(255, 215, 0, 0.3); }
+  50% { box-shadow: 0 0 22px rgba(255, 215, 0, 0.7); }
+}
+.sf-hl-btn-gift {
+  padding: 6px 12px;
+  border-radius: 18px;
+  font-size: 10.5px;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: #cbd5e1;
+  transition: all 0.15s ease;
+}
+.sf-hl-btn-gift:hover {
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+}
+
+/* Grid & Cards */
+.sf-hl-grid {
+  flex: 1;
+  overflow-y: auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(105px, 1fr));
+  gap: 12px;
+  padding-bottom: 24px;
+  -webkit-overflow-scrolling: touch;
+}
+.sf-hl-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 8px;
+  border-radius: 16px;
+  background: rgba(15, 23, 42, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  cursor: pointer;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease, background 0.2s ease;
+}
+.sf-hl-item:hover {
+  transform: translateY(-3px);
+  background: rgba(30, 41, 59, 0.75);
+  border-color: var(--tier);
+}
+.sf-hl-item:active { transform: scale(0.96); }
+
+.sf-hl-orb-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.sf-hl-orb {
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 34% 30%, hsl(var(--hue) 60% 64%), hsl(var(--hue) 65% 28%) 58%, #05070b 92%);
+  box-shadow: 0 0 20px var(--tier), inset 0 0 12px rgba(0, 0, 0, 0.7);
+  border: 1px solid var(--tier);
+  transition: transform 0.3s ease;
+}
+.sf-hl-item:hover .sf-hl-orb {
+  transform: scale(1.05);
+}
+.sf-hl-tier-badge {
+  position: absolute;
+  bottom: -4px;
+  font-size: 8.5px;
+  letter-spacing: 0.06em;
+  padding: 1px 5px;
+  border-radius: 8px;
+  background: rgba(11, 17, 24, 0.9);
+  border: 1px solid;
+}
+.sf-hl-meta-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  width: 100%;
+}
+.sf-hl-name {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  color: #f1f5f9;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 95px;
+}
+.sf-hl-date {
+  font-size: 9px;
+  color: #64748b;
+  letter-spacing: 0.04em;
+}
+
+/* Empty State */
+.sf-hl-empty-box {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 20px;
+  text-align: center;
+  gap: 12px;
+}
+.sf-hl-empty-icon {
+  font-size: 48px;
+  opacity: 0.85;
+}
+.sf-hl-empty-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #f1f5f9;
+  letter-spacing: 0.1em;
+}
+.sf-hl-empty-sub {
+  font-size: 12px;
+  color: #94a3b8;
+  max-width: 290px;
+  line-height: 1.6;
+}
 </style>
 
 <script>
@@ -16220,24 +16586,109 @@ document.addEventListener('DOMContentLoaded', () => {
   var root=null;
   function render(){
     var H=window.StarfieldHatch, TIERS=(H&&H.tiers)||{}, list=(H&&H.list)?H.list():[];
+    var cores = (H&&H.getUnopenedCores)?H.getUnopenedCores():0;
     if(!root){
       root=document.createElement('div'); root.id='sf-hatch-list';
-      root.innerHTML='<div class="sf-hl-head"><span class="sf-hl-title">我的星球</span>'+
-        '<span class="sf-hl-count"></span></div><div class="sf-hl-grid"></div>'+
-        '<button class="sf-hl-close">关闭</button>';
-      root.querySelector('.sf-hl-close').addEventListener('click',function(){ root.classList.remove('on'); });
       document.body.appendChild(root);
     }
-    root.querySelector('.sf-hl-count').textContent=list.length?('共 '+list.length+' 颗'):'';
-    var g=root.querySelector('.sf-hl-grid'); g.innerHTML='';
-    if(!list.length){ var e=document.createElement('div'); e.className='sf-hl-empty';
-      e.textContent='还没有星球。完成一次专注后孵化第一颗。'; g.appendChild(e); return; }
+    root.innerHTML = `
+      <div class="sf-hl-head">
+        <div>
+          <span class="sf-hl-title">我的深空领地 · 星球图鉴</span>
+          <span class="sf-hl-count">已探索 ${list.length} 颗</span>
+        </div>
+        <button class="sf-hl-close">✕ 关闭</button>
+      </div>
+
+      <div class="sf-hl-core-banner">
+        <div class="sf-hl-core-left">
+          <div class="sf-hl-core-icon">🪐</div>
+          <div>
+            <div class="sf-hl-core-title">
+              待孵化星核 <span class="sf-hl-core-badge">${cores} 颗</span>
+            </div>
+            <div class="sf-hl-core-desc">初次探索默认赠送 3 颗 · 随时点亮新星体</div>
+          </div>
+        </div>
+        <div class="sf-hl-core-actions">
+          <button class="sf-hl-btn-open ${cores > 0 ? 'pulse' : ''}" id="sf-hl-btn-open-core">
+            ${cores > 0 ? `✦ 立即孵化 (${cores})` : '暂无星核'}
+          </button>
+          <button class="sf-hl-btn-gift" id="sf-hl-btn-add-core" title="测试专属：补充 3 颗星核">+3 测试星核</button>
+        </div>
+      </div>
+
+      <div class="sf-hl-grid"></div>
+    `;
+
+    root.querySelector('.sf-hl-close').addEventListener('click', function(){ root.classList.remove('on'); });
+
+    var btnOpen = root.querySelector('#sf-hl-btn-open-core');
+    if (btnOpen) {
+      btnOpen.addEventListener('click', function() {
+        if (H && H.openNextCore) {
+          root.classList.remove('on');
+          H.openNextCore();
+        }
+      });
+    }
+
+    var btnAdd = root.querySelector('#sf-hl-btn-add-core');
+    if (btnAdd) {
+      btnAdd.addEventListener('click', function() {
+        if (H && H.addCores) {
+          H.addCores(3);
+          render();
+        }
+      });
+    }
+
+    var g = root.querySelector('.sf-hl-grid');
+    if (!list.length) {
+      var emptyBox = document.createElement('div');
+      emptyBox.className = 'sf-hl-empty-box';
+      emptyBox.innerHTML = `
+        <div class="sf-hl-empty-icon">🪐</div>
+        <div class="sf-hl-empty-title">星图尚待点亮</div>
+        <div class="sf-hl-empty-sub">已为你备妥 3 颗赠送星核，立即孵化你的第一颗深空世界！</div>
+        <button class="sf-hl-btn-open pulse" id="sf-hl-empty-open-btn">✦ 开启第 1 颗星球</button>
+      `;
+      var emptyBtn = emptyBox.querySelector('#sf-hl-empty-open-btn');
+      if (emptyBtn) {
+        emptyBtn.addEventListener('click', function() {
+          if (H && H.openNextCore) {
+            root.classList.remove('on');
+            H.openNextCore();
+          }
+        });
+      }
+      g.appendChild(emptyBox);
+      return;
+    }
+
     list.slice().reverse().forEach(function(it){
-      var t=TIERS[it.tier]||{color:'#fff'};
-      var d=document.createElement('div'); d.className='sf-hl-item';
-      d.style.setProperty('--tier',t.color); d.style.setProperty('--hue',String(it.hue|0));
-      d.innerHTML='<div class="sf-hl-orb"></div><div class="sf-hl-name"></div>';
-      d.querySelector('.sf-hl-name').textContent=it.name;
+      var t = TIERS[it.tier] || { color: '#8ea9c4', cn: '常见' };
+      var d = document.createElement('div');
+      d.className = 'sf-hl-item';
+      d.style.setProperty('--tier', t.color);
+      d.style.setProperty('--hue', String(it.hue | 0));
+      d.title = '点击检视星球档案与自命名 · ' + it.name;
+      d.innerHTML = `
+        <div class="sf-hl-orb-wrap">
+          <div class="sf-hl-orb"></div>
+          <span class="sf-hl-tier-badge" style="color:${t.color};border-color:${t.color}55;">${t.cn}</span>
+        </div>
+        <div class="sf-hl-meta-wrap">
+          <div class="sf-hl-name">${it.name}</div>
+          <div class="sf-hl-date">${it.at || ''}</div>
+        </div>
+      `;
+      d.addEventListener('click', function() {
+        if (H && H.openFor) {
+          root.classList.remove('on');
+          H.openFor(it);
+        }
+      });
       g.appendChild(d);
     });
   }
