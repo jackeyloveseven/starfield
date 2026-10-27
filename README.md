@@ -14,7 +14,7 @@
 [![Uncapped FPS](https://img.shields.io/badge/Display-120Hz_/_144Hz_Uncapped-FF6B6B?style=for-the-badge)](#性能与高刷)
 [![Retina 2K](https://img.shields.io/badge/Retina-2K_DPR_2.75x-58C4DD?style=for-the-badge)](#2k-视网膜与显示引擎)
 
-[在线体验](https://jackeyloveseven.github.io/starfield/) · [下载 Android APK](https://github.com/jackeyloveseven/starfield/releases) · [宣传视频 (3b1b风格)](#宣传视频--数学之美) · [数学与物理引擎](#数学与物理引擎-3b1b-风格解构) · [更新日志](#版本更新历史)
+[在线体验](https://jackeyloveseven.github.io/starfield/) · [下载 Android APK](https://github.com/jackeyloveseven/starfield/releases) · [宣传视频 (3b1b风格)](#宣传视频--数学之美) · [数学与物理引擎](#数学与物理引擎-3b1b-风格解构) · [更新日志 (CHANGELOG)](CHANGELOG.md)
 
 </div>
 

@@ -43,6 +43,7 @@ jobs:
           cp -r libs _site/libs
           cp CREDITS.md _site/CREDITS.md
           cp README.md _site/README.md
+          cp CHANGELOG.md _site/CHANGELOG.md
           cp -r docs _site/docs 2>/dev/null || true
           touch _site/.nojekyll
 

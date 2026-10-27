@@ -3,5 +3,10 @@ shots/
 starfield.js
 work-*.html
 tmp-*
+*.tmp
 __pycache__/
 *.apk
+*.log
+tools/test_*.png
+.gradle/
+local.properties
