@@ -16,9 +16,26 @@ import os
 import re
 import subprocess
 import sys
+import shutil
 import tempfile
 
-CHROME = r"C:\Program Files\Google\Chrome\Application\chrome.exe"
+def find_chrome():
+    if os.environ.get("CHROME_PATH") and os.path.exists(os.environ["CHROME_PATH"]):
+        return os.environ["CHROME_PATH"]
+    candidates = [
+        r"C:\Program Files\Google\Chrome\Application\chrome.exe",
+        r"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe",
+        shutil.which("google-chrome"),
+        shutil.which("google-chrome-stable"),
+        shutil.which("chromium"),
+        shutil.which("chromium-browser"),
+    ]
+    for c in candidates:
+        if c and os.path.exists(c):
+            return c
+    return "google-chrome"
+
+CHROME = find_chrome()
 
 if len(sys.argv) != 2:
     sys.exit("usage: python -I verify_dilation.py <patched.html>")
