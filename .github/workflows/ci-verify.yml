@@ -1,0 +1,42 @@
+name: CI Engine & Physics Verification
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'starfield.html'
+      - 'tools/**'
+      - '.github/workflows/ci-verify.yml'
+  pull_request:
+    branches: [master]
+  workflow_dispatch:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Playwright & Test Dependencies
+        run: |
+          pip install playwright
+          playwright install --with-deps chromium
+
+      - name: Verify Planet Cores & UI Systems
+        run: python tools/verify_cores_and_ui.py
+
+      - name: Verify Gravitational Time Dilation Physics
+        run: python tools/verify_dilation.py starfield.html
+
+      - name: Verify Sky Events Deterministic Optics
+        run: python tools/verify_skyevent.py starfield.html
+
+      - name: Verify FPS & Telemetry Engine
+        run: python tools/verify_fps_and_telemetry.py

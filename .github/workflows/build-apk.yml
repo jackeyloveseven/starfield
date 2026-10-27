@@ -3,6 +3,8 @@ name: Build Android APK
 on:
   push:
     paths:
+      - 'starfield.html'
+      - 'version.json'
       - 'android/**'
       - '.github/workflows/build-apk.yml'
   workflow_dispatch:
@@ -23,6 +25,7 @@ jobs:
         with:
           java-version: '17'
           distribution: 'temurin'
+          cache: 'gradle'
 
       - name: Download & Setup Gradle 8.5
         run: |
@@ -58,6 +61,14 @@ jobs:
         run: |
           cp android/app/build/outputs/apk/debug/app-debug.apk StarfieldFocus.apk
 
+      - name: Extract Version Info
+        id: get_version
+        run: |
+          VERSION_NAME=$(grep 'versionName' android/app/build.gradle | awk -F'"' '{print $2}')
+          VERSION_CODE=$(grep 'versionCode' android/app/build.gradle | awk '{print $2}')
+          echo "version_name=$VERSION_NAME" >> $GITHUB_OUTPUT
+          echo "version_code=$VERSION_CODE" >> $GITHUB_OUTPUT
+
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
@@ -68,13 +79,15 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: github.ref == 'refs/heads/master'
         with:
-          tag_name: v1.15.0-focus-apk
-          name: "源义经 · Android v1.15.0"
+          tag_name: "v${{ steps.get_version.outputs.version_name }}-focus-apk"
+          name: "星空 · Android v${{ steps.get_version.outputs.version_name }} (Build ${{ steps.get_version.outputs.version_code }})"
           body: |
             ### 🌌 星空 · STARFIELD // 挂机深空探索与专注番茄钟 Android 安装包 (APK)
             
-            - **沉浸式全屏与屏幕常亮**：支持桌面挂机放置，探索浩瀚深空；
-            - **离场监测与黑洞坠毁**：10 秒宽限期，中途玩手机将耗尽燃料坠入黑洞奇点；
-            - **30/60 分钟成就勋礼**：解锁【专注曜金·泰坦折纸旗舰】与【黄金纪元引力波流光】；
-            - **原生触控优化**：人体工学左手浮动摇杆 + 右手扇形动作簇。
+            - **版本**：v${{ steps.get_version.outputs.version_name }} (Build ${{ steps.get_version.outputs.version_code }})
+            - **视觉与动效革新**：基于 `page-design` 与 `design-to-motion` 体系重构，深空雷达信标波纹、星球呼吸光晕与光幕掠扫主按键；
+            - **2K Ultra 视网膜引擎**：移动端最高 2.75x DPR 点对点真视网膜级锐度；
+            - **120Hz/144Hz 满血高刷**：彻底解锁移动设备硬件刷新率上限，附带智能巡航节能温控；
+            - **单文件零依赖核心**：Vanilla JS + WebGL + Canvas2D + Web Audio 物理合成；
+            - **原生触控优化**：人体工学左手隐形浮动摇杆 + 右手扇形动作簇。
           files: StarfieldFocus.apk
