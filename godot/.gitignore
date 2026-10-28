@@ -1,0 +1,14 @@
+# Godot 4+ specific ignores
+.godot/
+
+# Compiled and binary outputs
+builds/*.exe
+builds/*.apk
+builds/*.zip
+
+# Keystores with sensitive data (debug.keystore can be generated on CI)
+*.keystore
+
+# Temporary files
+*.tmp
+*.log

@@ -1,11 +1,11 @@
 {
-  "version": "1.15.0",
-  "build": 140,
-  "updated_at": "2026-10-26T20:10:00+08:00",
+  "version": "1.16.0",
+  "build": 142,
+  "updated_at": "2026-10-28T22:50:00+08:00",
   "min_native_version": "1.0.0",
-  "title": "星际美学跃迁 · 深空星球图鉴与赠送测试星核",
-  "changelog": "1. 全新赛博禅意毛玻璃 UI 布局，精调视口与航行卡片美学质感；2. 默认赠送 3 颗未孵化深空星核，开箱即玩 3D 活体行星与自命名；3. 底部快捷栏集成星球馆入口与待孵化微粒光环红点提醒；4. 支持测试专属无限续杯星核（+3 快速补充）",
+  "title": "原生引擎跃迁 · Godot 4.3 原生3D移植与全六星区原声母带",
+  "changelog": "1. 新增 Godot 4.3 工业级 3D 原生引擎（godot/），支持辛几何引力透镜黑洞、144Hz 柔性扑翼与标准前向飞行；2. 恢复全部 6 首高保真立体声无损原声母带（原野/月图/暖纸/暮粉/夜航/雪境）；3. 全面落地 page-design 版式层级与 design-to-motion 自然运动系统；4. 适配移动端安全区与 2K 视网膜渲染，消除全部中文字符方框与界面重叠。",
   "entry": "starfield.html",
   "download_url": "https://jackeyloveseven.github.io/starfield/starfield.html",
-  "apk_release_url": "https://github.com/jackeyloveseven/starfield/releases/tag/v1.15.0-focus-apk"
+  "apk_release_url": "https://github.com/jackeyloveseven/starfield/releases/tag/v1.16.0-focus-apk"
 }

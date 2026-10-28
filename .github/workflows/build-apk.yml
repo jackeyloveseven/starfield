@@ -6,6 +6,7 @@ on:
       - 'starfield.html'
       - 'version.json'
       - 'android/**'
+      - 'godot/**'
       - '.github/workflows/build-apk.yml'
   workflow_dispatch:
 
@@ -80,14 +81,17 @@ jobs:
         if: github.ref == 'refs/heads/master'
         with:
           tag_name: "v${{ steps.get_version.outputs.version_name }}-focus-apk"
-          name: "星空 · Android v${{ steps.get_version.outputs.version_name }} (Build ${{ steps.get_version.outputs.version_code }})"
+          name: "星空 · Android & Native v${{ steps.get_version.outputs.version_name }} (Build ${{ steps.get_version.outputs.version_code }})"
           body: |
-            ### 🌌 星空 · STARFIELD // 挂机深空探索与专注番茄钟 Android 安装包 (APK)
-            
+            ### 🌌 星空 · STARFIELD // 原生引擎跃迁与全六星区原声母带发布
+
             - **版本**：v${{ steps.get_version.outputs.version_name }} (Build ${{ steps.get_version.outputs.version_code }})
-            - **视觉与动效革新**：基于 `page-design` 与 `design-to-motion` 体系重构，深空雷达信标波纹、星球呼吸光晕与光幕掠扫主按键；
+            - **Godot 4.3 3D 原生引擎**：引入工业级 3D 物理架构（`godot/`），支持辛几何引力透镜黑洞、144Hz 柔性扑翼与标准前向飞行；
+            - **全 6 首立体声无损原声母带**：恢复全部 6 首高保真母带（原野/月图/暖纸/暮粉/夜航/雪境），淘汰振荡器合成；
+            - **视觉与动效革新**：深度落地 `page-design` 版式层级与 `design-to-motion` 自然运动系统；
             - **2K Ultra 视网膜引擎**：移动端最高 2.75x DPR 点对点真视网膜级锐度；
             - **120Hz/144Hz 满血高刷**：彻底解锁移动设备硬件刷新率上限，附带智能巡航节能温控；
-            - **单文件零依赖核心**：Vanilla JS + WebGL + Canvas2D + Web Audio 物理合成；
-            - **原生触控优化**：人体工学左手隐形浮动摇杆 + 右手扇形动作簇。
-          files: StarfieldFocus.apk
+            - **跨端可执行包**：包含 Android 安装包 (`StarfieldFocus.apk`) 与 Godot 原生 PC 游戏包 (`StarfieldNative.pck`)。
+          files: |
+            StarfieldFocus.apk
+            godot/builds/StarfieldNative.pck

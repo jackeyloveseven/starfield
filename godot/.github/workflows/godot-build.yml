@@ -1,0 +1,60 @@
+name: Build Starfield Godot 4.3 Native (Android APK & Windows)
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  test_and_build:
+    name: Build & Package Godot Native
+    runs-on: ubuntu-latest
+    container:
+      image: barichello/godot-ci:4.3
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Setup Export Directory
+        run: |
+          mkdir -v -p ~/.local/share/godot/export_templates/4.3.stable
+          mv /root/.local/share/godot/export_templates/4.3.stable/* ~/.local/share/godot/export_templates/4.3.stable/ || true
+          mkdir -v -p builds/android
+          mkdir -v -p builds/windows
+
+      - name: Run Headless Engine & Physics Tests
+        run: |
+          godot -v --headless --path . -s res://tests/test_engine_headless.gd
+
+      - name: Setup Android Debug Keystore
+        run: |
+          if [ ! -f "debug.keystore" ]; then
+            keytool -genkey -v -keystore debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+          fi
+
+      - name: Export Android APK (Vulkan Mobile ARM64)
+        run: |
+          godot -v --headless --path . --export-debug "Android" builds/android/StarfieldNative.apk
+
+      - name: Export Windows Desktop Binary
+        run: |
+          godot -v --headless --path . --export-release "Windows Desktop" builds/windows/StarfieldNative.exe
+
+      - name: Upload Android APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Starfield-Android-APK
+          path: builds/android/StarfieldNative.apk
+          if-no-files-found: error
+
+      - name: Upload Windows Standalone Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Starfield-Windows-Desktop
+          path: builds/windows/
+          if-no-files-found: error
