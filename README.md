@@ -8,13 +8,14 @@
 基于 Canvas2D + WebGL + Web Audio 纯原生技术栈，零外部依赖、零第三方库、零网络请求，双击 `starfield.html` 即可起航。
 
 [![GitHub Pages](https://img.shields.io/badge/GitHub_Pages-Online_Demo-58C4DD?style=for-the-badge&logo=github)](https://jackeyloveseven.github.io/starfield/)
-[![Android APK](https://img.shields.io/badge/Android_APK-v1.15.1_(Build_141)-F9C74F?style=for-the-badge&logo=android)](https://github.com/jackeyloveseven/starfield/releases)
+[![Release](https://img.shields.io/badge/Release-v1.16.0_(Build_42)-F9C74F?style=for-the-badge&logo=android)](https://github.com/jackeyloveseven/starfield/releases)
+[![Godot 4.3](https://img.shields.io/badge/Godot-4.3_Native_3D-478CBF?style=for-the-badge&logo=godotengine)](godot/)
 [![License](https://img.shields.io/badge/License-MIT-9A79DB?style=for-the-badge)](CREDITS.md)
 [![Zero Dependency](https://img.shields.io/badge/Zero-Dependencies-success?style=for-the-badge)](#技术架构)
 [![Uncapped FPS](https://img.shields.io/badge/Display-120Hz_/_144Hz_Uncapped-FF6B6B?style=for-the-badge)](#性能与高刷)
 [![Retina 2K](https://img.shields.io/badge/Retina-2K_DPR_2.75x-58C4DD?style=for-the-badge)](#2k-视网膜与显示引擎)
 
-[在线体验](https://jackeyloveseven.github.io/starfield/) · [下载 Android APK](https://github.com/jackeyloveseven/starfield/releases) · [宣传视频 (3b1b风格)](#宣传视频--数学之美) · [数学与物理引擎](#数学与物理引擎-3b1b-风格解构) · [更新日志 (CHANGELOG)](CHANGELOG.md)
+[在线体验](https://jackeyloveseven.github.io/starfield/) · [下载最新 Release (APK / PCK)](https://github.com/jackeyloveseven/starfield/releases) · [宣传视频 (3b1b风格)](#宣传视频--数学之美) · [数学与物理引擎](#数学与物理引擎-3b1b-风格解构) · [更新日志 (CHANGELOG)](CHANGELOG.md)
 
 </div>
 
@@ -167,10 +168,17 @@ starfield/
 ├── service-worker.js           # 离线缓存 Service Worker
 ├── version.json                # OTA 热更新版本描述契约
 ├── android/                    # Android 原生轻量级离线打包工程
-│   └── app/build.gradle        # Android 构建与版本管理 (v1.15.1 Build 141)
+│   └── app/build.gradle        # Android 构建与版本管理 (v1.16.0 Build 42)
+├── godot/                      # Godot 4.3 原生 3D 引擎工程目录
+│   ├── project.godot           # 引擎工程定义
+│   ├── scenes/                 # 主场景与 HUD 界面
+│   ├── scripts/                # 飞行动力学、宇宙路径与音频流管理器
+│   ├── shaders/                # 广义相对论黑洞与折纸双面着色器
+│   └── builds/StarfieldNative.pck # PC 原生独立资源包 (~9.5 MB)
 ├── docs/                       # 项目文档与多媒体展示
 │   └── assets/                 # 宣传视频关键帧与 3b1b 风格数学图鉴
 ├── tools/                      # 验证套件、性能探针与 3b1b 宣传片渲染器
+│   ├── BUILD-LOG.md                  # 历代构建与踩坑实录 (v1 - v142)
 │   ├── generate_3b1b_promo_video.py  # 3Blue1Brown (Manim) 风格视频生成器
 │   ├── verify_cores_and_ui.py        # 天象馆与 UI 交互断言测试
 │   ├── verify_dilation.py            # 引力时间膨胀数学物理断言
@@ -181,15 +189,30 @@ starfield/
 
 ---
 
+## 🎮 原生版本运行方式 (Godot 4.3 PCK)
+
+除网页版与安卓客户端外，本项目现已支持 Godot 4.3 原生独立渲染端：
+
+1. **直接运行 Release PCK 资源包**：
+   - 在 [Releases](https://github.com/jackeyloveseven/starfield/releases) 下载 `StarfieldNative.pck`；
+   - 配合任意标准版 [Godot 4.3 官方执行程序](https://godotengine.org/download/) 运行：
+     ```bash
+     godot.exe --main-pack StarfieldNative.pck
+     ```
+2. **源码调试**：
+   - 直接使用 Godot 4.3 打开仓库中的 `godot/` 目录即可编辑与调试。
+
+---
+
 ## 📦 GitHub Actions CI/CD 流水线
 
 本项目拥有完备的自动化持续集成与部署体系：
 
 - **自动化 Pages 部署 (`pages.yml`)**：代码推送到 `master` 分支即刻完成全站静态资源打包与 GitHub Pages 发布；
-- **自动化 Android APK 构建与发布 (`build-apk.yml`)**：
-  - 监听 `starfield.html`、`version.json` 与 `android/**` 变更；
-  - 动态解析 Gradle 版本号（自动生成 `v1.15.1-focus-apk` Release）；
-  - 采用 Gradle 依赖缓存机制，单次构建提速至 1 分钟以内，自动上传 APK 产物并同步发布至 GitHub Releases；
+- **自动化 Android APK & PCK 构建与发布 (`build-apk.yml`)**：
+  - 监听 `starfield.html`、`version.json`、`android/**` 与 `godot/**` 变更；
+  - 动态解析版本号（自动生成 `v1.16.0-focus-apk` Release）；
+  - 采用 Gradle 依赖缓存机制，自动打包 Android APK (`StarfieldFocus.apk`) 与 PC 原生包 (`StarfieldNative.pck`) 并同步发布至 GitHub Releases；
 - **物理与引擎回归验证 (`ci-verify.yml`)**：
   - 每次代码提交自动在无头 Linux 环境下拉起 Playwright 与 Chromium；
   - 严格执行引力时间膨胀方程验证、天体孵化状态机验证与天空事件光学测试，确保 0 回归。
