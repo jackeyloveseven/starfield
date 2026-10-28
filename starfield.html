@@ -1494,27 +1494,29 @@ img,canvas{-webkit-user-drag:none;user-drag:none}
     </div>
     <div class="slider-group">
       <div class="slider-header">
-        <span>🎵 深空古典原声 (Classical Music)</span>
+        <span>🎵 原创星海配乐 (Original OST)</span>
         <span class="val" id="vol-val-music">80%</span>
       </div>
       <input type="range" class="range-slider" id="slider-music" min="0" max="100" value="80">
     </div>
-    <!-- CLASSICAL MUSIC JUKEBOX -->
+    <!-- ORIGINAL MUSIC JUKEBOX -->
     <div class="classical-jukebox" style="background: rgba(255,255,255,0.04); border: 1px solid rgba(244,208,111,0.25); border-radius: 8px; padding: 10px 12px; margin-top: 10px;">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 6px;">
-        <span style="font-size:10px; letter-spacing:0.12em; color:#f4d06f; font-weight:600;">🎼 古典名曲点播台 // JUKEBOX</span>
+        <span style="font-size:10px; letter-spacing:0.12em; color:#f4d06f; font-weight:600;">🎼 候鸟星海 · 6首典藏原创配乐 // ORIGINAL OST</span>
         <div style="display:flex; gap:6px;">
           <button id="btn-prev-track" class="photo-btn" style="padding:2px 8px; font-size:11px;" title="上一首">◀</button>
           <button id="btn-next-track" class="photo-btn" style="padding:2px 8px; font-size:11px;" title="下一首">▶</button>
         </div>
       </div>
-      <div id="classical-track-title" style="font-size:12px; font-weight:500; color:#e6edf2; line-height:1.4;">圣-桑 ·《引子与回旋随想曲》</div>
-      <div id="classical-track-composer" style="font-size:10px; opacity:0.6; margin-top:2px;">Camille Saint-Saëns (1835–1921)</div>
+      <div id="classical-track-title" style="font-size:12px; font-weight:500; color:#e6edf2; line-height:1.4;">1. 原野 · 晨曦微光 (D 大调 / A 混合利底亚)</div>
+      <div id="classical-track-composer" style="font-size:10px; opacity:0.6; margin-top:2px;">和纸原野 · 66s 沉浸原曲</div>
       <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px; margin-top:8px;">
-        <button class="photo-btn track-select-btn active" data-track="0" style="padding:5px 8px; font-size:11px; text-align:left; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">1. 圣-桑 · 引子随想曲</button>
-        <button class="photo-btn track-select-btn" data-track="1" style="padding:5px 8px; font-size:11px; text-align:left; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">2. 维瓦尔第 · 春</button>
-        <button class="photo-btn track-select-btn" data-track="2" style="padding:5px 8px; font-size:11px; text-align:left; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">3. 维瓦尔第 · 冬</button>
-        <button class="photo-btn track-select-btn" data-track="3" style="padding:5px 8px; font-size:11px; text-align:left; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">4. 圣-桑 · 天鹅</button>
+        <button class="photo-btn track-select-btn active" data-track="0" style="padding:5px 8px; font-size:11px; text-align:left; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">1. 原野 · 晨曦</button>
+        <button class="photo-btn track-select-btn" data-track="1" style="padding:5px 8px; font-size:11px; text-align:left; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">2. 月图 · 水墨</button>
+        <button class="photo-btn track-select-btn" data-track="2" style="padding:5px 8px; font-size:11px; text-align:left; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">3. 暖纸 · 金箔</button>
+        <button class="photo-btn track-select-btn" data-track="3" style="padding:5px 8px; font-size:11px; text-align:left; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">4. 暮粉 · 核心</button>
+        <button class="photo-btn track-select-btn" data-track="4" style="padding:5px 8px; font-size:11px; text-align:left; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">5. 夜航 · 深渊</button>
+        <button class="photo-btn track-select-btn" data-track="5" style="padding:5px 8px; font-size:11px; text-align:left; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">6. 雪境 · 低语</button>
       </div>
     </div>
     <div class="slider-group">
@@ -9865,7 +9867,31 @@ class Soundscape {
    this.master=ac.createGain();this.master.gain.value=0;
    const compressor=ac.createDynamicsCompressor();compressor.threshold.value=-15;compressor.knee.value=20;compressor.ratio.value=3;this.master.connect(compressor);compressor.connect(ac.destination);
    this.musicGain=ac.createGain();this.musicGain.gain.value=.68;this.musicGain.connect(this.master);
-   this.media=[]; // Classical music is the definitive score; electronic media tracks silenced
+   // --- RESTORE ORIGINAL 6 STEREO MASTER SCORES (原曲全量恢复) ---
+   this.originalTracks = [
+     { title: "1. 原野 · 晨曦微光 (D 大调 / A 混合利底亚)", desc: "和纸原野 · 66s 沉浸原曲" },
+     { title: "2. 月图 · 远山水墨 (A 自然小调)", desc: "水墨星海 · 71s 空灵原曲" },
+     { title: "3. 暖纸 · 金箔流霞 (A 混合利底亚)", desc: "金箔暖曦 · 71s 温暖原曲" },
+     { title: "4. 暮粉 · 核心回响 (A 自然小调)", desc: "核心薄暮 · 74s 冥想原曲" },
+     { title: "5. 夜航 · 深渊行迹 (A 自然小调 深沉)", desc: "深渊引力 · 78s 低频原曲" },
+     { title: "6. 雪境 · 冰穹低语 (升F 小调)", desc: "冰晶漂流 · 69s 澄澈原曲" }
+   ];
+   this.media = SCORES.map((src, i) => {
+     const el = new Audio();
+     el.preload = 'auto';
+     el.src = src;
+     el.loop = false;
+     const source = ac.createMediaElementSource(el);
+     source.connect(this.musicGain);
+     el.addEventListener('ended', () => {
+       if (i === this.index) {
+         this.gapUntil = ac.currentTime + 2.4;
+         this.switchTo((this.index + 1) % this.media.length);
+       }
+     });
+     el.addEventListener('error', () => { this.musicFailed = true; });
+     return el;
+   });
    
    const noise=ac.createBuffer(1,ac.sampleRate*13,ac.sampleRate),data=noise.getChannelData(0);let brown=0;const r=rng(SEED^80731);
    for(let i=0;i<data.length;i++){const white=r()*2-1;brown=(brown+.018*white)/1.018;data[i]=white*.53+brown*2.2;}
@@ -9876,26 +9902,13 @@ class Soundscape {
    // --- PROCEDURAL SYNTHESIS ENGINE (Subtle Background Air) ---
    this.initProceduralSynth(ac);
 
-   // --- CLASSICAL MUSIC ORCHESTRA ENGINE ---
-   if (typeof ClassicalMusicEngine !== 'undefined') {
-     this.classical = new ClassicalMusicEngine(ac, this.musicGain);
-     this.classical.onTrackChange = (piece, idx) => {
-       const elT = document.getElementById('classical-track-title');
-       const elC = document.getElementById('classical-track-composer');
-       if (elT) elT.textContent = piece.title;
-       if (elC) elC.textContent = piece.composer;
-       document.querySelectorAll('.track-select-btn').forEach((btn, i) => {
-         btn.classList.toggle('active', i === idx);
-       });
-     };
-   }
-
    this.ready=true;await ac.resume();
    if(this.enabled&&!paused&&!document.hidden){
      this.master.gain.linearRampToValueAtTime(.78,ac.currentTime+5);
-     if (this.synthGain) this.synthGain.gain.setValueAtTime(0, ac.currentTime); // Silenced electronic synth
-     if (this.classical) {
-       this.classical.playTrack(0, true);
+     if (this.synthGain) this.synthGain.gain.setValueAtTime(0, ac.currentTime);
+     if (this.media && this.media[0]) {
+       this.media[0].play().catch(()=>{});
+       this.updateTrackUI(0);
      }
    }
   }catch(err){console.warn('Audio initialization:',err);toast('Audio init deferred');}
@@ -9995,74 +10008,104 @@ class Soundscape {
   setTimeout(()=>{try{osc.disconnect();gain.disconnect();}catch(_){}},300);
  }
 
- update(){
-  if(!this.ready||!this.enabled||paused||document.hidden)return;
-  const ac=this.ac,now=ac.currentTime;
-  const speed=Math.hypot(wind.x,wind.y),altitude=camera.eye[1],laneDistance=Math.abs(camera.eye[0]-laneX(camera.eye[2]));
-  const water=Math.exp(-Math.max(0,altitude-40)/210)*Math.exp(-((laneDistance/300)**2));
-  const close=clamp((1400-camera.distance)/1050),flutter=fleet.reduce((s,b)=>s+Math.max(0,Math.sin(time*b.frequency+b.phase))**3,0)/fleet.length;
-  this.wind.gain.gain.setTargetAtTime(.012+speed*.010+clamp(altitude/2300)*.006,now,.7);
-  this.wind.filter.frequency.setTargetAtTime(260+speed*160+currentPalette.shimmer*100,now,.8);
-  this.water.gain.gain.setTargetAtTime(water*.050,now,.8);
-  this.wings.gain.gain.setTargetAtTime(close*close*(.003+flutter*.027),now,.09);
-
-  // Update procedural synthesis engine (silenced)
-  this.updateProceduralSynth(now);
- }
-
- setTension(on){
-  on=!!on;if(this.tense===on)return;this.tense=on;
-  if(!this.ready||!this.enabled)return;
-  try{
-   const ac=this.ac,t=ac.currentTime;
-   if(on){
-    this.master.gain.setTargetAtTime(.85,t,.5);
-    this.wings.gain.setTargetAtTime(.025,t,.4);
-   }else{
-    this.master.gain.setTargetAtTime(.78,t,1.6);
-   }
-  }catch(_){}
- }
- switchTo(i){
-  if(this.classical){
-    this.classical.playTrack(i % CLASSICAL_PIECES.length, true);
-    this.index=this.classical.currentTrackIndex;
-    return;
+ updateTrackUI(idx){
+    this.index = idx;
+    const track = this.originalTracks && this.originalTracks[idx];
+    if (track) {
+      const elT = document.getElementById('classical-track-title');
+      const elC = document.getElementById('classical-track-composer');
+      if (elT) elT.textContent = track.title;
+      if (elC) elC.textContent = track.desc;
+    }
+    document.querySelectorAll('.track-select-btn').forEach((btn, i) => {
+      btn.classList.toggle('active', i === idx);
+    });
   }
-  if(!this.media||!this.media[i]||i===this.index)return;
-  try{this.media[this.index].pause();}catch(_){}
-  this.index=i;this.gapUntil=0;
- }
- setEnabled(value){
-   this.enabled=value;
-   if(!this.ready){if(value&&started)this.init();return;}
-   clearTimeout(this.fadeTimer);
-   if(value)this.resume();
-   else{
+  prevTrack(){
+    if(!this.media||!this.media.length)return;
+    const prev = (this.index - 1 + this.media.length) % this.media.length;
+    this.switchTo(prev);
+  }
+  nextTrack(){
+    if(!this.media||!this.media.length)return;
+    const next = (this.index + 1) % this.media.length;
+    this.switchTo(next);
+  }
+
+  update(){
+   if(!this.ready||!this.enabled||paused||document.hidden)return;
+   const ac=this.ac,now=ac.currentTime;
+   if(this.gapUntil&&now>=this.gapUntil){
+     this.gapUntil=0;
+     const next=(this.index+1)%this.media.length;
+     this.switchTo(next);
+   }
+   const speed=Math.hypot(wind.x,wind.y),altitude=camera.eye[1],laneDistance=Math.abs(camera.eye[0]-laneX(camera.eye[2]));
+   const water=Math.exp(-Math.max(0,altitude-40)/210)*Math.exp(-((laneDistance/300)**2));
+   const close=clamp((1400-camera.distance)/1050),flutter=fleet.reduce((s,b)=>s+Math.max(0,Math.sin(time*b.frequency+b.phase))**3,0)/fleet.length;
+   this.wind.gain.gain.setTargetAtTime(.012+speed*.010+clamp(altitude/2300)*.006,now,.7);
+   this.wind.filter.frequency.setTargetAtTime(260+speed*160+currentPalette.shimmer*100,now,.8);
+   this.water.gain.gain.setTargetAtTime(water*.050,now,.8);
+   this.wings.gain.gain.setTargetAtTime(close*close*(.003+flutter*.027),now,.09);
+
+   this.updateProceduralSynth(now);
+  }
+
+  setTension(on){
+   on=!!on;if(this.tense===on)return;this.tense=on;
+   if(!this.ready||!this.enabled)return;
+   try{
+    const ac=this.ac,t=ac.currentTime;
+    if(on){
+     this.prior=this.index;
+     this.switchTo(4); // Switch to deep Abyss/Night-flight track for tension
+     this.master.gain.setTargetAtTime(.88,t,.5);
+     this.wings.gain.setTargetAtTime(.025,t,.4);
+    }else{
+     this.switchTo(this.prior==null?0:this.prior);
+     this.master.gain.setTargetAtTime(.78,t,1.6);
+    }
+   }catch(_){}
+  }
+  switchTo(i){
+   if(!this.media||!this.media[i]||i===this.index)return;
+   try{this.media[this.index].pause();}catch(_){}
+   this.index=i;this.gapUntil=0;
+   try{this.media[i].currentTime=0;}catch(_){}
+   this.media[i].play().catch(()=>{});
+   this.updateTrackUI(i);
+  }
+  setEnabled(value){
+    this.enabled=value;
+    if(!this.ready){if(value&&started)this.init();return;}
+    clearTimeout(this.fadeTimer);
+    if(value)this.resume();
+    else{
+      const t=this.ac.currentTime;
+      this.master.gain.cancelScheduledValues(t);
+      this.master.gain.setTargetAtTime(0,t,.12);
+      if(this.synthGain){this.synthGain.gain.cancelScheduledValues(t);this.synthGain.gain.setTargetAtTime(0,t,.12);}
+      this.fadeTimer=setTimeout(()=>{if(!this.enabled)this.suspend();},600);
+    }
+  }
+  suspend(){
+    if(!this.ready)return;
+    try{if(this.media&&this.media[this.index])this.media[this.index].pause();}catch(_){}
+    this.ac.suspend().catch(()=>{});
+  }
+  async resume(){
+   if(!this.ready||!this.enabled||paused||document.hidden)return;
+   try{
+     await this.ac.resume();
      const t=this.ac.currentTime;
      this.master.gain.cancelScheduledValues(t);
-     this.master.gain.setTargetAtTime(0,t,.12);
-     if(this.synthGain){this.synthGain.gain.cancelScheduledValues(t);this.synthGain.gain.setTargetAtTime(0,t,.12);}
-     if(this.classical) this.classical.stop();
-     this.fadeTimer=setTimeout(()=>{if(!this.enabled)this.suspend();},600);
-   }
- }
- suspend(){
-   if(!this.ready)return;
-   try{this.media[this.index].pause();}catch(_){}
-   this.ac.suspend().catch(()=>{});
- }
- async resume(){
-  if(!this.ready||!this.enabled||paused||document.hidden)return;
-  try{
-    await this.ac.resume();
-    const t=this.ac.currentTime;
-    this.master.gain.cancelScheduledValues(t);
-    this.master.gain.setTargetAtTime(.78,t,.7);
-    if(this.synthGain){this.synthGain.gain.cancelScheduledValues(t);this.synthGain.gain.setValueAtTime(0,t);}
-    if(this.classical && !this.classical.isPlaying) this.classical.playTrack(this.classical.currentTrackIndex, true);
-  }catch(_){}
- }
+     this.master.gain.setTargetAtTime(.78,t,.7);
+     if(this.synthGain){this.synthGain.gain.cancelScheduledValues(t);this.synthGain.gain.setValueAtTime(0,t);}
+     if(!this.gapUntil&&this.media&&this.media[this.index]&&!this.media[this.index].ended){
+       this.media[this.index].play().catch(()=>{});
+     }
+   }catch(_){}
+  }
 }
 const sound=new Soundscape();
 window.sound=sound;
@@ -15482,25 +15525,25 @@ requestAnimationFrame(frame);
 
 // Connect toggle in GameSettings
 document.addEventListener('DOMContentLoaded', () => {
-  // Classical Music Jukebox wiring
+  // Original Music Jukebox wiring
   const getSound = () => window.sound || (window.Starfield ? window.Starfield.getSoundscape() : null);
   const btnPrev = document.getElementById('btn-prev-track');
   const btnNext = document.getElementById('btn-next-track');
   if (btnPrev) btnPrev.addEventListener('click', () => {
     const s = getSound();
-    if (s && s.classical) s.classical.prevTrack(true);
+    if (s && s.prevTrack) s.prevTrack();
   });
   if (btnNext) btnNext.addEventListener('click', () => {
     const s = getSound();
-    if (s && s.classical) s.classical.nextTrack(true);
+    if (s && s.nextTrack) s.nextTrack();
   });
   document.querySelectorAll('.track-select-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       const idx = parseInt(btn.getAttribute('data-track'), 10);
       const s = getSound();
-      if (s && s.classical) {
+      if (s && s.switchTo) {
         if (typeof toggleSound === 'function' && typeof soundEnabled !== 'undefined' && !soundEnabled) toggleSound();
-        s.classical.playTrack(idx, true);
+        s.switchTo(idx);
       }
     });
   });
