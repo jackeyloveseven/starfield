@@ -144,7 +144,7 @@ def verify_mobile_clean_hud():
         assert comms_box['commsTop'] >= comms_box['camBottom'], f"Collision! #comms-hud ({comms_box['commsTop']}px) covers #camera-hud ({comms_box['camBottom']}px)"
 
         # Click 更多 (More) button to expand tray
-        page_p.evaluate("() => document.querySelectorAll('.sf-touch-primary-row .sf-touch-btn')[3].click()")
+        page_p.evaluate("() => (document.querySelector('.sf-touch-primary-row .sf-touch-btn.more') || document.querySelectorAll('.sf-touch-primary-row .sf-touch-btn')[2]).click()")
         page_p.wait_for_timeout(300)
         shot_tray = os.path.join(artifact_dir, "test_mobile_clean_hud_tray_open.png")
         page_p.screenshot(path=shot_tray)
