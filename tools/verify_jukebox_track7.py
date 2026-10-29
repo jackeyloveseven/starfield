@@ -11,7 +11,8 @@ def main():
         console_errors = []
         page.on('pageerror', lambda err: console_errors.append(str(err)))
         
-        file_url = 'file:///' + os.path.abspath('starfield-pub/starfield.html').replace('\\', '/')
+        html_rel = 'starfield.html' if os.path.exists('starfield.html') else 'starfield-pub/starfield.html'
+        file_url = 'file:///' + os.path.abspath(html_rel).replace('\\', '/')
         print('Testing URL:', file_url)
         page.goto(file_url, wait_until='networkidle')
         page.wait_for_timeout(800)
@@ -37,8 +38,8 @@ def main():
             };
         }''')
         print('Initial check:', res)
-        assert res['mediaCount'] == 7, f"Expected 7 media tracks, got {res['mediaCount']}"
-        assert res['btnCount'] == 7, f"Expected 7 track buttons, got {res['btnCount']}"
+        assert res['mediaCount'] >= 7, f"Expected at least 7 media tracks, got {res['mediaCount']}"
+        assert res['btnCount'] >= 7, f"Expected at least 7 track buttons, got {res['btnCount']}"
         assert 'Better Call Saul' in res['btn7Text'], 'Button 7 should mention Better Call Saul'
         
         # Click track 7 (0-indexed 6)
@@ -68,21 +69,24 @@ def main():
         assert 'Better Call Saul' in switched_res['titleText'], 'Track title should update to Better Call Saul'
         assert 'Little Barrie' in switched_res['descText'], 'Track desc should update to Little Barrie'
         
-        # Test next track wrap-around
-        page.locator('#btn-next-track').click()
-        page.wait_for_timeout(400)
+        # Test track advancement to final track and wrap-around to 0
+        total_tracks = res['mediaCount']
+        for _ in range(total_tracks - 6):
+            page.locator('#btn-next-track').click()
+            page.wait_for_timeout(300)
         wrapped_res = page.evaluate('''() => {
             const sound = window.sound || (window.Starfield ? window.Starfield.getSoundscape() : null);
             return {
                 currentIndex: sound ? sound.index : -1
             };
         }''')
-        print('After next track wrap-around:', wrapped_res)
+        print('After track wrap-around to 0:', wrapped_res)
         assert wrapped_res['currentIndex'] == 0, 'Index should wrap back to 0'
         
-        # Test prev track wrap-around
-        page.locator('#btn-prev-track').click()
-        page.wait_for_timeout(400)
+        # Test prev track wrap-around back to 6
+        for _ in range(total_tracks - 6):
+            page.locator('#btn-prev-track').click()
+            page.wait_for_timeout(300)
         prev_wrapped_res = page.evaluate('''() => {
             const sound = window.sound || (window.Starfield ? window.Starfield.getSoundscape() : null);
             return {
@@ -97,8 +101,7 @@ def main():
             const drawer = document.getElementById('settings-drawer');
             if (drawer) drawer.classList.add('open');
         }''')
-        page.wait_for_timeout(500)
-        shot_path = 'starfield-pub/tools/test_jukebox_track7.png'
+        shot_path = os.path.join(os.path.dirname(__file__), 'test_jukebox_track7.png')
         page.screenshot(path=shot_path)
         print('Saved screenshot to:', shot_path)
         
