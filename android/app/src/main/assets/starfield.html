@@ -126,7 +126,7 @@
 .serif{font-family:"Iowan Old Style","Palatino Linotype","Noto Serif CJK SC","Songti SC","SimSun",serif}.mono{font-family:"SFMono-Regular",Consolas,"Liberation Mono",monospace;font-variant-numeric:tabular-nums}.eyebrow{font-size:calc(10px * var(--unit));letter-spacing:.24em;text-transform:uppercase}.muted{opacity:.52}.hairline{height:1px;background:currentColor;opacity:.25}
 #masthead{position:absolute;left:var(--pad);top:calc(var(--pad) - 4px);z-index:4;pointer-events:none;display:flex;align-items:center;gap:14px}.craft-mark{width:36px;height:30px;position:relative;display:inline-block}.craft-mark:before,.craft-mark:after{content:"";position:absolute;background:currentColor;top:8px;width:25px;height:15px;clip-path:polygon(0 0,100% 56%,74% 100%)}.craft-mark:before{left:-3px;transform:rotate(8deg)}.craft-mark:after{right:-3px;transform:scaleX(-1) rotate(8deg)}#masthead .small-title{font-size:calc(11px * var(--unit));letter-spacing:.17em;line-height:1.9}#masthead .small-title span{font-size:calc(8px * var(--unit));letter-spacing:.20em;opacity:.5;display:block}#edition{position:absolute;right:var(--pad);top:var(--pad);font-size:calc(10px * var(--unit));letter-spacing:.15em;opacity:.48;z-index:4;pointer-events:none}
 #intro{position:absolute;inset:0;z-index:5;pointer-events:none;transition:opacity 1.8s ease,visibility 1.8s}#intro.gone{opacity:0;visibility:hidden}#intro:before{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent 36%,var(--soft) 80%);z-index:-1}.intro-inner{position:absolute;left:65%;right:6%;top:50%;transform:translateY(-48%);pointer-events:auto}.intro-kicker{display:flex;align-items:center;gap:12px;white-space:nowrap;opacity:.7;animation:sfHeroIn 0.85s cubic-bezier(0.16,1,0.3,1) both;animation-delay:0.04s}.intro-kicker:before{content:"";width:26px;height:1px;background:currentColor}h1{font-size:clamp(62px,6.6vw,148px);font-weight:400;letter-spacing:.12em;margin:23px 0 3px;line-height:1.18;text-indent:-.025em;background:linear-gradient(135deg,#ffffff 0%,#e2e8f0 55%,#94a3b8 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;text-wrap:balance;animation:sfHeroIn 0.95s cubic-bezier(0.16,1,0.3,1) both;animation-delay:0.12s}.english-title{font-size:clamp(12px,1.1vw,23px);letter-spacing:.48em;margin:15px 0 33px;font-weight:400;text-wrap:balance;animation:sfHeroIn 0.85s cubic-bezier(0.16,1,0.3,1) both;animation-delay:0.20s}.intro-poem{font-size:calc(15px * var(--unit));line-height:2.1;letter-spacing:.13em;margin:0 0 30px;opacity:.76;text-wrap:pretty;animation:sfHeroIn 0.85s cubic-bezier(0.16,1,0.3,1) both;animation-delay:0.28s}.departure-label{font-size:calc(10px * var(--unit));letter-spacing:.15em;opacity:.52;margin-bottom:12px}.destinations{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:25px;animation:sfHeroIn 0.85s cubic-bezier(0.16,1,0.3,1) both;animation-delay:0.36s}.destination{border:1px solid transparent;background:transparent;border-radius:20px;padding:7px 10px;font-size:calc(11px * var(--unit));transition:background .3s,border-color .3s;white-space:nowrap}.destination[aria-checked=true]{border-color:var(--line);background:var(--soft)}.destination:hover{border-color:var(--line)}.destination i{display:inline-block;width:5px;height:5px;margin-right:6px;vertical-align:2px;border-radius:50%;background:var(--dot)}#begin{position:relative;overflow:hidden;border:1px solid rgba(255,215,0,0.35);background:linear-gradient(135deg,rgba(255,215,0,0.18),rgba(15,23,42,0.88));color:#fce79a;border-radius:100px;padding:16px 26px;min-width:210px;font-size:calc(13px * var(--unit));letter-spacing:.15em;display:flex;align-items:center;justify-content:space-between;gap:35px;box-shadow:0 4px 25px rgba(255,215,0,0.18),inset 0 1px 0 rgba(255,255,255,0.22);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);transition:transform .25s cubic-bezier(0.16,1,0.3,1),box-shadow .25s ease,border-color .25s ease;cursor:pointer;transform:translateZ(0);animation:sfHeroIn 0.85s cubic-bezier(0.16,1,0.3,1) both;animation-delay:0.44s}#begin::after{content:"";position:absolute;top:0;left:-120%;width:50%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.25),transparent);transform:skewX(-25deg);pointer-events:none;animation:sfSheen 4.5s infinite cubic-bezier(0.16,1,0.3,1)}@keyframes sfSheen{0%,70%{left:-120%}100%{left:220%}}@keyframes sfHeroIn{from{opacity:0;transform:translateY(10px);filter:blur(4px)}to{opacity:1;transform:translateY(0);filter:blur(0)}}#begin:hover{transform:translateY(-2px) scale(1.02);box-shadow:0 6px 32px rgba(255,215,0,0.35),inset 0 1px 0 rgba(255,255,255,0.35);border-color:rgba(255,215,0,0.65)}#begin:active{transform:translateY(1px) scale(0.98);box-shadow:0 2px 14px rgba(255,215,0,0.25)}#begin b{font-size:20px;font-weight:400}.intro-note{margin-top:19px;font-size:calc(9px * var(--unit));letter-spacing:.07em;opacity:.43;line-height:1.9}.intro-footer{position:absolute;left:var(--pad);bottom:var(--pad);display:flex;align-items:center;gap:14px;font-size:calc(10px * var(--unit));letter-spacing:.15em;opacity:.56}.intro-footer:before{content:"";width:40px;height:1px;background:currentColor}.intro-foot-right{position:absolute;bottom:var(--pad);right:var(--pad);font-size:calc(8px * var(--unit));letter-spacing:.21em;opacity:.38}
-.hud{transition:opacity 1.8s ease;opacity:0;pointer-events:none}.flying .hud{opacity:1}.flying #masthead{opacity:0;transition:opacity 1s}.flying #edition{opacity:.58}#camera-hud{position:absolute;top:var(--pad);left:var(--pad);z-index:3;display:flex;flex-direction:column;gap:10px;padding:10px 14px;border-radius:14px;background:rgba(10,16,26,0.45);border:1px solid rgba(255,255,255,0.08);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:0 4px 20px rgba(0,0,0,0.25);pointer-events:auto}#camera-meta{display:flex;align-items:center;gap:10px}.record-dot{position:relative;width:5px;height:5px;background:#38bdf8;border-radius:50%;opacity:.9;box-shadow:0 0 6px #38bdf8}.record-dot::after{content:"";position:absolute;inset:-3px;border-radius:50%;border:1px solid #38bdf8;animation:sfRadarPulse 2.2s infinite cubic-bezier(0.16,1,0.3,1);pointer-events:none}@keyframes sfRadarPulse{0%{transform:scale(0.8);opacity:0.8}100%{transform:scale(2.8);opacity:0}}#camera-name{font-size:calc(19px * var(--unit));font-weight:400;letter-spacing:.14em;margin:0}#camera-progress{height:1px;width:95px;background:var(--line);margin-top:5px}#camera-progress i{height:1px;display:block;background:currentColor;transform-origin:left;width:100%;transform:scaleX(0);opacity:.62}#flight-stats{font-size:calc(9px * var(--unit));letter-spacing:.09em;line-height:1.9;opacity:.46;margin-top:3px}
+.hud{transition:opacity 1.8s ease;opacity:0;pointer-events:none}.flying .hud{opacity:1}.flying #masthead{opacity:0;visibility:hidden;pointer-events:none;transition:opacity .5s ease,visibility .5s}.flying #edition{opacity:.58}#camera-hud{position:absolute;top:var(--pad);left:var(--pad);z-index:3;display:flex;flex-direction:column;gap:10px;padding:10px 14px;border-radius:14px;background:rgba(10,16,26,0.45);border:1px solid rgba(255,255,255,0.08);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:0 4px 20px rgba(0,0,0,0.25);pointer-events:auto}#camera-meta{display:flex;align-items:center;gap:10px}.record-dot{position:relative;width:5px;height:5px;background:#38bdf8;border-radius:50%;opacity:.9;box-shadow:0 0 6px #38bdf8}.record-dot::after{content:"";position:absolute;inset:-3px;border-radius:50%;border:1px solid #38bdf8;animation:sfRadarPulse 2.2s infinite cubic-bezier(0.16,1,0.3,1);pointer-events:none}@keyframes sfRadarPulse{0%{transform:scale(0.8);opacity:0.8}100%{transform:scale(2.8);opacity:0}}#camera-name{font-size:calc(19px * var(--unit));font-weight:400;letter-spacing:.14em;margin:0}#camera-progress{height:1px;width:95px;background:var(--line);margin-top:5px}#camera-progress i{height:1px;display:block;background:currentColor;transform-origin:left;width:100%;transform:scaleX(0);opacity:.62}#flight-stats{font-size:calc(9px * var(--unit));letter-spacing:.09em;line-height:1.9;opacity:.46;margin-top:3px}
 #poem{position:absolute;right:8%;top:59%;max-width:34%;z-index:3;pointer-events:none;opacity:0;transition:opacity 1.8s;text-shadow:0 0 26px rgba(4,8,14,.78),0 0 4px rgba(4,8,14,.55)}#poem-index{font-size:calc(8px * var(--unit));letter-spacing:.23em;margin-bottom:22px;opacity:.48}.poem-line{font-size:calc(20px * var(--unit));letter-spacing:.18em;font-weight:400;line-height:2.05;white-space:nowrap}.poem-line span{display:inline-block;animation:letter-in 1.8s both;animation-delay:var(--delay)}@keyframes letter-in{from{opacity:0;transform:translateY(6px);filter:blur(3px)}to{opacity:1;transform:translateY(0);filter:blur(0)}}#poem-rule{margin-top:27px;width:80px;height:1px;background:currentColor;opacity:.42;transform-origin:left;animation:rule-in 3.8s both}@keyframes rule-in{from{transform:scaleX(0)}to{transform:scaleX(1)}}
 #journey{position:absolute;left:var(--pad);bottom:calc(var(--pad) - 3px);z-index:3;width:260px;padding:10px 14px;border-radius:14px;background:rgba(10,16,26,0.45);border:1px solid rgba(255,255,255,0.08);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:0 4px 20px rgba(0,0,0,0.25);pointer-events:auto}#region-name{font-size:calc(12px * var(--unit));letter-spacing:.14em}#region-caption{font-size:calc(8px * var(--unit));letter-spacing:.17em;opacity:.45;margin-top:9px}#route{display:block;width:210px;height:31px;margin-top:12px;opacity:.78}.journey-bottom{display:flex;align-items:center;gap:18px;font-size:calc(9px * var(--unit));letter-spacing:.10em;opacity:.55}.journey-bottom .divider{width:23px;height:1px;background:currentColor;opacity:.45}
 #controls{position:absolute;right:var(--pad);bottom:var(--pad);z-index:6;display:flex;align-items:center;gap:10px;pointer-events:none}.flying #controls{pointer-events:auto}.control{height:36px;min-width:36px;display:flex;align-items:center;justify-content:center;gap:8px;padding:0 10px;border:1px solid transparent;border-radius:40px;background:transparent;opacity:.68;transition:opacity .2s,border-color .2s,background .2s;font-size:calc(11px * var(--unit));letter-spacing:.05em}.control:hover,.control:focus-visible{opacity:1;background:var(--soft);border-color:var(--line)}.control[aria-pressed=false]{opacity:.34}.control.camera{border:1px solid var(--line);padding:0 15px}.icon{position:relative;width:16px;height:16px;display:block}.orbit-icon{border:1px solid currentColor;border-radius:50%;transform:rotate(-30deg) scaleY(.58)}.orbit-icon:after{content:"";width:4px;height:4px;border-radius:50%;background:currentColor;position:absolute;right:-2px;top:5px}.sound-icon{display:flex;align-items:center;justify-content:center;gap:2px}.sound-icon i{width:1px;height:12px;background:currentColor;transform:scaleY(.35)}.sound-on .sound-icon i{animation:equalizer 1.2s ease-in-out infinite alternate}.sound-icon i:nth-child(2){animation-delay:-.65s}.sound-icon i:nth-child(3){animation-delay:-.22s}.sound-icon i:nth-child(4){animation-delay:-.85s}@keyframes equalizer{from{transform:scaleY(.28)}to{transform:scaleY(1)}}.poem-icon{border-top:1px solid currentColor;border-bottom:1px solid currentColor;height:10px;margin-top:3px}.poem-icon:after{content:"";position:absolute;top:4px;left:0;width:10px;height:1px;background:currentColor}.fullscreen-icon{background:linear-gradient(currentColor,currentColor) left top/5px 1px no-repeat,linear-gradient(currentColor,currentColor) left top/1px 5px no-repeat,linear-gradient(currentColor,currentColor) right top/5px 1px no-repeat,linear-gradient(currentColor,currentColor) right top/1px 5px no-repeat,linear-gradient(currentColor,currentColor) left bottom/5px 1px no-repeat,linear-gradient(currentColor,currentColor) left bottom/1px 5px no-repeat,linear-gradient(currentColor,currentColor) right bottom/5px 1px no-repeat,linear-gradient(currentColor,currentColor) right bottom/1px 5px no-repeat}.pause-icon:before,.pause-icon:after{content:"";position:absolute;top:2px;bottom:2px;width:2px;background:currentColor}.pause-icon:before{left:4px}.pause-icon:after{right:4px}.paused .pause-icon:before{top:2px;left:5px;width:10px;height:12px;clip-path:polygon(0 0,100% 50%,0 100%)}.paused .pause-icon:after{display:none}.control-separator{width:1px;height:15px;background:var(--line);margin:0 5px}
@@ -226,16 +226,72 @@
   .intro-footer, .intro-foot-right {
     display: none !important;
   }
+  /* Mobile Zero-Occlusion & Borderless Transparent HUD */
   #journey {
-    width: 170px !important;
-    left: 12px !important;
-    padding: 6px 10px !important;
-    bottom: calc(env(safe-area-inset-bottom, 0px) + 10px) !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    padding: 0 !important;
+    width: auto !important;
+    max-width: min(240px, 52vw) !important;
+    left: calc(max(env(safe-area-inset-left, 0px), 14px)) !important;
+    bottom: calc(max(env(safe-area-inset-bottom, 0px), 12px) + 54px) !important;
+    pointer-events: none !important;
+  }
+  #route {
+    width: min(190px, 48vw) !important;
+    max-width: 100% !important;
+    height: 26px !important;
+    margin-top: 5px !important;
+    opacity: 0.85 !important;
+  }
+  #region-name {
+    font-size: 11px !important;
+    letter-spacing: 0.12em !important;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.85);
+  }
+  #region-caption {
+    font-size: 8px !important;
+    letter-spacing: 0.14em !important;
+    margin-top: 3px !important;
+    opacity: 0.55 !important;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.85);
+  }
+  .journey-bottom {
+    margin-top: 3px !important;
+    gap: 12px !important;
+    font-size: 8.5px !important;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.85);
   }
   #camera-hud {
-    top: calc(env(safe-area-inset-top, 0px) + 10px) !important;
-    left: 14px !important;
-    padding: 6px 10px !important;
+    top: calc(max(env(safe-area-inset-top, 0px), 24px) + 4px) !important;
+    left: calc(max(env(safe-area-inset-left, 0px), 14px)) !important;
+    gap: 3px !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    padding: 0 !important;
+    pointer-events: none !important;
+    max-width: min(220px, 55vw) !important;
+  }
+  #camera-name {
+    font-size: 15px !important;
+    margin: 1px 0 !important;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.85);
+  }
+  #flight-stats {
+    font-size: 8px !important;
+    line-height: 1.3 !important;
+    margin-top: 1px !important;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.85);
+  }
+  #camera-progress {
+    width: 75px !important;
+    margin-top: 2px !important;
   }
 
   /* A centred flex item in a column becomes max-content wide, so the row never
@@ -260,11 +316,6 @@
     white-space: normal !important;
     font-size: 15px !important;
     line-height: 1.85 !important;
-  }
-
-  /* The touch action row is ~320 px wide and owns the bottom-right corner. */
-  #journey {
-    bottom: calc(env(safe-area-inset-bottom, 0px) + 58px) !important;
   }
 }
 
@@ -297,6 +348,24 @@
 .touch-show { display: none; }
 .touch-hide { display: block; }
 @media (max-width: 900px), (pointer: coarse) {
+  #journey {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    padding: 0 !important;
+    pointer-events: none !important;
+  }
+  #camera-hud {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    padding: 0 !important;
+    pointer-events: none !important;
+  }
   #controls {
     display: none !important; /* Hide desktop toolbar on touch screens to eliminate collision */
   }
@@ -322,36 +391,42 @@
     box-sizing: border-box !important;
   }
   #comms-hud {
-    width: 92vw !important;
+    width: min(90vw, 440px) !important;
     left: 50% !important;
-    /* Below the lens name, not on it: #camera-hud owns y 10..104 and a centred
-       92vw card covers all of it on a phone. */
-    top: calc(env(safe-area-inset-top, 0px) + 106px) !important;
+    /* Safely below #camera-hud: #camera-hud occupies top 24..78px on mobile */
+    top: calc(max(env(safe-area-inset-top, 0px), 24px) + 96px) !important;
     transform: translateX(-50%) !important;
-    padding: 10px 14px 12px 14px !important;
+    padding: 8px 14px 10px 14px !important;
     box-sizing: border-box !important;
   }
   .comms-body {
-    font-size: 13.5px !important;
-    line-height: 1.5 !important;
+    font-size: 13px !important;
+    line-height: 1.45 !important;
     word-break: break-word !important;
     overflow-wrap: break-word !important;
   }
 }
 
-/* A short screen: the comms card is one line of speech, not a panel. */
+/* A short landscape screen: position COMMS on the right half so left-top camera info is 100% unobstructed */
 @media (max-width: 900px) and (max-height: 580px) {
   #comms-hud {
-    width: min(560px, 66vw) !important;
-    padding: 8px 14px 9px 14px !important;
+    left: auto !important;
+    right: calc(max(env(safe-area-inset-right, 0px), 16px) + 8px) !important;
+    top: calc(max(env(safe-area-inset-top, 0px), 14px) + 6px) !important;
+    transform: none !important;
+    width: min(390px, 46vw) !important;
+    padding: 7px 12px 8px 12px !important;
+  }
+  #comms-hud.active {
+    transform: none !important;
   }
   #comms-hud .comms-header {
-    margin-bottom: 4px !important;
+    margin-bottom: 3px !important;
     font-size: 9.5px !important;
   }
   #comms-hud .comms-body {
-    font-size: 12.5px !important;
-    line-height: 1.45 !important;
+    font-size: 12px !important;
+    line-height: 1.4 !important;
   }
 }
 
@@ -7869,6 +7944,269 @@ function drawFleet(){
  }
 }
 
+/* ============================================================================
+ * CELESTIAL ESCORT ORBITS (随行护航天体与深空共振)
+ * ============================================================================ */
+function drawEscortOrbits() {
+  if (typeof StarfieldHatch === 'undefined' || !fleet || !fleet[LEAD]) return;
+  const escortIds = (typeof StarfieldHatch.getEscorts === 'function')
+    ? StarfieldHatch.getEscorts()
+    : [];
+  if (!escortIds || !escortIds.length) return;
+
+  const collection = (typeof StarfieldHatch.list === 'function')
+    ? StarfieldHatch.list()
+    : [];
+  const map = new Map();
+  for (let i = 0; i < collection.length; i++) {
+    if (collection[i] && collection[i].id) map.set(collection[i].id, collection[i]);
+  }
+
+  const leadPos = craftWorld(fleet[LEAD]);
+  const TIERS = StarfieldHatch.tiers || {};
+
+  for (let idx = 0; idx < escortIds.length; idx++) {
+    const item = map.get(escortIds[idx]);
+    if (!item) continue;
+    const tier = TIERS[item.tier] || { color: '#8ea9c4' };
+    const hue = item.hue || 200;
+
+    const orbitSpeed = 0.55 + idx * 0.22;
+    const orbitRadius = 28 + idx * 16;
+    const angle = time * orbitSpeed + idx * (TAU / 3);
+
+    const ox = leadPos[0] + Math.cos(angle) * orbitRadius;
+    const oy = leadPos[1] + Math.sin(angle) * (orbitRadius * 0.42);
+    const oz = leadPos[2] + Math.sin(angle) * (orbitRadius * 0.75);
+
+    const q = project([ox, oy, oz]);
+    if (!q || q[2] <= 0) continue;
+
+    const sx = q[0], sy = q[1], depth = q[2];
+    const baseR = Math.max(3.5, Math.min(11, 380 / Math.max(depth, 30)));
+
+    queue.push({
+      type: 4, d: depth, alpha: 1, fn: () => {
+        ctx.save();
+        // Atmospheric glow
+        const grad = ctx.createRadialGradient(sx, sy, baseR * 0.4, sx, sy, baseR * 2.8);
+        grad.addColorStop(0, tier.color || '#fff');
+        grad.addColorStop(0.35, `hsla(${hue}, 80%, 70%, 0.45)`);
+        grad.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.beginPath();
+        ctx.arc(sx, sy, baseR * 2.8, 0, TAU);
+        ctx.fillStyle = grad;
+        ctx.fill();
+
+        // Planet sphere body
+        const bodyGrad = ctx.createRadialGradient(sx - baseR * 0.35, sy - baseR * 0.35, baseR * 0.1, sx, sy, baseR);
+        bodyGrad.addColorStop(0, '#ffffff');
+        bodyGrad.addColorStop(0.35, `hsl(${hue}, 75%, 65%)`);
+        bodyGrad.addColorStop(0.85, `hsl(${hue}, 85%, 25%)`);
+        bodyGrad.addColorStop(1, '#050a12');
+        ctx.beginPath();
+        ctx.arc(sx, sy, baseR, 0, TAU);
+        ctx.fillStyle = bodyGrad;
+        ctx.fill();
+
+        // Orbital resonance hint
+        ctx.strokeStyle = `hsla(${hue}, 80%, 75%, 0.28)`;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.arc(sx, sy, baseR * 1.45, 0, TAU);
+        ctx.stroke();
+        ctx.restore();
+      }
+    });
+  }
+}
+
+/* ============================================================================
+ * ACTIVE DEEP SPACE SONAR & TARGET SCANNER (主动巡天声呐与天体测绘)
+ * ============================================================================ */
+const StarfieldSonar = {
+  currentTarget: null,
+  activeSonarRings: [],
+  lastScanTime: 0,
+  btnElement: null,
+
+  init() {
+    if (this._inited) return;
+    this._inited = true;
+    window.addEventListener('keydown', (e) => {
+      if ((e.key.toLowerCase() === 'f' || e.code === 'KeyF') && !e.repeat) {
+        this.triggerScan();
+      }
+    });
+  },
+
+  update(dt) {
+    if (!this._inited) this.init();
+    if (!fleet || !fleet[LEAD]) return;
+    const leadPos = craftWorld(fleet[LEAD]);
+
+    let candidate = null;
+    let minCandidateDist = 1e9;
+
+    if (typeof activeMasses !== 'undefined' && Array.isArray(activeMasses)) {
+      for (let i = 0; i < activeMasses.length; i++) {
+        const m = activeMasses[i];
+        if (!m || (!m.w && m.kind !== 1 && m.kind !== 8 && m.kind !== 6)) continue;
+        const dx = m.x - leadPos[0], dy = m.y - leadPos[1], dz = m.z - leadPos[2];
+        const dist = Math.hypot(dx, dy, dz);
+        if (dist > 800 && dist < 32000 && dist < minCandidateDist) {
+          minCandidateDist = dist;
+          candidate = m;
+        }
+      }
+    }
+
+    this.currentTarget = candidate;
+    this.updateHUDButton(candidate);
+
+    for (let i = this.activeSonarRings.length - 1; i >= 0; i--) {
+      const ring = this.activeSonarRings[i];
+      ring.r += dt * 4800;
+      ring.life -= dt * 0.9;
+      if (ring.life <= 0 || ring.r > ring.maxR * 1.2) {
+        this.activeSonarRings.splice(i, 1);
+      }
+    }
+  },
+
+  updateHUDButton(target) {
+    let btn = document.getElementById('sf-sonar-lock-btn');
+    if (!target) {
+      if (btn) btn.style.display = 'none';
+      return;
+    }
+    if (!btn) {
+      btn = document.createElement('button');
+      btn.id = 'sf-sonar-lock-btn';
+      btn.style.cssText = `
+        position: fixed;
+        bottom: calc(max(env(safe-area-inset-bottom, 0px), 16px) + 78px);
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 120;
+        background: linear-gradient(135deg, rgba(56, 189, 248, 0.25) 0%, rgba(14, 23, 42, 0.88) 100%);
+        border: 1.5px solid rgba(56, 189, 248, 0.65);
+        box-shadow: 0 0 22px rgba(56, 189, 248, 0.45), inset 0 0 10px rgba(56, 189, 248, 0.25);
+        color: #e0f2fe;
+        border-radius: 24px;
+        padding: 8px 20px;
+        font-size: 11.5px;
+        letter-spacing: 0.14em;
+        font-weight: 600;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        backdrop-filter: blur(14px);
+        -webkit-backdrop-filter: blur(14px);
+      `;
+      btn.innerHTML = `<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#38bdf8;box-shadow:0 0 8px #38bdf8;"></span><span id="sf-sonar-btn-text">✦ 发现深空天体 · 启动声呐测绘 [F]</span>`;
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.triggerScan();
+      });
+      document.body.appendChild(btn);
+    }
+    btn.style.display = 'flex';
+    const textEl = document.getElementById('sf-sonar-btn-text');
+    if (textEl) {
+      const name = target.name || (target.w && target.w.name) || '未知恒星体';
+      textEl.textContent = `✦ 锁定天体 [${name}] · 巡天测绘 [F]`;
+    }
+  },
+
+  triggerScan() {
+    if (!this.currentTarget) {
+      if (typeof showToast === 'function') showToast('当前空域未检测到可测绘天体信号', 3); else if (typeof window.toast === 'function') window.toast('当前空域未检测到可测绘天体信号', 3);
+      return;
+    }
+    const target = this.currentTarget;
+    const now = performance.now();
+    if (now - this.lastScanTime < 1500) return;
+    this.lastScanTime = now;
+
+    const leadPos = craftWorld(fleet[LEAD]);
+    const dx = target.x - leadPos[0], dy = target.y - leadPos[1], dz = target.z - leadPos[2];
+    const dist = Math.hypot(dx, dy, dz) || 1000;
+
+    this.activeSonarRings.push({
+      start: [...leadPos],
+      target: [target.x, target.y, target.z],
+      r: 10,
+      maxR: dist,
+      life: 1.2
+    });
+
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (AudioCtx) {
+        const ctx = new AudioCtx();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(880, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(1760, ctx.currentTime + 0.35);
+        gain.gain.setValueAtTime(0.18, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.9);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.9);
+      }
+    } catch(e) {}
+
+    const stardust = 150 + Math.floor(Math.random() * 120);
+    const targetName = target.name || (target.w && target.w.name) || '深空未知天体';
+
+    const foundCore = Math.random() < 0.22;
+    if (foundCore && window.StarfieldHatch && typeof window.StarfieldHatch.addCores === 'function') {
+      window.StarfieldHatch.addCores(1);
+      const msg = `[天体共振] 成功测绘 ${targetName} · 捕获未开采星核 × 1! 🌌`;
+      if (typeof showToast === 'function') showToast(msg, 4);
+      else if (typeof window.toast === 'function') window.toast(msg, 4);
+    } else {
+      const msg = `[巡天测绘完成] 测绘 ${targetName} · 获得星尘 +${stardust}`;
+      if (typeof showToast === 'function') showToast(msg, 3);
+      else if (typeof window.toast === 'function') window.toast(msg, 3);
+    }
+
+    if (typeof Codex !== 'undefined' && Codex.checkCelestialEncounter) {
+      Codex.checkCelestialEncounter(target);
+    }
+  },
+
+  draw(c) {
+    if (!this.activeSonarRings.length) return;
+    c.save();
+    for (let i = 0; i < this.activeSonarRings.length; i++) {
+      const ring = this.activeSonarRings[i];
+      const prog = clamp(ring.r / Math.max(ring.maxR, 1), 0, 1);
+      const currPos = [
+        ring.start[0] + (ring.target[0] - ring.start[0]) * prog,
+        ring.start[1] + (ring.target[1] - ring.start[1]) * prog,
+        ring.start[2] + (ring.target[2] - ring.start[2]) * prog
+      ];
+      const q = project(currPos);
+      if (!q || q[2] <= 0) continue;
+      const screenR = clamp((350 / q[2]) * ring.r * 0.08, 12, 280);
+      c.beginPath();
+      c.arc(q[0], q[1], screenR, 0, TAU);
+      c.strokeStyle = `rgba(56, 189, 248, ${(ring.life * 0.7).toFixed(2)})`;
+      c.lineWidth = 2.5;
+      c.shadowColor = '#38bdf8';
+      c.shadowBlur = 15;
+      c.stroke();
+    }
+    c.restore();
+  }
+};
+window.StarfieldSonar = StarfieldSonar;
+
 const particles=[],MAX_PARTICLES=coarse?168:240;
 let particleSerial=0;
 function resetParticle(p,first=false){
@@ -11373,10 +11711,10 @@ function frame(now){
    flightTime += dt;}else{previewTime+=dt;travel+=SPEED*.15*dt;}}
  updateDirector(realDt);
  currentPalette=region(routeX(travel),travel);
- if(dt){updateWind(dt);updateGravity();updateBirds(dt);updateGate(dt);updateCapture(dt);updateSling(dt);updateParticles(dt);updatePoem(dt);Narrator.update(dt);}
+ if(dt){updateWind(dt);updateGravity();updateBirds(dt);updateGate(dt);updateCapture(dt);updateSling(dt);updateParticles(dt);updatePoem(dt);Narrator.update(dt);if(typeof StarfieldSonar!=='undefined')StarfieldSonar.update(dt);}
  ctx.setTransform(DPR,0,0,DPR,0,0);drawCalls=0;queue.length=0;holeDraws=0;
  updateSkyEvents(realDt);
- drawSky();deepfield();drawCraftShadows();bodies();drawFleet();drawParticles();flush();drawSkyEvents();
+ drawSky();deepfield();drawCraftShadows();bodies();drawFleet();if(typeof drawEscortOrbits==='function')drawEscortOrbits();drawParticles();flush();if(typeof StarfieldSonar!=='undefined')StarfieldSonar.draw(ctx);drawSkyEvents();
  // The throat: a bell around the two seconds either side of the step.
  if(gateT>0){const b=gateT<3.0?clamp((gateT-.7)/2.3,0,1):clamp((6.2-gateT)/2.6,0,1);
   drawTunnel(b);}
@@ -12226,19 +12564,20 @@ requestAnimationFrame(frame);
         width: 42px;
         padding: 0 !important;
         border-radius: 50% !important;
-        background: rgba(12, 18, 28, 0.52) !important;
-        border: 1px solid rgba(255, 255, 255, 0.16) !important;
-        backdrop-filter: blur(14px) saturate(130%) !important;
-        -webkit-backdrop-filter: blur(14px) saturate(130%) !important;
-        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35) !important;
-        color: #d6e8ff;
+        background: transparent !important;
+        border: none !important;
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+        box-shadow: none !important;
+        color: rgba(220, 235, 255, 0.82);
+        filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.65));
         font-family: inherit;
         display: flex;
         align-items: center;
         justify-content: center;
         cursor: pointer;
         outline: none;
-        transition: transform 0.15s ease, background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+        transition: transform 0.15s ease, background 0.15s ease, color 0.15s ease, opacity 0.15s ease;
         -webkit-tap-highlight-color: transparent;
         user-select: none;
         -webkit-user-select: none;
@@ -12248,15 +12587,15 @@ requestAnimationFrame(frame);
         display: flex;
         align-items: center;
         justify-content: center;
-        width: 20px;
-        height: 20px;
+        width: 22px;
+        height: 22px;
         color: inherit;
       }
 
       .sf-touch-btn .icon-wrap svg {
         display: block;
-        width: 19px;
-        height: 19px;
+        width: 20px;
+        height: 20px;
       }
 
       .sf-touch-btn span.label {
@@ -12264,28 +12603,30 @@ requestAnimationFrame(frame);
       }
 
       .sf-touch-btn:active, .sf-touch-btn.active {
-        transform: scale(0.92);
+        transform: scale(0.88);
         background: rgba(255, 255, 255, 0.16) !important;
-        border-color: rgba(255, 255, 255, 0.35) !important;
+        border: none !important;
         color: #ffffff;
       }
 
-      /* Primary Slingshot Boost Button (Golden Frosted Glass) */
+      /* Primary Slingshot Boost Button (Golden Transparent Minimal) */
       .sf-touch-btn.boost {
-        background: rgba(255, 215, 0, 0.14) !important;
-        border: 1.2px solid rgba(255, 215, 0, 0.6) !important;
+        background: transparent !important;
+        border: none !important;
         color: #ffd700;
         font-weight: 600;
-        box-shadow: 0 0 16px rgba(255, 215, 0, 0.2) !important;
+        box-shadow: none !important;
+        filter: drop-shadow(0 0 8px rgba(255, 215, 0, 0.75));
       }
 
       .sf-touch-btn.boost:active, .sf-touch-btn.boost.active {
-        transform: scale(0.94);
-        background: rgba(255, 215, 0, 0.28) !important;
-        border-color: #ffe66d !important;
+        transform: scale(0.90);
+        background: rgba(255, 215, 0, 0.20) !important;
+        border: none !important;
+        color: #fff380;
       }
 
-      /* Secondary Expandable Action Tray (Frosted Glass Capsule) */
+      /* Secondary Expandable Action Tray (Transparent Floating Container) */
       .sf-touch-more-tray {
         display: none;
         align-items: center;
@@ -12293,14 +12634,14 @@ requestAnimationFrame(frame);
         justify-content: flex-end;
         max-width: calc(100vw - 28px);
         box-sizing: border-box;
-        gap: 8px;
-        padding: 6px 10px;
-        border-radius: 26px;
-        background: rgba(10, 16, 26, 0.68) !important;
-        border: 1px solid rgba(255, 255, 255, 0.15) !important;
-        backdrop-filter: blur(20px) saturate(140%) !important;
-        -webkit-backdrop-filter: blur(20px) saturate(140%) !important;
-        box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45) !important;
+        gap: 6px;
+        padding: 4px 8px;
+        border-radius: 24px;
+        background: rgba(10, 16, 26, 0.35) !important;
+        border: none !important;
+        backdrop-filter: blur(12px) !important;
+        -webkit-backdrop-filter: blur(12px) !important;
+        box-shadow: none !important;
         animation: sfTrayIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) both;
       }
       .sf-touch-more-tray.open {
@@ -12310,18 +12651,15 @@ requestAnimationFrame(frame);
         width: 36px !important;
         height: 36px !important;
         border-radius: 50% !important;
-        background: rgba(255, 255, 255, 0.06) !important;
-        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        background: transparent !important;
+        border: none !important;
         box-shadow: none !important;
-      }
-      .sf-touch-more-tray .sf-touch-btn .icon-wrap,
-      .sf-touch-more-tray .sf-touch-btn .icon-wrap svg {
-        width: 17px !important;
-        height: 17px !important;
+        color: rgba(205, 225, 250, 0.78);
       }
       .sf-touch-more-tray .sf-touch-btn:active {
-        background: rgba(255, 255, 255, 0.22) !important;
-        border-color: rgba(255, 255, 255, 0.35) !important;
+        background: rgba(255, 255, 255, 0.18) !important;
+        border: none !important;
+        color: #ffffff;
       }
 
       @media (max-width: 420px) {
@@ -15899,6 +16237,14 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       const rewardsEarned = [];
+      // Organic Pomodoro Focus Rewards: Award Unopened Planetary Cores & Stardust
+      const earnedCores = Math.max(1, Math.min(3, Math.floor(focusedMinutes / 20) || 1));
+      if (window.StarfieldHatch && typeof window.StarfieldHatch.addCores === 'function') {
+        window.StarfieldHatch.addCores(earnedCores);
+      }
+      rewardsEarned.push(`✨ 捕获未开采深空星核 × ${earnedCores}`);
+      rewardsEarned.push(`🌌 凝聚深空星尘 +${focusedMinutes * 120}`);
+
       if (focusedMinutes >= 30 && !this.stats.unlockedRewards.hull_titan) {
         this.stats.unlockedRewards.hull_titan = true;
         rewardsEarned.push('专属旗舰：专注曜金·泰坦折纸舰');
@@ -16093,7 +16439,14 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
           ` : ''}
           <div class="sf-focus-quote">“把方向交给星光，把时间留给当下。”</div>
-          <button class="sf-focus-btn primary" id="sf-focus-confirm-btn">继续深空漫游</button>
+          <div style="display:flex;gap:10px;margin-top:14px;width:100%;">
+            <button class="sf-focus-btn primary" id="sf-focus-planetarium-btn" style="flex:1.3;background:linear-gradient(135deg,#ffd700,#f59e0b);color:#080e18;font-weight:700;border:none;box-shadow:0 0 16px rgba(255,215,0,0.4);">
+              ✦ 前往天象馆开启星核 ↗
+            </button>
+            <button class="sf-focus-btn" id="sf-focus-confirm-btn" style="flex:1;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);color:#e2e8f0;">
+              继续深空漫游
+            </button>
+          </div>
         `;
       } else {
         content.innerHTML = `
@@ -16114,6 +16467,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
       modal.appendChild(content);
       document.body.appendChild(modal);
+
+      const planBtn = document.getElementById('sf-focus-planetarium-btn');
+      if (planBtn) {
+        planBtn.addEventListener('click', () => {
+          modal.classList.add('closing');
+          setTimeout(() => modal.remove(), 250);
+          this.state = 'IDLE';
+          if (window.StarfieldHatch && typeof window.StarfieldHatch.openList === 'function') {
+            window.StarfieldHatch.openList();
+          }
+        });
+      }
 
       document.getElementById('sf-focus-confirm-btn').addEventListener('click', () => {
         modal.classList.add('closing');
@@ -16245,13 +16610,14 @@ document.addEventListener('DOMContentLoaded', () => {
     return item;
   }
 
-  // --- Unopened Planetary Cores (Default gift 3 cores for testing & initial exploration) ---
+  // --- Unopened Planetary Cores & Escort Orbits ---
   const CORE_KEY = 'sf_unopened_cores_v1';
+  const ESCORT_KEY = 'sf_escorts_v1';
+
   function getUnopenedCores() {
     try {
       const stored = localStorage.getItem(CORE_KEY);
       if (stored === null) {
-        // Default gift 3 cores for test & new users!
         localStorage.setItem(CORE_KEY, '3');
         return 3;
       }
@@ -16270,21 +16636,54 @@ document.addEventListener('DOMContentLoaded', () => {
     const cur = getUnopenedCores();
     const next = cur + n;
     setUnopenedCores(next);
-    if (window.toast) toast(`✦ 已获赠 ${n} 颗未孵化星核 (当前共 ${next} 颗)`);
+    const msg = `✦ 已获赠 ${n} 颗未孵化星核 (当前共 ${next} 颗)`; if (typeof showToast === 'function') showToast(msg, 3); else if (typeof window.toast === 'function') window.toast(msg, 3);
     return next;
+  }
+
+  function getEscorts() {
+    try {
+      const a = JSON.parse(localStorage.getItem(ESCORT_KEY) || '[]');
+      return Array.isArray(a) ? a : [];
+    } catch (e) { return []; }
+  }
+
+  function setEscorts(list) {
+    try { localStorage.setItem(ESCORT_KEY, JSON.stringify(list.slice(0, 3))); } catch (e) {}
+  }
+
+  function toggleEscort(item) {
+    if (!item || !item.id) return false;
+    let list = getEscorts();
+    const idx = list.indexOf(item.id);
+    if (idx >= 0) {
+      list.splice(idx, 1);
+      setEscorts(list);
+      const msg = `[护航解编] ${item.name} 已脱离舰队护航`; if (typeof showToast === 'function') showToast(msg, 3); else if (typeof window.toast === 'function') window.toast(msg, 3);
+      return false;
+    } else {
+      if (list.length >= 3) list.shift();
+      list.push(item.id);
+      setEscorts(list);
+      const msg = `[护航入列] ${item.name} 已编入随行护航轨道 ✨`; if (typeof showToast === 'function') showToast(msg, 3); else if (typeof window.toast === 'function') window.toast(msg, 3);
+      return true;
+    }
+  }
+
+  function isEscorted(itemId) {
+    return getEscorts().includes(itemId);
   }
 
   function openNextCore() {
     const cores = getUnopenedCores();
     if (cores <= 0) {
-      if (window.toast) toast('暂无待孵化星核，已为你补充 3 颗测试星核！');
+      if (typeof showToast === 'function') showToast('暂无待孵化星核，已为你补充 3 颗测试星核！', 3); else if (typeof window.toast === 'function') window.toast('暂无待孵化星核，已为你补充 3 颗测试星核！', 3);
       addCores(3);
     }
     const left = getUnopenedCores();
     setUnopenedCores(left - 1);
     const item = roll(30);
     if (window.StarfieldHatch && typeof window.StarfieldHatch.openFor === 'function') {
-      window.StarfieldHatch.openFor(item);
+      window.StarfieldHatch.openFor(item, true);
     }
     return item;
   }
@@ -16297,93 +16696,879 @@ document.addEventListener('DOMContentLoaded', () => {
     getUnopenedCores: getUnopenedCores,
     setUnopenedCores: setUnopenedCores,
     addCores: addCores,
+    getEscorts: getEscorts,
+    setEscorts: setEscorts,
+    toggleEscort: toggleEscort,
+    isEscorted: isEscorted,
     openNextCore: openNextCore,
-    // exposed for the distribution probe; never used by the UI
+    // exposed for distribution probe
     _pick: function (minutes, u) { return pick(minutes, u); }
   };
 })();
 </script>
 
 <style id="sf-hatch-css">
-#sf-hatch{position:fixed;inset:0;z-index:900;display:none;align-items:center;justify-content:center;
-  background:rgba(4,7,12,.82);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
-#sf-hatch.on{display:flex}
-.sf-hatch-card{position:relative;width:min(300px,74vw);aspect-ratio:3/4;border-radius:22px;
-  background:linear-gradient(160deg,rgba(26,36,50,.96),rgba(8,12,18,.98));
-  border:1px solid rgba(255,255,255,.14);box-shadow:0 24px 60px rgba(0,0,0,.7),inset 0 1px 0 rgba(255,255,255,.08);
-  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;
-  cursor:pointer;overflow:hidden;transition:transform .4s cubic-bezier(.22,1,.36,1);
-  animation:sfHatchCardIn 0.55s cubic-bezier(0.16,1,0.3,1) both}
-@keyframes sfHatchCardIn{from{opacity:0;transform:translateY(22px) scale(0.93);filter:blur(6px)}to{opacity:1;transform:translateY(0) scale(1);filter:blur(0)}}
-.sf-hatch-card:active{transform:scale(.98)}
-.sf-hatch-orb{width:46%;aspect-ratio:1;border-radius:50%;filter:blur(1px);
-  background:radial-gradient(circle at 34% 30%,rgba(255,255,255,.05),rgba(0,0,0,.9) 62%);
-  border:1px solid rgba(255,255,255,.16);transition:all .7s cubic-bezier(.22,1,.36,1)}
-.sf-hatch-card.revealed .sf-hatch-orb{filter:blur(0);box-shadow:0 0 42px var(--tier),0 0 14px var(--tier) inset;animation:sfOrbIgnite 0.75s cubic-bezier(0.16,1,0.3,1) both}
-@keyframes sfOrbIgnite{0%{transform:scale(0.85);filter:blur(4px) brightness(1.6)}60%{transform:scale(1.06);filter:blur(0) brightness(1.2)}100%{transform:scale(1);filter:blur(0) brightness(1)}}
-.sf-hatch-name{font-size:19px;letter-spacing:.16em;opacity:0;transition:opacity .5s .25s,transform .5s cubic-bezier(0.16,1,0.3,1) .25s;transform:translateY(4px)}
-.sf-hatch-meta{font-size:9px;letter-spacing:.22em;opacity:0;transition:opacity .5s .35s,transform .5s cubic-bezier(0.16,1,0.3,1) .35s;color:var(--tier);transform:translateY(4px)}
-.sf-hatch-card.revealed .sf-hatch-name,.sf-hatch-card.revealed .sf-hatch-meta{opacity:1;transform:translateY(0)}
-.sf-hatch-hint{position:absolute;bottom:14px;font-size:9px;letter-spacing:.24em;opacity:.45}
-.sf-hatch-card.revealed .sf-hatch-hint{display:none}
-.sf-hatch-close{position:absolute;top:calc(env(safe-area-inset-top,0px) + 16px);right:18px;
-  background:none;border:1px solid rgba(255,255,255,.25);border-radius:20px;color:#e6edf2;
-  font-size:11px;padding:5px 12px;cursor:pointer}
+#sf-hatch {
+  position: fixed;
+  inset: 0;
+  z-index: 920;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at 50% 50%, #060b17 0%, #010204 100%);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  overflow: hidden;
+}
+#sf-hatch.on { display: flex; }
+
+#sf-ceremony-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+/* Igniter Singularity Phase */
+.sf-igniter-box {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  cursor: pointer;
+  transition: opacity 0.4s ease, transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.sf-singularity-core {
+  width: 86px;
+  height: 86px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #fff 0%, #60a5fa 30%, #1e1b4b 70%, #000 100%);
+  box-shadow: 0 0 45px rgba(96, 165, 250, 0.8), 0 0 100px rgba(147, 51, 234, 0.5), inset 0 0 20px #000;
+  animation: singularityPulse 2.4s infinite ease-in-out;
+  position: relative;
+}
+.sf-singularity-core::before {
+  content: "";
+  position: absolute;
+  inset: -12px;
+  border-radius: 50%;
+  border: 1.5px dashed rgba(212, 175, 55, 0.65);
+  animation: spinClockwise 14s infinite linear;
+}
+.sf-singularity-core::after {
+  content: "";
+  position: absolute;
+  inset: -24px;
+  border-radius: 50%;
+  border: 1px dotted rgba(96, 165, 250, 0.4);
+  animation: spinCounter 22s infinite linear;
+}
+@keyframes singularityPulse {
+  0%, 100% { transform: scale(1); filter: brightness(1); }
+  50% { transform: scale(1.12); filter: brightness(1.45) drop-shadow(0 0 35px #d4af37); }
+}
+@keyframes spinClockwise { 100% { transform: rotate(360deg); } }
+@keyframes spinCounter { 100% { transform: rotate(-360deg); } }
+
+.sf-igniter-prompt {
+  font-size: 13px;
+  letter-spacing: 0.28em;
+  font-weight: 500;
+  color: #ffd700;
+  text-shadow: 0 0 14px rgba(255, 215, 0, 0.7);
+  animation: promptBreathe 2s infinite ease-in-out;
+}
+@keyframes promptBreathe {
+  0%, 100% { opacity: 0.65; transform: translateY(0); }
+  50% { opacity: 1; transform: translateY(-2px); }
+}
+
+/* Supernova Radial Shockwave */
+.sf-shockwave {
+  position: absolute;
+  border-radius: 50%;
+  border: 4px solid var(--tier, #ffd700);
+  box-shadow: 0 0 60px var(--tier, #ffd700), inset 0 0 40px var(--tier, #ffd700);
+  transform: translate(-50%, -50%) scale(0);
+  opacity: 1;
+  pointer-events: none;
+  transition: transform 0.75s cubic-bezier(0.1, 0.9, 0.2, 1), opacity 0.75s ease-out;
+}
+.sf-shockwave.boom {
+  transform: translate(-50%, -50%) scale(42);
+  opacity: 0;
+}
+
+/* 3D Master Card Container */
+.sf-hatch-card {
+  position: relative;
+  width: min(320px, 84vw);
+  aspect-ratio: 9 / 15;
+  border-radius: 24px;
+  background: linear-gradient(150deg, rgba(20, 29, 46, 0.96) 0%, rgba(7, 12, 20, 0.98) 100%);
+  border: 1.5px solid rgba(212, 175, 55, 0.4);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.15), 0 0 28px rgba(212, 175, 55, 0.15);
+  display: flex;
+  flex-direction: column;
+  padding: 14px;
+  box-sizing: border-box;
+  cursor: pointer;
+  overflow: hidden;
+  perspective: 1200px;
+  transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.5s ease;
+  z-index: 20;
+}
+.sf-hatch-card:active { transform: scale(0.98); }
+.sf-hatch-card.revealed { opacity: 1; filter: none; }
+.sf-hatch-card.flipped { transform: rotateY(180deg); }
+
+.sf-card-holo {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: 24px;
+  background: linear-gradient(
+    calc(var(--holo-angle, 125deg)),
+    transparent 0%,
+    rgba(255, 255, 255, 0.08) 25%,
+    rgba(244, 114, 182, 0.22) 40%,
+    rgba(96, 165, 250, 0.25) 50%,
+    rgba(251, 191, 36, 0.22) 60%,
+    rgba(255, 255, 255, 0.08) 75%,
+    transparent 100%
+  );
+  mix-blend-mode: color-dodge;
+  opacity: 0.55;
+  z-index: 5;
+}
+
+.sf-card-corner-tl { position: absolute; top: 8px; left: 8px; width: 14px; height: 14px; border-top: 1.5px solid #d4af37; border-left: 1.5px solid #d4af37; }
+.sf-card-corner-tr { position: absolute; top: 8px; right: 8px; width: 14px; height: 14px; border-top: 1.5px solid #d4af37; border-right: 1.5px solid #d4af37; }
+.sf-card-corner-bl { position: absolute; bottom: 8px; left: 8px; width: 14px; height: 14px; border-bottom: 1.5px solid #d4af37; border-left: 1.5px solid #d4af37; }
+.sf-card-corner-br { position: absolute; bottom: 8px; right: 8px; width: 14px; height: 14px; border-bottom: 1.5px solid #d4af37; border-right: 1.5px solid #d4af37; }
+
+.sf-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding-bottom: 6px;
+  margin-bottom: 4px;
+  position: relative;
+  z-index: 6;
+}
+.sf-card-serial {
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  color: #94a3b8;
+  font-family: ui-monospace, SFMono-Regular, monospace;
+}
+.sf-card-tier-badge {
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--tier, #ffd700);
+  color: var(--tier, #ffd700);
+}
+.sf-card-coords {
+  font-size: 8px;
+  letter-spacing: 0.18em;
+  color: rgba(255, 255, 255, 0.35);
+  text-transform: uppercase;
+  text-align: center;
+  margin-bottom: 4px;
+  font-family: ui-monospace, monospace;
+}
+
+.sf-card-orb-stage {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  z-index: 6;
+  margin: 2px 0;
+}
+.sf-hatch-orb {
+  position: relative;
+  width: min(180px, 52vw);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 32px var(--tier, rgba(255, 215, 0, 0.3)), inset 0 0 20px rgba(0, 0, 0, 0.8);
+  cursor: grab;
+}
+.sf-hatch-orb:active { cursor: grabbing; }
+.sf-hatch-orb::before {
+  content: "";
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(212, 175, 55, 0.4);
+  box-shadow: 0 0 16px rgba(212, 175, 55, 0.2);
+  pointer-events: none;
+}
+.sf-hatch-orb::after {
+  content: "";
+  position: absolute;
+  inset: -12px;
+  border-radius: 50%;
+  border: 1px dashed rgba(255, 255, 255, 0.15);
+  pointer-events: none;
+  animation: spinClockwise 45s infinite linear;
+}
+canvas.sf-planet-canvas {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  display: block;
+  filter: drop-shadow(0 4px 18px rgba(0, 0, 0, 0.6));
+}
+
+.sf-card-info {
+  position: relative;
+  z-index: 6;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 3px;
+}
+.sf-hatch-name {
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: #f8fafc;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8), 0 0 16px var(--tier, rgba(255, 215, 0, 0.4));
+  transition: opacity 0.5s ease;
+}
+.sf-hatch-meta {
+  font-size: 9.5px;
+  letter-spacing: 0.18em;
+  color: var(--tier, #ffd700);
+  font-weight: 500;
+  transition: opacity 0.5s ease;
+}
+.sf-card-specs {
+  font-size: 8.5px;
+  letter-spacing: 0.12em;
+  color: #94a3b8;
+  font-family: ui-monospace, monospace;
+}
+.sf-hatch-hint {
+  font-size: 8.5px;
+  letter-spacing: 0.2em;
+  color: rgba(255, 255, 255, 0.4);
+  margin-top: 4px;
+}
+.sf-hatch-card.revealed .sf-hatch-hint { display: none; }
+
+.sf-card-actions {
+  position: relative;
+  z-index: 7;
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+  width: 100%;
+}
+.sf-card-act-btn {
+  flex: 1;
+  padding: 6px 0;
+  border-radius: 12px;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.06);
+  color: #f1f5f9;
+  transition: all 0.2s ease;
+}
+.sf-card-act-btn:hover { background: rgba(255, 255, 255, 0.15); }
+.sf-card-act-btn.primary {
+  border-color: rgba(212, 175, 55, 0.4);
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.25) 0%, rgba(212, 175, 55, 0.08) 100%);
+  color: #ffd700;
+}
+
+.sf-hatch-close {
+  position: absolute;
+  top: calc(env(safe-area-inset-top, 0px) + 16px);
+  right: 18px;
+  z-index: 50;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 20px;
+  color: #e2e8f0;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  padding: 5px 14px;
+  cursor: pointer;
+}
 </style>
 
 <script>
 (function(){
   var TIERS = (window.StarfieldHatch && window.StarfieldHatch.tiers) || {};
   function el(tag, cls, txt){ var e=document.createElement(tag); if(cls)e.className=cls; if(txt)e.textContent=txt; return e; }
-  var root=null, card=null, orb=null, nameEl=null, metaEl=null, cur=null;
+
+  var root=null, card=null, orb=null, nameEl=null, metaEl=null, specsEl=null, serialEl=null, tierBadgeEl=null;
+  var ceremonyCanvas=null, igniterBox=null, shockwave=null, planetCanvas=null, escortBtn=null;
+  var cur=null, planetRenderer=null, particleSystem=null;
+
+  // Web Audio procedural sound
+  var audioCtx = null;
+  function getAudio() {
+    if (!audioCtx) {
+      var AC = window.AudioContext || window.webkitAudioContext;
+      if (AC) audioCtx = new AC();
+    }
+    if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+    return audioCtx;
+  }
+
+  function playDrone() {
+    var ctx = getAudio(); if (!ctx) return;
+    try {
+      var osc = ctx.createOscillator(), gain = ctx.createGain(), filter = ctx.createBiquadFilter();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(65, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(140, ctx.currentTime + 1.2);
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(100, ctx.currentTime);
+      filter.frequency.exponentialRampToValueAtTime(500, ctx.currentTime + 1.2);
+      gain.gain.setValueAtTime(0.01, ctx.currentTime);
+      gain.gain.linearRampToValueAtTime(0.2, ctx.currentTime + 0.8);
+      gain.gain.linearRampToValueAtTime(0.001, ctx.currentTime + 1.2);
+      osc.connect(filter); filter.connect(gain); gain.connect(ctx.destination);
+      osc.start(); osc.stop(ctx.currentTime + 1.2);
+    } catch(e) {}
+  }
+
+  function playSupernovaChime(tier) {
+    var ctx = getAudio(); if (!ctx) return;
+    try {
+      var freqs = tier === 'myth' ? [523.25, 659.25, 783.99, 1046.50, 1318.51] :
+                  tier === 'legend' ? [440, 554.37, 659.25, 880] :
+                  tier === 'epic' ? [392, 493.88, 587.33, 783.99] :
+                  [329.63, 392, 523.25];
+      freqs.forEach(function(f, idx) {
+        var osc = ctx.createOscillator(), gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(f, ctx.currentTime + idx * 0.05);
+        gain.gain.setValueAtTime(0.001, ctx.currentTime + idx * 0.05);
+        gain.gain.linearRampToValueAtTime(0.14, ctx.currentTime + idx * 0.05 + 0.08);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + idx * 0.05 + 1.8);
+        osc.connect(gain); gain.connect(ctx.destination);
+        osc.start(ctx.currentTime + idx * 0.05); osc.stop(ctx.currentTime + idx * 0.05 + 1.9);
+      });
+    } catch(e) {}
+  }
+
+  // --- Procedural 3D Planet Canvas Sphere Renderer ---
+  function ProceduralPlanet(canvas) {
+    this.canvas = canvas;
+    this.ctx = canvas.getContext('2d');
+    this.rotX = 0.25;
+    this.rotY = 0.0;
+    this.spinSpeed = 0.004;
+    this.cloudRot = 0.0;
+    this.isDragging = false;
+    this.lastPointerX = 0;
+    this.lastPointerY = 0;
+    this.velX = 0;
+    this.velY = 0;
+    this.item = { hue: 200, tier: 'epic' };
+
+    var self = this;
+    self.hasMoved = false;
+    var onStart = function(x, y) {
+      self.isDragging = true;
+      self.hasMoved = false;
+      self.startX = x; self.startY = y;
+      self.lastPointerX = x; self.lastPointerY = y;
+      self.velX = 0; self.velY = 0;
+    };
+    var onMove = function(x, y) {
+      if (!self.isDragging) return;
+      if (Math.hypot(x - self.startX, y - self.startY) > 6) {
+        self.hasMoved = true;
+      }
+      var dx = x - self.lastPointerX, dy = y - self.lastPointerY;
+      self.lastPointerX = x; self.lastPointerY = y;
+      self.rotY += dx * 0.015;
+      self.rotX += dy * 0.015;
+      self.rotX = Math.max(-1.2, Math.min(1.2, self.rotX));
+      self.velX = dx * 0.015; self.velY = dy * 0.015;
+    };
+    var onEnd = function() {
+      self.isDragging = false;
+    };
+    canvas.addEventListener('click', function(e) {
+      if (self.hasMoved) {
+        e.stopPropagation();
+        self.hasMoved = false;
+      }
+    }, true);
+
+    canvas.addEventListener('mousedown', function(e) { onStart(e.clientX, e.clientY); });
+    window.addEventListener('mousemove', function(e) { onMove(e.clientX, e.clientY); });
+    window.addEventListener('mouseup', onEnd);
+
+    canvas.addEventListener('touchstart', function(e) {
+      if (e.touches.length > 0) onStart(e.touches[0].clientX, e.touches[0].clientY);
+    }, { passive: true });
+    window.addEventListener('touchmove', function(e) {
+      if (e.touches.length > 0) onMove(e.touches[0].clientX, e.touches[0].clientY);
+    }, { passive: true });
+    window.addEventListener('touchend', onEnd);
+  }
+
+  ProceduralPlanet.prototype.setItem = function(it) {
+    this.item = it || { hue: 200, tier: 'epic' };
+    this.rotX = 0.22;
+    this.rotY = Math.random() * Math.PI * 2;
+  };
+
+  function drawPlanetSphere(ctx, cx, cy, r, hue, tier, rotX, rotY, cloudRot) {
+    var isGas = (hue >= 25 && hue <= 60) || (tier === 'legend');
+    var isRinged = (hue % 3 === 0) || tier === 'epic' || tier === 'myth';
+    var isVolcanic = (hue < 20 || hue > 340);
+
+    // 1. Back Ring Arc
+    if (isRinged) {
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.rotate(-0.35);
+      ctx.beginPath();
+      ctx.ellipse(0, 0, r * 1.55, r * 0.44, 0, Math.PI, Math.PI * 2);
+      ctx.strokeStyle = `hsla(${hue}, 70%, 75%, 0.55)`;
+      ctx.lineWidth = r * 0.28;
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    // 2. Base Sphere
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.clip();
+
+    var baseGrad = ctx.createRadialGradient(cx - r * 0.35, cy - r * 0.35, r * 0.1, cx, cy, r);
+    if (isVolcanic) {
+      baseGrad.addColorStop(0, '#ff4500'); baseGrad.addColorStop(0.4, '#8b0000'); baseGrad.addColorStop(0.9, '#1a0505');
+    } else if (isGas) {
+      baseGrad.addColorStop(0, `hsl(${hue}, 85%, 72%)`); baseGrad.addColorStop(0.5, `hsl(${hue}, 75%, 45%)`); baseGrad.addColorStop(1, '#050a14');
+    } else {
+      baseGrad.addColorStop(0, `hsl(${hue}, 70%, 65%)`); baseGrad.addColorStop(0.5, `hsl(${hue}, 80%, 32%)`); baseGrad.addColorStop(1, '#02060d');
+    }
+    ctx.fillStyle = baseGrad;
+    ctx.fill();
+
+    // Procedural Spherical Terrain Bands
+    var slices = 38, bandHeight = (r * 2) / slices;
+    for (var i = 0; i < slices; i++) {
+      var y = -r + i * bandHeight + bandHeight * 0.5;
+      var chord = Math.sqrt(Math.max(0, r * r - y * y));
+      if (chord < 1) continue;
+      var phi = Math.asin(y / r) + rotX;
+      var wave = isGas
+        ? Math.sin(phi * 12 + Math.sin(rotY * 2)) * 0.5 + 0.5
+        : Math.sin(phi * 5) * Math.cos(rotY * 3 + phi * 2) + Math.sin(phi * 10 + rotY * 5) * 0.3;
+
+      ctx.fillStyle = isVolcanic
+        ? (wave > 0.3 ? 'rgba(255, 69, 0, 0.45)' : 'rgba(20, 2, 2, 0.7)')
+        : isGas
+        ? `hsla(${hue + wave * 30}, 80%, ${35 + wave * 35}%, 0.38)`
+        : (wave > 0.15 ? `hsla(${hue + 45}, 65%, 48%, 0.65)` : `hsla(${hue}, 90%, 25%, 0.2)`);
+      ctx.fillRect(cx - chord, cy + y, chord * 2, bandHeight + 0.6);
+    }
+
+    // Clouds
+    for (var i = 0; i < slices; i += 2) {
+      var y = -r + i * bandHeight;
+      var chord = Math.sqrt(Math.max(0, r * r - y * y));
+      if (chord < 1) continue;
+      var phi = Math.asin(y / r) + rotX * 0.8;
+      var cloudW = Math.sin(phi * 4 + cloudRot * 3) * Math.cos(cloudRot * 2 + phi * 3);
+      if (cloudW > 0.2) {
+        ctx.fillStyle = `rgba(255, 255, 255, ${(cloudW * 0.35).toFixed(2)})`;
+        ctx.fillRect(cx - chord * 0.9, cy + y, chord * 1.8, bandHeight * 1.5);
+      }
+    }
+
+    // Terminator & Ambient Shadow
+    var shadowGrad = ctx.createRadialGradient(cx - r * 0.45, cy - r * 0.45, r * 0.2, cx, cy, r * 1.05);
+    shadowGrad.addColorStop(0, 'rgba(255, 255, 255, 0.18)');
+    shadowGrad.addColorStop(0.45, 'rgba(0, 0, 0, 0)');
+    shadowGrad.addColorStop(0.78, 'rgba(1, 3, 8, 0.75)');
+    shadowGrad.addColorStop(1, 'rgba(0, 1, 4, 0.96)');
+    ctx.fillStyle = shadowGrad;
+    ctx.fill();
+
+    // Rayleigh Scattering Limb Glow
+    var rimGrad = ctx.createRadialGradient(cx - r * 0.4, cy - r * 0.4, r * 0.85, cx - r * 0.4, cy - r * 0.4, r * 1.05);
+    rimGrad.addColorStop(0, 'rgba(255, 255, 255, 0)');
+    rimGrad.addColorStop(0.82, `hsla(${hue}, 85%, 75%, 0.45)`);
+    rimGrad.addColorStop(1, 'rgba(255, 255, 255, 0)');
+    ctx.fillStyle = rimGrad;
+    ctx.fill();
+    ctx.restore();
+
+    // 3. Front Ring Arc & Planet Shadow
+    if (isRinged) {
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.rotate(-0.35);
+      ctx.beginPath();
+      ctx.ellipse(0, 0, r * 1.55, r * 0.44, 0, 0, Math.PI);
+      ctx.strokeStyle = `hsla(${hue}, 70%, 75%, 0.8)`;
+      ctx.lineWidth = r * 0.28;
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.ellipse(0, 0, r * 1.55, r * 0.44, 0, 0, Math.PI);
+      ctx.strokeStyle = 'rgba(2, 4, 8, 0.65)';
+      ctx.lineWidth = 2.5;
+      ctx.stroke();
+      ctx.restore();
+    }
+  }
+
+  ProceduralPlanet.prototype.render = function() {
+    if (!this.isDragging) {
+      this.rotY += this.spinSpeed + this.velX;
+      this.rotX += this.velY;
+      this.rotX = Math.max(-1.2, Math.min(1.2, this.rotX));
+      this.velX *= 0.92; this.velY *= 0.92;
+    }
+    this.cloudRot += 0.006;
+
+    var ctx = this.ctx, w = this.canvas.width, h = this.canvas.height;
+    var cx = w * 0.5, cy = h * 0.5, r = w * 0.42;
+    ctx.clearRect(0, 0, w, h);
+
+    var hue = this.item.hue || 200, tier = this.item.tier || 'common';
+    drawPlanetSphere(ctx, cx, cy, r, hue, tier, this.rotX, this.rotY, this.cloudRot);
+  };
+
+  window.StarfieldHatch = Object.assign(window.StarfieldHatch || {}, {
+    drawPlanetPreview: function(canvas, item) {
+      if (!canvas) return;
+      var ctx = canvas.getContext('2d');
+      var w = canvas.width, h = canvas.height;
+      var cx = w * 0.5, cy = h * 0.5, r = w * 0.40;
+      ctx.clearRect(0, 0, w, h);
+      var hue = (item && item.hue) || 200, tier = (item && item.tier) || 'common';
+      drawPlanetSphere(ctx, cx, cy, r, hue, tier, 0.22, 1.2, 0.5);
+    }
+  });
+
+  // --- Ceremony Particle System ---
+  function CeremonyParticles(canvas) {
+    this.canvas = canvas;
+    this.ctx = canvas.getContext('2d');
+    this.particles = [];
+    this.phase = 'IDLE';
+    this.tier = 'epic';
+    this.resize();
+    var self = this;
+    window.addEventListener('resize', function() { self.resize(); });
+  }
+  CeremonyParticles.prototype.resize = function() {
+    this.canvas.width = window.innerWidth;
+    this.canvas.height = window.innerHeight;
+  };
+  CeremonyParticles.prototype.startSingularity = function() {
+    this.phase = 'SINGULARITY';
+    this.particles = [];
+    var cx = this.canvas.width * 0.5, cy = this.canvas.height * 0.5;
+    for (var i = 0; i < 90; i++) {
+      var angle = Math.random() * Math.PI * 2, dist = 130 + Math.random() * 220;
+      this.particles.push({
+        x: cx + Math.cos(angle) * dist, y: cy + Math.sin(angle) * dist,
+        angle: angle, dist: dist, speed: 1.5 + Math.random() * 2.5,
+        size: 1 + Math.random() * 2.2, alpha: 0.2 + Math.random() * 0.8
+      });
+    }
+  };
+  CeremonyParticles.prototype.explode = function(tier) {
+    this.phase = 'SHOCKWAVE';
+    this.tier = tier;
+    this.particles = [];
+    var cx = this.canvas.width * 0.5, cy = this.canvas.height * 0.5;
+    var t = TIERS[tier] || { color: '#ffd700' };
+    for (var i = 0; i < 140; i++) {
+      var angle = Math.random() * Math.PI * 2, speed = 4 + Math.random() * 12;
+      this.particles.push({
+        x: cx, y: cy, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed,
+        size: 2 + Math.random() * 3, alpha: 1, decay: 0.014 + Math.random() * 0.02, color: t.color
+      });
+    }
+  };
+  CeremonyParticles.prototype.render = function() {
+    var ctx = this.ctx, w = this.canvas.width, h = this.canvas.height;
+    var cx = w * 0.5, cy = h * 0.5;
+    ctx.clearRect(0, 0, w, h);
+
+    if (this.phase === 'SINGULARITY') {
+      for (var i = 0; i < this.particles.length; i++) {
+        var p = this.particles[i];
+        p.dist -= p.speed;
+        p.angle += 0.035;
+        p.x = cx + Math.cos(p.angle) * p.dist;
+        p.y = cy + Math.sin(p.angle) * p.dist;
+        if (p.dist < 8) { p.dist = 140 + Math.random() * 180; p.angle = Math.random() * Math.PI * 2; }
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(212, 175, 55, ${p.alpha})`;
+        ctx.fill();
+      }
+    } else if (this.phase === 'SHOCKWAVE') {
+      for (var i = this.particles.length - 1; i >= 0; i--) {
+        var p = this.particles[i];
+        p.x += p.vx; p.y += p.vy; p.vx *= 0.96; p.vy *= 0.96; p.alpha -= p.decay;
+        if (p.alpha <= 0) { this.particles.splice(i, 1); continue; }
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fillStyle = p.color;
+        ctx.globalAlpha = p.alpha;
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1.0;
+    }
+  };
 
   function build(){
     if(root) return;
-    root=el('div'); root.id='sf-hatch';
-    card=el('div','sf-hatch-card');
-    orb=el('div','sf-hatch-orb');
-    nameEl=el('div','sf-hatch-name');
-    metaEl=el('div','sf-hatch-meta');
-    var hint=el('div','sf-hatch-hint','轻触点亮');
-    card.appendChild(orb); card.appendChild(nameEl); card.appendChild(metaEl); card.appendChild(hint);
-    var close=el('button','sf-hatch-close','关闭');
-    close.addEventListener('click',function(e){ e.stopPropagation(); hide(); });
-    root.appendChild(card); root.appendChild(close);
-    card.addEventListener('click',function(){ card.classList.add('revealed');
-      if(window.toast) toast('已收入领地 · ' + (cur?cur.name:''), 2.2); });
+    root = el('div'); root.id = 'sf-hatch';
+
+    ceremonyCanvas = el('canvas'); ceremonyCanvas.id = 'sf-ceremony-canvas';
+    root.appendChild(ceremonyCanvas);
+    particleSystem = new CeremonyParticles(ceremonyCanvas);
+
+    igniterBox = el('div', 'sf-igniter-box'); igniterBox.id = 'sf-igniter-box';
+    igniterBox.innerHTML = '<div class="sf-singularity-core"></div><div class="sf-igniter-prompt">✦ 注入引力能量 · 开启星核 ✦</div>';
+    root.appendChild(igniterBox);
+
+    shockwave = el('div', 'sf-shockwave'); shockwave.id = 'sf-shockwave';
+    root.appendChild(shockwave);
+
+    card = el('div', 'sf-hatch-card');
+    card.innerHTML = `
+      <div class="sf-card-holo"></div>
+      <div class="sf-card-corner-tl"></div>
+      <div class="sf-card-corner-tr"></div>
+      <div class="sf-card-corner-bl"></div>
+      <div class="sf-card-corner-br"></div>
+
+      <div class="sf-card-header">
+        <span class="sf-card-serial" id="sf-card-serial">NO. 001 · CELESTIAL</span>
+        <span class="sf-card-tier-badge" id="sf-card-tier-badge">史诗 · EPIC</span>
+      </div>
+      <div class="sf-card-coords">RA 18h 44m · DEC -04°08' · SECTOR 07</div>
+
+      <div class="sf-card-orb-stage">
+        <div class="sf-hatch-orb" id="sf-card-orb-bezel" title="按住拖拽自由检视 3D 球体">
+          <canvas class="sf-planet-canvas" id="sf-planet-canvas" width="360" height="360"></canvas>
+        </div>
+      </div>
+
+      <div class="sf-card-info">
+        <div class="sf-hatch-name"></div>
+        <div class="sf-hatch-meta"></div>
+        <div class="sf-card-specs">1.84 M⊕ · 1.08 g · 284 K · 0.94 AU</div>
+        <div class="sf-hatch-hint">轻触点亮</div>
+      </div>
+
+      <div class="sf-card-actions">
+        <button class="sf-card-act-btn primary" id="sf-btn-escort">✨ 编入护航</button>
+        <button class="sf-card-act-btn" id="sf-btn-flip">✦ 天文档案</button>
+        <button class="sf-card-act-btn" id="sf-btn-next-core">✦ 开启下一颗</button>
+      </div>
+    `;
+
+    orb = card.querySelector('.sf-hatch-orb');
+    nameEl = card.querySelector('.sf-hatch-name');
+    metaEl = card.querySelector('.sf-hatch-meta');
+    serialEl = card.querySelector('#sf-card-serial');
+    tierBadgeEl = card.querySelector('#sf-card-tier-badge');
+    escortBtn = card.querySelector('#sf-btn-escort');
+    planetCanvas = card.querySelector('#sf-planet-canvas');
+    planetRenderer = new ProceduralPlanet(planetCanvas);
+
+    var closeBtn = el('button', 'sf-hatch-close', '✕ 收入天象馆');
+    closeBtn.addEventListener('click', function(e){ e.stopPropagation(); hide(); });
+    root.appendChild(card);
+    root.appendChild(closeBtn);
+
+    // Card Actions
+    escortBtn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      if (!cur) return;
+      var escorted = window.StarfieldHatch.toggleEscort(cur);
+      updateEscortBtn(escorted);
+    });
+
+    card.querySelector('#sf-btn-flip').addEventListener('click', function(e) {
+      e.stopPropagation();
+      card.classList.toggle('flipped');
+    });
+
+    card.querySelector('#sf-btn-next-core').addEventListener('click', function(e) {
+      e.stopPropagation();
+      if (window.StarfieldHatch && window.StarfieldHatch.openNextCore) {
+        window.StarfieldHatch.openNextCore();
+      }
+    });
+
+    card.addEventListener('click', function() {
+      if (!card.classList.contains('revealed')) {
+        card.classList.add('revealed');
+        const msg = '已收入领地 · ' + (cur ? cur.name : ''); if (typeof showToast === 'function') showToast(msg, 2.5); else if (typeof window.toast === 'function') window.toast(msg, 2.5);
+      }
+    });
+
+    // Parallax Tilt
+    window.addEventListener('mousemove', function(e) {
+      if (!root || !root.classList.contains('on') || !card.classList.contains('revealed')) return;
+      var rect = card.getBoundingClientRect();
+      var cx = rect.left + rect.width * 0.5, cy = rect.top + rect.height * 0.5;
+      var dx = (e.clientX - cx) / (rect.width * 0.5), dy = (e.clientY - cy) / (rect.height * 0.5);
+      var tiltX = -dy * 10, tiltY = dx * 12;
+      card.style.transform = card.classList.contains('flipped')
+        ? `scale(1) rotateY(${180 + tiltY}deg) rotateX(${tiltX}deg)`
+        : `scale(1) rotateX(${tiltX}deg) rotateY(${tiltY}deg)`;
+      var angle = 120 + dx * 50;
+      var holo = card.querySelector('.sf-card-holo');
+      if (holo) holo.style.setProperty('--holo-angle', angle + 'deg');
+    });
+
+    // Loop - only runs when overlay is on to avoid background RAF burn
+    var animActive = false;
+    function anim() {
+      if (root && root.classList.contains('on')) {
+        particleSystem.render();
+        planetRenderer.render();
+        requestAnimationFrame(anim);
+      } else {
+        animActive = false;
+      }
+    }
+    window.__sfStartHatchAnim = function() {
+      if (!animActive && root && root.classList.contains('on')) {
+        animActive = true;
+        requestAnimationFrame(anim);
+      }
+    };
+
     document.body.appendChild(root);
   }
-  function openFor(item){
-    build(); cur=item;
-    var t=TIERS[item.tier]||{color:'#fff',cn:item.tier};
-    card.classList.remove('revealed');
-    card.style.setProperty('--tier',t.color);
-    card.style.setProperty('--hue',String(item.hue|0));
-    nameEl.textContent=item.name;
-    metaEl.textContent=t.cn+' · '+item.minutes+' 分钟 · '+item.at;
-    root.classList.add('on');
+
+  function updateEscortBtn(escorted) {
+    if (!escortBtn) return;
+    escortBtn.textContent = escorted ? '✓ 正在随行护航' : '✨ 编入护航';
+    escortBtn.style.borderColor = escorted ? '#38bdf8' : 'rgba(212, 175, 55, 0.4)';
+    escortBtn.style.color = escorted ? '#38bdf8' : '#ffd700';
   }
+
+  function openFor(item, isNewHatch){
+    build(); cur = item;
+    var t = TIERS[item.tier] || { color: '#8ea9c4', cn: item.tier };
+    card.style.setProperty('--tier', t.color);
+    card.style.setProperty('--hue', String(item.hue | 0));
+
+    nameEl.textContent = item.name;
+    metaEl.textContent = t.cn + ' · ' + (item.minutes || 15) + ' 分钟 · ' + (item.at || '');
+    tierBadgeEl.textContent = t.cn + ' · ' + (item.tier ? item.tier.toUpperCase() : 'CELESTIAL');
+    tierBadgeEl.style.borderColor = t.color;
+    tierBadgeEl.style.color = t.color;
+
+    var list = (window.StarfieldHatch.list) ? window.StarfieldHatch.list() : [];
+    var serial = String(list.length || 1).padStart(3, '0');
+    serialEl.textContent = 'NO. ' + serial + ' · CELESTIAL';
+
+    planetRenderer.setItem(item);
+    updateEscortBtn(window.StarfieldHatch.isEscorted(item.id));
+
+    var nextBtn = card.querySelector('#sf-btn-next-core');
+    if (nextBtn) {
+      var coresLeft = window.StarfieldHatch.getUnopenedCores();
+      nextBtn.textContent = coresLeft > 0 ? `✦ 开启下一颗 (${coresLeft})` : '✦ 暂无更多星核';
+    }
+
+    root.classList.add('on');
+    particleSystem.render();
+    planetRenderer.render();
+    if (window.__sfStartHatchAnim) window.__sfStartHatchAnim();
+
+    if (isNewHatch) {
+      // Cosmic Gacha Ignition Ceremony
+      card.classList.remove('revealed');
+      card.classList.remove('flipped');
+      card.style.opacity = '0';
+      card.style.transform = 'translateY(24px) scale(0.92)';
+
+      igniterBox.style.display = 'flex';
+      igniterBox.style.opacity = '1';
+      igniterBox.style.transform = 'scale(1)';
+      igniterBox.style.pointerEvents = 'auto';
+
+      particleSystem.startSingularity();
+      playDrone();
+
+      var triggered = false;
+      var triggerIgnition = function() {
+        if (triggered) return;
+        triggered = true;
+        igniterBox.style.pointerEvents = 'none';
+        igniterBox.style.opacity = '0';
+        igniterBox.style.transform = 'scale(1.4)';
+
+        shockwave.style.left = '50%'; shockwave.style.top = '50%';
+        shockwave.classList.remove('boom');
+        void shockwave.offsetWidth;
+        shockwave.classList.add('boom');
+
+        particleSystem.explode(item.tier);
+        playSupernovaChime(item.tier);
+
+        setTimeout(function() {
+          igniterBox.style.display = 'none';
+          card.classList.add('revealed');
+          card.style.opacity = '1';
+          card.style.transform = 'translateY(0) scale(1)';
+        }, 320);
+      };
+
+      igniterBox.onclick = triggerIgnition;
+      // Auto trigger if untouched
+      setTimeout(function() {
+        if (!triggered && root.classList.contains('on')) triggerIgnition();
+      }, 1600);
+    } else {
+      // Direct Inspection
+      igniterBox.style.display = 'none';
+      card.classList.remove('revealed');
+      card.classList.remove('flipped');
+      card.style.opacity = '1';
+      card.style.transform = 'translateY(0) scale(1)';
+    }
+  }
+
   function hide(){ if(root) root.classList.remove('on'); }
-  function show(){ var it=window.StarfieldHatch.roll(15); openFor(it); return it; }
+  function show(){ var it=window.StarfieldHatch.roll(15); openFor(it, false); return it; }
 
   var api={show:show, openFor:openFor, hide:hide};
   window.StarfieldHatch=Object.assign(window.StarfieldHatch||{},api);
-
-  // Additive only: if the focus result sheet is on screen, offer the hatch.
-  try{
-    new MutationObserver(function(){
-      var box=document.querySelector('.sf-focus-modal-box'); if(!box||box.dataset.hatch)return;
-      box.dataset.hatch='1';
-      var b=document.createElement('button');
-      b.className='sf-focus-confirm-btn'; b.textContent='孵化这颗星球';
-      b.style.cssText='margin-top:14px;width:100%;padding:12px;border-radius:12px;border:1px solid rgba(255,215,0,.5);background:rgba(255,215,0,.12);color:#ffd700;font-size:13px;letter-spacing:.12em;cursor:pointer';
-      b.addEventListener('click',function(){
-        var end=document.querySelector('.sf-focus-modal-box'); if(end)end.parentNode.removeChild(end.parentNode.classList.contains('sf-focus-modal-overlay')?end.parentNode:end);
-        api.show();
-      });
-      box.appendChild(b);
-    }).observe(document.body,{childList:true,subtree:true});
-  }catch(e){}
 })();
 </script>
 
@@ -16568,6 +17753,66 @@ document.addEventListener('DOMContentLoaded', () => {
   border-color: var(--tier);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45), 0 0 16px var(--tier);
 }
+.sf-hl-item.escorted {
+  border-color: #38bdf8 !important;
+  box-shadow: 0 4px 20px rgba(56, 189, 248, 0.35), 0 0 14px rgba(56, 189, 248, 0.25) !important;
+  background: rgba(14, 30, 54, 0.8) !important;
+}
+.sf-hl-escort-tag {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+  color: #e0f2fe;
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  padding: 2px 6px;
+  border-radius: 8px;
+  border: 1px solid rgba(125, 211, 252, 0.6);
+  box-shadow: 0 2px 8px rgba(2, 132, 199, 0.5);
+  pointer-events: none;
+  z-index: 5;
+}
+.sf-hl-escort-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 14px;
+  margin-top: -6px;
+  margin-bottom: 12px;
+  border-radius: 12px;
+  background: rgba(56, 189, 248, 0.07);
+  border: 1px solid rgba(56, 189, 248, 0.22);
+  font-size: 11px;
+}
+.sf-hl-escort-bar-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #bae6fd;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+}
+.sf-hl-escort-badge {
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: rgba(56, 189, 248, 0.18);
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  color: #38bdf8;
+  font-size: 10px;
+}
+.sf-hl-escort-bar-right {
+  font-size: 10px;
+  color: rgba(186, 230, 253, 0.7);
+}
+.sf-hl-canvas {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  pointer-events: none;
+  display: block;
+}
 .sf-hl-item:active { transform: scale(0.97); }
 
 .sf-hl-orb-wrap {
@@ -16662,6 +17907,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function render(){
     var H=window.StarfieldHatch, TIERS=(H&&H.tiers)||{}, list=(H&&H.list)?H.list():[];
     var cores = (H&&H.getUnopenedCores)?H.getUnopenedCores():0;
+    var escorts = (H&&H.getEscorts)?H.getEscorts():[];
     if(!root){
       root=document.createElement('div'); root.id='sf-hatch-list';
       document.body.appendChild(root);
@@ -16693,6 +17939,14 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
       </div>
 
+      <div class="sf-hl-escort-bar">
+        <div class="sf-hl-escort-bar-left">
+          <span>🛸 旗舰随行护航编队</span>
+          <span class="sf-hl-escort-badge">${escorts.length} / 3 编队</span>
+        </div>
+        <div class="sf-hl-escort-bar-right">${escorts.length > 0 ? '✦ 巡天自动牵引星尘与跃迁充能' : '在卡片中编入星球可获得随行护航'}</div>
+      </div>
+
       <div class="sf-hl-grid"></div>
     `;
 
@@ -16721,7 +17975,7 @@ document.addEventListener('DOMContentLoaded', () => {
     var g = root.querySelector('.sf-hl-grid');
     if (!list.length) {
       var emptyBox = document.createElement('div');
-      emptyBox.className = 'sf-hl-empty-box';
+      emptyBox.className = 'sf-hl-empty sf-hl-empty-box';
       emptyBox.innerHTML = `
         <div class="sf-hl-empty-icon">🪐</div>
         <div class="sf-hl-empty-title">星图尚待点亮</div>
@@ -16743,14 +17997,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
     list.slice().reverse().forEach(function(it){
       var t = TIERS[it.tier] || { color: '#8ea9c4', cn: '常见' };
+      var isEsc = H && H.isEscorted && H.isEscorted(it.id);
       var d = document.createElement('div');
-      d.className = 'sf-hl-item';
+      d.className = 'sf-hl-item' + (isEsc ? ' escorted' : '');
       d.style.setProperty('--tier', t.color);
       d.style.setProperty('--hue', String(it.hue | 0));
       d.title = '点击检视星球档案与自命名 · ' + it.name;
       d.innerHTML = `
-        <div class="sf-hl-orb-wrap">
-          <div class="sf-hl-orb"></div>
+        <div class="sf-hl-orb-wrap" style="--tier:${t.color}; --hue:${String(it.hue | 0)};">
+          <div class="sf-hl-orb">
+            <canvas class="sf-hl-canvas" width="116" height="116" style="width:58px;height:58px;"></canvas>
+          </div>
+          ${isEsc ? '<span class="sf-hl-escort-tag">🛸 护航中</span>' : ''}
           <span class="sf-hl-tier-badge" style="color:${t.color};border-color:${t.color}55;">${t.cn}</span>
         </div>
         <div class="sf-hl-meta-wrap">
@@ -16758,6 +18016,10 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="sf-hl-date">${it.at || ''}</div>
         </div>
       `;
+      var cvs = d.querySelector('.sf-hl-canvas');
+      if (cvs && H && H.drawPlanetPreview) {
+        H.drawPlanetPreview(cvs, it);
+      }
       d.addEventListener('click', function() {
         if (H && H.openFor) {
           root.classList.remove('on');
@@ -17086,15 +18348,33 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Capture phase runs before the card's own click handler adds .revealed,
   // so the first tap only reveals; the second tap flips.
-  document.addEventListener('click',function(e){
-    var t=e.target;
-    if(!t||!t.closest)return;
-    var card=t.closest('.sf-hatch-card');
-    if(!card)return;
+  var cardDragMoved = false, cardDragStartX = 0, cardDragStartY = 0;
+  document.addEventListener('pointerdown', function(e) {
+    if (e.target && e.target.closest && e.target.closest('.sf-hatch-card')) {
+      cardDragMoved = false;
+      cardDragStartX = e.clientX;
+      cardDragStartY = e.clientY;
+    }
+  }, true);
+  document.addEventListener('pointermove', function(e) {
+    if (Math.hypot(e.clientX - cardDragStartX, e.clientY - cardDragStartY) > 8) {
+      cardDragMoved = true;
+    }
+  }, true);
+  document.addEventListener('click', function(e) {
+    var t = e.target;
+    if (!t || !t.closest) return;
+    var card = t.closest('.sf-hatch-card');
+    if (!card) return;
     // v143: the naming controls live on the back face; using them must not flip.
-    if(t.closest('.sf-hb-name-ui'))return;
-    if(card.classList.contains('revealed'))card.classList.toggle('flipped');
-  },true);
+    // Also action buttons have their own handlers.
+    if (t.closest('.sf-hb-name-ui') || t.closest('.sf-card-actions')) return;
+    if (cardDragMoved) {
+      cardDragMoved = false;
+      return;
+    }
+    if (card.classList.contains('revealed')) card.classList.toggle('flipped');
+  }, true);
 })();
 </script>
 

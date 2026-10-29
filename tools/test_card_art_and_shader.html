@@ -1,0 +1,1046 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Starfield Celestial Card & Gacha Ceremony</title>
+<style>
+  :root {
+    --gold: #d4af37;
+    --gold-glow: rgba(212, 175, 55, 0.45);
+    --gold-border: rgba(212, 175, 55, 0.35);
+    --bg-dark: #040812;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-tap-highlight-color: transparent; }
+  body {
+    background: radial-gradient(circle at 50% 30%, #0a1122 0%, #020408 100%);
+    color: #e2e8f0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  /* Gacha Ceremony Stage */
+  #sf-gacha-stage {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: radial-gradient(circle at 50% 50%, #060b17 0%, #010204 100%);
+    overflow: hidden;
+  }
+  #sf-ceremony-canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+  }
+
+  /* Prompts & Igniter */
+  .sf-igniter-box {
+    position: relative;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    cursor: pointer;
+    transition: opacity 0.4s ease, transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .sf-singularity-core {
+    width: 86px;
+    height: 86px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #fff 0%, #60a5fa 30%, #1e1b4b 70%, #000 100%);
+    box-shadow: 0 0 45px rgba(96, 165, 250, 0.8), 0 0 100px rgba(147, 51, 234, 0.5), inset 0 0 20px #000;
+    animation: singularityPulse 2.4s infinite ease-in-out;
+    position: relative;
+  }
+  .sf-singularity-core::before {
+    content: "";
+    position: absolute;
+    inset: -12px;
+    border-radius: 50%;
+    border: 1.5px dashed rgba(212, 175, 55, 0.65);
+    animation: spinClockwise 14s infinite linear;
+  }
+  .sf-singularity-core::after {
+    content: "";
+    position: absolute;
+    inset: -24px;
+    border-radius: 50%;
+    border: 1px dotted rgba(96, 165, 250, 0.4);
+    animation: spinCounter 22s infinite linear;
+  }
+  @keyframes singularityPulse {
+    0%, 100% { transform: scale(1); filter: brightness(1); }
+    50% { transform: scale(1.12); filter: brightness(1.45) drop-shadow(0 0 35px var(--gold)); }
+  }
+  @keyframes spinClockwise { 100% { transform: rotate(360deg); } }
+  @keyframes spinCounter { 100% { transform: rotate(-360deg); } }
+
+  .sf-igniter-prompt {
+    font-size: 13px;
+    letter-spacing: 0.28em;
+    font-weight: 500;
+    color: #ffd700;
+    text-shadow: 0 0 14px rgba(255, 215, 0, 0.7);
+    animation: promptBreathe 2s infinite ease-in-out;
+  }
+  @keyframes promptBreathe {
+    0%, 100% { opacity: 0.65; transform: translateY(0); }
+    50% { opacity: 1; transform: translateY(-2px); }
+  }
+
+  /* Flash shockwave */
+  .sf-shockwave {
+    position: absolute;
+    border-radius: 50%;
+    border: 4px solid var(--tier-color, #ffd700);
+    box-shadow: 0 0 60px var(--tier-color, #ffd700), inset 0 0 40px var(--tier-color, #ffd700);
+    transform: translate(-50%, -50%) scale(0);
+    opacity: 1;
+    pointer-events: none;
+    transition: transform 0.75s cubic-bezier(0.1, 0.9, 0.2, 1), opacity 0.75s ease-out;
+  }
+  .sf-shockwave.boom {
+    transform: translate(-50%, -50%) scale(40);
+    opacity: 0;
+  }
+
+  /* 3D Master Card Container */
+  .sf-card-container {
+    perspective: 1200px;
+    width: min(340px, 86vw);
+    aspect-ratio: 9 / 15;
+    position: relative;
+    z-index: 20;
+    opacity: 0;
+    transform: translateY(30px) scale(0.9) rotateX(15deg);
+    transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .sf-card-container.visible {
+    opacity: 1;
+    transform: translateY(0) scale(1) rotateX(0deg);
+  }
+
+  .sf-card-inner {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    transform-style: preserve-3d;
+    transition: transform 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  .sf-card-inner.flipped {
+    transform: rotateY(180deg);
+  }
+  .sf-card-inner.flipped .sf-card-front {
+    pointer-events: none !important;
+  }
+  .sf-card-inner:not(.flipped) .sf-card-back {
+    pointer-events: none !important;
+  }
+
+  /* Front and Back Face */
+  .sf-card-face {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    border-radius: 24px;
+    background: linear-gradient(150deg, rgba(20, 29, 46, 0.96) 0%, rgba(7, 12, 20, 0.98) 100%);
+    border: 1.5px solid var(--gold-border);
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.15), 0 0 28px rgba(212, 175, 55, 0.15);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    padding: 16px;
+    box-sizing: border-box;
+  }
+  .sf-card-back {
+    transform: rotateY(180deg);
+    background: linear-gradient(150deg, rgba(14, 22, 35, 0.98) 0%, rgba(5, 8, 14, 0.99) 100%);
+  }
+
+  /* Holographic Foil Layer */
+  .sf-card-holo {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    border-radius: 24px;
+    background: linear-gradient(
+      calc(var(--holo-angle, 125deg)),
+      transparent 0%,
+      rgba(255, 255, 255, 0.08) 25%,
+      rgba(244, 114, 182, 0.22) 40%,
+      rgba(96, 165, 250, 0.25) 50%,
+      rgba(251, 191, 36, 0.22) 60%,
+      rgba(255, 255, 255, 0.08) 75%,
+      transparent 100%
+    );
+    mix-blend-mode: color-dodge;
+    opacity: 0.55;
+    z-index: 5;
+    transition: opacity 0.3s ease;
+  }
+
+  /* Astronomical Astrolabe Ornaments */
+  .sf-card-corner-tl { position: absolute; top: 8px; left: 8px; width: 14px; height: 14px; border-top: 1.5px solid var(--gold); border-left: 1.5px solid var(--gold); }
+  .sf-card-corner-tr { position: absolute; top: 8px; right: 8px; width: 14px; height: 14px; border-top: 1.5px solid var(--gold); border-right: 1.5px solid var(--gold); }
+  .sf-card-corner-bl { position: absolute; bottom: 8px; left: 8px; width: 14px; height: 14px; border-bottom: 1.5px solid var(--gold); border-left: 1.5px solid var(--gold); }
+  .sf-card-corner-br { position: absolute; bottom: 8px; right: 8px; width: 14px; height: 14px; border-bottom: 1.5px solid var(--gold); border-right: 1.5px solid var(--gold); }
+
+  /* Top Astronomical Header */
+  .sf-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    padding-bottom: 8px;
+    margin-bottom: 8px;
+    position: relative;
+    z-index: 6;
+  }
+  .sf-card-serial {
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    color: #94a3b8;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  }
+  .sf-card-tier-badge {
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid var(--tier-color, #ffd700);
+    color: var(--tier-color, #ffd700);
+    box-shadow: 0 0 10px var(--tier-glow, rgba(255, 215, 0, 0.3));
+  }
+
+  /* Celestial Coordinates Watermark */
+  .sf-card-coords {
+    font-size: 8px;
+    letter-spacing: 0.18em;
+    color: rgba(255, 255, 255, 0.35);
+    text-transform: uppercase;
+    text-align: center;
+    margin-bottom: 6px;
+    font-family: ui-monospace, SFMono-Regular, monospace;
+  }
+
+  /* Center Orb Aperture with Procedural 3D Planet Canvas */
+  .sf-card-orb-stage {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    z-index: 6;
+    margin: 4px 0;
+  }
+  .sf-card-orb-bezel {
+    position: relative;
+    width: min(190px, 56vw);
+    aspect-ratio: 1;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 32px var(--tier-glow, rgba(255, 215, 0, 0.3)), inset 0 0 20px rgba(0, 0, 0, 0.8);
+    cursor: grab;
+  }
+  .sf-card-orb-bezel:active {
+    cursor: grabbing;
+  }
+  .sf-card-orb-bezel::before {
+    content: "";
+    position: absolute;
+    inset: -7px;
+    border-radius: 50%;
+    border: 1.5px solid var(--gold-border);
+    box-shadow: 0 0 16px rgba(212, 175, 55, 0.2);
+    pointer-events: none;
+  }
+  .sf-card-orb-bezel::after {
+    content: "";
+    position: absolute;
+    inset: -14px;
+    border-radius: 50%;
+    border: 1px dashed rgba(255, 255, 255, 0.15);
+    pointer-events: none;
+    animation: spinClockwise 45s infinite linear;
+  }
+
+  canvas.sf-planet-canvas {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    display: block;
+    filter: drop-shadow(0 4px 18px rgba(0, 0, 0, 0.6));
+  }
+
+  /* Planet Info & Narrative Typography */
+  .sf-card-info {
+    position: relative;
+    z-index: 6;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 4px;
+    margin-top: 6px;
+  }
+  .sf-card-name {
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    color: #f8fafc;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8), 0 0 16px var(--tier-glow, rgba(255, 215, 0, 0.4));
+  }
+  .sf-card-type {
+    font-size: 10.5px;
+    letter-spacing: 0.16em;
+    color: var(--tier-color, #ffd700);
+    font-weight: 500;
+  }
+  .sf-card-specs {
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    color: #94a3b8;
+    margin-top: 2px;
+    font-family: ui-monospace, SFMono-Regular, monospace;
+  }
+
+  /* Card Actions */
+  .sf-card-actions {
+    position: relative;
+    z-index: 6;
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+    width: 100%;
+  }
+  .sf-card-act-btn {
+    flex: 1;
+    padding: 7px 0;
+    border-radius: 12px;
+    font-size: 10.5px;
+    letter-spacing: 0.1em;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    background: rgba(255, 255, 255, 0.06);
+    color: #f1f5f9;
+    transition: all 0.2s ease;
+  }
+  .sf-card-act-btn:hover {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.35);
+  }
+  .sf-card-act-btn.primary {
+    border-color: var(--gold-border);
+    background: linear-gradient(135deg, rgba(212, 175, 55, 0.25) 0%, rgba(212, 175, 55, 0.08) 100%);
+    color: #ffd700;
+  }
+  .sf-card-act-btn.primary:hover {
+    background: linear-gradient(135deg, rgba(212, 175, 55, 0.4) 0%, rgba(212, 175, 55, 0.15) 100%);
+    box-shadow: 0 0 14px rgba(212, 175, 55, 0.4);
+  }
+
+  /* Back Face Details */
+  .sf-back-title {
+    font-size: 14px;
+    letter-spacing: 0.16em;
+    font-weight: 600;
+    color: #ffd700;
+    text-align: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    padding-bottom: 8px;
+    margin-bottom: 12px;
+  }
+  .sf-telemetry-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    font-size: 9.5px;
+    margin-bottom: 14px;
+  }
+  .sf-telemetry-item {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    padding: 6px 8px;
+    border-radius: 8px;
+  }
+  .sf-telemetry-item span {
+    display: block;
+    color: #64748b;
+    font-size: 8px;
+    letter-spacing: 0.1em;
+  }
+  .sf-telemetry-item b {
+    color: #f1f5f9;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    font-family: ui-monospace, monospace;
+  }
+  .sf-back-lore {
+    font-size: 10px;
+    line-height: 1.6;
+    letter-spacing: 0.08em;
+    color: #cbd5e1;
+    font-style: italic;
+    background: rgba(0, 0, 0, 0.25);
+    padding: 10px 12px;
+    border-radius: 10px;
+    border-left: 2px solid var(--gold);
+    margin-bottom: auto;
+  }
+
+  /* Close Button */
+  .sf-stage-close {
+    position: absolute;
+    top: calc(env(safe-area-inset-top, 0px) + 18px);
+    right: 20px;
+    z-index: 50;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    border-radius: 20px;
+    color: #e2e8f0;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    padding: 6px 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .sf-stage-close:hover {
+    background: rgba(255, 255, 255, 0.2);
+    color: #fff;
+  }
+</style>
+</head>
+<body>
+
+<div id="sf-gacha-stage">
+  <!-- Particle background & Shockwave Canvas -->
+  <canvas id="sf-ceremony-canvas"></canvas>
+
+  <!-- Igniter / Singularity Phase -->
+  <div class="sf-igniter-box" id="sf-igniter-box">
+    <div class="sf-singularity-core"></div>
+    <div class="sf-igniter-prompt">✦ 注入引力能量 · 开启星核 ✦</div>
+  </div>
+
+  <!-- Radial Shockwave Flare -->
+  <div class="sf-shockwave" id="sf-shockwave"></div>
+
+  <!-- 3D Master Card Container -->
+  <div class="sf-card-container" id="sf-card-container">
+    <div class="sf-card-inner" id="sf-card-inner">
+      <!-- FRONT FACE -->
+      <div class="sf-card-face sf-card-front" id="sf-card-front">
+        <div class="sf-card-holo" id="sf-card-holo"></div>
+        <div class="sf-card-corner-tl"></div>
+        <div class="sf-card-corner-tr"></div>
+        <div class="sf-card-corner-bl"></div>
+        <div class="sf-card-corner-br"></div>
+
+        <div class="sf-card-header">
+          <span class="sf-card-serial" id="sf-card-serial">NO. 088 · CELESTIAL</span>
+          <span class="sf-card-tier-badge" id="sf-card-tier-badge">史诗 · EPICAL</span>
+        </div>
+
+        <div class="sf-card-coords" id="sf-card-coords">RA 18h 44m · DEC -04°08' · SECTOR 07</div>
+
+        <div class="sf-card-orb-stage">
+          <div class="sf-card-orb-bezel" id="sf-card-orb-bezel" title="按住拖拽自由检视 3D 球体">
+            <canvas class="sf-planet-canvas" id="sf-planet-canvas" width="360" height="360"></canvas>
+          </div>
+        </div>
+
+        <div class="sf-card-info">
+          <div class="sf-card-name" id="sf-card-name">微穹之眼</div>
+          <div class="sf-card-type" id="sf-card-type">Type VII 谐振蔚蓝巨星</div>
+          <div class="sf-card-specs" id="sf-card-specs">1.84 M⊕ · 1.08 g · 284 K · 0.94 AU</div>
+        </div>
+
+        <div class="sf-card-actions">
+          <button class="sf-card-act-btn primary" id="sf-btn-escort">✨ 编入护航</button>
+          <button class="sf-card-act-btn" id="sf-btn-flip">✦ 天文档案</button>
+          <button class="sf-card-act-btn" id="sf-btn-next">✦ 开启下一颗</button>
+        </div>
+      </div>
+
+      <!-- BACK FACE -->
+      <div class="sf-card-face sf-card-back">
+        <div class="sf-card-corner-tl"></div>
+        <div class="sf-card-corner-tr"></div>
+        <div class="sf-card-corner-bl"></div>
+        <div class="sf-card-corner-br"></div>
+
+        <div class="sf-back-title">深空天体测绘档案</div>
+
+        <div class="sf-telemetry-grid">
+          <div class="sf-telemetry-item">
+            <span>半长轴 ORBIT</span>
+            <b id="sf-back-orbit">0.94 AU</b>
+          </div>
+          <div class="sf-telemetry-item">
+            <span>表面温度 TEMP</span>
+            <b id="sf-back-temp">284 K (11°C)</b>
+          </div>
+          <div class="sf-telemetry-item">
+            <span>地表重力 GRAV</span>
+            <b id="sf-back-grav">1.08 g</b>
+          </div>
+          <div class="sf-telemetry-item">
+            <span>宜居评级 CLASS</span>
+            <b id="sf-back-habit">Class-A 宜居原野</b>
+          </div>
+        </div>
+
+        <div class="sf-back-lore" id="sf-back-lore">
+          “它静默地悬浮在古老恒星引力阱的边缘，每一次自转都将微弱的射电谐波洒向无垠深空。在蔚蓝大洋与碧绿大陆的交界处，文明的余晖如星屑般闪烁。”
+        </div>
+
+        <div class="sf-card-actions" style="margin-top: auto;">
+          <button class="sf-card-act-btn primary" id="sf-btn-flip-back">✦ 返回天体卡面</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <button class="sf-stage-close" id="sf-stage-close">✕ 返回</button>
+</div>
+
+<script>
+/* ============================================================================
+ * PROCEDURAL 3D PLANET CANVAS SHADER & GACHA CEREMONY ENGINE
+ * ============================================================================ */
+(function() {
+  const TIERS = {
+    common: { cn: '原石', color: '#94a3b8', glow: 'rgba(148, 163, 184, 0.4)', rank: 0 },
+    rare:   { cn: '稀有', color: '#38bdf8', glow: 'rgba(56, 189, 248, 0.45)', rank: 1 },
+    epic:   { cn: '史诗', color: '#c084fc', glow: 'rgba(192, 132, 252, 0.5)', rank: 2 },
+    legend: { cn: '传说', color: '#fbbf24', glow: 'rgba(251, 191, 36, 0.6)', rank: 3 },
+    myth:   { cn: '神话', color: '#f43f5e', glow: 'rgba(244, 63, 94, 0.7)', rank: 4 }
+  };
+
+  // Web Audio Procedural Sound Synthesizer
+  let audioCtx = null;
+  function getAudio() {
+    if (!audioCtx) {
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      if (AudioContext) audioCtx = new AudioContext();
+    }
+    if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+    return audioCtx;
+  }
+
+  function playDrone() {
+    const ctx = getAudio();
+    if (!ctx) return;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    const filter = ctx.createBiquadFilter();
+
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(65, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(140, ctx.currentTime + 1.2);
+
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(100, ctx.currentTime);
+    filter.frequency.exponentialRampToValueAtTime(500, ctx.currentTime + 1.2);
+
+    gain.gain.setValueAtTime(0.01, ctx.currentTime);
+    gain.gain.linearRampToValueAtTime(0.2, ctx.currentTime + 0.8);
+    gain.gain.linearRampToValueAtTime(0.001, ctx.currentTime + 1.2);
+
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc.start();
+    osc.stop(ctx.currentTime + 1.2);
+  }
+
+  function playSupernovaChime(tier) {
+    const ctx = getAudio();
+    if (!ctx) return;
+    const freqs = tier === 'myth' ? [523.25, 659.25, 783.99, 1046.50, 1318.51] :
+                  tier === 'legend' ? [440, 554.37, 659.25, 880] :
+                  tier === 'epic' ? [392, 493.88, 587.33, 783.99] :
+                  [329.63, 392, 523.25];
+
+    freqs.forEach((f, idx) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(f, ctx.currentTime + idx * 0.05);
+
+      gain.gain.setValueAtTime(0.001, ctx.currentTime + idx * 0.05);
+      gain.gain.linearRampToValueAtTime(0.15, ctx.currentTime + idx * 0.05 + 0.08);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + idx * 0.05 + 1.8);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(ctx.currentTime + idx * 0.05);
+      osc.stop(ctx.currentTime + idx * 0.05 + 1.9);
+    });
+  }
+
+  // --- Procedural Planet Renderer ---
+  class ProceduralPlanet {
+    constructor(canvas) {
+      this.canvas = canvas;
+      this.ctx = canvas.getContext('2d');
+      this.rotX = 0.2;
+      this.rotY = 0.0;
+      this.spinSpeed = 0.004;
+      this.cloudSpeed = 0.007;
+      this.cloudRot = 0.0;
+      this.isDragging = false;
+      this.lastPointerX = 0;
+      this.lastPointerY = 0;
+      this.velX = 0;
+      this.velY = 0;
+
+      this.item = {
+        name: '微穹之眼',
+        hue: 200,
+        tier: 'epic'
+      };
+
+      this.initEvents();
+    }
+
+    setItem(item) {
+      this.item = item;
+      this.rotX = 0.25;
+      this.rotY = Math.random() * Math.PI * 2;
+    }
+
+    initEvents() {
+      const bezel = document.getElementById('sf-card-orb-bezel');
+      if (!bezel) return;
+
+      const onStart = (clientX, clientY) => {
+        this.isDragging = true;
+        this.lastPointerX = clientX;
+        this.lastPointerY = clientY;
+        this.velX = 0;
+        this.velY = 0;
+      };
+      const onMove = (clientX, clientY) => {
+        if (!this.isDragging) return;
+        const dx = clientX - this.lastPointerX;
+        const dy = clientY - this.lastPointerY;
+        this.lastPointerX = clientX;
+        this.lastPointerY = clientY;
+
+        this.rotY += dx * 0.015;
+        this.rotX += dy * 0.015;
+        this.rotX = Math.max(-1.2, Math.min(1.2, this.rotX));
+        this.velX = dx * 0.015;
+        this.velY = dy * 0.015;
+      };
+      const onEnd = () => {
+        this.isDragging = false;
+      };
+
+      bezel.addEventListener('mousedown', (e) => onStart(e.clientX, e.clientY));
+      window.addEventListener('mousemove', (e) => onMove(e.clientX, e.clientY));
+      window.addEventListener('mouseup', onEnd);
+
+      bezel.addEventListener('touchstart', (e) => {
+        if (e.touches.length > 0) onStart(e.touches[0].clientX, e.touches[0].clientY);
+      }, { passive: true });
+      window.addEventListener('touchmove', (e) => {
+        if (e.touches.length > 0) onMove(e.touches[0].clientX, e.touches[0].clientY);
+      }, { passive: true });
+      window.addEventListener('touchend', onEnd);
+    }
+
+    render() {
+      if (!this.isDragging) {
+        this.rotY += this.spinSpeed + this.velX;
+        this.rotX += this.velY;
+        this.rotX = Math.max(-1.2, Math.min(1.2, this.rotX));
+        this.velX *= 0.92;
+        this.velY *= 0.92;
+      }
+      this.cloudRot += this.cloudSpeed;
+
+      const ctx = this.ctx;
+      const w = this.canvas.width;
+      const h = this.canvas.height;
+      const cx = w * 0.5;
+      const cy = h * 0.5;
+      const r = w * 0.42;
+
+      ctx.clearRect(0, 0, w, h);
+
+      const hue = this.item.hue || 200;
+      const tier = this.item.tier || 'common';
+      const isGas = (hue >= 25 && hue <= 60) || (tier === 'legend');
+      const isRinged = (hue % 3 === 0) || tier === 'epic' || tier === 'myth';
+      const isVolcanic = (hue < 20 || hue > 340);
+
+      // 1. Back Arc of Ring (if ringed)
+      if (isRinged) {
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.rotate(-0.35);
+        ctx.beginPath();
+        ctx.ellipse(0, 0, r * 1.55, r * 0.44, 0, Math.PI, Math.PI * 2);
+        ctx.strokeStyle = `hsla(${hue}, 70%, 75%, 0.55)`;
+        ctx.lineWidth = r * 0.28;
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      // 2. Base Planet Sphere & Atmosphere Rayleigh Rim Glow
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      ctx.clip();
+
+      // Base sphere color gradient
+      const baseGrad = ctx.createRadialGradient(cx - r * 0.35, cy - r * 0.35, r * 0.1, cx, cy, r);
+      if (isVolcanic) {
+        baseGrad.addColorStop(0, '#ff4500');
+        baseGrad.addColorStop(0.4, '#8b0000');
+        baseGrad.addColorStop(0.9, '#1a0505');
+      } else if (isGas) {
+        baseGrad.addColorStop(0, `hsl(${hue}, 85%, 72%)`);
+        baseGrad.addColorStop(0.5, `hsl(${hue}, 75%, 45%)`);
+        baseGrad.addColorStop(1, '#050a14');
+      } else {
+        baseGrad.addColorStop(0, `hsl(${hue}, 70%, 65%)`);
+        baseGrad.addColorStop(0.5, `hsl(${hue}, 80%, 32%)`);
+        baseGrad.addColorStop(1, '#02060d');
+      }
+      ctx.fillStyle = baseGrad;
+      ctx.fill();
+
+      // Continents / Atmospheric Bands with Spherical Projection
+      const slices = 48;
+      const bandHeight = (r * 2) / slices;
+      for (let i = 0; i < slices; i++) {
+        const y = -r + i * bandHeight + bandHeight * 0.5;
+        const chord = Math.sqrt(Math.max(0, r * r - y * y));
+        if (chord < 1) continue;
+
+        const phi = Math.asin(y / r) + this.rotX;
+        const wave = isGas
+          ? Math.sin(phi * 12 + Math.sin(this.rotY * 2)) * 0.5 + 0.5
+          : Math.sin(phi * 5) * Math.cos(this.rotY * 3 + phi * 2) + Math.sin(phi * 10 + this.rotY * 5) * 0.3;
+
+        ctx.fillStyle = isVolcanic
+          ? (wave > 0.3 ? 'rgba(255, 69, 0, 0.45)' : 'rgba(20, 2, 2, 0.7)')
+          : isGas
+          ? `hsla(${hue + wave * 30}, 80%, ${35 + wave * 35}%, 0.38)`
+          : (wave > 0.15 ? `hsla(${hue + 45}, 65%, 48%, 0.65)` : `hsla(${hue}, 90%, 25%, 0.2)`);
+
+        ctx.fillRect(cx - chord, cy + y, chord * 2, bandHeight + 0.6);
+      }
+
+      // 3. Dynamic Cloud Layer
+      ctx.save();
+      for (let i = 0; i < slices; i += 2) {
+        const y = -r + i * bandHeight;
+        const chord = Math.sqrt(Math.max(0, r * r - y * y));
+        if (chord < 1) continue;
+        const phi = Math.asin(y / r) + this.rotX * 0.8;
+        const cloudW = Math.sin(phi * 4 + this.cloudRot * 3) * Math.cos(this.cloudRot * 2 + phi * 3);
+        if (cloudW > 0.2) {
+          ctx.fillStyle = `rgba(255, 255, 255, ${(cloudW * 0.38).toFixed(2)})`;
+          ctx.fillRect(cx - chord * 0.9, cy + y, chord * 1.8, bandHeight * 1.5);
+        }
+      }
+      ctx.restore();
+
+      // 4. Day / Night Spherical Terminator & Deep Ambient Shadow
+      const shadowGrad = ctx.createRadialGradient(cx - r * 0.45, cy - r * 0.45, r * 0.2, cx, cy, r * 1.05);
+      shadowGrad.addColorStop(0, 'rgba(255, 255, 255, 0.18)'); // Specular core
+      shadowGrad.addColorStop(0.45, 'rgba(0, 0, 0, 0)');
+      shadowGrad.addColorStop(0.78, 'rgba(1, 3, 8, 0.75)');
+      shadowGrad.addColorStop(1, 'rgba(0, 1, 4, 0.96)');
+      ctx.fillStyle = shadowGrad;
+      ctx.fill();
+
+      // 5. Atmospheric Rayleigh Scattering Crescent Rim Glow
+      const rimGrad = ctx.createRadialGradient(cx - r * 0.4, cy - r * 0.4, r * 0.85, cx - r * 0.4, cy - r * 0.4, r * 1.05);
+      rimGrad.addColorStop(0, 'rgba(255, 255, 255, 0)');
+      rimGrad.addColorStop(0.82, `hsla(${hue}, 85%, 75%, 0.45)`);
+      rimGrad.addColorStop(1, 'rgba(255, 255, 255, 0)');
+      ctx.fillStyle = rimGrad;
+      ctx.fill();
+
+      ctx.restore(); // end clip
+
+      // 6. Front Arc of Ring & Planet Shadow onto Ring
+      if (isRinged) {
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.rotate(-0.35);
+        ctx.beginPath();
+        ctx.ellipse(0, 0, r * 1.55, r * 0.44, 0, 0, Math.PI);
+        ctx.strokeStyle = `hsla(${hue}, 70%, 75%, 0.8)`;
+        ctx.lineWidth = r * 0.28;
+        ctx.stroke();
+
+        // Cassini division
+        ctx.beginPath();
+        ctx.ellipse(0, 0, r * 1.55, r * 0.44, 0, 0, Math.PI);
+        ctx.strokeStyle = 'rgba(2, 4, 8, 0.65)';
+        ctx.lineWidth = 2.5;
+        ctx.stroke();
+        ctx.restore();
+      }
+    }
+  }
+
+  // --- Ceremony Particles System ---
+  class CeremonyParticles {
+    constructor(canvas) {
+      this.canvas = canvas;
+      this.ctx = canvas.getContext('2d');
+      this.particles = [];
+      this.phase = 'SINGULARITY'; // SINGULARITY | SHOCKWAVE | IDLE
+      this.tier = 'epic';
+      this.resize();
+      window.addEventListener('resize', () => this.resize());
+    }
+
+    resize() {
+      this.canvas.width = window.innerWidth;
+      this.canvas.height = window.innerHeight;
+    }
+
+    startSingularity() {
+      this.phase = 'SINGULARITY';
+      this.particles = [];
+      const count = 120;
+      const cx = this.canvas.width * 0.5;
+      const cy = this.canvas.height * 0.5;
+      for (let i = 0; i < count; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const dist = 140 + Math.random() * 260;
+        this.particles.push({
+          x: cx + Math.cos(angle) * dist,
+          y: cy + Math.sin(angle) * dist,
+          angle: angle,
+          dist: dist,
+          speed: 1.5 + Math.random() * 3,
+          size: 1 + Math.random() * 2.5,
+          alpha: 0.2 + Math.random() * 0.8
+        });
+      }
+    }
+
+    explode(tier) {
+      this.phase = 'SHOCKWAVE';
+      this.tier = tier;
+      this.particles = [];
+      const count = 160;
+      const cx = this.canvas.width * 0.5;
+      const cy = this.canvas.height * 0.5;
+      const t = TIERS[tier] || TIERS.common;
+
+      for (let i = 0; i < count; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = 4 + Math.random() * 14;
+        this.particles.push({
+          x: cx,
+          y: cy,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          size: 2 + Math.random() * 3.5,
+          alpha: 1,
+          decay: 0.012 + Math.random() * 0.02,
+          color: t.color
+        });
+      }
+    }
+
+    render() {
+      const ctx = this.ctx;
+      const w = this.canvas.width;
+      const h = this.canvas.height;
+      const cx = w * 0.5;
+      const cy = h * 0.5;
+
+      ctx.clearRect(0, 0, w, h);
+
+      if (this.phase === 'SINGULARITY') {
+        for (let i = 0; i < this.particles.length; i++) {
+          const p = this.particles[i];
+          p.dist -= p.speed;
+          p.angle += 0.035;
+          p.x = cx + Math.cos(p.angle) * p.dist;
+          p.y = cy + Math.sin(p.angle) * p.dist;
+
+          if (p.dist < 8) {
+            p.dist = 160 + Math.random() * 200;
+            p.angle = Math.random() * Math.PI * 2;
+          }
+
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(212, 175, 55, ${p.alpha})`;
+          ctx.fill();
+        }
+      } else if (this.phase === 'SHOCKWAVE') {
+        for (let i = this.particles.length - 1; i >= 0; i--) {
+          const p = this.particles[i];
+          p.x += p.vx;
+          p.y += p.vy;
+          p.vx *= 0.96;
+          p.vy *= 0.96;
+          p.alpha -= p.decay;
+
+          if (p.alpha <= 0) {
+            this.particles.splice(i, 1);
+            continue;
+          }
+
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+          ctx.fillStyle = p.color;
+          ctx.globalAlpha = p.alpha;
+          ctx.fill();
+        }
+        ctx.globalAlpha = 1.0;
+      }
+    }
+  }
+
+  // --- Initialize Ceremony & Card Stage ---
+  const ceremonyCanvas = document.getElementById('sf-ceremony-canvas');
+  const particles = new CeremonyParticles(ceremonyCanvas);
+
+  const planetCanvas = document.getElementById('sf-planet-canvas');
+  const planet = new ProceduralPlanet(planetCanvas);
+
+  const igniterBox = document.getElementById('sf-igniter-box');
+  const shockwave = document.getElementById('sf-shockwave');
+  const cardContainer = document.getElementById('sf-card-container');
+  const cardInner = document.getElementById('sf-card-inner');
+  const cardHolo = document.getElementById('sf-card-holo');
+
+  // Animation Loop
+  function animLoop() {
+    particles.render();
+    planet.render();
+    requestAnimationFrame(animLoop);
+  }
+  requestAnimationFrame(animLoop);
+
+  // Parallax Tilt for 3D Holographic Card
+  window.addEventListener('mousemove', (e) => {
+    if (!cardContainer.classList.contains('visible')) return;
+    const rect = cardContainer.getBoundingClientRect();
+    const cx = rect.left + rect.width * 0.5;
+    const cy = rect.top + rect.height * 0.5;
+    const dx = (e.clientX - cx) / (rect.width * 0.5);
+    const dy = (e.clientY - cy) / (rect.height * 0.5);
+
+    const tiltX = -dy * 12;
+    const tiltY = dx * 14;
+    cardContainer.style.transform = `translateY(0) scale(1) rotateX(${tiltX}deg) rotateY(${tiltY}deg)`;
+    const angle = 120 + dx * 60;
+    cardHolo.style.setProperty('--holo-angle', `${angle}deg`);
+  });
+
+  // Gacha Ceremony Workflow
+  function startCeremony(item) {
+    const tier = item.tier || 'epic';
+    const t = TIERS[tier] || TIERS.common;
+
+    document.documentElement.style.setProperty('--tier-color', t.color);
+    document.documentElement.style.setProperty('--tier-glow', t.glow);
+
+    // Reset components
+    cardContainer.classList.remove('visible');
+    cardInner.classList.remove('flipped');
+    igniterBox.style.opacity = '1';
+    igniterBox.style.pointerEvents = 'auto';
+
+    // Populate Card Telemetry
+    document.getElementById('sf-card-name').textContent = item.name;
+    document.getElementById('sf-card-tier-badge').textContent = `${t.cn} · ${tier.toUpperCase()}`;
+    document.getElementById('sf-card-serial').textContent = `NO. ${(Math.random() * 800 + 100)|0} · CELESTIAL`;
+    planet.setItem(item);
+
+    particles.startSingularity();
+    playDrone();
+
+    // Trigger Supernova on Click or Auto after 1.4s
+    const triggerIgnition = () => {
+      igniterBox.style.pointerEvents = 'none';
+      igniterBox.style.opacity = '0';
+      igniterBox.style.transform = 'scale(1.5)';
+
+      // Shockwave boom
+      shockwave.style.left = '50%';
+      shockwave.style.top = '50%';
+      shockwave.classList.remove('boom');
+      void shockwave.offsetWidth; // reflow
+      shockwave.classList.add('boom');
+
+      particles.explode(tier);
+      playSupernovaChime(tier);
+
+      // Reveal 3D Card after blast
+      setTimeout(() => {
+        cardContainer.classList.add('visible');
+      }, 350);
+    };
+
+    igniterBox.onclick = triggerIgnition;
+  }
+
+  // Card Flip Handlers
+  document.getElementById('sf-btn-flip').onclick = () => cardInner.classList.add('flipped');
+  document.getElementById('sf-btn-flip-back').onclick = () => cardInner.classList.remove('flipped');
+
+  // Next Planet Test
+  document.getElementById('sf-btn-next').onclick = () => {
+    const sampleItems = [
+      { name: '微穹之眼', hue: 200, tier: 'epic' },
+      { name: '荒烬之核', hue: 10, tier: 'rare' },
+      { name: '冠冕气旋', hue: 45, tier: 'legend' },
+      { name: '原初奇点', hue: 280, tier: 'myth' }
+    ];
+    const next = sampleItems[(Math.random() * sampleItems.length)|0];
+    startCeremony(next);
+  };
+
+  // Escort Button Toggle
+  const escortBtn = document.getElementById('sf-btn-escort');
+  let isEscorted = false;
+  escortBtn.onclick = () => {
+    isEscorted = !isEscorted;
+    escortBtn.textContent = isEscorted ? '✓ 正在随行护航' : '✨ 编入护航';
+    escortBtn.style.borderColor = isEscorted ? '#38bdf8' : 'var(--gold-border)';
+    escortBtn.style.color = isEscorted ? '#38bdf8' : '#ffd700';
+  };
+
+  // Launch initial sample
+  startCeremony({ name: '微穹之眼', hue: 200, tier: 'epic' });
+})();
+</script>
+</body>
+</html>
