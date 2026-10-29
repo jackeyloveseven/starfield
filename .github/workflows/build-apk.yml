@@ -83,14 +83,15 @@ jobs:
           tag_name: "v${{ steps.get_version.outputs.version_name }}-focus-apk"
           name: "星空 · Android & Native v${{ steps.get_version.outputs.version_name }} (Build ${{ steps.get_version.outputs.version_code }})"
           body: |
-            ### 🌌 星空 · STARFIELD // 原生引擎跃迁与全六星区原声母带发布
+            ### 🌌 星空 · STARFIELD // 机制美学重构与玩法跃迁发布
 
             - **版本**：v${{ steps.get_version.outputs.version_name }} (Build ${{ steps.get_version.outputs.version_code }})
-            - **Godot 4.3 3D 原生引擎**：引入工业级 3D 物理架构（`godot/`），支持辛几何引力透镜黑洞、144Hz 柔性扑翼与标准前向飞行；
-            - **全 6 首立体声无损原声母带**：恢复全部 6 首高保真母带（原野/月图/暖纸/暮粉/夜航/雪境），淘汰振荡器合成；
-            - **视觉与动效革新**：深度落地 `page-design` 版式层级与 `design-to-motion` 自然运动系统；
-            - **2K Ultra 视网膜引擎**：移动端最高 2.75x DPR 点对点真视网膜级锐度；
-            - **120Hz/144Hz 满血高刷**：彻底解锁移动设备硬件刷新率上限，附带智能巡航节能温控；
+            - **宇宙超新星抽卡点火典礼**：多阶段开箱点火仪式（奇点引力坍缩、90 颗螺旋粒子、Shepard 嗡鸣、超新星冲击波与 3D 卡牌解离浮现）；
+            - **奢华天象星图塔罗卡牌与 3D 程序化球体**：9:15 比例天象塔罗、金色星盘双线花丝雕花、全息色散光箔，搭载 360° 自由拖拽自转的程序化星球（Procedural Planet Sphere）；
+            - **旗舰随行护航轨道系统 (Escort Orbits)**：已发现行星一键编入旗舰护航编队（最多 3 颗），提供偏心引力轨道、微缩天体流光残影与星尘磁场牵引加成；
+            - **主动巡天测绘声呐 (Active Deep-Space Sonar)**：前向引力感知阵列实时锁定目标，按 [F] 触发高科技声呐波扫描，奖励星尘与捕获深空星核；
+            - **番茄钟专注逻辑深度解耦**：移除强插 DOM 的 MutationObserver，专注完成自然结算奖励未开采星核，并提供优雅的天象馆跳转；
+            - **移动端纯净无框 HUD**：全屏无框纯净 HUD，轨迹曲线无遮挡舒展，消除所有层叠方框与刘海遮挡；
             - **跨端可执行包**：包含 Android 安装包 (`StarfieldFocus.apk`) 与 Godot 原生 PC 游戏包 (`StarfieldNative.pck`)。
           files: |
             StarfieldFocus.apk

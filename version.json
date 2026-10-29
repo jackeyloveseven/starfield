@@ -1,11 +1,11 @@
 {
-  "version": "1.16.0",
-  "build": 142,
-  "updated_at": "2026-10-28T22:50:00+08:00",
+  "version": "1.17.0",
+  "build": 143,
+  "updated_at": "2026-10-29T11:15:00+08:00",
   "min_native_version": "1.0.0",
-  "title": "原生引擎跃迁 · Godot 4.3 原生3D移植与全六星区原声母带",
-  "changelog": "1. 新增 Godot 4.3 工业级 3D 原生引擎（godot/），支持辛几何引力透镜黑洞、144Hz 柔性扑翼与标准前向飞行；2. 恢复全部 6 首高保真立体声无损原声母带（原野/月图/暖纸/暮粉/夜航/雪境）；3. 全面落地 page-design 版式层级与 design-to-motion 自然运动系统；4. 适配移动端安全区与 2K 视网膜渲染，消除全部中文字符方框与界面重叠。",
+  "title": "机制美学重构 · 抽卡超新星点火典礼、3D天象塔罗与护航声呐系统",
+  "changelog": "1. 抽卡典礼重构：奇点引力坍缩、超新星冲击波与3D卡牌解离浮现；2. 奢华天象星图塔罗卡牌与360°可交互程序化星球球体；3. 旗舰随行护航轨道系统，提供微缩发光天体与星尘牵引加成；4. 主动巡天测绘声呐，[F]键一键扫描锁定天体并捕获星核；5. 番茄钟专注逻辑深度解耦与纯净无框移动端HUD。",
   "entry": "starfield.html",
   "download_url": "https://jackeyloveseven.github.io/starfield/starfield.html",
-  "apk_release_url": "https://github.com/jackeyloveseven/starfield/releases/tag/v1.16.0-focus-apk"
+  "apk_release_url": "https://github.com/jackeyloveseven/starfield/releases/tag/v1.17.0-focus-apk"
 }
