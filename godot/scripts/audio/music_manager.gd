@@ -14,7 +14,8 @@ const TRACK_PATHS: Array[String] = [
 	"res://audio/music/3-foil.mp3",
 	"res://audio/music/4-core.mp3",
 	"res://audio/music/5-abyss.mp3",
-	"res://audio/music/6-drift.mp3"
+	"res://audio/music/6-drift.mp3",
+	"res://audio/music/7-saul.mp3"
 ]
 
 const TRACK_TITLES: Array[String] = [
@@ -23,7 +24,8 @@ const TRACK_TITLES: Array[String] = [
 	"3. 暖纸 · 金箔流霞 (A 混合利底亚 · 71s)",
 	"4. 暮粉 · 核心回响 (A 自然小调 · 74s)",
 	"5. 夜航 · 深渊行迹 (A 自然小调 深沉 · 78s)",
-	"6. 雪境 · 冰穹低语 (升F 小调 · 69s)"
+	"6. 雪境 · 冰穹低语 (升F 小调 · 69s)",
+	"7. 律政狂想 · Better Call Saul TV Theme (15s)"
 ]
 
 const MIN_DB: float = -80.0
