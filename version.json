@@ -1,11 +1,11 @@
 {
-  "version": "1.17.4",
-  "build": 147,
-  "updated_at": "2026-10-30T00:10:00+08:00",
+  "version": "1.17.5",
+  "build": 148,
+  "updated_at": "2026-10-30T10:15:00+08:00",
   "min_native_version": "1.0.0",
-  "title": "镜头与星球自转世界坐标系完全正交解耦、卡冈图雅物理相对论多普勒左侧蓝移射束与光子外环重构典藏",
-  "changelog": "1. 镜头旋转与星球自转世界空间完全正交解耦：修复非正交剪切基向量导致的偏航欠旋转失真，使 LivingPlanetEngine 3D 行星、多层光环及深海巨鲸等生态严格锚定世界独立自转轴，彻底消除视角转动带偏行星的耦合现象；2. 卡冈图雅黑洞物理级相对论打磨：修正吸积盘开普勒轨道多普勒射束相位（使用正确的视线速度分量精确呈现左侧朝向观测者接近的高温蓝移高能亮斑与右侧远离的深红暗斑）；将次级李雅普诺夫光子环移至视界阴影外侧焦散区；重构吸积盘 3D 姿态投影法向量映射；3. 解决星环与行星环影旋转角度符号偏差与极性颠倒问题；4. 消除 Three.js 材质冗余 flatShading 告警；完整同步 Web 端与 Android 端资源并确保全量测试套件 0 报错通过。",
+  "title": "天象塔罗防遮挡下边距留白、五阶珠宝微光典藏调色盘与星核真实枯竭逻辑加固",
+  "changelog": "1. 修复卡牌下方文字遮挡操作按钮缺陷：重构卡片布局与弹性容器，预留 64px 按钮安全避让下边距，正反面文字与按钮实现 100% 物理无遮挡；2. 天象塔罗五阶典藏色彩与材质微光重塑（钛银深青、极光碧玉、星云紫晶、曜金日曜、奇点幻彩）；3. 修复星核用尽时仍能无限孵化的逻辑缺陷：严格遵循真实库存判据，耗尽时禁用开启按钮并友好提示专注凝聚。",
   "entry": "starfield.html",
   "download_url": "https://jackeyloveseven.github.io/starfield/starfield.html",
-  "apk_release_url": "https://github.com/jackeyloveseven/starfield/releases/tag/v1.17.4-focus-apk"
+  "apk_release_url": "https://github.com/jackeyloveseven/starfield/releases/tag/v1.17.5-focus-apk"
 }
