@@ -18920,48 +18920,55 @@ canvas.sf-planet-canvas {
 /* --- Mode Selector Bar --- */
 #sf-mode-bar {
   position: fixed;
-  top: calc(env(safe-area-inset-top, 0px) + 12px);
+  top: calc(env(safe-area-inset-top, 0px) + 10px);
   left: 50%;
   transform: translateX(-50%);
   display: flex;
   align-items: center;
-  gap: 6px;
-  background: rgba(8, 14, 24, 0.78);
-  border: 1px solid rgba(255, 255, 255, 0.14);
+  gap: 5px;
+  background: rgba(8, 14, 24, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.16);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
-  border-radius: 20px;
+  border-radius: 22px;
   padding: 4px 6px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6), 0 0 16px rgba(56, 189, 248, 0.15);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.65), 0 0 16px rgba(56, 189, 248, 0.18);
   z-index: 1000;
+  max-width: 96vw;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
   transition: all 0.3s ease;
 }
+#sf-mode-bar::-webkit-scrollbar { display: none; }
+
 .sf-mode-btn {
   border: none;
   outline: none;
   background: transparent;
   color: #94a3b8;
-  padding: 5px 12px;
+  padding: 5px 11px;
   border-radius: 14px;
   font-size: 11px;
   font-weight: 600;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
   cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 5px;
-  transition: all 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+  gap: 4px;
+  transition: all 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
   white-space: nowrap;
+  flex-shrink: 0;
 }
 .sf-mode-btn:hover {
   color: #f1f5f9;
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.08);
 }
 .sf-mode-btn.active {
-  background: linear-gradient(135deg, rgba(56, 189, 248, 0.25) 0%, rgba(14, 165, 233, 0.15) 100%);
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.28) 0%, rgba(14, 165, 233, 0.18) 100%);
   color: #38bdf8;
-  border: 1px solid rgba(56, 189, 248, 0.4);
-  box-shadow: 0 0 12px rgba(56, 189, 248, 0.3);
+  border: 1px solid rgba(56, 189, 248, 0.45);
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.35);
 }
 
 /* --- Fullscreen Game Overlay Overlays --- */
@@ -18990,7 +18997,7 @@ canvas.sf-planet-canvas {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  padding: calc(env(safe-area-inset-top, 0px) + 60px) 16px calc(env(safe-area-inset-bottom, 0px) + 16px) 16px;
+  padding: calc(env(safe-area-inset-top, 0px) + 56px) 16px calc(env(safe-area-inset-bottom, 0px) + 16px) 16px;
   box-sizing: border-box;
 }
 .sf-ext-vitals {
@@ -19034,7 +19041,7 @@ canvas.sf-planet-canvas {
 
 .sf-ext-top-center {
   position: absolute;
-  top: calc(env(safe-area-inset-top, 0px) + 60px);
+  top: calc(env(safe-area-inset-top, 0px) + 56px);
   left: 50%;
   transform: translateX(-50%);
   display: flex;
@@ -19061,7 +19068,6 @@ canvas.sf-planet-canvas {
   letter-spacing: 0.1em;
   text-shadow: 0 0 8px rgba(248, 113, 113, 0.5);
 }
-
 .sf-ext-cargo-grid {
   display: flex;
   gap: 6px;
@@ -19080,8 +19086,6 @@ canvas.sf-planet-canvas {
   font-size: 16px;
   box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.6);
 }
-
-/* Mobile Touch Controls for Extraction */
 .sf-ext-touch-layer {
   position: absolute;
   inset: 0;
@@ -19108,55 +19112,40 @@ canvas.sf-planet-canvas {
   background: rgba(15, 23, 42, 0.75);
   backdrop-filter: blur(10px);
   color: #f1f5f9;
-  font-size: 12px;
-  font-weight: 700;
+  font-size: 20px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
-  transition: all 0.15s ease;
-  user-select: none;
-  -webkit-user-select: none;
+  touch-action: manipulation;
+  transition: transform 0.1s, background 0.15s;
 }
 .sf-ext-act-btn:active {
   transform: scale(0.92);
   background: rgba(56, 189, 248, 0.3);
-  border-color: #38bdf8;
 }
-.sf-ext-act-btn.fire {
-  border-color: rgba(244, 63, 94, 0.6);
-  color: #f43f5e;
-  box-shadow: 0 0 16px rgba(244, 63, 94, 0.3);
+.sf-ext-act-btn span.sub {
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #94a3b8;
+  margin-top: 1px;
 }
-
-/* Modals & Dialogs for Extraction Results */
-.sf-ext-modal {
-  position: absolute;
-  inset: 0;
-  background: rgba(4, 7, 13, 0.88);
-  backdrop-filter: blur(12px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 950;
+.sf-ext-radar {
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(14, 165, 233, 0.1) 0%, rgba(15, 23, 42, 0.8) 100%);
+  border: 1.5px solid rgba(56, 189, 248, 0.35);
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 0 16px rgba(56, 189, 248, 0.15);
   pointer-events: auto;
 }
-.sf-ext-modal-box {
-  width: min(360px, 88vw);
-  background: linear-gradient(145deg, #10192a 0%, #080d16 100%);
-  border: 1.5px solid rgba(56, 189, 248, 0.4);
-  border-radius: 20px;
-  padding: 24px 20px;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8), 0 0 30px rgba(56, 189, 248, 0.2);
-  text-align: center;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
 
-/* --- HUD for Angry Birds Space (Orbital Slingshot) --- */
+/* --- HUD for Slingshot Mode --- */
 #sf-sling-hud {
   position: absolute;
   inset: 0;
@@ -19165,10 +19154,10 @@ canvas.sf-planet-canvas {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  padding: calc(env(safe-area-inset-top, 0px) + 60px) 16px calc(env(safe-area-inset-bottom, 0px) + 16px) 16px;
+  padding: calc(env(safe-area-inset-top, 0px) + 56px) 16px calc(env(safe-area-inset-bottom, 0px) + 16px) 16px;
   box-sizing: border-box;
 }
-.sf-sling-top-row {
+.sf-sling-top-bar {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -19176,34 +19165,29 @@ canvas.sf-planet-canvas {
 }
 .sf-sling-score-box {
   background: rgba(15, 23, 42, 0.75);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.14);
   backdrop-filter: blur(10px);
-  border-radius: 14px;
   padding: 6px 14px;
+  border-radius: 12px;
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
 }
 .sf-sling-score-val {
-  font-size: 20px;
+  font-size: 18px;
   font-weight: 800;
-  color: #ffd700;
   font-family: ui-monospace, monospace;
-  text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+  color: #fbbf24;
 }
 .sf-sling-roster {
   display: flex;
   gap: 8px;
-  background: rgba(15, 23, 42, 0.75);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  backdrop-filter: blur(10px);
-  border-radius: 14px;
-  padding: 6px 12px;
+  align-items: center;
 }
 .sf-sling-bird-token {
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
+  border: 1.5px solid rgba(255, 255, 255, 0.3);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -19220,6 +19204,344 @@ canvas.sf-planet-canvas {
   border-radius: 12px;
   align-self: center;
 }
+
+/* =========================================================================
+ * 3. RED ALERT RTS HUD & STYLING (红色警戒 · 星际争霸)
+ * ========================================================================= */
+#sf-redalert-overlay {
+  background: radial-gradient(circle at center, #070d18 0%, #020409 100%);
+}
+#sf-ra-hud {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 920;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: calc(env(safe-area-inset-top, 0px) + 54px) 14px calc(env(safe-area-inset-bottom, 0px) + 12px) 14px;
+  box-sizing: border-box;
+}
+.sf-ra-top-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  width: 100%;
+  gap: 8px;
+}
+.sf-ra-stats-panel {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  background: rgba(10, 16, 28, 0.82);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 12px;
+  padding: 6px 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6), inset 0 0 12px rgba(239, 68, 68, 0.1);
+}
+.sf-ra-stat-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-family: ui-monospace, monospace;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+.sf-ra-stat-credits { color: #34d399; }
+.sf-ra-stat-power { color: #38bdf8; }
+.sf-ra-stat-power.low { color: #f87171; animation: sf-pulse-warn 1s infinite alternate; }
+
+@keyframes sf-pulse-warn {
+  0% { opacity: 0.6; text-shadow: 0 0 4px #ef4444; }
+  100% { opacity: 1; text-shadow: 0 0 12px #ef4444, 0 0 20px #ef4444; }
+}
+
+.sf-ra-sidebar {
+  position: absolute;
+  right: 14px;
+  top: calc(env(safe-area-inset-top, 0px) + 104px);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: rgba(8, 14, 26, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  backdrop-filter: blur(12px);
+  border-radius: 14px;
+  padding: 8px;
+  pointer-events: auto;
+  max-height: calc(100vh - 220px);
+  overflow-y: auto;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.7);
+  width: 146px;
+  scrollbar-width: none;
+}
+.sf-ra-sidebar::-webkit-scrollbar { display: none; }
+
+.sf-ra-tab-head {
+  font-size: 10px;
+  font-weight: 800;
+  color: #ef4444;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-top: 4px;
+  padding-bottom: 2px;
+  border-bottom: 1px solid rgba(239, 68, 68, 0.25);
+}
+
+.sf-ra-build-btn {
+  background: rgba(15, 23, 42, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  padding: 6px 8px;
+  color: #f1f5f9;
+  font-size: 10px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  transition: all 0.2s;
+  text-align: left;
+}
+.sf-ra-build-btn:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: rgba(239, 68, 68, 0.5);
+  transform: translateX(-2px);
+}
+.sf-ra-build-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  filter: grayscale(0.8);
+}
+.sf-ra-build-btn .title {
+  font-weight: 700;
+  color: #f8fafc;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.sf-ra-build-btn .cost {
+  color: #fbbf24;
+  font-size: 9px;
+  font-family: ui-monospace, monospace;
+}
+.sf-ra-build-btn .desc {
+  font-size: 8px;
+  color: #94a3b8;
+}
+
+.sf-ra-bottom-cmds {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  width: 100%;
+  pointer-events: none;
+  gap: 8px;
+}
+.sf-ra-cmd-cluster {
+  display: flex;
+  gap: 8px;
+  pointer-events: auto;
+  flex-wrap: wrap;
+}
+.sf-ra-tactical-btn {
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  backdrop-filter: blur(10px);
+  color: #f8fafc;
+  padding: 8px 14px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+  transition: all 0.2s;
+}
+.sf-ra-tactical-btn:hover {
+  background: rgba(56, 189, 248, 0.2);
+  border-color: #38bdf8;
+}
+.sf-ra-tactical-btn.superweapon {
+  border-color: rgba(251, 191, 36, 0.6);
+  background: linear-gradient(135deg, rgba(251, 191, 36, 0.15) 0%, rgba(245, 158, 11, 0.25) 100%);
+  color: #fef08a;
+  box-shadow: 0 0 16px rgba(251, 191, 36, 0.3);
+}
+.sf-ra-tactical-btn.superweapon.ready {
+  animation: sf-pulse-ion 1.2s infinite alternate;
+}
+@keyframes sf-pulse-ion {
+  0% { box-shadow: 0 0 12px rgba(251, 191, 36, 0.4); transform: scale(1); }
+  100% { box-shadow: 0 0 26px rgba(251, 191, 36, 0.9), 0 0 40px rgba(56, 189, 248, 0.6); transform: scale(1.04); }
+}
+
+/* =========================================================================
+ * 4. DYSON SPHERE PROGRAM HUD & STYLING (戴森球计划 · 星系巨构)
+ * ========================================================================= */
+#sf-dyson-overlay {
+  background: radial-gradient(circle at center, #060e20 0%, #01040a 100%);
+}
+#sf-dsp-hud {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 920;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: calc(env(safe-area-inset-top, 0px) + 54px) 14px calc(env(safe-area-inset-bottom, 0px) + 12px) 14px;
+  box-sizing: border-box;
+}
+.sf-dsp-telemetry {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  background: rgba(8, 18, 36, 0.82);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 14px;
+  padding: 8px 14px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.6), 0 0 16px rgba(245, 158, 11, 0.15);
+  pointer-events: auto;
+  max-width: min(340px, 85vw);
+}
+.sf-dsp-telemetry-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+  font-family: ui-monospace, monospace;
+}
+.sf-dsp-label { color: #94a3b8; }
+.sf-dsp-val { font-weight: 700; color: #f8fafc; }
+.sf-dsp-val.gold { color: #fbbf24; }
+.sf-dsp-val.cyan { color: #38bdf8; }
+.sf-dsp-val.matrix { color: #c084fc; font-weight: 800; text-shadow: 0 0 8px rgba(192, 132, 252, 0.6); }
+
+.sf-dsp-bar-wrap {
+  width: 100%;
+  height: 6px;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-top: 2px;
+}
+.sf-dsp-bar-fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, #f59e0b, #38bdf8);
+  box-shadow: 0 0 8px #f59e0b;
+  transition: width 0.3s;
+}
+
+.sf-dsp-actions-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  width: 100%;
+  pointer-events: none;
+  gap: 8px;
+}
+.sf-dsp-btn-cluster {
+  display: flex;
+  gap: 8px;
+  pointer-events: auto;
+  flex-wrap: wrap;
+}
+.sf-dsp-act-btn {
+  background: rgba(10, 20, 38, 0.85);
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  backdrop-filter: blur(10px);
+  color: #fef3c7;
+  padding: 8px 14px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+  transition: all 0.2s;
+}
+.sf-dsp-act-btn:hover {
+  background: rgba(245, 158, 11, 0.25);
+  border-color: #f59e0b;
+  transform: translateY(-1px);
+}
+.sf-dsp-act-btn:active {
+  transform: scale(0.95);
+}
+
+/* Modal for Tech Tree in Dyson */
+.sf-dsp-modal {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(8, 16, 32, 0.94);
+  border: 1.5px solid rgba(192, 132, 252, 0.5);
+  backdrop-filter: blur(18px);
+  border-radius: 16px;
+  padding: 16px 20px;
+  width: min(440px, 92vw);
+  max-height: 82vh;
+  overflow-y: auto;
+  z-index: 950;
+  display: none;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.8), 0 0 30px rgba(192, 132, 252, 0.25);
+  pointer-events: auto;
+}
+.sf-dsp-modal.active { display: flex; }
+.sf-dsp-modal-title {
+  font-size: 15px;
+  font-weight: 800;
+  color: #c084fc;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 8px;
+}
+.sf-dsp-tech-item {
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  padding: 10px 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+.sf-dsp-tech-info { display: flex; flex-direction: column; gap: 2px; }
+.sf-dsp-tech-name { font-size: 12px; font-weight: 700; color: #f8fafc; }
+.sf-dsp-tech-desc { font-size: 9.5px; color: #94a3b8; }
+.sf-dsp-tech-cost { font-size: 10px; color: #c084fc; font-weight: 700; font-family: ui-monospace, monospace; }
+
+.sf-exit-mode-btn {
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #94a3b8;
+  padding: 5px 10px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  pointer-events: auto;
+  transition: all 0.2s;
+}
+.sf-exit-mode-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #f1f5f9;
+}
 </style>
 
 <div id="sf-mode-bar">
@@ -19231,6 +19553,12 @@ canvas.sf-planet-canvas {
   </button>
   <button class="sf-mode-btn" id="sf-btn-mode-slingshot">
     <span>🪐</span> 引力弹弓太空鸟
+  </button>
+  <button class="sf-mode-btn" id="sf-btn-mode-redalert">
+    <span>⚡</span> 红色警戒 · 前哨RTS
+  </button>
+  <button class="sf-mode-btn" id="sf-btn-mode-dyson">
+    <span>☀️</span> 戴森球 · 星系工程
   </button>
 </div>
 
@@ -19267,66 +19595,282 @@ canvas.sf-planet-canvas {
           <span style="font-size:9px; color:#94a3b8;">SECURED VALUE</span>
           <span class="sf-sling-score-val" id="sf-ext-loot-val" style="color:#38bdf8;">0 ST</span>
         </div>
-        <button id="sf-ext-exit-btn" style="pointer-events:auto; padding:4px 10px; border-radius:8px; border:1px solid rgba(255,255,255,0.2); background:rgba(0,0,0,0.5); color:#94a3b8; font-size:10px; cursor:pointer;">退出战区 ✕</button>
+        <button class="sf-exit-mode-btn" id="sf-ext-exit-btn">退出战区 ✕</button>
       </div>
     </div>
 
     <div class="sf-ext-controls-bottom">
-      <div id="sf-ext-joystick-zone" style="width:120px; height:120px; pointer-events:auto; border-radius:50%; border:1px dashed rgba(255,255,255,0.15); display:flex; align-items:center; justify-content:center; color:rgba(255,255,255,0.25); font-size:10px;">
-        拖拽引航
+      <div class="sf-ext-radar" id="sf-ext-radar-box">
+        <canvas id="sf-ext-radar-canvas" width="90" height="90"></canvas>
       </div>
+
       <div class="sf-ext-btn-cluster">
-        <button class="sf-ext-act-btn" id="sf-ext-btn-loot" title="靠近残骸搜索 [E]">
-          <span>🔍</span>
-          <span style="font-size:8px;">搜索</span>
+        <button class="sf-ext-act-btn" id="sf-ext-btn-loot">
+          <span>📦</span>
+          <span class="sub">搜刮 [E]</span>
         </button>
-        <button class="sf-ext-act-btn" id="sf-ext-btn-boost" title="超载推进 [Shift]">
+        <button class="sf-ext-act-btn" id="sf-ext-btn-boost" style="border-color:#38bdf8;">
           <span>⚡</span>
-          <span style="font-size:8px;">推进</span>
+          <span class="sub">过载 [Shift]</span>
         </button>
-        <button class="sf-ext-act-btn fire" id="sf-ext-btn-fire" title="等离子机炮 [Space]">
-          <span>💥</span>
-          <span style="font-size:8px;">开火</span>
+        <button class="sf-ext-act-btn" id="sf-ext-btn-fire" style="border-color:#f43f5e; background:rgba(244,63,94,0.25);">
+          <span>🎯</span>
+          <span class="sub">开火 [Space]</span>
         </button>
       </div>
     </div>
   </div>
 </div>
 
-<!-- ================= 模式二：愤怒的小鸟太空版 (Orbital Slingshot) ================= -->
+<!-- ================= 模式二：引力弹弓太空鸟 (Angry Birds Space) ================= -->
 <div id="sf-slingshot-overlay" class="sf-expansion-overlay">
   <canvas id="sf-slingshot-canvas"></canvas>
   <div id="sf-sling-hud">
-    <div class="sf-sling-top-row">
+    <div class="sf-sling-top-bar">
       <div class="sf-sling-score-box">
-        <span style="font-size:9px; color:#94a3b8;">ORBITAL SCORE</span>
-        <span class="sf-sling-score-val" id="sf-sling-score-text">0</span>
+        <span style="font-size:9.5px; color:#94a3b8; font-weight:700;">STAGE PUZZLE</span>
+        <span class="sf-sling-score-val" id="sf-sling-stage-title">LEVEL 1 · 双子引力井</span>
       </div>
-      
-      <div style="display:flex; flex-direction:column; align-items:center; gap:2px;">
-        <span style="font-size:13px; font-weight:700; color:#f1f5f9; letter-spacing:0.12em;" id="sf-sling-level-name">SECTOR 1 · 单星引力弹弓</span>
-        <span style="font-size:9px; color:#38bdf8;">利用天体引力井弯曲弹道 击碎海盗核心</span>
+
+      <div class="sf-sling-roster" id="sf-sling-roster-box">
+        <!-- Bird Ammo Tokens -->
       </div>
 
       <div style="display:flex; align-items:center; gap:8px;">
-        <div class="sf-sling-roster" id="sf-sling-roster-box">
-          <!-- Roster tokens -->
+        <div class="sf-sling-score-box">
+          <span style="font-size:9.5px; color:#94a3b8; font-weight:700;">TARGETS</span>
+          <span class="sf-sling-score-val" id="sf-sling-target-count" style="color:#38bdf8;">2 / 2</span>
         </div>
-        <button id="sf-sling-reset-btn" style="pointer-events:auto; padding:5px 10px; border-radius:10px; border:1px solid rgba(255,255,255,0.2); background:rgba(0,0,0,0.5); color:#ffd700; font-size:11px; cursor:pointer;">重置 ↺</button>
-        <button id="sf-sling-exit-btn" style="pointer-events:auto; padding:5px 10px; border-radius:10px; border:1px solid rgba(255,255,255,0.2); background:rgba(0,0,0,0.5); color:#94a3b8; font-size:11px; cursor:pointer;">退出 ✕</button>
+        <button class="sf-exit-mode-btn" id="sf-sling-exit-btn">返回漫游 ✕</button>
       </div>
     </div>
 
-    <div class="sf-sling-bottom-hint">
-      ✦ 按住弹弓向后拖拽并松手发射 · 点击屏幕触发弹头次级机动 ✦
+    <div class="sf-sling-bottom-hint" id="sf-sling-hint">
+      🎯 按住左侧发射塔向后拖拽拉开引力弹弓，观察轨道微积分预测线后松手发射！
     </div>
   </div>
 </div>
 
-<script id="sf-expansion-engine-js">
+<!-- ================= 模式三：红色警戒 · 星际基地争霸 (Red Alert RTS) ================= -->
+<div id="sf-redalert-overlay" class="sf-expansion-overlay">
+  <canvas id="sf-redalert-canvas"></canvas>
+  <div id="sf-ra-hud">
+    <div class="sf-ra-top-bar">
+      <div class="sf-ra-stats-panel">
+        <div class="sf-ra-stat-item sf-ra-stat-credits">
+          <span>💰 矿石资金:</span>
+          <span id="sf-ra-credits-val">$3,000</span>
+        </div>
+        <div class="sf-ra-stat-item sf-ra-stat-power" id="sf-ra-power-box">
+          <span>⚡ 电网负荷:</span>
+          <span id="sf-ra-power-val">120 / 30 MW</span>
+        </div>
+        <div class="sf-ra-stat-item" style="color:#fbbf24;">
+          <span>🛰️ 离子炮超武:</span>
+          <span id="sf-ra-superweapon-timer">充电中 40s</span>
+        </div>
+        <div class="sf-ra-stat-item" style="color:#f87171;">
+          <span>⚠️ 敌军入侵波次:</span>
+          <span id="sf-ra-wave-val">Wave 1</span>
+        </div>
+      </div>
+
+      <button class="sf-exit-mode-btn" id="sf-ra-exit-btn">退出警戒 ✕</button>
+    </div>
+
+    <!-- RTS Build & Produce Sidebar -->
+    <div class="sf-ra-sidebar">
+      <div class="sf-ra-tab-head">基地建造 (BUILD)</div>
+      <button class="sf-ra-build-btn" id="sf-ra-btn-bld-power">
+        <div class="title"><span>聚变电厂</span> <span class="cost">$300</span></div>
+        <div class="desc">+120MW 电力输出</div>
+      </button>
+      <button class="sf-ra-build-btn" id="sf-ra-btn-bld-refinery">
+        <div class="title"><span>矿石精炼厂</span> <span class="cost">$800</span></div>
+        <div class="desc">配发1艘采矿飞船 -30MW</div>
+      </button>
+      <button class="sf-ra-build-btn" id="sf-ra-btn-bld-shipyard">
+        <div class="title"><span>战舰重工船坞</span> <span class="cost">$1000</span></div>
+        <div class="desc">解锁主力战舰建造 -40MW</div>
+      </button>
+      <button class="sf-ra-build-btn" id="sf-ra-btn-bld-tesla">
+        <div class="title"><span>磁暴线圈</span> <span class="cost">$600</span></div>
+        <div class="desc">超高压电弧防御 -50MW</div>
+      </button>
+      <button class="sf-ra-build-btn" id="sf-ra-btn-bld-prism">
+        <div class="title"><span>光棱折射塔</span> <span class="cost">$750</span></div>
+        <div class="desc">棱镜聚焦增幅光束 -40MW</div>
+      </button>
+      <button class="sf-ra-build-btn" id="sf-ra-btn-bld-ion">
+        <div class="title"><span>轨道离子中继</span> <span class="cost">$1500</span></div>
+        <div class="desc">解锁轨道毁灭打击 -60MW</div>
+      </button>
+
+      <div class="sf-ra-tab-head" style="color:#38bdf8; border-color:rgba(56,189,248,0.25);">舰队生产 (SHIPS)</div>
+      <button class="sf-ra-build-btn" id="sf-ra-btn-unit-fighter">
+        <div class="title"><span>轻型护航战机</span> <span class="cost">$200</span></div>
+        <div class="desc">高速双联脉冲截击</div>
+      </button>
+      <button class="sf-ra-build-btn" id="sf-ra-btn-unit-cruiser">
+        <div class="title"><span>巡洋护卫舰</span> <span class="cost">$550</span></div>
+        <div class="desc">远程追踪光子鱼雷</div>
+      </button>
+      <button class="sf-ra-build-btn" id="sf-ra-btn-unit-dreadnought">
+        <div class="title"><span>天启重型无畏舰</span> <span class="cost">$1200</span></div>
+        <div class="desc">重甲双联重型电浆炮</div>
+      </button>
+      <button class="sf-ra-build-btn" id="sf-ra-btn-unit-harvester">
+        <div class="title"><span>增配采矿舰</span> <span class="cost">$400</span></div>
+        <div class="desc">自动化小行星采矿</div>
+      </button>
+    </div>
+
+    <!-- RTS Bottom Command Bar -->
+    <div class="sf-ra-bottom-cmds">
+      <div class="sf-ra-cmd-cluster">
+        <button class="sf-ra-tactical-btn" id="sf-ra-btn-select-all">
+          <span>🎯</span> 全选舰队
+        </button>
+        <button class="sf-ra-tactical-btn" id="sf-ra-btn-defend">
+          <span>🛡️</span> 驻守基地
+        </button>
+        <button class="sf-ra-tactical-btn" id="sf-ra-btn-assault">
+          <span>⚔️</span> 全军出击
+        </button>
+        <button class="sf-ra-tactical-btn superweapon" id="sf-ra-btn-ion-strike">
+          <span>🛰️</span> 轨道离子炮打击
+        </button>
+        <button class="sf-ra-tactical-btn" id="sf-ra-btn-spawn-wave" style="border-color:#f43f5e;">
+          <span>💀</span> 召唤来袭敌波
+        </button>
+      </div>
+
+      <div style="font-size:10px; color:#94a3b8; background:rgba(10,16,28,0.8); padding:5px 10px; border-radius:8px;">
+        🖱️ 左键框选/点击选择战舰 | 右键/轻触地面移动或攻击敌军
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= 模式四：戴森球计划 · 星系工程 (Dyson Sphere Program) ================= -->
+<div id="sf-dyson-overlay" class="sf-expansion-overlay">
+  <canvas id="sf-dyson-canvas"></canvas>
+  <div id="sf-dsp-hud">
+    <div style="display:flex; justify-content:space-between; align-items:flex-start; width:100%;">
+      <!-- Telemetry Box -->
+      <div class="sf-dsp-telemetry">
+        <div class="sf-dsp-telemetry-row">
+          <span class="sf-dsp-label">🌟 中央母星光度:</span>
+          <span class="sf-dsp-val gold" id="sf-dsp-val-lum">2.14 L☉ (O型耀星)</span>
+        </div>
+        <div class="sf-dsp-telemetry-row">
+          <span class="sf-dsp-label">🛰️ 戴森云在轨太阳帆:</span>
+          <span class="sf-dsp-val cyan" id="sf-dsp-val-sails">0 帆 (0 MW)</span>
+        </div>
+        <div class="sf-dsp-telemetry-row">
+          <span class="sf-dsp-label">🌐 戴森球壳骨架节点:</span>
+          <span class="sf-dsp-val" id="sf-dsp-val-nodes">8 / 32 节点 (25%)</span>
+        </div>
+        <div class="sf-dsp-bar-wrap">
+          <div class="sf-dsp-bar-fill" id="sf-dsp-node-progress-fill" style="width:25%;"></div>
+        </div>
+        <div class="sf-dsp-telemetry-row" style="margin-top:3px;">
+          <span class="sf-dsp-label">⚡ 恒星总汲取功率:</span>
+          <span class="sf-dsp-val gold" id="sf-dsp-val-total-gw">1.82 GW</span>
+        </div>
+        <div class="sf-dsp-telemetry-row">
+          <span class="sf-dsp-label">🧊 宇宙科技矩阵 (白糖):</span>
+          <span class="sf-dsp-val matrix" id="sf-dsp-val-matrix">150 矩阵</span>
+        </div>
+      </div>
+
+      <button class="sf-exit-mode-btn" id="sf-dsp-exit-btn">退出工程 ✕</button>
+    </div>
+
+    <!-- Bottom Actions -->
+    <div class="sf-dsp-actions-bottom">
+      <div class="sf-dsp-btn-cluster">
+        <button class="sf-dsp-act-btn" id="sf-dsp-btn-launch-sail">
+          <span>⚡</span> 电磁弹射太阳帆
+        </button>
+        <button class="sf-dsp-act-btn" id="sf-dsp-btn-launch-rocket">
+          <span>🚀</span> 垂直发射运载火箭
+        </button>
+        <button class="sf-dsp-act-btn" id="sf-dsp-btn-tech-modal" style="border-color:#c084fc; color:#f3e8ff;">
+          <span>🔬</span> 宇宙矩阵科技树
+        </button>
+        <button class="sf-dsp-act-btn" id="sf-dsp-btn-cam-view">
+          <span>🪐</span> 视角切换
+        </button>
+      </div>
+
+      <div style="font-size:10px; color:#94a3b8; background:rgba(8,18,36,0.8); padding:5px 10px; border-radius:8px;">
+        🌌 拖拽三维旋转星系 | 滚轮/双指捏合缩放观察传送带与戴森球
+      </div>
+    </div>
+  </div>
+
+  <!-- Tech Tree Modal -->
+  <div class="sf-dsp-modal" id="sf-dsp-tech-modal">
+    <div class="sf-dsp-modal-title">
+      <span>🔬 宇宙科技矩阵研发中心 (UNIVERSE MATRIX TECH)</span>
+      <button class="sf-exit-mode-btn" id="sf-dsp-close-tech-btn">关闭 ✕</button>
+    </div>
+    
+    <div class="sf-dsp-tech-item">
+      <div class="sf-dsp-tech-info">
+        <div class="sf-dsp-tech-name">⚡ 电磁弹射超频发射 (EM Rail Overdrive)</div>
+        <div class="sf-dsp-tech-desc">每次弹射发射 3 枚太阳帆入轨，提升戴森云组装速率</div>
+        <div class="sf-dsp-tech-cost">消耗: 100 宇宙矩阵 | 当前: <span id="sf-dsp-tech-lvl-em">Lv.0</span></div>
+      </div>
+      <button class="sf-dsp-act-btn" id="sf-dsp-btn-upgrade-em">升级</button>
+    </div>
+
+    <div class="sf-dsp-tech-item">
+      <div class="sf-dsp-tech-info">
+        <div class="sf-dsp-tech-name">🛡️ 太阳帆光子寿命锁定 (Sail Longevity Field)</div>
+        <div class="sf-dsp-tech-desc">在轨太阳帆衰变寿命延长 +150%，维持巨型戴森云能量场</div>
+        <div class="sf-dsp-tech-cost">消耗: 150 宇宙矩阵 | 当前: <span id="sf-dsp-tech-lvl-sail">Lv.0</span></div>
+      </div>
+      <button class="sf-dsp-act-btn" id="sf-dsp-btn-upgrade-sail">升级</button>
+    </div>
+
+    <div class="sf-dsp-tech-item">
+      <div class="sf-dsp-tech-info">
+        <div class="sf-dsp-tech-name">🚀 重型火箭发射矩阵 (Heavy Carrier Silos)</div>
+        <div class="sf-dsp-tech-desc">运载火箭单次组装双倍骨架节点与结构应力应变网</div>
+        <div class="sf-dsp-tech-cost">消耗: 250 宇宙矩阵 | 当前: <span id="sf-dsp-tech-lvl-rocket">Lv.0</span></div>
+      </div>
+      <button class="sf-dsp-act-btn" id="sf-dsp-btn-upgrade-rocket">升级</button>
+    </div>
+
+    <div class="sf-dsp-tech-item">
+      <div class="sf-dsp-tech-info">
+        <div class="sf-dsp-tech-name">📡 引力透镜聚焦吸收 (Graviton Lens Induction)</div>
+        <div class="sf-dsp-tech-desc">地面射线接收站汲取效率提升 2.5 倍，翻倍白糖合成速率</div>
+        <div class="sf-dsp-tech-cost">消耗: 350 宇宙矩阵 | 当前: <span id="sf-dsp-tech-lvl-lens">Lv.0</span></div>
+      </div>
+      <button class="sf-dsp-act-btn" id="sf-dsp-btn-upgrade-lens">升级</button>
+    </div>
+
+    <div class="sf-dsp-tech-item">
+      <div class="sf-dsp-tech-info">
+        <div class="sf-dsp-tech-name">🌐 第二重同心戴森球壳 (Concentric Dyson Sphere)</div>
+        <div class="sf-dsp-tech-desc">解锁外层第二重高能网格壳体，恒星汲取总功率极限提升至 20 GW</div>
+        <div class="sf-dsp-tech-cost">消耗: 500 宇宙矩阵 | 当前: <span id="sf-dsp-tech-lvl-shell">未解锁</span></div>
+      </div>
+      <button class="sf-dsp-act-btn" id="sf-dsp-btn-upgrade-shell">研发解锁</button>
+    </div>
+  </div>
+</div>
+
+
+<script id="sf-expansion-modes-js">
 (function() {
+  "use strict";
+
   /* =========================================================================
-   * 1. MODE MANAGER & AUDIO SYNTHESIZER
+   * 0. AUDIO SYNTHESIZER FOR EXPANSION MODES (Web Audio API)
    * ========================================================================= */
   const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   function playTone(freq, duration, type = 'sine', gainVal = 0.15) {
@@ -19360,10 +19904,10 @@ canvas.sf-planet-canvas {
       whiteNoise.buffer = buffer;
       const filter = audioCtx.createBiquadFilter();
       filter.type = 'lowpass';
-      filter.frequency.setValueAtTime(450, audioCtx.currentTime);
-      filter.frequency.exponentialRampToValueAtTime(40, audioCtx.currentTime + 0.4);
+      filter.frequency.setValueAtTime(400, audioCtx.currentTime);
+      filter.frequency.exponentialRampToValueAtTime(50, audioCtx.currentTime + 0.4);
       const gain = audioCtx.createGain();
-      gain.gain.setValueAtTime(0.35, audioCtx.currentTime);
+      gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
       gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.4);
       whiteNoise.connect(filter);
       filter.connect(gain);
@@ -19372,46 +19916,230 @@ canvas.sf-planet-canvas {
     } catch(e) {}
   }
 
-  let currentMode = 'cruise'; // 'cruise' | 'extract' | 'slingshot'
+  class SpaceAudioSynth {
+    constructor() {
+      this.ctx = null;
+    }
+    init() {
+      if (!this.ctx) {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (AudioContext) {
+          this.ctx = new AudioContext();
+        }
+      }
+      if (this.ctx && this.ctx.state === 'suspended') {
+        this.ctx.resume().catch(() => {});
+      }
+    }
+    playLaser() {
+      try {
+        this.init();
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(880, now);
+        osc.frequency.exponentialRampToValueAtTime(110, now + 0.12);
+        gain.gain.setValueAtTime(0.08, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.12);
+      } catch(e) {}
+    }
+    playTeslaZap() {
+      try {
+        this.init();
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(180, now);
+        osc.frequency.linearRampToValueAtTime(1200, now + 0.04);
+        osc.frequency.linearRampToValueAtTime(60, now + 0.16);
+        gain.gain.setValueAtTime(0.12, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.16);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.16);
+      } catch(e) {}
+    }
+    playExplosion() {
+      try {
+        this.init();
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(150, now);
+        osc.frequency.exponentialRampToValueAtTime(30, now + 0.35);
+        gain.gain.setValueAtTime(0.15, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.35);
+      } catch(e) {}
+    }
+    playCredit() {
+      try {
+        this.init();
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        [523.25, 659.25, 783.99, 1046.50].forEach((freq, i) => {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.value = freq;
+          gain.gain.setValueAtTime(0.05, now + i * 0.04);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.04 + 0.15);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now + i * 0.04);
+          osc.stop(now + i * 0.04 + 0.15);
+        });
+      } catch(e) {}
+    }
+    playRocketLaunch() {
+      try {
+        this.init();
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(60, now);
+        osc.frequency.exponentialRampToValueAtTime(340, now + 0.4);
+        gain.gain.setValueAtTime(0.1, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.45);
+      } catch(e) {}
+    }
+    playSailLaunch() {
+      try {
+        this.init();
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(440, now);
+        osc.frequency.exponentialRampToValueAtTime(1760, now + 0.25);
+        gain.gain.setValueAtTime(0.08, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.25);
+      } catch(e) {}
+    }
+    playIonCannon() {
+      try {
+        this.init();
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        const osc1 = this.ctx.createOscillator();
+        const gain1 = this.ctx.createGain();
+        osc1.type = 'sine';
+        osc1.frequency.setValueAtTime(320, now);
+        osc1.frequency.exponentialRampToValueAtTime(2600, now + 0.7);
+        gain1.gain.setValueAtTime(0.15, now);
+        gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.75);
+        osc1.connect(gain1);
+        gain1.connect(this.ctx.destination);
+        osc1.start(now);
+        osc1.stop(now + 0.75);
 
+        const osc2 = this.ctx.createOscillator();
+        const gain2 = this.ctx.createGain();
+        osc2.type = 'sawtooth';
+        osc2.frequency.setValueAtTime(100, now + 0.7);
+        osc2.frequency.exponentialRampToValueAtTime(25, now + 1.6);
+        gain2.gain.setValueAtTime(0.28, now + 0.7);
+        gain2.gain.exponentialRampToValueAtTime(0.001, now + 1.7);
+        osc2.connect(gain2);
+        gain2.connect(this.ctx.destination);
+        osc2.start(now + 0.7);
+        osc2.stop(now + 1.7);
+      } catch(e) {}
+    }
+  }
+  const spaceAudio = new SpaceAudioSynth();
+
+  /* =========================================================================
+   * 1. MASTER MODE SWITCHER
+   * ========================================================================= */
   const btnCruise = document.getElementById('sf-btn-mode-cruise');
   const btnExtract = document.getElementById('sf-btn-mode-extract');
   const btnSling = document.getElementById('sf-btn-mode-slingshot');
+  const btnRedAlert = document.getElementById('sf-btn-mode-redalert');
+  const btnDyson = document.getElementById('sf-btn-mode-dyson');
+
   const overlayExtract = document.getElementById('sf-extraction-overlay');
   const overlaySling = document.getElementById('sf-slingshot-overlay');
+  const overlayRedAlert = document.getElementById('sf-redalert-overlay');
+  const overlayDyson = document.getElementById('sf-dyson-overlay');
+
+  let currentMode = 'cruise';
 
   function switchMode(newMode) {
     if (currentMode === newMode) return;
     currentMode = newMode;
-    [btnCruise, btnExtract, btnSling].forEach(b => b && b.classList.remove('active'));
-    overlayExtract.classList.remove('active');
-    overlaySling.classList.remove('active');
+    [btnCruise, btnExtract, btnSling, btnRedAlert, btnDyson].forEach(b => b && b.classList.remove('active'));
+    [overlayExtract, overlaySling, overlayRedAlert, overlayDyson].forEach(o => o && o.classList.remove('active'));
+
+    // Stop all active engines
+    if (window.VoidExtraction) window.VoidExtraction.stop();
+    if (window.OrbitalSlingshot) window.OrbitalSlingshot.stop();
+    if (window.RedAlertRTS) window.RedAlertRTS.stop();
+    if (window.DysonSphereProgram) window.DysonSphereProgram.stop();
 
     if (newMode === 'cruise') {
       btnCruise.classList.add('active');
-      if (window.VoidExtraction) window.VoidExtraction.stop();
-      if (window.OrbitalSlingshot) window.OrbitalSlingshot.stop();
       if (typeof showToast === 'function') showToast('已切回深空自由漫游心流 🌌', 2);
     } else if (newMode === 'extract') {
       btnExtract.classList.add('active');
       overlayExtract.classList.add('active');
-      if (window.OrbitalSlingshot) window.OrbitalSlingshot.stop();
       if (window.VoidExtraction) window.VoidExtraction.start();
       if (typeof showToast === 'function') showToast('已部署至【搜打撤 · 鸭科夫战区】！搜索高维物资并成功撤离！', 3.5);
     } else if (newMode === 'slingshot') {
       btnSling.classList.add('active');
       overlaySling.classList.add('active');
-      if (window.VoidExtraction) window.VoidExtraction.stop();
       if (window.OrbitalSlingshot) window.OrbitalSlingshot.start();
       if (typeof showToast === 'function') showToast('已进入【愤怒的小鸟太空版 · 轨道引力弹弓】！拉伸弹弓发射！', 3.5);
+    } else if (newMode === 'redalert') {
+      btnRedAlert.classList.add('active');
+      overlayRedAlert.classList.add('active');
+      if (window.RedAlertRTS) window.RedAlertRTS.start();
+      if (typeof showToast === 'function') showToast('已启动【红色警戒 · 星际前哨RTS】！采矿精炼、建造磁暴与天启战舰！', 3.5);
+    } else if (newMode === 'dyson') {
+      btnDyson.classList.add('active');
+      overlayDyson.classList.add('active');
+      if (window.DysonSphereProgram) window.DysonSphereProgram.start();
+      if (typeof showToast === 'function') showToast('已开启【戴森球计划 · 星系巨构】！电磁弹射太阳帆，运载火箭筑造戴森球！', 3.5);
     }
   }
 
-  btnCruise.addEventListener('click', () => switchMode('cruise'));
-  btnExtract.addEventListener('click', () => switchMode('extract'));
-  btnSling.addEventListener('click', () => switchMode('slingshot'));
+  btnCruise?.addEventListener('click', () => switchMode('cruise'));
+  btnExtract?.addEventListener('click', () => switchMode('extract'));
+  btnSling?.addEventListener('click', () => switchMode('slingshot'));
+  btnRedAlert?.addEventListener('click', () => switchMode('redalert'));
+  btnDyson?.addEventListener('click', () => switchMode('dyson'));
+
   document.getElementById('sf-ext-exit-btn')?.addEventListener('click', () => switchMode('cruise'));
   document.getElementById('sf-sling-exit-btn')?.addEventListener('click', () => switchMode('cruise'));
+  document.getElementById('sf-ra-exit-btn')?.addEventListener('click', () => switchMode('cruise'));
+  document.getElementById('sf-dsp-exit-btn')?.addEventListener('click', () => switchMode('cruise'));
+
+  window.switchStarfieldMode = switchMode;
 
   /* =========================================================================
    * 2. VOID EXTRACTION ENGINE (搜打撤 / Escape from Duckov in Space)
@@ -20176,7 +20904,7 @@ canvas.sf-planet-canvas {
   window.VoidExtraction = new VoidExtractionGame();
 
   /* =========================================================================
-   * 3. ORBITAL SLINGSHOT ENGINE (愤怒的小鸟太空版 / Gravitational Slingshot)
+   * 3. ORBITAL SLINGSHOT ENGINE (引力弹弓太空鸟 / Angry Birds Space)
    * ========================================================================= */
   class OrbitalSlingshotGame {
     constructor() {
@@ -20713,6 +21441,1591 @@ canvas.sf-planet-canvas {
   }
 
   window.OrbitalSlingshot = new OrbitalSlingshotGame();
+
+  /* =========================================================================
+   * 4. RED ALERT RTS ENGINE (红色警戒 · 星际基地争霸)
+   * ========================================================================= */
+  class RedAlertRTSGame {
+    constructor() {
+      this.canvas = document.getElementById('sf-redalert-canvas');
+      this.ctx = this.canvas.getContext('2d');
+      this.active = false;
+      this.animId = null;
+
+      this.worldWidth = 2400;
+      this.worldHeight = 1600;
+      this.camera = { x: 200, y: 400, zoom: 0.9 };
+
+      this.credits = 3000;
+      this.powerGen = 160;
+      this.powerReq = 30;
+      this.isLowPower = false;
+
+      this.ionCannon = {
+        unlocked: false,
+        timer: 40,
+        maxTimer: 40,
+        ready: false,
+        targeting: false
+      };
+
+      this.wave = 1;
+      this.waveTimer = 35;
+
+      this.buildings = [];
+      this.units = [];
+      this.harvesters = [];
+      this.enemies = [];
+      this.oreFields = [];
+      this.bullets = [];
+      this.particles = [];
+      this.orbitalStrikes = [];
+
+      this.selectedUnits = [];
+      this.dragSelect = { active: false, startX: 0, startY: 0, curX: 0, curY: 0 };
+      this.isPanning = false;
+      this.panStart = { x: 0, y: 0, camX: 0, camY: 0 };
+      this.shake = 0;
+
+      this.bindEvents();
+    }
+
+    start() {
+      this.resize();
+      this.resetGame();
+      this.active = true;
+      this.lastTime = performance.now();
+      this.animId = requestAnimationFrame((t) => this.loop(t));
+    }
+
+    stop() {
+      this.active = false;
+      if (this.animId) cancelAnimationFrame(this.animId);
+    }
+
+    resize() {
+      this.canvas.width = window.innerWidth;
+      this.canvas.height = window.innerHeight;
+    }
+
+    resetGame() {
+      this.credits = 3000;
+      this.buildings = [
+        { id: 1, type: 'hq', name: '基地指挥所', x: 450, y: 800, w: 90, h: 90, hp: 2500, maxHp: 2500, powerGen: 40, powerReq: 0, color: '#38bdf8' },
+        { id: 2, type: 'power', name: '聚变电厂', x: 340, y: 680, w: 70, h: 70, hp: 800, maxHp: 800, powerGen: 120, powerReq: 0, color: '#f59e0b' },
+        { id: 3, type: 'refinery', name: '矿石精炼厂', x: 580, y: 690, w: 85, h: 85, hp: 1000, maxHp: 1000, powerGen: 0, powerReq: 30, color: '#10b981' }
+      ];
+
+      this.oreFields = [
+        { x: 920, y: 480, radius: 110, ore: 6000, color: '#34d399' },
+        { x: 1050, y: 1100, radius: 130, ore: 8000, color: '#38bdf8' },
+        { x: 1450, y: 780, radius: 150, ore: 12000, color: '#a78bfa' }
+      ];
+
+      this.harvesters = [
+        {
+          id: 1, x: 580, y: 690, vx: 0, vy: 0, angle: 0,
+          state: 'to_ore', cargo: 0, maxCargo: 1000,
+          hp: 600, maxHp: 600, speed: 2.2, targetOre: this.oreFields[0]
+        }
+      ];
+
+      this.units = [
+        { id: 101, type: 'fighter', x: 600, y: 860, vx: 0, vy: 0, angle: 0, hp: 140, maxHp: 140, speed: 3.5, range: 180, dmg: 14, reload: 0, maxReload: 0.35, selected: false },
+        { id: 102, type: 'fighter', x: 600, y: 920, vx: 0, vy: 0, angle: 0, hp: 140, maxHp: 140, speed: 3.5, range: 180, dmg: 14, reload: 0, maxReload: 0.35, selected: false }
+      ];
+
+      this.enemies = [
+        { id: 501, type: 'scout', x: 2100, y: 760, vx: 0, vy: 0, angle: Math.PI, hp: 120, maxHp: 120, speed: 2.8, range: 160, dmg: 10, reload: 0, maxReload: 0.4 },
+        { id: 502, type: 'scout', x: 2100, y: 840, vx: 0, vy: 0, angle: Math.PI, hp: 120, maxHp: 120, speed: 2.8, range: 160, dmg: 10, reload: 0, maxReload: 0.4 }
+      ];
+
+      this.bullets = [];
+      this.particles = [];
+      this.orbitalStrikes = [];
+      this.selectedUnits = [];
+      this.wave = 1;
+      this.waveTimer = 35;
+      this.ionCannon.timer = 40;
+      this.ionCannon.ready = false;
+      this.ionCannon.targeting = false;
+
+      this.updatePowerGrid();
+      this.updateHUD();
+    }
+
+    bindEvents() {
+      window.addEventListener('resize', () => { if (this.active) this.resize(); });
+
+      // Sidebar Building Buttons
+      document.getElementById('sf-ra-btn-bld-power')?.addEventListener('click', () => this.buildBuilding('power', 300));
+      document.getElementById('sf-ra-btn-bld-refinery')?.addEventListener('click', () => this.buildBuilding('refinery', 800));
+      document.getElementById('sf-ra-btn-bld-shipyard')?.addEventListener('click', () => this.buildBuilding('shipyard', 1000));
+      document.getElementById('sf-ra-btn-bld-tesla')?.addEventListener('click', () => this.buildBuilding('tesla', 600));
+      document.getElementById('sf-ra-btn-bld-prism')?.addEventListener('click', () => this.buildBuilding('prism', 750));
+      document.getElementById('sf-ra-btn-bld-ion')?.addEventListener('click', () => this.buildBuilding('ion', 1500));
+
+      // Sidebar Unit Buttons
+      document.getElementById('sf-ra-btn-unit-fighter')?.addEventListener('click', () => this.produceUnit('fighter', 200));
+      document.getElementById('sf-ra-btn-unit-cruiser')?.addEventListener('click', () => this.produceUnit('cruiser', 550));
+      document.getElementById('sf-ra-btn-unit-dreadnought')?.addEventListener('click', () => this.produceUnit('dreadnought', 1200));
+      document.getElementById('sf-ra-btn-unit-harvester')?.addEventListener('click', () => this.produceUnit('harvester', 400));
+
+      // Tactical Command Buttons
+      document.getElementById('sf-ra-btn-select-all')?.addEventListener('click', () => this.selectAllCombatUnits());
+      document.getElementById('sf-ra-btn-defend')?.addEventListener('click', () => this.commandDefendHQ());
+      document.getElementById('sf-ra-btn-assault')?.addEventListener('click', () => this.commandAssaultRift());
+      document.getElementById('sf-ra-btn-ion-strike')?.addEventListener('click', () => this.armIonCannon());
+      document.getElementById('sf-ra-btn-spawn-wave')?.addEventListener('click', () => this.spawnWave());
+
+      // Canvas Pointer Events
+      const c = this.canvas;
+      const getPos = (e) => {
+        const rect = c.getBoundingClientRect();
+        return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+      };
+
+      c.addEventListener('mousedown', (e) => {
+        if (!this.active) return;
+        const p = getPos(e);
+
+        if (this.ionCannon.targeting) {
+          // Fire Ion Cannon Strike
+          const wx = (p.x / this.camera.zoom) + this.camera.x;
+          const wy = (p.y / this.camera.zoom) + this.camera.y;
+          this.executeIonCannonStrike(wx, wy);
+          return;
+        }
+
+        if (e.button === 0) {
+          // Left Click: Drag select or select
+          this.dragSelect.active = true;
+          this.dragSelect.startX = p.x;
+          this.dragSelect.startY = p.y;
+          this.dragSelect.curX = p.x;
+          this.dragSelect.curY = p.y;
+        } else if (e.button === 2) {
+          // Right Click: Move or Attack Order
+          const wx = (p.x / this.camera.zoom) + this.camera.x;
+          const wy = (p.y / this.camera.zoom) + this.camera.y;
+          this.issueOrder(wx, wy);
+        }
+      });
+
+      window.addEventListener('mousemove', (e) => {
+        if (!this.active) return;
+        const p = getPos(e);
+        if (this.dragSelect.active) {
+          this.dragSelect.curX = p.x;
+          this.dragSelect.curY = p.y;
+        }
+        if (this.isPanning) {
+          const dx = (p.x - this.panStart.x) / this.camera.zoom;
+          const dy = (p.y - this.panStart.y) / this.camera.zoom;
+          this.camera.x = this.panStart.camX - dx;
+          this.camera.y = this.panStart.camY - dy;
+        }
+      });
+
+      window.addEventListener('mouseup', (e) => {
+        if (!this.active) return;
+        if (e.button === 0 && this.dragSelect.active) {
+          this.dragSelect.active = false;
+          this.applyBoxSelection();
+        }
+        this.isPanning = false;
+      });
+
+      c.addEventListener('contextmenu', (e) => e.preventDefault());
+
+      // Touch Events for Mobile
+      let touchStartDist = 0;
+      c.addEventListener('touchstart', (e) => {
+        if (!this.active) return;
+        if (e.touches.length === 1) {
+          const t = e.touches[0];
+          const p = getPos(t);
+          if (this.ionCannon.targeting) {
+            const wx = (p.x / this.camera.zoom) + this.camera.x;
+            const wy = (p.y / this.camera.zoom) + this.camera.y;
+            this.executeIonCannonStrike(wx, wy);
+            return;
+          }
+          if (this.selectedUnits.length > 0) {
+            // Touch order if units selected
+            const wx = (p.x / this.camera.zoom) + this.camera.x;
+            const wy = (p.y / this.camera.zoom) + this.camera.y;
+            this.issueOrder(wx, wy);
+          } else {
+            // Drag select
+            this.dragSelect.active = true;
+            this.dragSelect.startX = p.x;
+            this.dragSelect.startY = p.y;
+            this.dragSelect.curX = p.x;
+            this.dragSelect.curY = p.y;
+          }
+        } else if (e.touches.length === 2) {
+          // Two-finger pan & pinch
+          this.dragSelect.active = false;
+          const t1 = e.touches[0], t2 = e.touches[1];
+          touchStartDist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+          this.panStart.x = (t1.clientX + t2.clientX) / 2;
+          this.panStart.y = (t1.clientY + t2.clientY) / 2;
+          this.panStart.camX = this.camera.x;
+          this.panStart.camY = this.camera.y;
+        }
+      }, { passive: false });
+
+      c.addEventListener('touchmove', (e) => {
+        if (!this.active) return;
+        if (e.touches.length === 1 && this.dragSelect.active) {
+          const p = getPos(e.touches[0]);
+          this.dragSelect.curX = p.x;
+          this.dragSelect.curY = p.y;
+        } else if (e.touches.length === 2) {
+          const t1 = e.touches[0], t2 = e.touches[1];
+          const midX = (t1.clientX + t2.clientX) / 2;
+          const midY = (t1.clientY + t2.clientY) / 2;
+          const dx = (midX - this.panStart.x) / this.camera.zoom;
+          const dy = (midY - this.panStart.y) / this.camera.zoom;
+          this.camera.x = this.panStart.camX - dx;
+          this.camera.y = this.panStart.camY - dy;
+
+          const dist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+          if (touchStartDist > 0) {
+            this.camera.zoom = Math.max(0.5, Math.min(1.8, this.camera.zoom * (dist / touchStartDist)));
+            touchStartDist = dist;
+          }
+        }
+      }, { passive: false });
+
+      c.addEventListener('touchend', (e) => {
+        if (!this.active) return;
+        if (this.dragSelect.active) {
+          this.dragSelect.active = false;
+          this.applyBoxSelection();
+        }
+      });
+
+      // Mouse Wheel Zoom
+      c.addEventListener('wheel', (e) => {
+        if (!this.active) return;
+        e.preventDefault();
+        const factor = e.deltaY < 0 ? 1.1 : 0.9;
+        this.camera.zoom = Math.max(0.5, Math.min(1.8, this.camera.zoom * factor));
+      }, { passive: false });
+    }
+
+    buildBuilding(type, cost) {
+      if (this.credits < cost) {
+        if (typeof showToast === 'function') showToast('资金不足！需要 $' + cost, 2);
+        return;
+      }
+      this.credits -= cost;
+      spaceAudio.playCredit();
+
+      const baseHQ = this.buildings.find(b => b.type === 'hq') || { x: 450, y: 800 };
+      const angle = Math.random() * Math.PI * 2;
+      const dist = 120 + Math.random() * 140;
+      const bx = baseHQ.x + Math.cos(angle) * dist;
+      const by = baseHQ.y + Math.sin(angle) * dist;
+
+      const newB = {
+        id: Date.now() + Math.floor(Math.random() * 1000),
+        type: type,
+        name: type === 'power' ? '聚变电厂' : (type === 'refinery' ? '精炼厂' : (type === 'tesla' ? '磁暴线圈' : (type === 'prism' ? '光棱塔' : (type === 'shipyard' ? '船坞' : '轨道中继')))),
+        x: bx, y: by,
+        w: type === 'tesla' || type === 'prism' ? 60 : 75,
+        h: type === 'tesla' || type === 'prism' ? 60 : 75,
+        hp: type === 'tesla' || type === 'prism' ? 850 : 1000,
+        maxHp: type === 'tesla' || type === 'prism' ? 850 : 1000,
+        powerGen: type === 'power' ? 120 : 0,
+        powerReq: type === 'power' ? 0 : (type === 'tesla' ? 50 : (type === 'prism' ? 40 : (type === 'shipyard' ? 40 : (type === 'refinery' ? 30 : 60)))),
+        color: type === 'tesla' ? '#a855f7' : (type === 'prism' ? '#06b6d4' : (type === 'power' ? '#f59e0b' : '#38bdf8')),
+        cooldown: 0
+      };
+
+      this.buildings.push(newB);
+      if (type === 'refinery') {
+        this.harvesters.push({
+          id: Date.now(), x: bx, y: by, vx: 0, vy: 0, angle: 0,
+          state: 'to_ore', cargo: 0, maxCargo: 1000,
+          hp: 600, maxHp: 600, speed: 2.2, targetOre: this.oreFields[0]
+        });
+      }
+      if (type === 'ion') {
+        this.ionCannon.unlocked = true;
+      }
+
+      this.updatePowerGrid();
+      this.updateHUD();
+      if (typeof showToast === 'function') showToast(`【${newB.name}】部署成功！`, 2);
+    }
+
+    produceUnit(type, cost) {
+      const hasShipyard = this.buildings.some(b => b.type === 'shipyard' && b.hp > 0);
+      if (type !== 'harvester' && !hasShipyard) {
+        if (typeof showToast === 'function') showToast('请先建造【战舰重工船坞】以制造主力战舰！', 2.5);
+        return;
+      }
+      if (this.credits < cost) {
+        if (typeof showToast === 'function') showToast('资金不足！需要 $' + cost, 2);
+        return;
+      }
+      this.credits -= cost;
+      spaceAudio.playCredit();
+
+      const spawnBase = this.buildings.find(b => b.type === 'shipyard') || this.buildings[0];
+      const sx = spawnBase.x + 60;
+      const sy = spawnBase.y + (Math.random() * 60 - 30);
+
+      if (type === 'harvester') {
+        this.harvesters.push({
+          id: Date.now(), x: sx, y: sy, vx: 0, vy: 0, angle: 0,
+          state: 'to_ore', cargo: 0, maxCargo: 1000,
+          hp: 600, maxHp: 600, speed: 2.2, targetOre: this.oreFields[Math.floor(Math.random() * this.oreFields.length)]
+        });
+      } else {
+        const u = {
+          id: Date.now() + Math.floor(Math.random() * 1000),
+          type: type,
+          x: sx, y: sy, vx: 0, vy: 0, angle: 0,
+          hp: type === 'dreadnought' ? 950 : (type === 'cruiser' ? 360 : 140),
+          maxHp: type === 'dreadnought' ? 950 : (type === 'cruiser' ? 360 : 140),
+          speed: type === 'dreadnought' ? 1.3 : (type === 'cruiser' ? 2.2 : 3.5),
+          range: type === 'dreadnought' ? 240 : (type === 'cruiser' ? 300 : 180),
+          dmg: type === 'dreadnought' ? 120 : (type === 'cruiser' ? 45 : 14),
+          reload: 0,
+          maxReload: type === 'dreadnought' ? 1.8 : (type === 'cruiser' ? 1.2 : 0.35),
+          selected: false
+        };
+        this.units.push(u);
+      }
+
+      this.updateHUD();
+    }
+
+    selectAllCombatUnits() {
+      this.selectedUnits = [...this.units];
+      this.units.forEach(u => u.selected = true);
+      if (typeof showToast === 'function') showToast(`已全选舰队 (${this.units.length} 艘战舰)`, 1.5);
+    }
+
+    commandDefendHQ() {
+      const hq = this.buildings.find(b => b.type === 'hq') || { x: 450, y: 800 };
+      this.units.forEach((u, i) => {
+        const angle = (i / Math.max(1, this.units.length)) * Math.PI * 2;
+        u.targetX = hq.x + Math.cos(angle) * 160;
+        u.targetY = hq.y + Math.sin(angle) * 160;
+        u.targetEnemy = null;
+      });
+      if (typeof showToast === 'function') showToast('全军回防基地指挥所外围！', 2);
+    }
+
+    commandAssaultRift() {
+      this.units.forEach(u => {
+        u.targetX = 2100;
+        u.targetY = 800 + (Math.random() * 200 - 100);
+        u.targetEnemy = this.enemies[0] || null;
+      });
+      if (typeof showToast === 'function') showToast('全军突击敌军跃迁裂隙！', 2);
+    }
+
+    armIonCannon() {
+      if (!this.ionCannon.ready) {
+        if (typeof showToast === 'function') showToast(`轨道离子炮正在充能 (${Math.ceil(this.ionCannon.timer)}s)...`, 2);
+        return;
+      }
+      this.ionCannon.targeting = true;
+      if (typeof showToast === 'function') showToast('🛰️ 请轻触/点击战场指定轨道离子炮打击坐标！', 3);
+    }
+
+    executeIonCannonStrike(wx, wy) {
+      this.ionCannon.targeting = false;
+      this.ionCannon.ready = false;
+      this.ionCannon.timer = this.ionCannon.maxTimer;
+      document.getElementById('sf-ra-btn-ion-strike')?.classList.remove('ready');
+
+      this.orbitalStrikes.push({
+        x: wx, y: wy,
+        radius: 220,
+        timer: 1.2,
+        stage: 'locking'
+      });
+
+      spaceAudio.playIonCannon();
+      if (typeof showToast === 'function') showToast('⚠️ 轨道卫星锁定完成，离子光束已贯穿发射！', 3);
+    }
+
+    applyBoxSelection() {
+      const x1 = Math.min(this.dragSelect.startX, this.dragSelect.curX);
+      const y1 = Math.min(this.dragSelect.startY, this.dragSelect.curY);
+      const x2 = Math.max(this.dragSelect.startX, this.dragSelect.curX);
+      const y2 = Math.max(this.dragSelect.startY, this.dragSelect.curY);
+
+      const isSingleClick = (x2 - x1 < 8 && y2 - y1 < 8);
+      const wx1 = (x1 / this.camera.zoom) + this.camera.x;
+      const wy1 = (y1 / this.camera.zoom) + this.camera.y;
+      const wx2 = (x2 / this.camera.zoom) + this.camera.x;
+      const wy2 = (y2 / this.camera.zoom) + this.camera.y;
+
+      this.selectedUnits = [];
+      this.units.forEach(u => {
+        if (isSingleClick) {
+          const d = Math.hypot(u.x - wx1, u.y - wy1);
+          u.selected = (d < 30);
+        } else {
+          u.selected = (u.x >= wx1 && u.x <= wx2 && u.y >= wy1 && u.y <= wy2);
+        }
+        if (u.selected) this.selectedUnits.push(u);
+      });
+    }
+
+    issueOrder(wx, wy) {
+      if (this.selectedUnits.length === 0) return;
+      // Check if target is an enemy
+      const targetEnemy = this.enemies.find(e => Math.hypot(e.x - wx, e.y - wy) < 40);
+
+      this.selectedUnits.forEach((u, idx) => {
+        if (targetEnemy) {
+          u.targetEnemy = targetEnemy;
+          u.targetX = null;
+        } else {
+          u.targetEnemy = null;
+          const offsetAngle = (idx / this.selectedUnits.length) * Math.PI * 2;
+          const spread = Math.min(80, this.selectedUnits.length * 8);
+          u.targetX = wx + Math.cos(offsetAngle) * spread;
+          u.targetY = wy + Math.sin(offsetAngle) * spread;
+        }
+      });
+
+      this.particles.push({
+        x: wx, y: wy,
+        color: targetEnemy ? '#ef4444' : '#34d399',
+        life: 0.4, maxLife: 0.4, radius: 24, type: 'marker'
+      });
+    }
+
+    spawnWave() {
+      this.wave++;
+      const count = 3 + this.wave * 2;
+      for (let i = 0; i < count; i++) {
+        const isCruiser = (i === 0 && this.wave >= 2);
+        const isDread = (i === 1 && this.wave >= 3);
+        const ey = 800 + (Math.random() * 400 - 200);
+        this.enemies.push({
+          id: Date.now() + i,
+          type: isDread ? 'dreadnought' : (isCruiser ? 'cruiser' : 'scout'),
+          x: 2150 + Math.random() * 80,
+          y: ey,
+          vx: 0, vy: 0, angle: Math.PI,
+          hp: isDread ? 900 : (isCruiser ? 350 : 120),
+          maxHp: isDread ? 900 : (isCruiser ? 350 : 120),
+          speed: isDread ? 1.1 : (isCruiser ? 2.0 : 2.8),
+          range: isDread ? 240 : (isCruiser ? 280 : 160),
+          dmg: isDread ? 90 : (isCruiser ? 40 : 12),
+          reload: 0, maxReload: isDread ? 1.8 : (isCruiser ? 1.2 : 0.4)
+        });
+      }
+      this.waveTimer = 35;
+      if (typeof showToast === 'function') showToast(`⚠️ 敌方舰队波次 Wave ${this.wave} 已跃迁入场！`, 3);
+    }
+
+    updatePowerGrid() {
+      let gen = 0, req = 0;
+      this.buildings.forEach(b => {
+        if (b.hp > 0) {
+          gen += b.powerGen;
+          req += b.powerReq;
+        }
+      });
+      this.powerGen = gen;
+      this.powerReq = req;
+      this.isLowPower = (this.powerGen < this.powerReq);
+    }
+
+    updateHUD() {
+      const elCredits = document.getElementById('sf-ra-credits-val');
+      if (elCredits) elCredits.textContent = '$' + Math.floor(this.credits).toLocaleString();
+
+      const elPower = document.getElementById('sf-ra-power-val');
+      const boxPower = document.getElementById('sf-ra-power-box');
+      if (elPower) {
+        elPower.textContent = `${this.powerGen} / ${this.powerReq} MW${this.isLowPower ? ' ⚠ LOW POWER' : ''}`;
+      }
+      if (boxPower) {
+        if (this.isLowPower) boxPower.classList.add('low');
+        else boxPower.classList.remove('low');
+      }
+
+      const elIon = document.getElementById('sf-ra-superweapon-timer');
+      const btnIon = document.getElementById('sf-ra-btn-ion-strike');
+      if (elIon) {
+        elIon.textContent = this.ionCannon.ready ? '已就绪 (READY)' : `充能中 ${Math.ceil(this.ionCannon.timer)}s`;
+      }
+      if (btnIon) {
+        if (this.ionCannon.ready) btnIon.classList.add('ready');
+        else btnIon.classList.remove('ready');
+      }
+
+      const elWave = document.getElementById('sf-ra-wave-val');
+      if (elWave) elWave.textContent = `Wave ${this.wave} (${Math.ceil(this.waveTimer)}s)`;
+    }
+
+    loop(timestamp) {
+      if (!this.active) return;
+      const dt = Math.min(0.1, (timestamp - (this.lastTime || timestamp)) / 1000);
+      this.lastTime = timestamp;
+
+      this.update(dt);
+      this.render();
+
+      this.animId = requestAnimationFrame((t) => this.loop(t));
+    }
+
+    update(dt) {
+      // Wave Timer
+      this.waveTimer -= dt;
+      if (this.waveTimer <= 0) {
+        this.spawnWave();
+      }
+
+      // Superweapon charge
+      if (this.buildings.some(b => b.type === 'ion' && b.hp > 0)) {
+        if (!this.ionCannon.ready) {
+          this.ionCannon.timer -= dt;
+          if (this.ionCannon.timer <= 0) {
+            this.ionCannon.ready = true;
+            this.ionCannon.timer = 0;
+          }
+        }
+      }
+
+      // Low Power penalty: reduce production and disable defense
+      const prodSpeed = this.isLowPower ? 0.35 : 1.0;
+
+      // 1. Harvester Loop
+      for (const h of this.harvesters) {
+        if (h.hp <= 0) continue;
+        if (h.state === 'to_ore') {
+          const target = h.targetOre || this.oreFields[0];
+          const dx = target.x - h.x, dy = target.y - h.y;
+          const dist = Math.hypot(dx, dy);
+          h.angle = Math.atan2(dy, dx);
+          if (dist > target.radius * 0.7) {
+            h.x += (dx / dist) * h.speed * 60 * dt;
+            h.y += (dy / dist) * h.speed * 60 * dt;
+          } else {
+            h.state = 'mining';
+            h.mineTimer = 0;
+          }
+        } else if (h.state === 'mining') {
+          h.cargo += 200 * dt;
+          if (Math.random() < 0.3) {
+            this.particles.push({
+              x: h.x + Math.cos(h.angle) * 20,
+              y: h.y + Math.sin(h.angle) * 20,
+              vx: (Math.random() - 0.5) * 30,
+              vy: (Math.random() - 0.5) * 30,
+              color: '#34d399', life: 0.3, maxLife: 0.3, radius: 2
+            });
+          }
+          if (h.cargo >= h.maxCargo) {
+            h.cargo = h.maxCargo;
+            h.state = 'to_refinery';
+          }
+        } else if (h.state === 'to_refinery') {
+          const ref = this.buildings.find(b => b.type === 'refinery' && b.hp > 0) || this.buildings[0];
+          const dx = ref.x - h.x, dy = ref.y - h.y;
+          const dist = Math.hypot(dx, dy);
+          h.angle = Math.atan2(dy, dx);
+          if (dist > 30) {
+            h.x += (dx / dist) * h.speed * 60 * dt;
+            h.y += (dy / dist) * h.speed * 60 * dt;
+          } else {
+            h.state = 'unloading';
+            h.unloadTimer = 1.0;
+          }
+        } else if (h.state === 'unloading') {
+          h.unloadTimer -= dt;
+          if (h.unloadTimer <= 0) {
+            this.credits += 500;
+            spaceAudio.playCredit();
+            this.particles.push({
+              x: h.x, y: h.y - 20,
+              text: '+$500', color: '#34d399', life: 1.0, maxLife: 1.0, type: 'floatText'
+            });
+            h.cargo = 0;
+            h.state = 'to_ore';
+          }
+        }
+      }
+
+      // 2. Defense Towers (Tesla & Prism)
+      for (const b of this.buildings) {
+        if (b.hp <= 0) continue;
+        if (b.type === 'tesla' && !this.isLowPower) {
+          b.cooldown = Math.max(0, (b.cooldown || 0) - dt);
+          const range = (this.powerGen - this.powerReq > 50) ? 360 : 280;
+          const target = this.enemies.find(e => Math.hypot(e.x - b.x, e.y - b.y) < range);
+          if (target && b.cooldown <= 0) {
+            b.cooldown = (this.powerGen - this.powerReq > 50) ? 0.7 : 1.1;
+            const dmg = (this.powerGen - this.powerReq > 50) ? 130 : 75;
+            target.hp -= dmg;
+            spaceAudio.playTeslaZap();
+            this.particles.push({
+              type: 'lightning',
+              x1: b.x, y1: b.y - 20,
+              x2: target.x, y2: target.y,
+              color: '#c084fc', life: 0.25, maxLife: 0.25
+            });
+          }
+        } else if (b.type === 'prism' && !this.isLowPower) {
+          b.cooldown = Math.max(0, (b.cooldown || 0) - dt);
+          const range = 320;
+          const target = this.enemies.find(e => Math.hypot(e.x - b.x, e.y - b.y) < range);
+          if (target && b.cooldown <= 0) {
+            b.cooldown = 1.0;
+            // Count neighboring prism towers to amplify beam!
+            const prisms = this.buildings.filter(pb => pb.type === 'prism' && pb.hp > 0 && Math.hypot(pb.x - b.x, pb.y - b.y) < 260);
+            const dmg = 60 + (prisms.length - 1) * 35;
+            target.hp -= dmg;
+            spaceAudio.playLaser();
+            this.particles.push({
+              type: 'prismBeam',
+              x1: b.x, y1: b.y - 24,
+              x2: target.x, y2: target.y,
+              color: '#38bdf8', life: 0.3, maxLife: 0.3, width: 3 + prisms.length * 1.5
+            });
+          }
+        }
+      }
+
+      // 3. Player Units
+      for (const u of this.units) {
+        if (u.hp <= 0) continue;
+        u.reload = Math.max(0, u.reload - dt);
+
+        if (u.targetEnemy && u.targetEnemy.hp > 0) {
+          const dx = u.targetEnemy.x - u.x, dy = u.targetEnemy.y - u.y;
+          const dist = Math.hypot(dx, dy);
+          u.angle = Math.atan2(dy, dx);
+          if (dist > u.range * 0.8) {
+            u.x += (dx / dist) * u.speed * 60 * dt;
+            u.y += (dy / dist) * u.speed * 60 * dt;
+          } else if (u.reload <= 0) {
+            u.reload = u.maxReload;
+            u.targetEnemy.hp -= u.dmg;
+            spaceAudio.playLaser();
+            this.particles.push({
+              type: 'tracer',
+              x1: u.x, y1: u.y,
+              x2: u.targetEnemy.x, y2: u.targetEnemy.y,
+              color: u.type === 'dreadnought' ? '#f59e0b' : '#38bdf8',
+              life: 0.15, maxLife: 0.15
+            });
+          }
+        } else if (u.targetX !== null && u.targetY !== null) {
+          const dx = u.targetX - u.x, dy = u.targetY - u.y;
+          const dist = Math.hypot(dx, dy);
+          if (dist > 15) {
+            u.angle = Math.atan2(dy, dx);
+            u.x += (dx / dist) * u.speed * 60 * dt;
+            u.y += (dy / dist) * u.speed * 60 * dt;
+          } else {
+            u.targetX = null; u.targetY = null;
+          }
+        } else {
+          // Auto-acquire nearest enemy
+          const enemy = this.enemies.find(e => Math.hypot(e.x - u.x, e.y - u.y) < u.range);
+          if (enemy && u.reload <= 0) {
+            u.reload = u.maxReload;
+            enemy.hp -= u.dmg;
+            spaceAudio.playLaser();
+            this.particles.push({
+              type: 'tracer',
+              x1: u.x, y1: u.y,
+              x2: enemy.x, y2: enemy.y,
+              color: u.type === 'dreadnought' ? '#f59e0b' : '#38bdf8',
+              life: 0.15, maxLife: 0.15
+            });
+          }
+        }
+      }
+
+      // 4. Enemy Units
+      for (const e of this.enemies) {
+        if (e.hp <= 0) continue;
+        e.reload = Math.max(0, e.reload - dt);
+
+        // Find closest target: harvester, defense tower, or unit
+        let closestTarget = this.harvesters.find(h => h.hp > 0 && Math.hypot(h.x - e.x, h.y - e.y) < 350)
+          || this.buildings.find(b => b.hp > 0 && Math.hypot(b.x - e.x, b.y - e.y) < 400)
+          || this.units.find(u => u.hp > 0 && Math.hypot(u.x - e.x, u.y - e.y) < 350)
+          || this.buildings[0];
+
+        if (closestTarget) {
+          const dx = closestTarget.x - e.x, dy = closestTarget.y - e.y;
+          const dist = Math.hypot(dx, dy);
+          e.angle = Math.atan2(dy, dx);
+          if (dist > e.range * 0.75) {
+            e.x += (dx / dist) * e.speed * 60 * dt;
+            e.y += (dy / dist) * e.speed * 60 * dt;
+          } else if (e.reload <= 0) {
+            e.reload = e.maxReload;
+            closestTarget.hp -= e.dmg;
+            spaceAudio.playLaser();
+            this.particles.push({
+              type: 'tracer',
+              x1: e.x, y1: e.y,
+              x2: closestTarget.x, y2: closestTarget.y,
+              color: '#ef4444', life: 0.15, maxLife: 0.15
+            });
+          }
+        }
+      }
+
+      // 5. Clean up dead entities & explosions
+      for (let i = this.enemies.length - 1; i >= 0; i--) {
+        if (this.enemies[i].hp <= 0) {
+          spaceAudio.playExplosion();
+          this.createExplosion(this.enemies[i].x, this.enemies[i].y, 30);
+          this.credits += (this.enemies[i].type === 'dreadnought' ? 400 : 80);
+          this.enemies.splice(i, 1);
+        }
+      }
+      for (let i = this.units.length - 1; i >= 0; i--) {
+        if (this.units[i].hp <= 0) {
+          spaceAudio.playExplosion();
+          this.createExplosion(this.units[i].x, this.units[i].y, 25);
+          this.units.splice(i, 1);
+        }
+      }
+
+      // 6. Orbital Strikes (Ion Cannon)
+      for (let i = this.orbitalStrikes.length - 1; i >= 0; i--) {
+        const s = this.orbitalStrikes[i];
+        s.timer -= dt;
+        if (s.stage === 'locking' && s.timer <= 0) {
+          s.stage = 'blast';
+          s.timer = 0.8;
+          this.shake = 18;
+          // Apply massive AOE damage
+          this.enemies.forEach(e => {
+            if (Math.hypot(e.x - s.x, e.y - s.y) < s.radius) {
+              e.hp -= 850;
+            }
+          });
+          this.createExplosion(s.x, s.y, 80);
+        } else if (s.stage === 'blast' && s.timer <= 0) {
+          this.orbitalStrikes.splice(i, 1);
+        }
+      }
+
+      // 7. Update Particles
+      for (let i = this.particles.length - 1; i >= 0; i--) {
+        const pt = this.particles[i];
+        pt.life -= dt;
+        if (pt.vx) pt.x += pt.vx * dt;
+        if (pt.vy) pt.y += pt.vy * dt;
+        if (pt.life <= 0) this.particles.splice(i, 1);
+      }
+
+      this.shake = Math.max(0, this.shake - dt * 30);
+      this.updatePowerGrid();
+      this.updateHUD();
+    }
+
+    createExplosion(x, y, radius) {
+      for (let i = 0; i < 18; i++) {
+        const a = Math.random() * Math.PI * 2;
+        const sp = 40 + Math.random() * 100;
+        this.particles.push({
+          x: x, y: y,
+          vx: Math.cos(a) * sp,
+          vy: Math.sin(a) * sp,
+          color: Math.random() < 0.5 ? '#f59e0b' : '#ef4444',
+          life: 0.4 + Math.random() * 0.3,
+          maxLife: 0.7,
+          radius: 3 + Math.random() * 4
+        });
+      }
+    }
+
+    render() {
+      const ctx = this.ctx;
+      const w = this.canvas.width;
+      const h = this.canvas.height;
+      ctx.clearRect(0, 0, w, h);
+
+      ctx.save();
+      if (this.shake > 0) {
+        ctx.translate((Math.random() - 0.5) * this.shake, (Math.random() - 0.5) * this.shake);
+      }
+      ctx.scale(this.camera.zoom, this.camera.zoom);
+      ctx.translate(-this.camera.x, -this.camera.y);
+
+      // 1. Tactical Grid & Background Nebula
+      ctx.strokeStyle = 'rgba(56, 189, 248, 0.05)';
+      ctx.lineWidth = 1;
+      const gridSize = 100;
+      for (let x = 0; x <= this.worldWidth; x += gridSize) {
+        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, this.worldHeight); ctx.stroke();
+      }
+      for (let y = 0; y <= this.worldHeight; y += gridSize) {
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(this.worldWidth, y); ctx.stroke();
+      }
+
+      // 2. Ore Fields (Asteroid Crystals)
+      for (const f of this.oreFields) {
+        ctx.save();
+        ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
+        ctx.strokeStyle = f.color;
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(f.x, f.y, f.radius, 0, Math.PI * 2);
+        ctx.fill(); ctx.stroke();
+
+        // Glowing crystals
+        for (let i = 0; i < 8; i++) {
+          const a = (i / 8) * Math.PI * 2;
+          const cx = f.x + Math.cos(a) * (f.radius * 0.55);
+          const cy = f.y + Math.sin(a) * (f.radius * 0.55);
+          ctx.fillStyle = f.color;
+          ctx.beginPath();
+          ctx.arc(cx, cy, 5, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.fillStyle = '#94a3b8';
+        ctx.font = '11px ui-monospace, monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText(`矿石蕴藏量: ${f.ore}`, f.x, f.y + f.radius + 16);
+        ctx.restore();
+      }
+
+      // 3. Enemy Hyperspace Rift
+      ctx.save();
+      const riftPulse = Math.sin(performance.now() * 0.004) * 10;
+      const riftGrad = ctx.createRadialGradient(2150, 800, 10, 2150, 800, 120 + riftPulse);
+      riftGrad.addColorStop(0, '#ffffff');
+      riftGrad.addColorStop(0.3, '#ec4899');
+      riftGrad.addColorStop(0.7, '#7c3aed');
+      riftGrad.addColorStop(1, 'transparent');
+      ctx.fillStyle = riftGrad;
+      ctx.beginPath();
+      ctx.arc(2150, 800, 120 + riftPulse, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#f87171';
+      ctx.font = 'bold 12px ui-monospace, monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('⚡ 敌军超空间跳跃裂隙', 2150, 800 + 150);
+      ctx.restore();
+
+      // 4. Buildings
+      for (const b of this.buildings) {
+        ctx.save();
+        ctx.translate(b.x, b.y);
+
+        // Building base
+        ctx.fillStyle = '#0f172a';
+        ctx.strokeStyle = b.color;
+        ctx.lineWidth = 2;
+        ctx.fillRect(-b.w / 2, -b.h / 2, b.w, b.h);
+        ctx.strokeRect(-b.w / 2, -b.h / 2, b.w, b.h);
+
+        // Building internals
+        if (b.type === 'tesla') {
+          // Tesla Coil
+          ctx.strokeStyle = '#c084fc';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(0, 0, 14, 0, Math.PI * 2);
+          ctx.arc(0, 0, 8, 0, Math.PI * 2);
+          ctx.stroke();
+          // Glowing top orb
+          ctx.fillStyle = this.isLowPower ? '#64748b' : '#e9d5ff';
+          ctx.beginPath(); ctx.arc(0, -18, 6, 0, Math.PI * 2); ctx.fill();
+        } else if (b.type === 'prism') {
+          // Prism Tower
+          ctx.fillStyle = this.isLowPower ? '#64748b' : '#38bdf8';
+          ctx.beginPath();
+          ctx.moveTo(0, -22); ctx.lineTo(12, 12); ctx.lineTo(-12, 12);
+          ctx.closePath();
+          ctx.fill();
+        } else {
+          ctx.fillStyle = b.color;
+          ctx.fillRect(-b.w * 0.3, -b.h * 0.3, b.w * 0.6, b.h * 0.6);
+        }
+
+        // Health bar
+        const hpRatio = Math.max(0, b.hp / b.maxHp);
+        ctx.fillStyle = 'rgba(0,0,0,0.6)';
+        ctx.fillRect(-25, -b.h / 2 - 12, 50, 5);
+        ctx.fillStyle = hpRatio > 0.4 ? '#34d399' : '#f43f5e';
+        ctx.fillRect(-25, -b.h / 2 - 12, 50 * hpRatio, 5);
+
+        // Title
+        ctx.fillStyle = '#f8fafc';
+        ctx.font = '10px ui-monospace, monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText(b.name, 0, b.h / 2 + 14);
+        ctx.restore();
+      }
+
+      // 5. Harvesters
+      for (const h of this.harvesters) {
+        ctx.save();
+        ctx.translate(h.x, h.y);
+        ctx.rotate(h.angle);
+        ctx.fillStyle = '#f59e0b';
+        ctx.fillRect(-18, -12, 36, 24);
+        ctx.strokeStyle = '#f8fafc';
+        ctx.lineWidth = 1.5;
+        ctx.strokeRect(-18, -12, 36, 24);
+
+        // Mining beam when mining
+        if (h.state === 'mining') {
+          ctx.strokeStyle = '#34d399';
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.moveTo(18, 0); ctx.lineTo(45, 0);
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+
+      // 6. Combat Ships (Units & Enemies)
+      for (const u of this.units) {
+        ctx.save();
+        ctx.translate(u.x, u.y);
+        ctx.rotate(u.angle);
+
+        // Selection ring
+        if (u.selected) {
+          ctx.strokeStyle = '#38bdf8';
+          ctx.lineWidth = 1.5;
+          ctx.beginPath(); ctx.arc(0, 0, 22, 0, Math.PI * 2); ctx.stroke();
+        }
+
+        // Hull shape
+        ctx.fillStyle = u.type === 'dreadnought' ? '#1e293b' : '#0284c7';
+        ctx.strokeStyle = '#38bdf8';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        if (u.type === 'dreadnought') {
+          ctx.moveTo(24, 0); ctx.lineTo(-18, 16); ctx.lineTo(-12, 0); ctx.lineTo(-18, -16);
+        } else {
+          ctx.moveTo(16, 0); ctx.lineTo(-12, 10); ctx.lineTo(-8, 0); ctx.lineTo(-12, -10);
+        }
+        ctx.closePath();
+        ctx.fill(); ctx.stroke();
+        ctx.restore();
+      }
+
+      for (const e of this.enemies) {
+        ctx.save();
+        ctx.translate(e.x, e.y);
+        ctx.rotate(e.angle);
+        ctx.fillStyle = '#881337';
+        ctx.strokeStyle = '#f43f5e';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(18, 0); ctx.lineTo(-14, 12); ctx.lineTo(-8, 0); ctx.lineTo(-14, -12);
+        ctx.closePath();
+        ctx.fill(); ctx.stroke();
+        ctx.restore();
+      }
+
+      // 7. Beams & Projectiles & Strikes
+      for (const pt of this.particles) {
+        if (pt.type === 'lightning') {
+          ctx.strokeStyle = pt.color;
+          ctx.lineWidth = 2.5;
+          ctx.beginPath();
+          ctx.moveTo(pt.x1, pt.y1);
+          const midX = (pt.x1 + pt.x2) / 2 + (Math.random() - 0.5) * 40;
+          const midY = (pt.y1 + pt.y2) / 2 + (Math.random() - 0.5) * 40;
+          ctx.lineTo(midX, midY);
+          ctx.lineTo(pt.x2, pt.y2);
+          ctx.stroke();
+        } else if (pt.type === 'prismBeam') {
+          ctx.strokeStyle = pt.color;
+          ctx.lineWidth = pt.width;
+          ctx.beginPath(); ctx.moveTo(pt.x1, pt.y1); ctx.lineTo(pt.x2, pt.y2); ctx.stroke();
+        } else if (pt.type === 'tracer') {
+          ctx.strokeStyle = pt.color;
+          ctx.lineWidth = 2;
+          ctx.beginPath(); ctx.moveTo(pt.x1, pt.y1); ctx.lineTo(pt.x2, pt.y2); ctx.stroke();
+        } else if (pt.type === 'floatText') {
+          ctx.fillStyle = pt.color;
+          ctx.font = 'bold 13px ui-monospace, monospace';
+          ctx.fillText(pt.text, pt.x, pt.y);
+        } else {
+          ctx.fillStyle = pt.color;
+          ctx.beginPath(); ctx.arc(pt.x, pt.y, pt.radius || 2, 0, Math.PI * 2); ctx.fill();
+        }
+      }
+
+      // 8. Orbital Strikes (Ion Cannon blast)
+      for (const s of this.orbitalStrikes) {
+        if (s.stage === 'locking') {
+          ctx.strokeStyle = '#f43f5e';
+          ctx.lineWidth = 2;
+          ctx.beginPath(); ctx.arc(s.x, s.y, s.radius * (s.timer / 1.2), 0, Math.PI * 2); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(s.x - 30, s.y); ctx.lineTo(s.x + 30, s.y); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(s.x, s.y - 30); ctx.lineTo(s.x, s.y + 30); ctx.stroke();
+        } else if (s.stage === 'blast') {
+          // Massive Orbital Pillar of Light
+          const grad = ctx.createLinearGradient(s.x - 40, s.y, s.x + 40, s.y);
+          grad.addColorStop(0, 'rgba(56, 189, 248, 0)');
+          grad.addColorStop(0.5, '#ffffff');
+          grad.addColorStop(1, 'rgba(56, 189, 248, 0)');
+          ctx.fillStyle = grad;
+          ctx.fillRect(s.x - 50, -500, 100, s.y + 500);
+
+          // Impact shockwave
+          ctx.strokeStyle = '#38bdf8';
+          ctx.lineWidth = 4;
+          ctx.beginPath(); ctx.arc(s.x, s.y, s.radius, 0, Math.PI * 2); ctx.stroke();
+        }
+      }
+
+      // 9. Box Selection Rectangle
+      if (this.dragSelect.active) {
+        const wx1 = (this.dragSelect.startX / this.camera.zoom) + this.camera.x;
+        const wy1 = (this.dragSelect.startY / this.camera.zoom) + this.camera.y;
+        const wx2 = (this.dragSelect.curX / this.camera.zoom) + this.camera.x;
+        const wy2 = (this.dragSelect.curY / this.camera.zoom) + this.camera.y;
+        ctx.fillStyle = 'rgba(56, 189, 248, 0.15)';
+        ctx.strokeStyle = '#38bdf8';
+        ctx.lineWidth = 1;
+        ctx.fillRect(wx1, wy1, wx2 - wx1, wy2 - wy1);
+        ctx.strokeRect(wx1, wy1, wx2 - wx1, wy2 - wy1);
+      }
+
+      ctx.restore();
+    }
+  }
+
+  window.RedAlertRTS = new RedAlertRTSGame();
+
+  /* =========================================================================
+   * 5. DYSON SPHERE PROGRAM ENGINE (戴森球计划 · 星系工程)
+   * ========================================================================= */
+  class DysonSphereGame {
+    constructor() {
+      this.canvas = document.getElementById('sf-dyson-canvas');
+      this.ctx = this.canvas.getContext('2d');
+      this.active = false;
+      this.animId = null;
+
+      this.camera = {
+        pitch: 0.48,
+        yaw: 0.65,
+        zoom: 1.0,
+        mode: 'system'
+      };
+
+      this.star = {
+        radius: 65,
+        luminosity: 2.14,
+        pulsePhase: 0
+      };
+
+      this.solarSails = [];
+      this.nodes = [];
+      this.struts = [];
+      this.shells = [];
+      this.rockets = [];
+      this.conveyorItems = [];
+      this.interstellarFreighters = [];
+
+      this.universeMatrix = 150;
+      this.totalPowerGW = 1.82;
+      this.techLevels = { em: 0, sail: 0, rocket: 0, lens: 0, shell: 0 };
+
+      this.planets = [
+        { name: 'Gaia Prime (母星)', radius: 32, dist: 310, angle: 0.5, speed: 0.003, color: '#38bdf8', isMother: true },
+        { name: 'Vulcan (钛矿星)', radius: 24, dist: 510, angle: 2.2, speed: 0.0018, color: '#f97316' },
+        { name: 'Zephyr (气态巨星)', radius: 48, dist: 740, angle: 4.0, speed: 0.0009, color: '#a855f7', hasRings: true }
+      ];
+
+      this.dragState = { isDragging: false, lastX: 0, lastY: 0 };
+
+      this.initGeodesicSphere();
+      this.initInitialSwarm();
+      this.bindEvents();
+    }
+
+    initGeodesicSphere() {
+      // 3D Geodesic Icosahedron Frame around Star
+      const phi = (1 + Math.sqrt(5)) / 2;
+      const baseVertices = [
+        [-1,  phi, 0], [ 1,  phi, 0], [-1, -phi, 0], [ 1, -phi, 0],
+        [ 0, -1,  phi], [ 0,  1,  phi], [ 0, -1, -phi], [ 0,  1, -phi],
+        [ phi, 0, -1], [ phi, 0,  1], [-phi, 0, -1], [-phi, 0,  1]
+      ];
+
+      const R = 150;
+      this.nodes = baseVertices.map((v, i) => {
+        const len = Math.hypot(v[0], v[1], v[2]);
+        return {
+          id: i,
+          x: (v[0] / len) * R,
+          y: (v[1] / len) * R,
+          z: (v[2] / len) * R,
+          built: i < 8 // 8 built initially (25%)
+        };
+      });
+
+      // Add subdivided midpoints to make 32 total nodes
+      for (let i = 0; i < 20; i++) {
+        const a = this.nodes[i % 12];
+        const b = this.nodes[(i + 1) % 12];
+        const mx = (a.x + b.x) / 2;
+        const my = (a.y + b.y) / 2;
+        const mz = (a.z + b.z) / 2;
+        const len = Math.hypot(mx, my, mz);
+        this.nodes.push({
+          id: 12 + i,
+          x: (mx / len) * R,
+          y: (my / len) * R,
+          z: (mz / len) * R,
+          built: false
+        });
+      }
+    }
+
+    initInitialSwarm() {
+      // Initial 120 solar sails orbiting in Keplerian rings
+      for (let i = 0; i < 120; i++) {
+        this.solarSails.push({
+          ring: i % 3,
+          angle: Math.random() * Math.PI * 2,
+          speed: 0.008 + Math.random() * 0.006,
+          radius: 200 + (i % 3) * 60,
+          inclination: (i % 3 === 0 ? 0.25 : (i % 3 === 1 ? 0.65 : -0.45)),
+          life: 90 + Math.random() * 30
+        });
+      }
+    }
+
+    start() {
+      this.resize();
+      this.active = true;
+      this.lastTime = performance.now();
+      this.animId = requestAnimationFrame((t) => this.loop(t));
+      this.updateHUD();
+    }
+
+    stop() {
+      this.active = false;
+      if (this.animId) cancelAnimationFrame(this.animId);
+    }
+
+    resize() {
+      this.canvas.width = window.innerWidth;
+      this.canvas.height = window.innerHeight;
+    }
+
+    bindEvents() {
+      window.addEventListener('resize', () => { if (this.active) this.resize(); });
+
+      document.getElementById('sf-dsp-btn-launch-sail')?.addEventListener('click', () => this.launchSolarSails());
+      document.getElementById('sf-dsp-btn-launch-rocket')?.addEventListener('click', () => this.launchCarrierRocket());
+      document.getElementById('sf-dsp-btn-tech-modal')?.addEventListener('click', () => this.toggleTechModal(true));
+      document.getElementById('sf-dsp-close-tech-btn')?.addEventListener('click', () => this.toggleTechModal(false));
+      document.getElementById('sf-dsp-btn-cam-view')?.addEventListener('click', () => this.cycleCameraView());
+
+      // Tech upgrade buttons
+      document.getElementById('sf-dsp-btn-upgrade-em')?.addEventListener('click', () => this.upgradeTech('em', 100));
+      document.getElementById('sf-dsp-btn-upgrade-sail')?.addEventListener('click', () => this.upgradeTech('sail', 150));
+      document.getElementById('sf-dsp-btn-upgrade-rocket')?.addEventListener('click', () => this.upgradeTech('rocket', 250));
+      document.getElementById('sf-dsp-btn-upgrade-lens')?.addEventListener('click', () => this.upgradeTech('lens', 350));
+      document.getElementById('sf-dsp-btn-upgrade-shell')?.addEventListener('click', () => this.upgradeTech('shell', 500));
+
+      // 3D Canvas Touch & Drag
+      const c = this.canvas;
+      c.addEventListener('mousedown', (e) => {
+        this.dragState.isDragging = true;
+        this.dragState.lastX = e.clientX;
+        this.dragState.lastY = e.clientY;
+      });
+
+      window.addEventListener('mousemove', (e) => {
+        if (!this.active || !this.dragState.isDragging) return;
+        const dx = e.clientX - this.dragState.lastX;
+        const dy = e.clientY - this.dragState.lastY;
+        this.camera.yaw += dx * 0.005;
+        this.camera.pitch = Math.max(-0.2, Math.min(1.4, this.camera.pitch + dy * 0.005));
+        this.dragState.lastX = e.clientX;
+        this.dragState.lastY = e.clientY;
+      });
+
+      window.addEventListener('mouseup', () => { this.dragState.isDragging = false; });
+
+      c.addEventListener('wheel', (e) => {
+        if (!this.active) return;
+        e.preventDefault();
+        const factor = e.deltaY < 0 ? 1.08 : 0.92;
+        this.camera.zoom = Math.max(0.45, Math.min(2.5, this.camera.zoom * factor));
+      }, { passive: false });
+
+      c.addEventListener('touchstart', (e) => {
+        if (e.touches.length === 1) {
+          this.dragState.isDragging = true;
+          this.dragState.lastX = e.touches[0].clientX;
+          this.dragState.lastY = e.touches[0].clientY;
+        }
+      }, { passive: false });
+
+      c.addEventListener('touchmove', (e) => {
+        if (!this.active || !this.dragState.isDragging || e.touches.length !== 1) return;
+        const dx = e.touches[0].clientX - this.dragState.lastX;
+        const dy = e.touches[0].clientY - this.dragState.lastY;
+        this.camera.yaw += dx * 0.006;
+        this.camera.pitch = Math.max(-0.2, Math.min(1.4, this.camera.pitch + dy * 0.006));
+        this.dragState.lastX = e.touches[0].clientX;
+        this.dragState.lastY = e.touches[0].clientY;
+      }, { passive: false });
+
+      c.addEventListener('touchend', () => { this.dragState.isDragging = false; });
+    }
+
+    launchSolarSails() {
+      const count = 3 + this.techLevels.em * 3;
+      for (let i = 0; i < count; i++) {
+        this.solarSails.push({
+          ring: Math.floor(Math.random() * 3),
+          angle: Math.random() * Math.PI * 2,
+          speed: 0.008 + Math.random() * 0.006,
+          radius: 200 + (Math.floor(Math.random() * 3)) * 60,
+          inclination: Math.random() * 0.8 - 0.4,
+          life: (90 + Math.random() * 30) * (1 + this.techLevels.sail * 0.5)
+        });
+      }
+      spaceAudio.playSailLaunch();
+      if (typeof showToast === 'function') showToast(`⚡ 电磁弹射齐射！${count} 枚太阳帆注入戴森云！`, 2);
+    }
+
+    launchCarrierRocket() {
+      const targetNode = this.nodes.find(n => !n.built);
+      if (!targetNode) {
+        if (typeof showToast === 'function') showToast('戴森球骨架已 100% 构筑完成！正在以全功率汲取恒星能量！', 2.5);
+        return;
+      }
+
+      this.rockets.push({
+        x: 310, y: 0, z: 0,
+        progress: 0,
+        targetNode: targetNode
+      });
+      spaceAudio.playRocketLaunch();
+      if (typeof showToast === 'function') showToast('🚀 垂直发射井点火！小型运载火箭正飞往戴森球骨架节点！', 2);
+    }
+
+    cycleCameraView() {
+      if (this.camera.mode === 'system') {
+        this.camera.mode = 'planet';
+        this.camera.zoom = 1.6;
+        this.camera.pitch = 0.6;
+        if (typeof showToast === 'function') showToast('视角：母星行星表面物流基建 🪐', 2);
+      } else if (this.camera.mode === 'planet') {
+        this.camera.mode = 'sphere';
+        this.camera.zoom = 1.25;
+        this.camera.pitch = 0.35;
+        if (typeof showToast === 'function') showToast('视角：戴森球骨架透射总览 ☀️', 2);
+      } else {
+        this.camera.mode = 'system';
+        this.camera.zoom = 0.85;
+        this.camera.pitch = 0.52;
+        if (typeof showToast === 'function') showToast('视角：恒星系全景 🌌', 2);
+      }
+    }
+
+    toggleTechModal(open) {
+      const m = document.getElementById('sf-dsp-tech-modal');
+      if (m) {
+        if (open) m.classList.add('active');
+        else m.classList.remove('active');
+      }
+    }
+
+    upgradeTech(key, cost) {
+      if (this.universeMatrix < cost) {
+        if (typeof showToast === 'function') showToast(`宇宙矩阵不足！需要 ${cost} 白糖`, 2);
+        return;
+      }
+      this.universeMatrix -= cost;
+      this.techLevels[key] = (this.techLevels[key] || 0) + 1;
+      spaceAudio.playCredit();
+
+      const spanLvl = document.getElementById(`sf-dsp-tech-lvl-${key}`);
+      if (spanLvl) spanLvl.textContent = `Lv.${this.techLevels[key]}`;
+
+      this.updateHUD();
+      if (typeof showToast === 'function') showToast('🎉 宇宙矩阵科技升级成功！', 2);
+    }
+
+    updateHUD() {
+      const builtCount = this.nodes.filter(n => n.built).length;
+      const pct = Math.round((builtCount / this.nodes.length) * 100);
+
+      const elLum = document.getElementById('sf-dsp-val-lum');
+      if (elLum) elLum.textContent = `${this.star.luminosity} L☉ (O型耀星)`;
+
+      const elSails = document.getElementById('sf-dsp-val-sails');
+      const swarmMW = Math.round(this.solarSails.length * 1.8 * this.star.luminosity);
+      if (elSails) elSails.textContent = `${this.solarSails.length} 帆 (${swarmMW} MW)`;
+
+      const elNodes = document.getElementById('sf-dsp-val-nodes');
+      if (elNodes) elNodes.textContent = `${builtCount} / ${this.nodes.length} 节点 (${pct}%)`;
+
+      const barFill = document.getElementById('sf-dsp-node-progress-fill');
+      if (barFill) barFill.style.width = `${pct}%`;
+
+      this.totalPowerGW = Number(((swarmMW / 1000) + (builtCount * 0.18 * this.star.luminosity)).toFixed(2));
+      const elPower = document.getElementById('sf-dsp-val-total-gw');
+      if (elPower) elPower.textContent = `${this.totalPowerGW} GW`;
+
+      const elMatrix = document.getElementById('sf-dsp-val-matrix');
+      if (elMatrix) elMatrix.textContent = `${Math.floor(this.universeMatrix)} 矩阵`;
+    }
+
+    loop(timestamp) {
+      if (!this.active) return;
+      const dt = Math.min(0.1, (timestamp - (this.lastTime || timestamp)) / 1000);
+      this.lastTime = timestamp;
+
+      this.update(dt);
+      this.render();
+
+      this.animId = requestAnimationFrame((t) => this.loop(t));
+    }
+
+    update(dt) {
+      // Universe Matrix synthesis from Ray Receivers
+      const lensMult = 1 + (this.techLevels.lens || 0) * 1.5;
+      this.universeMatrix += (0.8 + this.totalPowerGW * 0.4) * lensMult * dt;
+
+      // Update planets orbit
+      for (const p of this.planets) {
+        p.angle += p.speed * 60 * dt;
+      }
+
+      // Update solar sails in Dyson Swarm
+      for (let i = this.solarSails.length - 1; i >= 0; i--) {
+        const s = this.solarSails[i];
+        s.angle += s.speed * 60 * dt;
+        s.life -= dt;
+        if (s.life <= 0) {
+          this.solarSails.splice(i, 1);
+        }
+      }
+
+      // Update Rockets in transit
+      for (let i = this.rockets.length - 1; i >= 0; i--) {
+        const r = this.rockets[i];
+        r.progress += 0.8 * dt;
+        if (r.progress >= 1.0) {
+          r.targetNode.built = true;
+          spaceAudio.playCredit();
+          if (this.techLevels.rocket > 0) {
+            const nextNode = this.nodes.find(n => !n.built);
+            if (nextNode) nextNode.built = true;
+          }
+          this.rockets.splice(i, 1);
+        }
+      }
+
+      // Auto-launch minor solar sails
+      if (Math.random() < 0.05 + this.techLevels.em * 0.04) {
+        this.solarSails.push({
+          ring: Math.floor(Math.random() * 3),
+          angle: 0,
+          speed: 0.008 + Math.random() * 0.006,
+          radius: 200 + (Math.floor(Math.random() * 3)) * 60,
+          inclination: Math.random() * 0.8 - 0.4,
+          life: 90 * (1 + this.techLevels.sail * 0.5)
+        });
+      }
+
+      this.updateHUD();
+    }
+
+    project3D(x, y, z, cx, cy) {
+      const cosY = Math.cos(this.camera.yaw);
+      const sinY = Math.sin(this.camera.yaw);
+      const x1 = x * cosY - z * sinY;
+      const z1 = x * sinY + z * cosY;
+
+      const cosP = Math.cos(this.camera.pitch);
+      const sinP = Math.sin(this.camera.pitch);
+      const y2 = y * cosP - z1 * sinP;
+      const z2 = y * sinP + z1 * cosP;
+
+      const dist = 1000;
+      const scale = (dist / (dist + z2)) * this.camera.zoom;
+      return {
+        x: cx + x1 * scale,
+        y: cy + y2 * scale,
+        scale: scale,
+        z: z2
+      };
+    }
+
+    render() {
+      const ctx = this.ctx;
+      const w = this.canvas.width;
+      const h = this.canvas.height;
+      const cx = w / 2;
+      const cy = h / 2;
+      ctx.clearRect(0, 0, w, h);
+
+      // 1. Central Star (Luminescent O-Type Sun)
+      const starProj = this.project3D(0, 0, 0, cx, cy);
+      const starR = this.star.radius * starProj.scale;
+
+      const grad = ctx.createRadialGradient(starProj.x, starProj.y, starR * 0.2, starProj.x, starProj.y, starR * 2.2);
+      grad.addColorStop(0, '#ffffff');
+      grad.addColorStop(0.3, '#fef08a');
+      grad.addColorStop(0.7, '#f59e0b');
+      grad.addColorStop(1, 'transparent');
+
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(starProj.x, starProj.y, starR * 2.2, 0, Math.PI * 2);
+      ctx.fill();
+
+      // 2. Geodesic Dyson Sphere Frame Struts & Nodes
+      for (const n of this.nodes) {
+        n.proj = this.project3D(n.x, n.y, n.z, cx, cy);
+      }
+
+      // Draw Struts
+      ctx.lineWidth = 1.2;
+      for (let i = 0; i < this.nodes.length; i++) {
+        const n1 = this.nodes[i];
+        for (let j = i + 1; j < this.nodes.length; j++) {
+          const n2 = this.nodes[j];
+          const dist = Math.hypot(n1.x - n2.x, n1.y - n2.y, n1.z - n2.z);
+          if (dist < 130) {
+            const bothBuilt = (n1.built && n2.built);
+            ctx.strokeStyle = bothBuilt ? 'rgba(56, 189, 248, 0.65)' : 'rgba(255, 255, 255, 0.12)';
+            ctx.beginPath();
+            ctx.moveTo(n1.proj.x, n1.proj.y);
+            ctx.lineTo(n2.proj.x, n2.proj.y);
+            ctx.stroke();
+
+            // Shell panel glow if built
+            if (bothBuilt) {
+              ctx.fillStyle = 'rgba(56, 189, 248, 0.08)';
+              ctx.beginPath();
+              ctx.moveTo(starProj.x, starProj.y);
+              ctx.lineTo(n1.proj.x, n1.proj.y);
+              ctx.lineTo(n2.proj.x, n2.proj.y);
+              ctx.fill();
+            }
+          }
+        }
+      }
+
+      // Draw Nodes
+      for (const n of this.nodes) {
+        ctx.fillStyle = n.built ? '#38bdf8' : 'rgba(255, 255, 255, 0.3)';
+        ctx.beginPath();
+        ctx.arc(n.proj.x, n.proj.y, (n.built ? 5 : 2.5) * n.proj.scale, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // 3. Dyson Swarm (Solar Sails Orbiting in 3D Keplerian Rings)
+      for (const s of this.solarSails) {
+        const sx = Math.cos(s.angle) * s.radius;
+        const sz = Math.sin(s.angle) * s.radius;
+        const sy = Math.sin(s.angle) * s.radius * s.inclination;
+        const sp = this.project3D(sx, sy, sz, cx, cy);
+
+        ctx.fillStyle = '#fbbf24';
+        ctx.beginPath();
+        ctx.arc(sp.x, sp.y, 2 * sp.scale, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // 4. Planets & Conveyor Belt Logistics
+      for (const p of this.planets) {
+        const px = Math.cos(p.angle) * p.dist;
+        const pz = Math.sin(p.angle) * p.dist;
+        const py = 0;
+        const pp = this.project3D(px, py, pz, cx, cy);
+
+        // Planet Body
+        ctx.fillStyle = p.color;
+        ctx.beginPath();
+        ctx.arc(pp.x, pp.y, p.radius * pp.scale, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Planet Label
+        ctx.fillStyle = '#f8fafc';
+        ctx.font = `${Math.round(10 * pp.scale)}px ui-monospace, monospace`;
+        ctx.textAlign = 'center';
+        ctx.fillText(p.name, pp.x, pp.y + p.radius * pp.scale + 12);
+
+        // Mother Planet Conveyor Belts & Ray Receivers
+        if (p.isMother) {
+          // Conveyor belt ring around planet
+          ctx.strokeStyle = 'rgba(56, 189, 248, 0.4)';
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.arc(pp.x, pp.y, (p.radius + 14) * pp.scale, 0, Math.PI * 2);
+          ctx.stroke();
+
+          // Flowing mineral cubes on conveyor
+          const t = performance.now() * 0.003;
+          for (let k = 0; k < 6; k++) {
+            const ca = t + (k / 6) * Math.PI * 2;
+            const cxk = pp.x + Math.cos(ca) * (p.radius + 14) * pp.scale;
+            const cyk = pp.y + Math.sin(ca) * (p.radius + 14) * pp.scale;
+            ctx.fillStyle = (k % 2 === 0 ? '#38bdf8' : '#f59e0b');
+            ctx.fillRect(cxk - 2, cyk - 2, 4, 4);
+          }
+
+          // Ray Receiver absorption beam to star
+          ctx.strokeStyle = 'rgba(56, 189, 248, 0.25)';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(pp.x, pp.y);
+          ctx.lineTo(starProj.x, starProj.y);
+          ctx.stroke();
+        }
+      }
+
+      // 5. Rockets In Flight
+      for (const r of this.rockets) {
+        const mother = this.planets[0];
+        const mx = Math.cos(mother.angle) * mother.dist;
+        const mz = Math.sin(mother.angle) * mother.dist;
+        const currX = mx + (r.targetNode.x - mx) * r.progress;
+        const currY = (r.targetNode.y) * r.progress;
+        const currZ = mz + (r.targetNode.z - mz) * r.progress;
+        const rp = this.project3D(currX, currY, currZ, cx, cy);
+
+        ctx.fillStyle = '#ef4444';
+        ctx.beginPath();
+        ctx.arc(rp.x, rp.y, 3 * rp.scale, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Smoke / thrust trail
+        ctx.strokeStyle = '#f59e0b';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(rp.x, rp.y);
+        ctx.lineTo(rp.x - 10, rp.y + 10);
+        ctx.stroke();
+      }
+    }
+  }
+
+  window.DysonSphereProgram = new DysonSphereGame();
 
 })();
 </script>
