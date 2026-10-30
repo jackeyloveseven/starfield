@@ -1,11 +1,11 @@
 {
-  "version": "1.17.2",
-  "build": 145,
-  "updated_at": "2026-10-29T19:05:00+08:00",
+  "version": "1.17.4",
+  "build": 147,
+  "updated_at": "2026-10-30T00:10:00+08:00",
   "min_native_version": "1.0.0",
-  "title": "四月是你的谎言原声圣桑Op.28完整版、8轨全量点播台与3D星象塔罗双面翻转典藏",
-  "changelog": "1. 候鸟星海点播台集结第8轨《四月是你的谎言》第4话《圣·桑：引子与回旋随想曲 Op.28》完整版（篠原悠那×河地恵理子 9分15秒 殿堂级原声现场，全量内置高保真双声道音频流）；2. Jukebox 全面扩展为 8 首典藏配乐（含 Better Call Saul 与四月是你的谎言双主题限定高亮）；3. 3D 天象塔罗卡牌翻转动效深度重构，纯正 CSS 3D 双面翻转（背面星象罗盘观测档案徽印、物理多维测绘参数、典藏自命名金印）；4. 全息光栅反光着色器支持指针/触控 3D 悬浮视差光泽；5. 键盘快捷键支持快捷切歌（[N]下一首、[B]上一首、[M]静音切换），巡天声呐 HUD 脉冲粒子动效升级。",
+  "title": "镜头与星球自转世界坐标系完全正交解耦、卡冈图雅物理相对论多普勒左侧蓝移射束与光子外环重构典藏",
+  "changelog": "1. 镜头旋转与星球自转世界空间完全正交解耦：修复非正交剪切基向量导致的偏航欠旋转失真，使 LivingPlanetEngine 3D 行星、多层光环及深海巨鲸等生态严格锚定世界独立自转轴，彻底消除视角转动带偏行星的耦合现象；2. 卡冈图雅黑洞物理级相对论打磨：修正吸积盘开普勒轨道多普勒射束相位（使用正确的视线速度分量精确呈现左侧朝向观测者接近的高温蓝移高能亮斑与右侧远离的深红暗斑）；将次级李雅普诺夫光子环移至视界阴影外侧焦散区；重构吸积盘 3D 姿态投影法向量映射；3. 解决星环与行星环影旋转角度符号偏差与极性颠倒问题；4. 消除 Three.js 材质冗余 flatShading 告警；完整同步 Web 端与 Android 端资源并确保全量测试套件 0 报错通过。",
   "entry": "starfield.html",
   "download_url": "https://jackeyloveseven.github.io/starfield/starfield.html",
-  "apk_release_url": "https://github.com/jackeyloveseven/starfield/releases/tag/v1.17.2-focus-apk"
+  "apk_release_url": "https://github.com/jackeyloveseven/starfield/releases/tag/v1.17.4-focus-apk"
 }

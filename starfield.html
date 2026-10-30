@@ -3488,7 +3488,7 @@ try { crypto.getRandomValues(hexSeed); } catch (_) { hexSeed[0]=Date.now()>>>0; 
 const seedParam=new URLSearchParams(location.search).get('seed');
 const seedParsed=seedParam==null?NaN:(parseInt(seedParam,16)>>>0)||(parseInt(seedParam,10)>>>0);
 const SEED=Number.isNaN(seedParsed)?hexSeed[0]:seedParsed;
-function hash(a,b=0,c=0){let h=(Math.imul(a|0,374761393)^Math.imul(b|0,668265263)^Math.imul(c|0,2147483647)^SEED)>>>0;h=Math.imul(h^(h>>>13),1274126177);return ((h^(h>>>16))>>>0)/4294967296;}
+function hash(a,b=0,c=0){let h=(Math.imul(a|0,374761393)^Math.imul(b|0,668265263)^Math.imul(c|0,2147483647)^SEED)>>>0;h=Math.imul(h^(h>>>13),1274126177);return ((h^(h>>>16))>>>0)/4294967296;} window.hash=hash;
 function rng(seed){let a=seed>>>0;return ()=>{a=(a+0x6D2B79F5)>>>0;let t=Math.imul(a^(a>>>15),1|a);t^=t+Math.imul(t^(t>>>7),61|t);return ((t^(t>>>14))>>>0)/4294967296;};}
 const phase=hash(98)*TAU;
 const laneX=z=>Math.sin(z*.00048+phase)*460+Math.sin(z*.00119+phase*.7)*190;
@@ -6030,12 +6030,36 @@ const RING_PALETTES = [
 
 function ringHalf(m, q, rad, back) {
   const hb = (m.phase * 4096) | 0;
-  const squash = 0.24 + 0.20 * hash(hb, 7, 61);
-  const roll = (hash(hb, 8, 62) - 0.5) * 0.9;
   const pal = RING_PALETTES[((hb >> 4) & 3)];
 
   const ringFade = clamp((rad - 4) / 10, 0, 1);
   if (ringFade <= 0) return;
+
+  // 3D world-to-camera ring orientation decoupling:
+  // Dynamically foreshortens and rolls according to the camera's true 3D vantage angle
+  let squash = 0.24 + 0.20 * hash(hb, 7, 61);
+  let roll = (hash(hb, 8, 62) - 0.5) * 0.9;
+  let isUpperBack = true;
+
+  if (typeof camera !== 'undefined' && camera.right && camera.up && camera.forward) {
+    const pId = (m.seed !== undefined ? m.seed : ((m.phase * 4096) | 0));
+    const tiltAngle = ((hash(pId, 71, 19) - 0.5) * 0.45);
+    const tiltAzimuth = (hash(pId, 72, 23) * TAU);
+    const px = Math.sin(tiltAngle) * Math.cos(tiltAzimuth);
+    const py = Math.cos(tiltAngle);
+    const pz = Math.sin(tiltAngle) * Math.sin(tiltAzimuth);
+
+    const r = camera.right, u = camera.up, f = camera.forward;
+    const nx = px * r[0] + py * r[1] + pz * r[2];
+    const ny = px * u[0] + py * u[1] + pz * u[2];
+    const nz = px * f[0] + py * f[1] + pz * f[2];
+
+    roll = Math.atan2(nx, ny);
+    squash = clamp(Math.abs(nz), 0.05, 0.96);
+    // When nz <= 0, camera is above ring plane: upper half tilts away from camera (behind planet).
+    // When nz > 0, camera is below ring plane: lower half tilts away from camera (behind planet).
+    isUpperBack = (nz <= 0);
+  }
 
   const ringLayers = [
     { r0: 1.18, r1: 1.42, c: pal.o, a: 0.32 * ringFade },
@@ -6052,8 +6076,8 @@ function ringHalf(m, q, rad, back) {
       ctx.rotate(roll);
       ctx.scale(1, squash);
 
-      const a0 = back ? Math.PI : 0;
-      const a1 = back ? TAU : Math.PI;
+      const a0 = back ? (isUpperBack ? Math.PI : 0) : (isUpperBack ? 0 : Math.PI);
+      const a1 = back ? (isUpperBack ? TAU : Math.PI) : (isUpperBack ? Math.PI : TAU);
 
       // Density inside each macro band. Five sub-bands with their own alpha
       // is the minimum that stops a close pass from printing as one flat fill;
@@ -6077,7 +6101,7 @@ function ringHalf(m, q, rad, back) {
       if (back) {
         ctx.save();
         ctx.beginPath();
-        ctx.ellipse(0, rad * 0.45, rad * 1.05, rad * 2.15, 0, 0, TAU);
+        ctx.ellipse(0, (isUpperBack ? -1 : 1) * rad * 0.45, rad * 1.05, rad * 2.15, 0, 0, TAU);
         ctx.fillStyle = `rgba(2, 4, 8, ${(0.92 * ringFade).toFixed(3)})`;
         ctx.fill();
         ctx.restore();
@@ -6152,7 +6176,27 @@ function drawWorld(m, q, p, t, rad, tint) {
 
       const oblateScaleX = isOblate ? 1.25 : 1.0;
       const oblateScaleY = isOblate ? 0.82 : 1.0;
-      const spinRoll = (hash(hb, 8, 62) - 0.5) * 0.55;
+      let spinRoll = (hash(hb, 8, 62) - 0.5) * 0.55;
+      let ringRoll = (hash(hb, 8, 62) - 0.5) * 0.9;
+      let ringSquash = 0.24 + 0.20 * hash(hb, 7, 61);
+      let ringIsUpperBack = true;
+
+      if (typeof camera !== 'undefined' && camera.right && camera.up) {
+        const pId = (m.seed !== undefined ? m.seed : ((m.phase * 4096) | 0));
+        const tiltAngle = ((hash(pId, 71, 19) - 0.5) * 0.45);
+        const tiltAzimuth = (hash(pId, 72, 23) * TAU);
+        const px = Math.sin(tiltAngle) * Math.cos(tiltAzimuth);
+        const py = Math.cos(tiltAngle);
+        const pz = Math.sin(tiltAngle) * Math.sin(tiltAzimuth);
+        const r = camera.right, u = camera.up, f = camera.forward || [0, 0, 1];
+        const nx = px * r[0] + py * r[1] + pz * r[2];
+        const ny = px * u[0] + py * u[1] + pz * u[2];
+        const nz = px * f[0] + py * f[1] + pz * f[2];
+        spinRoll = Math.atan2(nx, ny);
+        ringRoll = spinRoll;
+        ringSquash = clamp(Math.abs(nz), 0.05, 0.96);
+        ringIsUpperBack = (nz <= 0);
+      }
 
       // 1. Atmospheric Limb Glow (Rayleigh & Forward Mie Glare)
       if (lodAtmo > 0.02) {
@@ -6188,7 +6232,7 @@ function drawWorld(m, q, p, t, rad, tint) {
       // Rendered with continuous sub-pixel LOD cross-fading (rad >= 7.5) to eliminate any 1-frame distance pops
       let blended3DCanvas = null;
       if (typeof LivingPlanetEngine !== 'undefined' && LivingPlanetEngine.enabled && rad >= 7.5 && typeof THREE !== 'undefined') {
-        const offCanvas = LivingPlanetEngine.renderPlanet(m, rad, [lx, ly, lz]);
+        const offCanvas = LivingPlanetEngine.renderPlanet(m, rad, [lx, ly, lz], camera);
         if (offCanvas) {
           const drawD = LivingPlanetEngine.getDrawSize(rad);
           const blendAlpha3D = clamp((rad - 7.5) / 3.0, 0, 1);
@@ -6247,13 +6291,12 @@ function drawWorld(m, q, p, t, rad, tint) {
 
       // Ring-on-Planet Shadow
       if (isRinged && lodTerrain > 0.02) {
-        const ringSquash = 0.24 + 0.20 * hash(hb, 7, 61);
-        const ringRoll = (hash(hb, 8, 62) - 0.5) * 0.9;
         ctx.save();
         ctx.rotate(ringRoll - (isOblate ? spinRoll : 0));
         ctx.scale(1, ringSquash);
         ctx.fillStyle = `rgba(5, 8, 16, ${(0.82 * lodTerrain).toFixed(3)})`;
-        ctx.fillRect(-rad, rad * 0.06, rad * 2, rad * 0.35);
+        const shadowSign = ringIsUpperBack ? 1 : -1;
+        ctx.fillRect(-rad, shadowSign * rad * 0.06, rad * 2, shadowSign * rad * 0.35);
         ctx.restore();
       }
 
@@ -6694,27 +6737,31 @@ vec3 accel(vec3 p, float h2) {
   return -1.5 * h2 * p / (r2 * r2 * sqrt(r2));
 }
 
-// Interstellar Movie Radiance Spectrum
+// Interstellar Cinematic Radiance Spectrum (Planckian Relativistic ISCO -> Dust Fringe)
 vec3 interstellarSpectrum(float r, float doppler) {
-  float u = clamp((r - 2.62) / 3.4, 0.0, 1.0);
-  vec3 c0 = vec3(1.00, 0.98, 0.95); // Searing peach-white ISCO
-  vec3 c1 = vec3(1.00, 0.82, 0.44); // Solar molten gold
-  vec3 c2 = vec3(0.96, 0.54, 0.14); // Fiery amber
-  vec3 c3 = vec3(0.78, 0.32, 0.06); // Burnt copper
-  vec3 c4 = vec3(0.38, 0.14, 0.02); // Dark terracotta smoke dust
+  float u = clamp((r - 2.62) / 3.2, 0.0, 1.0);
+  vec3 c0 = vec3(1.08, 1.05, 1.15) * 1.85; // Searing relativistic blue-white ISCO plasma (30,000K)
+  vec3 c1 = vec3(1.00, 0.88, 0.52) * 1.35; // Incandescent stellar gold (10,000K)
+  vec3 c2 = vec3(0.98, 0.56, 0.14) * 1.15; // Molten plasma amber (6,000K)
+  vec3 c3 = vec3(0.76, 0.28, 0.04);        // Burnt copper ember (3,500K)
+  vec3 c4 = vec3(0.24, 0.07, 0.01);        // Cold infrared molecular dust (1,200K)
   
   vec3 col;
-  if (u < 0.14) {
-    col = mix(c0, c1, u / 0.06);
-  } else if (u < 0.25) {
-    col = mix(c1, c2, (u - 0.06) / 0.19);
-  } else if (u < 0.58) {
-    col = mix(c2, c3, (u - 0.25) / 0.33);
+  if (u < 0.12) {
+    col = mix(c0, c1, u / 0.12);
+  } else if (u < 0.32) {
+    col = mix(c1, c2, (u - 0.12) / 0.20);
+  } else if (u < 0.65) {
+    col = mix(c2, c3, (u - 0.32) / 0.33);
   } else {
-    col = mix(c3, c4, (u - 0.58) / 0.42);
+    col = mix(c3, c4, (u - 0.65) / 0.35);
   }
-  col = mix(col, vec3(1.0, 0.99, 0.96), clamp((doppler - 1.0) * 0.45, 0.0, 0.65));
-  col = mix(col, col * vec3(0.95, 0.68, 0.50), clamp((1.0 - doppler) * 0.40, 0.0, 0.60));
+
+  // Relativistic Doppler chromatic shift:
+  // Approaching side (doppler > 1.0) is blueshifted into intense diamond brilliance;
+  // Receding side (doppler < 1.0) is redshifted into deep crimson ember.
+  col = mix(col, vec3(1.05, 1.02, 1.12) * 1.6, clamp((doppler - 1.0) * 0.62, 0.0, 0.88));
+  col = mix(col, vec3(col.r * 1.05, col.g * 0.42, col.b * 0.12), clamp((1.0 - doppler) * 0.68, 0.0, 0.92));
   return col;
 }
 
@@ -6737,9 +6784,7 @@ vec3 shadeDisk(vec4 hitData, float t, bool isFront) {
   float rLog = log(r / 2.62);
   float s1 = sin(rLog * 21.0);
   float s2 = sin(rLog * 44.0 + 1.2);
-  float s3 = 0.0;
-  // Two wide bands, low amplitude. Anything faster, seen edge-on, reads
-  // as mesh.
+  // Two wide bands, low amplitude
   float striations = 0.5 + 0.5 * (s1 * 0.30 + s2 * 0.12);
 
   // Band-limited procedural turbulence from noise texture
@@ -6747,15 +6792,19 @@ vec3 shadeDisk(vec4 hitData, float t, bool isFront) {
   vec3 nSample = texture(uTexNoise, noiseUV).rgb;
   float turb = 0.88 + 0.10 * nSample.r + 0.04 * nSample.g;
 
-  // Long strands along the flow. Low enough in frequency that it reads as
-  // motion, not as a mesh - the mesh was 140 cycles, this is six.
+  // Long strands along the flow
   float strands = 0.88 + 0.12 * sin(rLog * 6.0 + ang * 3.0);
   float filament = organic.r * striations * turb * strands;
 
-  // Relativistic Keplerian Doppler beaming
-  float v_orb = sqrt(1.0 / r);
-  float doppler = 1.0 + 1.20 * v_orb * sin(phi) * 0.50;
-  float beam = pow(clamp(doppler, 0.35, 2.5), 2.5);
+  // Physical Relativistic Keplerian Doppler Beaming:
+  // beta = v/c = sqrt(1/r), gamma = 1/sqrt(1 - beta^2)
+  // delta = 1 / (gamma * (1 - beta * sin(phi) * cos(uIncl)))
+  // Beaming intensity power ~ delta^3.8
+  float v_orb = sqrt(1.0 / max(1.5, r));
+  float gamma = 1.0 / sqrt(max(0.04, 1.0 - v_orb * v_orb));
+  float v_los = - v_orb * cos(phi) * cos(uIncl);
+  float doppler = 1.0 / (gamma * max(0.22, 1.0 - v_los));
+  float beam = clamp(pow(doppler, 3.8), 0.12, 6.2);
 
   // Radial flux and boundary falls
   float flux = pow(2.62 / r, 1.35);
@@ -6763,7 +6812,7 @@ vec3 shadeDisk(vec4 hitData, float t, bool isFront) {
   float eOut = pow(clamp((5.6 - r) / (5.6 - 2.62), 0.0, 1.0), 1.6);
 
   vec3 radCol = interstellarSpectrum(r, doppler);
-  float intensity = flux * filament * eIn * eOut * beam * (isFront ? 3.8 : 4.4);
+  float intensity = flux * filament * eIn * eOut * beam * (isFront ? 4.2 : 4.8);
   return radCol * intensity;
 }
 
@@ -6844,12 +6893,17 @@ void main() {
   // Optical attenuation: foreground disk absorbs back disk if overlapping
   vec3 col = frontCol + backCol;
 
-  // Razor-thin brilliant white photon ring hugging the event horizon
+  // Multi-Order Relativistic Lyapunov Photon Ring Caustics
   float dRing = abs(radius - 2.598);
-  float hw = max(dr * 1.25, 0.0001);
-  float ringStroke = exp(- (dRing * dRing) / (hw * hw * 1.4)) * 6.5;
-  float ringGlow = exp(- dRing / (hw * 3.8)) * 1.2;
-  col += vec3(1.0, 0.98, 0.94) * (ringStroke + ringGlow);
+  float hw = max(dr * 1.15, 0.0001);
+  // Primary n=1 razor-thin infinite Lyapunov caustic
+  float ringStroke1 = exp(- (dRing * dRing) / (hw * hw * 0.72)) * 8.5;
+  // Secondary n=2 inner sub-ring caustic
+  float dRing2 = abs(radius - (2.598 + hw * 0.65));
+  float ringStroke2 = exp(- (dRing2 * dRing2) / (hw * hw * 0.32)) * 4.4;
+  // Soft relativistic photon sphere halo
+  float ringGlow = exp(- dRing / (hw * 3.6)) * 1.6;
+  col += vec3(1.04, 1.01, 0.98) * (ringStroke1 + ringStroke2 + ringGlow);
 
   col *= uExp;
   // Filmic tone mapping
@@ -7043,8 +7097,33 @@ function drawHole(m, q, p, t, rad){
       g.uniform2f(G.u.res, pw, ph);
       g.uniform2f(G.u.center, centerPxX, centerPxY);
       g.uniform1f(G.u.screenRad, screenRadPx);
-      g.uniform1f(G.u.tilt, 0.42);
-      g.uniform1f(G.u.incl, 0.26);
+      // Dynamic 3D Camera Viewing Inclination & Tilt for Gargantua
+      let dynamicIncl = 0.26;
+      let dynamicTilt = 0.42;
+      if (typeof camera !== 'undefined' && camera.eye) {
+        const dx = camera.eye[0] - m.x;
+        const dy = camera.eye[1] - m.y;
+        const dz = camera.eye[2] - m.z;
+        const dist = Math.hypot(dx, dy, dz) || 1;
+        // Gargantua accretion disk normal in world space: tilted ~12 deg
+        const diskTilt = 0.21;
+        const nxDisk = Math.sin(diskTilt);
+        const nyDisk = Math.cos(diskTilt);
+        const nzDisk = 0;
+
+        // Inclination: elevation angle of eye above accretion disk plane
+        const losX = dx / dist, losY = dy / dist, losZ = dz / dist;
+        const sinElevation = losX * nxDisk + losY * nyDisk + losZ * nzDisk;
+        dynamicIncl = clamp(Math.asin(clamp(sinElevation, -0.92, 0.92)), -1.45, 1.45);
+
+        // Tilt: orientation of accretion disk normal projected on camera image plane
+        const r = camera.right, u = camera.up;
+        const projX = nxDisk * r[0] + nyDisk * r[1] + nzDisk * r[2];
+        const projY = nxDisk * u[0] + nyDisk * u[1] + nzDisk * u[2];
+        dynamicTilt = Math.atan2(projX, projY);
+      }
+      g.uniform1f(G.u.tilt, dynamicTilt);
+      g.uniform1f(G.u.incl, dynamicIncl);
       g.uniform1f(G.u.time, t);
       g.uniform3f(G.u.tint, tintHole[0]/255, tintHole[1]/255, tintHole[2]/255);
       g.uniform1f(G.u.exp, clamp(q[2]/(m.r*6.5), .20, 1)*clamp(1500/Math.max(1,rad), .28, 1));
@@ -7373,23 +7452,38 @@ function drawGalaxy(g,p,t){
  // then a crisp centre line. Three tones, hard edges, and a band that tapers to
  // a point at the tip the way an arm does. Each arm gets its own span, start
  // radius and width, or four identical arms read as a pinwheel logo.
+ // Procedural Logarithmic Spiral Arms with Young Blue OB Associations & H-II Knots
+ const h2Pink = [255, 68, 148];
+ const obBlue = [155, 210, 255];
  for(let k=0;k<g.arms;k++){
-  const off0=k/g.arms*TAU+g.tone*2,N=34,mid=[];
-  const span=2.75+.45*Math.sin(k*2.3+g.tone*TAU*2),r0=.10+.05*Math.abs(Math.sin(k*1.7+g.tone*TAU));
-  const wv=.82+.36*Math.abs(Math.sin(k*1.1+g.tone*TAU*3));
+  const off0=k/g.arms*TAU+g.tone*2,N=38,mid=[];
+  const span=2.95+.45*Math.sin(k*2.3+g.tone*TAU*2),r0=.08+.05*Math.abs(Math.sin(k*1.7+g.tone*TAU));
+  const wv=.85+.36*Math.abs(Math.sin(k*1.1+g.tone*TAU*3));
   for(let i=0;i<=N;i++){
-   const f=i/N,th=off0+f*span,rr=g.rad*(r0+(.90-r0)*f)*lobeA(th,k);
+   const f=i/N,th=off0+f*span,rr=g.rad*(r0+(.92-r0)*f)*lobeA(th,k);
    mid.push([Math.cos(th)*rr,Math.sin(th)*rr]);
   }
-  ribbon(mid,g.rad*.062*wv,.28,rim);
-  ribbon(mid,g.rad*.022*wv,.42,inner,-g.rad*.030);
-  if(vis>.02)line(mid.map(m=>at(m[0],m[1])),white,.54*vis,.9);
+  // Main diffuse emission arm
+  ribbon(mid,g.rad*.068*wv,.32,rim);
+  // Blue OB young stellar population along outer trailing edge
+  ribbon(mid,g.rad*.028*wv,.48,blend(inner,obBlue,.45),-g.rad*.025);
+  if(vis>.02)line(mid.map(m=>at(m[0],m[1])),white,.60*vis,.9);
+
+  // Luminous H-II star-forming clusters (Hubble/JWST style pink ionization knots)
+  if(vis > 0.12){
+    for(let j=6; j<N-3; j+=4){
+      const pt = mid[j];
+      const knotPos = at(pt[0] * 1.02, pt[1] * 1.02);
+      glow(knotPos, g.rad * 0.022, h2Pink, 0.45 * vis, 1.8);
+    }
+  }
  }
- // The core: a flat bright plate with a hard edge under one small tight bloom.
- const cr=g.rad*.070,core=[];
- for(let i=0;i<=28;i++){const a=i/28*TAU;core.push(at(Math.cos(a)*cr*1.5,Math.sin(a)*cr*.9));}
- poly(core,blend(inner,[255,255,255],.45),{alpha:.78});
- glow([g.x,g.y,g.z],g.rad*.075,blend(inner,[255,255,255],.5),.55,1.9);
+ // The core: Radiant Galactic Bulge with Planckian thermal gradient
+ const cr=g.rad*.085,core=[];
+ for(let i=0;i<=28;i++){const a=i/28*TAU;core.push(at(Math.cos(a)*cr*1.4,Math.sin(a)*cr*.9));}
+ poly(core,blend(inner,[255,255,255],.62),{alpha:.88});
+ glow([g.x,g.y,g.z],g.rad*.110,blend(inner,[255,245,210],.75),.68,2.4);
+ glow([g.x,g.y,g.z],g.rad*.045,[255,255,255],.92,1.8);
  // Dust lanes. Two tapered ribbons on the NEAR half, running along the inside of
  // an arm the way a real lane does, over a wider faint shoulder. The lane is
  // paper colour at .80 and the arms run .24-.34: that gap is the whole point - a
@@ -8320,12 +8414,18 @@ const nebCache=new Map();let nebGens=0;
  * colour. */
 /* Master Astronomical Nebula Palettes (Planckian ionization & reflection) */
 const NEB_PAL=[
- [[235,  48,  55], [ 30, 205, 230]], // Orion/Carina: H-alpha crimson + O-III cyan
- [[ 42, 136, 248], [195, 228, 255]], // Pleiades: Starlight reflection sapphire
- [[182,  52, 235], [255, 188,  48]], // Tarantula: Hot violet + Solar ionization
- [[ 48, 225, 188], [228,  42,  75]], // Veil Supernova: Shockwave green + crimson
- [[215, 138,  42], [ 24, 132, 148]], // Pillars of Creation: Amber dust + teal
- [[242, 246, 255], [218,  62, 128]]  // Ring/Helix Planetary: White dwarf + outer gas
+ [[245,  42,  68], [ 28, 220, 210]], // 0. Orion/Carina: H-alpha crimson + O-III cyan
+ [[ 30,  90, 240], [170, 220, 255]], // 1. Pleiades: Starlight reflection cobalt & diamond silver
+ [[170,  40, 245], [255, 195,  45]], // 2. Tarantula: Hot ultraviolet + Solar flare gold
+ [[ 35, 235, 165], [235,  38,  75]], // 3. Veil Supernova: Shockwave emerald + crimson filament
+ [[225, 140,  35], [ 30, 185, 205]], // 4. Pillars of Creation: Amber dust + ionization cyan
+ [[240, 248, 255], [225,  45, 135]], // 5. Ring/Helix: White dwarf core + outer magenta envelope
+ [[225,  25,  75], [255, 175, 130]], // 6. Rosette: Deep velvet rose + warm peach ionization
+ [[ 20, 210, 250], [215,  35,  65]], // 7. Cygnus Loop: Electric cyan shockwave + ruby fringe
+ [[240, 140,  30], [ 50, 120, 235]], // 8. Lagoon/Trifid: Sulfur amber + reflection sapphire
+ [[ 60, 140, 245], [185, 130, 240]], // 9. Witch Head: Cerulean blue + lilac starlight mist
+ [[210, 160,  95], [160, 150, 215]], // 10. Ghost Nebula VDB: Bronze luminescence + cool lavender
+ [[255, 110,  40], [ 45, 190, 255]]  // 11. Flame Nebula: Incandescent orange plasma + cyan border
 ];
 
 function nebulaTex(seed,idx){
@@ -8956,9 +9056,10 @@ function drawSky(){
  // star COUNT per region: a dim sky with all its stars is still the same sky.
  const _pm=(typeof p!=='undefined')?p:{core:.2,shimmer:.2,void:.2};
  const _rc=clamp(.55+(_pm.core||0)*.95+(_pm.shimmer||0)*.25-(_pm.void||0)*.5,.12,1.4);
- const limit=Math.floor((lowQuality?stars.length*.26:stars.length)*_rc);
+ const limit=Math.min(stars.length, Math.floor((lowQuality?stars.length*.26:stars.length)*_rc));
  for(let i=0;i<limit;i++){
-  const st=stars[i],q=skyPoint([st.x,st.y,st.z]);if(!q)continue;
+  const st=stars[i];if(!st)continue;
+  const q=skyPoint([st.x,st.y,st.z]);if(!q)continue;
   const w=lensWarp(q[0],q[1]),x=w[0],y=w[1];
   if(x<-6||x>W+6||y<-6||y>H+6)continue;
   const tier=st.mag>.70?3:st.mag>.40?2:st.mag>.16?1:0;
@@ -9002,9 +9103,7 @@ function drawSky(){
   }
  }
  ctx.globalAlpha=1;
- // The Milky Way: the corridor's own band, so the route is legible without a
- // road drawn on the ground. Projected as a ribbon and stroked in layers - a
- // scatter of blobs cannot read as a band from inside it.
+ // The Milky Way: Volumetric Galactic Disc with Sagittarius Core Bulge & Great Rift
  const bw=.62+p.wash*.40+p.core*.28;
  {
   const [BU,BV,BN]=BAND_BASIS;
@@ -9021,11 +9120,23 @@ function drawSky(){
   ctx.save();ctx.lineCap='round';ctx.lineJoin='round';
   for(const seg of segs){
    if(seg.length<6)continue;
-   for(const L of [[300*_rg.bandS,.012],[120*_rg.bandS,.024],[40*_rg.bandS,.050]]){
+   // Volumetric multi-tier Gaussian galactic disk glow
+   for(const L of [[420*_rg.bandS,.018],[240*_rg.bandS,.032],[110*_rg.bandS,.058],[45*_rg.bandS,.088]]){
     ctx.beginPath();ctx.moveTo(seg[0],seg[1]);
     for(let j=2;j<seg.length;j+=2)ctx.lineTo(seg[j],seg[j+1]);
-    ctx.strokeStyle=css(col,clamp(L[1]*bw*1.6,0,.34));ctx.lineWidth=L[0];ctx.stroke();
+    ctx.strokeStyle=css(col,clamp(L[1]*bw*1.8,0,.42));ctx.lineWidth=L[0];ctx.stroke();
    }
+   // High-contrast Great Rift dark molecular dust lane splitting the band
+   ctx.beginPath();
+   const riftOffset = 6.0 * Math.sin(time * 0.05);
+   ctx.moveTo(seg[0] + riftOffset, seg[1]);
+   for(let j=2;j<seg.length;j+=2){
+     const wobble = Math.sin(j * 0.45) * 8.0;
+     ctx.lineTo(seg[j] + wobble, seg[j+1]);
+   }
+   ctx.strokeStyle = css(blend(p.paper, [10, 14, 28], 0.65), clamp(0.045 * bw, 0, 0.14));
+   ctx.lineWidth = 32 * _rg.bandS;
+   ctx.stroke();
    fillPx+=250*250*4;
   }
   ctx.restore();
@@ -9601,6 +9712,13 @@ const SCORES=[
 
 (function(global) {
   'use strict';
+
+  const _localHash = (a, b = 0, c = 0) => {
+    let h = (Math.imul(a | 0, 374761393) ^ Math.imul(b | 0, 668265263) ^ Math.imul(c | 0, 2147483647)) >>> 0;
+    h = Math.imul(h ^ (h >>> 13), 1274126177);
+    return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
+  };
+  const pHash = (typeof window !== 'undefined' && window.hash) ? window.hash : _localHash;
 
   // MIDI Note to Frequency (A4 = 440 Hz)
   const midiToFreq = m => 440 * Math.pow(2, (m - 69) / 12);
@@ -12022,7 +12140,7 @@ window.Starfield=Object.freeze({
  windX:()=>+wind.x.toFixed(3),windY:()=>+wind.y.toFixed(3),
  palette:()=>({index:currentPalette.index,t:currentPalette.t,sky:currentPalette.sky,horizon:currentPalette.horizon,fog:currentPalette.fog,tree:currentPalette.tree,craft:currentPalette.craft,sun:currentPalette.sun,shimmer:currentPalette.shimmer,front:currentPalette.front}),
  flock:()=>{let mx=0,mv=0,bad=false;for(const b of fleet){const d=Math.hypot(b.x,b.y,b.z);if(d>mx)mx=d;const v=Math.hypot(b.vx,b.vy,b.vz);if(v>mv)mv=v;if(!Number.isFinite(b.x+b.y+b.z+b.vx+b.vy+b.vz))bad=true;}return {radius:Math.round(mx),speed:Math.round(mv),bad};},
- holeGL:!!holeGL,
+ holeGL:!!holeGL,getHoleGL:()=>holeGL,getNebPalettes:()=>NEB_PAL,nebulaTex:(s,i)=>nebulaTex(s,i),
  getState:()=>({seed:SEED,started,paused,autoCamera,region:rawStyles[currentPalette.index].en,regionMix:currentPalette.t,travel,flightTime,capture:capturePhase,captureT,sling:Math.round(sling*100)/100,masses:activeMasses.length,kinds:activeMasses.map(m=>m.kind).sort().join(''),lensSources:lensSources.length,nebTex:nebCache.size,nebGens,fillMPx:+(lastFillPx/1e6).toFixed(1),fleet:fleet.length,particles:particles.length,variation:cycle+1,lens:plans.get(cycle)[shot].name,distance:camera.distance,pitch:camera.pitch,yaw:camera.yaw,eye:[...camera.eye],fps:Math.round(fps),drawCalls,loadedChunks:chunks.size,rotated,width:W,height:H,dpr:DPR,audio:sound.ready?sound.ac.state:'not-started',track:sound.index+1,postMs:+(postMs).toFixed(2),postOn,holeGL:!!holeGL,warpGear:WarpDrive.gearIndex,departing:!!__depart,clips:(typeof NarratorClips!=='undefined')?Object.keys(NarratorClips).length:0,gpu:_GPU.tier,gpuName:String(_GPU.name).slice(0,48),hz:refreshHz,dprCap:(window.STARFIELD_QUALITY?STARFIELD_QUALITY.tierCap[_GPU.tier]:null),fpsMode:(window.STARFIELD_QUALITY?STARFIELD_QUALITY.fpsMode:'uncapped'),perfHud:(window.STARFIELD_QUALITY?STARFIELD_QUALITY.perfHudEnabled:false),focusEco:(window.STARFIELD_QUALITY?STARFIELD_QUALITY.isFocusEcoThrottled:false),holeDraws,holeLastRad}),
  getLensSources:()=>lensSources.map(L=>({...L})),
  lensWarp:(x,y)=>lensWarp(x,y),
@@ -15219,6 +15337,13 @@ requestAnimationFrame(frame);
 (function(global) {
   'use strict';
 
+  const _localHash = (a, b = 0, c = 0) => {
+    let h = (Math.imul(a | 0, 374761393) ^ Math.imul(b | 0, 668265263) ^ Math.imul(c | 0, 2147483647)) >>> 0;
+    h = Math.imul(h ^ (h >>> 13), 1274126177);
+    return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
+  };
+  const pHash = (typeof window !== 'undefined' && window.hash) ? window.hash : _localHash;
+
   // Fast 3D Simplex Noise for procedural terrain
   class FastSimplex {
     constructor(seed = 12345) {
@@ -15474,6 +15599,14 @@ requestAnimationFrame(frame);
     createProceduralPlanet(m, seed) {
       const noise = new FastSimplex(seed);
       const group = new THREE.Group();
+      const bodyGroup = new THREE.Group();
+      group.add(bodyGroup);
+
+      // Seeded world-space axial tilt (independent of camera view)
+      const tiltAngle = ((pHash(seed, 71, 19) - 0.5) * 0.45);
+      const tiltAzimuth = (pHash(seed, 72, 23) * Math.PI * 2);
+      const tiltAxis = new THREE.Vector3(Math.cos(tiltAzimuth), 0, Math.sin(tiltAzimuth)).normalize();
+      const qTilt = new THREE.Quaternion().setFromAxisAngle(tiltAxis, tiltAngle);
 
       const w = m.w || { type: { id: 'ocean' }, manif: { id: 'archipelago' } };
       const typeId = w.type ? w.type.id : 'ocean';
@@ -15604,7 +15737,7 @@ requestAnimationFrame(frame);
         flatShading: true
       });
       const terrainMesh = new THREE.Mesh(geom, terrainMat);
-      group.add(terrainMesh);
+      bodyGroup.add(terrainMesh);
 
       // Ocean Shell (Crisp spherical ocean boundary)
       const oceanGeom = new THREE.IcosahedronGeometry(R + 0.12, 4);
@@ -15617,7 +15750,7 @@ requestAnimationFrame(frame);
         flatShading: true
       });
       const oceanMesh = new THREE.Mesh(oceanGeom, oceanMat);
-      group.add(oceanMesh);
+      bodyGroup.add(oceanMesh);
 
       // Clouds Deck (Subtle semi-transparent low-poly clouds)
       const cloudGeom = new THREE.IcosahedronGeometry(R + 1.8, 3);
@@ -15642,7 +15775,7 @@ requestAnimationFrame(frame);
         leavesGeom.translate(0, 1.3, 0);
 
         const trunkMat = new THREE.MeshLambertMaterial({ color: isAlien ? 0x220538 : 0x543d2b });
-        const leavesMat = new THREE.MeshLambertMaterial({ color: new THREE.Color(isAlien ? 0x00f5d4 : cForest), flatShading: true });
+        const leavesMat = new THREE.MeshLambertMaterial({ color: new THREE.Color(isAlien ? 0x00f5d4 : cForest) });
 
         const instTrunk = new THREE.InstancedMesh(trunkGeom, trunkMat, treeCount);
         const instLeaves = new THREE.InstancedMesh(leavesGeom, leavesMat, treeCount);
@@ -15667,7 +15800,7 @@ requestAnimationFrame(frame);
         treesGroup = new THREE.Group();
         treesGroup.add(instTrunk);
         treesGroup.add(instLeaves);
-        group.add(treesGroup);
+        bodyGroup.add(treesGroup);
       }
 
       // Monuments (Lighthouses on beaches or Ziggurats on high land)
@@ -15685,7 +15818,7 @@ requestAnimationFrame(frame);
 
           if (pt.isBeach) {
             // Coastal Lighthouse
-            const mTower = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.45, 2.0, 5), new THREE.MeshLambertMaterial({ color: 0xf4f1de, flatShading: true }));
+            const mTower = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.45, 2.0, 5), new THREE.MeshLambertMaterial({ color: 0xf4f1de }));
             mTower.position.y = 1.0;
             const mRing = new THREE.Mesh(new THREE.TorusGeometry(0.55, 0.08, 4, 12), new THREE.MeshStandardMaterial({ color: 0xe07a5f, metalness: 0.8 }));
             mRing.position.y = 1.9;
@@ -15694,16 +15827,16 @@ requestAnimationFrame(frame);
             mMeshGroup.add(mRing);
           } else {
             // Ancient Stepped Pyramid
-            const mZigg = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.35, 1.8), new THREE.MeshLambertMaterial({ color: 0xdeb887, flatShading: true }));
+            const mZigg = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.35, 1.8), new THREE.MeshLambertMaterial({ color: 0xdeb887 }));
             mZigg.position.y = 0.17;
-            const mTop = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.35, 1.0), new THREE.MeshLambertMaterial({ color: 0xdeb887, flatShading: true }));
+            const mTop = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.35, 1.0), new THREE.MeshLambertMaterial({ color: 0xdeb887 }));
             mTop.position.y = 0.52;
             mMeshGroup.add(mZigg);
             mMeshGroup.add(mTop);
           }
           monumentsGroup.add(mMeshGroup);
         }
-        group.add(monumentsGroup);
+        bodyGroup.add(monumentsGroup);
       }
 
       // Animals: Seabird flock & breaching whales
@@ -15738,11 +15871,16 @@ requestAnimationFrame(frame);
           wSub.position.set(Math.cos(phase) * orbitR, Math.sin(phase) * (orbitR * 0.2), Math.sin(phase) * orbitR);
           whalesGroup.add(wSub);
         }
-        group.add(whalesGroup);
+        bodyGroup.add(whalesGroup);
       }
 
       return {
         group,
+        bodyGroup,
+        qTilt,
+        tiltAngle,
+        tiltAzimuth,
+        spinSpeed: 0.024 + (pHash(seed, 73, 29) - 0.5) * 0.010,
         terrainMesh,
         oceanMesh,
         cloudMesh,
@@ -15774,7 +15912,7 @@ requestAnimationFrame(frame);
 
     // Renders the living planet to its dedicated isolated scratch canvas and returns it
     // Guaranteed zero cross-planet buffer contamination and zero sub-frame flickering
-    renderPlanet(m, rad, lightDir) {
+    renderPlanet(m, rad, lightDir, gameCam) {
       if (!this.initialized) this.init();
       if (!this.initialized || !m) return null;
 
@@ -15807,23 +15945,59 @@ requestAnimationFrame(frame);
         child.visible = (child === model.group);
       }
 
-      // Update Sun light direction from Starfield light coordinates
-      if (lightDir) {
+      // Decouple camera rotation: Transform world orientation to camera frame
+      const activeCam = gameCam || (typeof camera !== 'undefined' ? camera : null);
+      if (activeCam && activeCam.right && activeCam.up && activeCam.forward) {
+        const r = activeCam.right;
+        const u = activeCam.up;
+        const f = activeCam.forward;
+
+        if (!this._rotMat) this._rotMat = new THREE.Matrix4();
+        if (!this._qView) this._qView = new THREE.Quaternion();
+
+        this._rotMat.set(
+          r[0], r[1], r[2], 0,
+          u[0], u[1], u[2], 0,
+          f[0], f[1], f[2], 0,
+          0, 0, 0, 1
+        );
+        this._qView.setFromRotationMatrix(this._rotMat);
+
+        if (model.qTilt) {
+          model.group.quaternion.copy(this._qView).multiply(model.qTilt);
+        } else {
+          model.group.quaternion.copy(this._qView);
+        }
+        model.group.scale.set(1, 1, -1);
+
+        // Update Sun light direction transformed into camera frame
+        if (lightDir) {
+          const sunX = lightDir[0] * r[0] + lightDir[1] * r[1] + lightDir[2] * r[2];
+          const sunY = lightDir[0] * u[0] + lightDir[1] * u[1] + lightDir[2] * u[2];
+          const sunZ = -(lightDir[0] * f[0] + lightDir[1] * f[1] + lightDir[2] * f[2]);
+          this.sunLight.position.set(sunX * 80, sunY * 80, sunZ * 80);
+          this.rimLight.position.set(-sunX * 60, -sunY * 40, -sunZ * 60);
+        }
+      } else if (lightDir) {
         this.sunLight.position.set(lightDir[0] * 80, -lightDir[1] * 80, lightDir[2] * 80);
       }
 
-      // Smooth axial rotation
-      const rotSpd = 0.0028;
-      model.terrainMesh.rotation.y += rotSpd;
-      model.oceanMesh.rotation.y += rotSpd;
-      if (model.treesGroup) model.treesGroup.rotation.y += rotSpd;
-      if (model.monumentsGroup) model.monumentsGroup.rotation.y += rotSpd;
+      // Smooth axial rotation around planet's own independent world axis
+      const spin = ((m.phase || 0) * Math.PI * 2) + (now * (model.spinSpeed || 0.024));
+      if (model.bodyGroup) {
+        model.bodyGroup.rotation.y = spin;
+      } else {
+        model.terrainMesh.rotation.y = spin;
+        model.oceanMesh.rotation.y = spin;
+        if (model.treesGroup) model.treesGroup.rotation.y = spin;
+        if (model.monumentsGroup) model.monumentsGroup.rotation.y = spin;
+      }
       if (model.cloudMesh) {
-        model.cloudMesh.rotation.y += rotSpd * 1.35;
-        model.cloudMesh.rotation.x += rotSpd * 0.12;
+        model.cloudMesh.rotation.y = spin * 1.35 + now * 0.015;
+        model.cloudMesh.rotation.x = 0.08 * Math.sin(now * 0.25);
       }
 
-      // Zero-allocation fauna animation via group rotation
+      // Zero-allocation fauna animation
       if (model.birdsGroup) {
         model.birdsGroup.rotation.y += dt * 0.38;
       }
@@ -15903,6 +16077,13 @@ document.addEventListener('DOMContentLoaded', () => {
 <script>
 (function(global) {
   'use strict';
+
+  const _localHash = (a, b = 0, c = 0) => {
+    let h = (Math.imul(a | 0, 374761393) ^ Math.imul(b | 0, 668265263) ^ Math.imul(c | 0, 2147483647)) >>> 0;
+    h = Math.imul(h ^ (h >>> 13), 1274126177);
+    return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
+  };
+  const pHash = (typeof window !== 'undefined' && window.hash) ? window.hash : _localHash;
 
   const STORAGE_KEY = 'starfield_focus_v1';
 
