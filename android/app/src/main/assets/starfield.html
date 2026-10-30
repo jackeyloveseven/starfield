@@ -18984,6 +18984,14 @@ canvas.sf-planet-canvas {
   user-select: none;
   overflow: hidden;
 }
+.sf-expansion-overlay canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  touch-action: none;
+}
 .sf-expansion-overlay.active {
   display: block;
 }
@@ -19681,6 +19689,10 @@ canvas.sf-planet-canvas {
     <!-- RTS Build & Produce Sidebar -->
     <div class="sf-ra-sidebar">
       <div class="sf-ra-tab-head">基地建造 (BUILD)</div>
+      <button class="sf-ra-build-btn" id="sf-ra-btn-bld-hq" style="display:none; border-color:#38bdf8; background:rgba(56,189,248,0.15);">
+        <div class="title"><span>重建指挥所</span> <span class="cost">$1000</span></div>
+        <div class="desc">部署全新前哨基地指挥中心</div>
+      </button>
       <button class="sf-ra-build-btn" id="sf-ra-btn-bld-power">
         <div class="title"><span>聚变电厂</span> <span class="cost">$300</span></div>
         <div class="desc">+120MW 电力输出</div>
@@ -19746,7 +19758,7 @@ canvas.sf-planet-canvas {
       </div>
 
       <div style="font-size:10px; color:#94a3b8; background:rgba(10,16,28,0.8); padding:5px 10px; border-radius:8px;">
-        🖱️ 左键框选/点击选择战舰 | 右键/轻触地面移动或攻击敌军
+        🖱️ 左键框选/点击选择 | 右键/轻触地面移动集火 | 中键/拖拽/WASD平移战区 | 滚轮缩放
       </div>
     </div>
   </div>
@@ -19773,6 +19785,10 @@ canvas.sf-planet-canvas {
         </div>
         <div class="sf-dsp-bar-wrap">
           <div class="sf-dsp-bar-fill" id="sf-dsp-node-progress-fill" style="width:25%;"></div>
+        </div>
+        <div class="sf-dsp-telemetry-row">
+          <span class="sf-dsp-label">🚀 星际物流运输船:</span>
+          <span class="sf-dsp-val cyan" id="sf-dsp-val-freighters">4 艘曲率飞船在轨</span>
         </div>
         <div class="sf-dsp-telemetry-row" style="margin-top:3px;">
           <span class="sf-dsp-label">⚡ 恒星总汲取功率:</span>
@@ -21485,7 +21501,9 @@ canvas.sf-planet-canvas {
       this.dragSelect = { active: false, startX: 0, startY: 0, curX: 0, curY: 0 };
       this.isPanning = false;
       this.panStart = { x: 0, y: 0, camX: 0, camY: 0 };
+      this.touchState = { startX: 0, startY: 0, isMoved: false, startTime: 0 };
       this.shake = 0;
+      this.keys = {};
 
       this.bindEvents();
     }
@@ -21508,6 +21526,13 @@ canvas.sf-planet-canvas {
       this.canvas.height = window.innerHeight;
     }
 
+    clampCamera() {
+      const maxCamX = Math.max(0, this.worldWidth - this.canvas.width / this.camera.zoom);
+      const maxCamY = Math.max(0, this.worldHeight - this.canvas.height / this.camera.zoom);
+      this.camera.x = Math.max(-100, Math.min(maxCamX + 100, this.camera.x));
+      this.camera.y = Math.max(-100, Math.min(maxCamY + 100, this.camera.y));
+    }
+
     resetGame() {
       this.credits = 3000;
       this.buildings = [
@@ -21517,9 +21542,9 @@ canvas.sf-planet-canvas {
       ];
 
       this.oreFields = [
-        { x: 920, y: 480, radius: 110, ore: 6000, color: '#34d399' },
-        { x: 1050, y: 1100, radius: 130, ore: 8000, color: '#38bdf8' },
-        { x: 1450, y: 780, radius: 150, ore: 12000, color: '#a78bfa' }
+        { x: 920, y: 480, radius: 110, ore: 6000, initialOre: 6000, color: '#34d399' },
+        { x: 1050, y: 1100, radius: 130, ore: 8000, initialOre: 8000, color: '#38bdf8' },
+        { x: 1450, y: 780, radius: 150, ore: 12000, initialOre: 12000, color: '#a78bfa' }
       ];
 
       this.harvesters = [
@@ -21550,6 +21575,9 @@ canvas.sf-planet-canvas {
       this.ionCannon.ready = false;
       this.ionCannon.targeting = false;
 
+      const btnHq = document.getElementById('sf-ra-btn-bld-hq');
+      if (btnHq) btnHq.style.display = 'none';
+
       this.updatePowerGrid();
       this.updateHUD();
     }
@@ -21557,7 +21585,27 @@ canvas.sf-planet-canvas {
     bindEvents() {
       window.addEventListener('resize', () => { if (this.active) this.resize(); });
 
+      // Keyboard Controls (WASD / Arrows to pan camera, D to defend HQ, S to stop units)
+      window.addEventListener('keydown', (e) => {
+        if (!this.active) return;
+        this.keys[e.code] = true;
+        if (e.code === 'KeyA' && (e.ctrlKey || e.metaKey)) {
+          e.preventDefault();
+          this.selectAllCombatUnits();
+        } else if (e.code === 'KeyD' && !e.ctrlKey) {
+          this.commandDefendHQ();
+        } else if (e.code === 'KeyS' && !e.ctrlKey) {
+          this.selectedUnits.forEach(u => { u.targetX = null; u.targetY = null; u.targetEnemy = null; });
+          if (typeof showToast === 'function') showToast('已命令选定战舰原地待命！', 1.5);
+        }
+      });
+      window.addEventListener('keyup', (e) => {
+        if (!this.active) return;
+        this.keys[e.code] = false;
+      });
+
       // Sidebar Building Buttons
+      document.getElementById('sf-ra-btn-bld-hq')?.addEventListener('click', () => this.buildBuilding('hq', 1000));
       document.getElementById('sf-ra-btn-bld-power')?.addEventListener('click', () => this.buildBuilding('power', 300));
       document.getElementById('sf-ra-btn-bld-refinery')?.addEventListener('click', () => this.buildBuilding('refinery', 800));
       document.getElementById('sf-ra-btn-bld-shipyard')?.addEventListener('click', () => this.buildBuilding('shipyard', 1000));
@@ -21590,10 +21638,17 @@ canvas.sf-planet-canvas {
         const p = getPos(e);
 
         if (this.ionCannon.targeting) {
-          // Fire Ion Cannon Strike
           const wx = (p.x / this.camera.zoom) + this.camera.x;
           const wy = (p.y / this.camera.zoom) + this.camera.y;
           this.executeIonCannonStrike(wx, wy);
+          return;
+        }
+
+        // Middle Click (button 1) or Shift+Left Click or Space held -> Start Camera Pan
+        if (e.button === 1 || (e.button === 0 && (e.shiftKey || this.keys['Space']))) {
+          this.isPanning = true;
+          this.panStart = { x: p.x, y: p.y, camX: this.camera.x, camY: this.camera.y };
+          e.preventDefault();
           return;
         }
 
@@ -21624,6 +21679,7 @@ canvas.sf-planet-canvas {
           const dy = (p.y - this.panStart.y) / this.camera.zoom;
           this.camera.x = this.panStart.camX - dx;
           this.camera.y = this.panStart.camY - dy;
+          this.clampCamera();
         }
       });
 
@@ -21633,39 +21689,29 @@ canvas.sf-planet-canvas {
           this.dragSelect.active = false;
           this.applyBoxSelection();
         }
-        this.isPanning = false;
+        if (e.button === 1 || e.button === 0) {
+          this.isPanning = false;
+        }
       });
 
       c.addEventListener('contextmenu', (e) => e.preventDefault());
 
-      // Touch Events for Mobile
+      // Touch Events for Mobile (Tap vs Box Drag vs Two-finger Pinch & Pan)
       let touchStartDist = 0;
       c.addEventListener('touchstart', (e) => {
         if (!this.active) return;
         if (e.touches.length === 1) {
           const t = e.touches[0];
           const p = getPos(t);
+          this.touchState = { startX: p.x, startY: p.y, isMoved: false, startTime: performance.now() };
+
           if (this.ionCannon.targeting) {
             const wx = (p.x / this.camera.zoom) + this.camera.x;
             const wy = (p.y / this.camera.zoom) + this.camera.y;
             this.executeIonCannonStrike(wx, wy);
             return;
           }
-          if (this.selectedUnits.length > 0) {
-            // Touch order if units selected
-            const wx = (p.x / this.camera.zoom) + this.camera.x;
-            const wy = (p.y / this.camera.zoom) + this.camera.y;
-            this.issueOrder(wx, wy);
-          } else {
-            // Drag select
-            this.dragSelect.active = true;
-            this.dragSelect.startX = p.x;
-            this.dragSelect.startY = p.y;
-            this.dragSelect.curX = p.x;
-            this.dragSelect.curY = p.y;
-          }
         } else if (e.touches.length === 2) {
-          // Two-finger pan & pinch
           this.dragSelect.active = false;
           const t1 = e.touches[0], t2 = e.touches[1];
           touchStartDist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
@@ -21678,10 +21724,17 @@ canvas.sf-planet-canvas {
 
       c.addEventListener('touchmove', (e) => {
         if (!this.active) return;
-        if (e.touches.length === 1 && this.dragSelect.active) {
+        if (e.touches.length === 1) {
           const p = getPos(e.touches[0]);
-          this.dragSelect.curX = p.x;
-          this.dragSelect.curY = p.y;
+          const d = Math.hypot(p.x - this.touchState.startX, p.y - this.touchState.startY);
+          if (d > 12) {
+            this.touchState.isMoved = true;
+            this.dragSelect.active = true;
+            this.dragSelect.startX = this.touchState.startX;
+            this.dragSelect.startY = this.touchState.startY;
+            this.dragSelect.curX = p.x;
+            this.dragSelect.curY = p.y;
+          }
         } else if (e.touches.length === 2) {
           const t1 = e.touches[0], t2 = e.touches[1];
           const midX = (t1.clientX + t2.clientX) / 2;
@@ -21696,6 +21749,7 @@ canvas.sf-planet-canvas {
             this.camera.zoom = Math.max(0.5, Math.min(1.8, this.camera.zoom * (dist / touchStartDist)));
             touchStartDist = dist;
           }
+          this.clampCamera();
         }
       }, { passive: false });
 
@@ -21704,6 +21758,42 @@ canvas.sf-planet-canvas {
         if (this.dragSelect.active) {
           this.dragSelect.active = false;
           this.applyBoxSelection();
+        } else if (!this.touchState.isMoved && e.changedTouches && e.changedTouches.length > 0) {
+          // Tap Action
+          const p = getPos(e.changedTouches[0]);
+          const wx = (p.x / this.camera.zoom) + this.camera.x;
+          const wy = (p.y / this.camera.zoom) + this.camera.y;
+
+          if (this.ionCannon.targeting) {
+            this.executeIonCannonStrike(wx, wy);
+            return;
+          }
+
+          // Check if tap targeted an enemy
+          const targetEnemy = this.enemies.find(en => Math.hypot(en.x - wx, en.y - wy) < 40);
+          if (targetEnemy) {
+            if (this.selectedUnits.length > 0) {
+              this.issueOrder(wx, wy);
+            }
+            return;
+          }
+
+          // Check if tap targeted a friendly unit
+          const targetFriendly = this.units.find(u => Math.hypot(u.x - wx, u.y - wy) < 32);
+          if (targetFriendly) {
+            this.selectedUnits = [targetFriendly];
+            this.units.forEach(u => u.selected = (u === targetFriendly));
+            if (typeof showToast === 'function') showToast(`已选中【${targetFriendly.type === 'dreadnought' ? '天启无畏舰' : (targetFriendly.type === 'cruiser' ? '巡洋护卫舰' : '轻型战机')}】`, 1.2);
+            return;
+          }
+
+          // Tap on empty ground
+          if (this.selectedUnits.length > 0) {
+            this.issueOrder(wx, wy);
+          } else {
+            this.selectedUnits = [];
+            this.units.forEach(u => u.selected = false);
+          }
         }
       });
 
@@ -21713,6 +21803,7 @@ canvas.sf-planet-canvas {
         e.preventDefault();
         const factor = e.deltaY < 0 ? 1.1 : 0.9;
         this.camera.zoom = Math.max(0.5, Math.min(1.8, this.camera.zoom * factor));
+        this.clampCamera();
       }, { passive: false });
     }
 
@@ -21724,23 +21815,39 @@ canvas.sf-planet-canvas {
       this.credits -= cost;
       spaceAudio.playCredit();
 
-      const baseHQ = this.buildings.find(b => b.type === 'hq') || { x: 450, y: 800 };
-      const angle = Math.random() * Math.PI * 2;
-      const dist = 120 + Math.random() * 140;
-      const bx = baseHQ.x + Math.cos(angle) * dist;
-      const by = baseHQ.y + Math.sin(angle) * dist;
+      const baseHQ = this.buildings.find(b => b.type === 'hq' && b.hp > 0) || { x: 450, y: 800 };
+      let bx = baseHQ.x, by = baseHQ.y;
+
+      if (type === 'hq') {
+        bx = 450; by = 800;
+        const btnHq = document.getElementById('sf-ra-btn-bld-hq');
+        if (btnHq) btnHq.style.display = 'none';
+      } else {
+        // Find non-overlapping position
+        for (let attempt = 0; attempt < 12; attempt++) {
+          const angle = Math.random() * Math.PI * 2;
+          const dist = 110 + Math.random() * 150;
+          const testX = baseHQ.x + Math.cos(angle) * dist;
+          const testY = baseHQ.y + Math.sin(angle) * dist;
+          const tooClose = this.buildings.some(b => Math.hypot(b.x - testX, b.y - testY) < 70);
+          if (!tooClose || attempt === 11) {
+            bx = testX; by = testY;
+            break;
+          }
+        }
+      }
 
       const newB = {
         id: Date.now() + Math.floor(Math.random() * 1000),
         type: type,
-        name: type === 'power' ? '聚变电厂' : (type === 'refinery' ? '精炼厂' : (type === 'tesla' ? '磁暴线圈' : (type === 'prism' ? '光棱塔' : (type === 'shipyard' ? '船坞' : '轨道中继')))),
+        name: type === 'power' ? '聚变电厂' : (type === 'refinery' ? '矿石精炼厂' : (type === 'tesla' ? '磁暴线圈' : (type === 'prism' ? '光棱塔' : (type === 'shipyard' ? '战舰重工船坞' : (type === 'ion' ? '轨道离子中继' : '基地指挥所'))))),
         x: bx, y: by,
         w: type === 'tesla' || type === 'prism' ? 60 : 75,
         h: type === 'tesla' || type === 'prism' ? 60 : 75,
-        hp: type === 'tesla' || type === 'prism' ? 850 : 1000,
-        maxHp: type === 'tesla' || type === 'prism' ? 850 : 1000,
-        powerGen: type === 'power' ? 120 : 0,
-        powerReq: type === 'power' ? 0 : (type === 'tesla' ? 50 : (type === 'prism' ? 40 : (type === 'shipyard' ? 40 : (type === 'refinery' ? 30 : 60)))),
+        hp: type === 'tesla' || type === 'prism' ? 850 : (type === 'hq' ? 2500 : 1000),
+        maxHp: type === 'tesla' || type === 'prism' ? 850 : (type === 'hq' ? 2500 : 1000),
+        powerGen: type === 'power' ? 120 : (type === 'hq' ? 40 : 0),
+        powerReq: type === 'power' || type === 'hq' ? 0 : (type === 'tesla' ? 50 : (type === 'prism' ? 40 : (type === 'shipyard' ? 40 : (type === 'refinery' ? 30 : 60)))),
         color: type === 'tesla' ? '#a855f7' : (type === 'prism' ? '#06b6d4' : (type === 'power' ? '#f59e0b' : '#38bdf8')),
         cooldown: 0
       };
@@ -21750,7 +21857,7 @@ canvas.sf-planet-canvas {
         this.harvesters.push({
           id: Date.now(), x: bx, y: by, vx: 0, vy: 0, angle: 0,
           state: 'to_ore', cargo: 0, maxCargo: 1000,
-          hp: 600, maxHp: 600, speed: 2.2, targetOre: this.oreFields[0]
+          hp: 600, maxHp: 600, speed: 2.2, targetOre: this.oreFields.find(f => f.ore > 0) || this.oreFields[0]
         });
       }
       if (type === 'ion') {
@@ -21775,15 +21882,18 @@ canvas.sf-planet-canvas {
       this.credits -= cost;
       spaceAudio.playCredit();
 
-      const spawnBase = this.buildings.find(b => b.type === 'shipyard') || this.buildings[0];
-      const sx = spawnBase.x + 60;
-      const sy = spawnBase.y + (Math.random() * 60 - 30);
+      const spawnBase = this.buildings.find(b => b.type === 'shipyard' && b.hp > 0) || this.buildings.find(b => b.type === 'hq' && b.hp > 0) || this.buildings[0] || { x: 450, y: 800 };
+      const offsetCount = this.units.length + this.harvesters.length;
+      const angle = (offsetCount * 1.3) % (Math.PI * 2);
+      const dist = 60 + (offsetCount % 4) * 22;
+      const sx = spawnBase.x + Math.cos(angle) * dist;
+      const sy = spawnBase.y + Math.sin(angle) * dist;
 
       if (type === 'harvester') {
         this.harvesters.push({
           id: Date.now(), x: sx, y: sy, vx: 0, vy: 0, angle: 0,
           state: 'to_ore', cargo: 0, maxCargo: 1000,
-          hp: 600, maxHp: 600, speed: 2.2, targetOre: this.oreFields[Math.floor(Math.random() * this.oreFields.length)]
+          hp: 600, maxHp: 600, speed: 2.2, targetOre: this.oreFields.find(f => f.ore > 0) || this.oreFields[0]
         });
       } else {
         const u = {
@@ -21808,18 +21918,18 @@ canvas.sf-planet-canvas {
     selectAllCombatUnits() {
       this.selectedUnits = [...this.units];
       this.units.forEach(u => u.selected = true);
-      if (typeof showToast === 'function') showToast(`已全选舰队 (${this.units.length} 艘战舰)`, 1.5);
+      if (typeof showToast === 'function') showToast(`已全选舰队 (${this.units.length} 艘主力战舰)`, 1.5);
     }
 
     commandDefendHQ() {
-      const hq = this.buildings.find(b => b.type === 'hq') || { x: 450, y: 800 };
+      const hq = this.buildings.find(b => b.type === 'hq' && b.hp > 0) || { x: 450, y: 800 };
       this.units.forEach((u, i) => {
         const angle = (i / Math.max(1, this.units.length)) * Math.PI * 2;
         u.targetX = hq.x + Math.cos(angle) * 160;
         u.targetY = hq.y + Math.sin(angle) * 160;
         u.targetEnemy = null;
       });
-      if (typeof showToast === 'function') showToast('全军回防基地指挥所外围！', 2);
+      if (typeof showToast === 'function') showToast('全军回防基地外围设防！', 2);
     }
 
     commandAssaultRift() {
@@ -21828,10 +21938,19 @@ canvas.sf-planet-canvas {
         u.targetY = 800 + (Math.random() * 200 - 100);
         u.targetEnemy = this.enemies[0] || null;
       });
-      if (typeof showToast === 'function') showToast('全军突击敌军跃迁裂隙！', 2);
+      if (typeof showToast === 'function') showToast('全军突击敌军超空间跃迁裂隙！', 2);
     }
 
     armIonCannon() {
+      const hasIonRelay = this.buildings.some(b => b.type === 'ion' && b.hp > 0);
+      if (!hasIonRelay) {
+        if (typeof showToast === 'function') showToast('请先建造【轨道离子中继】以解锁超级武器！', 2.5);
+        return;
+      }
+      if (this.isLowPower) {
+        if (typeof showToast === 'function') showToast('⚡ 基地电力负荷超载！离子中继停电停机！', 2.5);
+        return;
+      }
       if (!this.ionCannon.ready) {
         if (typeof showToast === 'function') showToast(`轨道离子炮正在充能 (${Math.ceil(this.ionCannon.timer)}s)...`, 2);
         return;
@@ -21854,7 +21973,7 @@ canvas.sf-planet-canvas {
       });
 
       spaceAudio.playIonCannon();
-      if (typeof showToast === 'function') showToast('⚠️ 轨道卫星锁定完成，离子光束已贯穿发射！', 3);
+      if (typeof showToast === 'function') showToast('⚠️ 轨道卫星锁定完成，毁灭离子光束发射！', 3);
     }
 
     applyBoxSelection() {
@@ -21873,7 +21992,7 @@ canvas.sf-planet-canvas {
       this.units.forEach(u => {
         if (isSingleClick) {
           const d = Math.hypot(u.x - wx1, u.y - wy1);
-          u.selected = (d < 30);
+          u.selected = (d < 32);
         } else {
           u.selected = (u.x >= wx1 && u.x <= wx2 && u.y >= wy1 && u.y <= wy2);
         }
@@ -21883,17 +22002,17 @@ canvas.sf-planet-canvas {
 
     issueOrder(wx, wy) {
       if (this.selectedUnits.length === 0) return;
-      // Check if target is an enemy
-      const targetEnemy = this.enemies.find(e => Math.hypot(e.x - wx, e.y - wy) < 40);
+      const targetEnemy = this.enemies.find(e => Math.hypot(e.x - wx, e.y - wy) < 45);
 
       this.selectedUnits.forEach((u, idx) => {
         if (targetEnemy) {
           u.targetEnemy = targetEnemy;
           u.targetX = null;
+          u.targetY = null;
         } else {
           u.targetEnemy = null;
           const offsetAngle = (idx / this.selectedUnits.length) * Math.PI * 2;
-          const spread = Math.min(80, this.selectedUnits.length * 8);
+          const spread = Math.min(90, Math.sqrt(this.selectedUnits.length) * 22);
           u.targetX = wx + Math.cos(offsetAngle) * spread;
           u.targetY = wy + Math.sin(offsetAngle) * spread;
         }
@@ -21961,10 +22080,18 @@ canvas.sf-planet-canvas {
       const elIon = document.getElementById('sf-ra-superweapon-timer');
       const btnIon = document.getElementById('sf-ra-btn-ion-strike');
       if (elIon) {
-        elIon.textContent = this.ionCannon.ready ? '已就绪 (READY)' : `充能中 ${Math.ceil(this.ionCannon.timer)}s`;
+        if (!this.ionCannon.unlocked) {
+          elIon.textContent = '未解锁 (需中继站)';
+        } else if (this.isLowPower) {
+          elIon.textContent = `停电暂停 (${Math.ceil(this.ionCannon.timer)}s)`;
+        } else if (this.ionCannon.ready) {
+          elIon.textContent = '已就绪 (READY)';
+        } else {
+          elIon.textContent = `充能中 ${Math.ceil(this.ionCannon.timer)}s`;
+        }
       }
       if (btnIon) {
-        if (this.ionCannon.ready) btnIon.classList.add('ready');
+        if (this.ionCannon.ready && !this.isLowPower) btnIon.classList.add('ready');
         else btnIon.classList.remove('ready');
       }
 
@@ -21984,31 +22111,46 @@ canvas.sf-planet-canvas {
     }
 
     update(dt) {
+      // Keyboard Camera Panning (WASD / Arrows)
+      const panSpeed = (600 / this.camera.zoom) * dt;
+      let movedCam = false;
+      if (this.keys['KeyW'] || this.keys['ArrowUp']) { this.camera.y -= panSpeed; movedCam = true; }
+      if (this.keys['KeyS'] && !this.keys['ControlLeft'] && !this.keys['MetaLeft']) { this.camera.y += panSpeed; movedCam = true; }
+      if (this.keys['KeyA'] && !this.keys['ControlLeft'] && !this.keys['MetaLeft']) { this.camera.x -= panSpeed; movedCam = true; }
+      if (this.keys['KeyD'] && !this.keys['ControlLeft'] && !this.keys['MetaLeft']) { this.camera.x += panSpeed; movedCam = true; }
+      if (movedCam) this.clampCamera();
+
       // Wave Timer
       this.waveTimer -= dt;
       if (this.waveTimer <= 0) {
         this.spawnWave();
       }
 
-      // Superweapon charge
-      if (this.buildings.some(b => b.type === 'ion' && b.hp > 0)) {
-        if (!this.ionCannon.ready) {
+      // Superweapon charge: checks ion relay building is alive and power grid is stable
+      const hasIonRelay = this.buildings.some(b => b.type === 'ion' && b.hp > 0);
+      if (hasIonRelay) {
+        this.ionCannon.unlocked = true;
+        if (!this.ionCannon.ready && !this.isLowPower) {
           this.ionCannon.timer -= dt;
           if (this.ionCannon.timer <= 0) {
             this.ionCannon.ready = true;
             this.ionCannon.timer = 0;
           }
         }
+      } else {
+        this.ionCannon.unlocked = false;
+        this.ionCannon.ready = false;
+        this.ionCannon.targeting = false;
       }
 
-      // Low Power penalty: reduce production and disable defense
-      const prodSpeed = this.isLowPower ? 0.35 : 1.0;
-
-      // 1. Harvester Loop
+      // 1. Harvester Loop with Ore Depletion & Multi-Field Relocation
       for (const h of this.harvesters) {
         if (h.hp <= 0) continue;
         if (h.state === 'to_ore') {
-          const target = h.targetOre || this.oreFields[0];
+          if (!h.targetOre || h.targetOre.ore <= 0) {
+            h.targetOre = this.oreFields.find(f => f.ore > 0) || this.oreFields[0];
+          }
+          const target = h.targetOre;
           const dx = target.x - h.x, dy = target.y - h.y;
           const dist = Math.hypot(dx, dy);
           h.angle = Math.atan2(dy, dx);
@@ -22020,7 +22162,20 @@ canvas.sf-planet-canvas {
             h.mineTimer = 0;
           }
         } else if (h.state === 'mining') {
-          h.cargo += 200 * dt;
+          const target = h.targetOre || this.oreFields[0];
+          if (target && target.ore > 0) {
+            const mined = Math.min(target.ore, 200 * dt);
+            target.ore -= mined;
+            h.cargo += mined;
+            if (target.ore <= 0) {
+              target.ore = 0;
+              if (typeof showToast === 'function') showToast('⚠️ 该矿区矿石蕴藏已采空，采矿车满载返回！', 2);
+              h.state = 'to_refinery';
+            }
+          } else {
+            h.state = 'to_refinery';
+          }
+
           if (Math.random() < 0.3) {
             this.particles.push({
               x: h.x + Math.cos(h.angle) * 20,
@@ -22035,7 +22190,7 @@ canvas.sf-planet-canvas {
             h.state = 'to_refinery';
           }
         } else if (h.state === 'to_refinery') {
-          const ref = this.buildings.find(b => b.type === 'refinery' && b.hp > 0) || this.buildings[0];
+          const ref = this.buildings.find(b => b.type === 'refinery' && b.hp > 0) || this.buildings.find(b => b.type === 'hq' && b.hp > 0) || this.buildings[0] || { x: 450, y: 800 };
           const dx = ref.x - h.x, dy = ref.y - h.y;
           const dist = Math.hypot(dx, dy);
           h.angle = Math.atan2(dy, dx);
@@ -22056,12 +22211,13 @@ canvas.sf-planet-canvas {
               text: '+$500', color: '#34d399', life: 1.0, maxLife: 1.0, type: 'floatText'
             });
             h.cargo = 0;
+            h.targetOre = this.oreFields.find(f => f.ore > 0) || this.oreFields[0];
             h.state = 'to_ore';
           }
         }
       }
 
-      // 2. Defense Towers (Tesla & Prism)
+      // 2. Defense Towers (Tesla & Prism with Relay Amplification)
       for (const b of this.buildings) {
         if (b.hp <= 0) continue;
         if (b.type === 'tesla' && !this.isLowPower) {
@@ -22086,11 +22242,23 @@ canvas.sf-planet-canvas {
           const target = this.enemies.find(e => Math.hypot(e.x - b.x, e.y - b.y) < range);
           if (target && b.cooldown <= 0) {
             b.cooldown = 1.0;
-            // Count neighboring prism towers to amplify beam!
             const prisms = this.buildings.filter(pb => pb.type === 'prism' && pb.hp > 0 && Math.hypot(pb.x - b.x, pb.y - b.y) < 260);
             const dmg = 60 + (prisms.length - 1) * 35;
             target.hp -= dmg;
             spaceAudio.playLaser();
+
+            // Draw relay focus beams from neighboring prisms into firing tower
+            for (const pb of prisms) {
+              if (pb !== b) {
+                this.particles.push({
+                  type: 'prismBeam',
+                  x1: pb.x, y1: pb.y - 20,
+                  x2: b.x, y2: b.y - 20,
+                  color: '#a5f3fc', life: 0.25, maxLife: 0.25, width: 2
+                });
+              }
+            }
+
             this.particles.push({
               type: 'prismBeam',
               x1: b.x, y1: b.y - 24,
@@ -22101,10 +22269,28 @@ canvas.sf-planet-canvas {
         }
       }
 
-      // 3. Player Units
-      for (const u of this.units) {
+      // 3. Player Units Flocking Physics & Movement
+      for (let i = 0; i < this.units.length; i++) {
+        const u = this.units[i];
         if (u.hp <= 0) continue;
         u.reload = Math.max(0, u.reload - dt);
+
+        // Anti-stacking separation with other friendly units
+        for (let j = i + 1; j < this.units.length; j++) {
+          const u2 = this.units[j];
+          if (u2.hp <= 0) continue;
+          const dx = u.x - u2.x, dy = u.y - u2.y;
+          const d = Math.hypot(dx, dy);
+          const minDist = (u.type === 'dreadnought' || u2.type === 'dreadnought') ? 36 : 22;
+          if (d < minDist && d > 0.001) {
+            const push = (minDist - d) / minDist * 45 * dt;
+            const nx = dx / d, ny = dy / d;
+            u.x += nx * push;
+            u.y += ny * push;
+            u2.x -= nx * push;
+            u2.y -= ny * push;
+          }
+        }
 
         if (u.targetEnemy && u.targetEnemy.hp > 0) {
           const dx = u.targetEnemy.x - u.x, dy = u.targetEnemy.y - u.y;
@@ -22153,16 +22339,34 @@ canvas.sf-planet-canvas {
         }
       }
 
-      // 4. Enemy Units
-      for (const e of this.enemies) {
+      // 4. Enemy Units Flocking Physics & AI
+      for (let i = 0; i < this.enemies.length; i++) {
+        const e = this.enemies[i];
         if (e.hp <= 0) continue;
         e.reload = Math.max(0, e.reload - dt);
 
-        // Find closest target: harvester, defense tower, or unit
-        let closestTarget = this.harvesters.find(h => h.hp > 0 && Math.hypot(h.x - e.x, h.y - e.y) < 350)
-          || this.buildings.find(b => b.hp > 0 && Math.hypot(b.x - e.x, b.y - e.y) < 400)
-          || this.units.find(u => u.hp > 0 && Math.hypot(u.x - e.x, u.y - e.y) < 350)
-          || this.buildings[0];
+        // Anti-stacking separation with other enemy units
+        for (let j = i + 1; j < this.enemies.length; j++) {
+          const e2 = this.enemies[j];
+          if (e2.hp <= 0) continue;
+          const dx = e.x - e2.x, dy = e.y - e2.y;
+          const d = Math.hypot(dx, dy);
+          const minDist = (e.type === 'dreadnought' || e2.type === 'dreadnought') ? 36 : 22;
+          if (d < minDist && d > 0.001) {
+            const push = (minDist - d) / minDist * 45 * dt;
+            const nx = dx / d, ny = dy / d;
+            e.x += nx * push;
+            e.y += ny * push;
+            e2.x -= nx * push;
+            e2.y -= ny * push;
+          }
+        }
+
+        // Closest living target
+        let closestTarget = this.harvesters.find(h => h.hp > 0 && Math.hypot(h.x - e.x, h.y - e.y) < 360)
+          || this.buildings.find(b => b.hp > 0 && Math.hypot(b.x - e.x, b.y - e.y) < 420)
+          || this.units.find(u => u.hp > 0 && Math.hypot(u.x - e.x, u.y - e.y) < 360)
+          || this.buildings.find(b => b.hp > 0);
 
         if (closestTarget) {
           const dx = closestTarget.x - e.x, dy = closestTarget.y - e.y;
@@ -22185,7 +22389,7 @@ canvas.sf-planet-canvas {
         }
       }
 
-      // 5. Clean up dead entities & explosions
+      // 5. Clean up dead entities (Enemies, Units, Harvesters, Buildings)
       for (let i = this.enemies.length - 1; i >= 0; i--) {
         if (this.enemies[i].hp <= 0) {
           spaceAudio.playExplosion();
@@ -22201,8 +22405,37 @@ canvas.sf-planet-canvas {
           this.units.splice(i, 1);
         }
       }
+      for (let i = this.harvesters.length - 1; i >= 0; i--) {
+        if (this.harvesters[i].hp <= 0) {
+          spaceAudio.playExplosion();
+          this.createExplosion(this.harvesters[i].x, this.harvesters[i].y, 35);
+          this.harvesters.splice(i, 1);
+          if (typeof showToast === 'function') showToast('⚠️ 采矿飞船遭到敌军击毁！', 2.5);
+        }
+      }
+      for (let i = this.buildings.length - 1; i >= 0; i--) {
+        const b = this.buildings[i];
+        if (b.hp <= 0) {
+          spaceAudio.playExplosion();
+          this.createExplosion(b.x, b.y, 60);
+          if (b.type === 'ion') {
+            this.ionCannon.unlocked = false;
+            this.ionCannon.ready = false;
+            this.ionCannon.targeting = false;
+          }
+          if (b.type === 'hq') {
+            const btnHq = document.getElementById('sf-ra-btn-bld-hq');
+            if (btnHq) btnHq.style.display = 'flex';
+            if (typeof showToast === 'function') showToast('🚨 基地指挥所被摧毁！防线崩溃，请立即重建！', 4);
+          } else {
+            if (typeof showToast === 'function') showToast(`⚠️ 基地建筑【${b.name}】已被摧毁！`, 2.5);
+          }
+          this.buildings.splice(i, 1);
+          this.updatePowerGrid();
+        }
+      }
 
-      // 6. Orbital Strikes (Ion Cannon)
+      // 6. Orbital Strikes (Ion Cannon blast)
       for (let i = this.orbitalStrikes.length - 1; i >= 0; i--) {
         const s = this.orbitalStrikes[i];
         s.timer -= dt;
@@ -22210,7 +22443,6 @@ canvas.sf-planet-canvas {
           s.stage = 'blast';
           s.timer = 0.8;
           this.shake = 18;
-          // Apply massive AOE damage
           this.enemies.forEach(e => {
             if (Math.hypot(e.x - s.x, e.y - s.y) < s.radius) {
               e.hp -= 850;
@@ -22237,16 +22469,16 @@ canvas.sf-planet-canvas {
     }
 
     createExplosion(x, y, radius) {
-      for (let i = 0; i < 18; i++) {
+      for (let i = 0; i < 20; i++) {
         const a = Math.random() * Math.PI * 2;
-        const sp = 40 + Math.random() * 100;
+        const sp = 40 + Math.random() * 110;
         this.particles.push({
           x: x, y: y,
           vx: Math.cos(a) * sp,
           vy: Math.sin(a) * sp,
           color: Math.random() < 0.5 ? '#f59e0b' : '#ef4444',
-          life: 0.4 + Math.random() * 0.3,
-          maxLife: 0.7,
+          life: 0.4 + Math.random() * 0.35,
+          maxLife: 0.75,
           radius: 3 + Math.random() * 4
         });
       }
@@ -22265,7 +22497,7 @@ canvas.sf-planet-canvas {
       ctx.scale(this.camera.zoom, this.camera.zoom);
       ctx.translate(-this.camera.x, -this.camera.y);
 
-      // 1. Tactical Grid & Background Nebula
+      // 1. Tactical Grid
       ctx.strokeStyle = 'rgba(56, 189, 248, 0.05)';
       ctx.lineWidth = 1;
       const gridSize = 100;
@@ -22276,30 +22508,35 @@ canvas.sf-planet-canvas {
         ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(this.worldWidth, y); ctx.stroke();
       }
 
-      // 2. Ore Fields (Asteroid Crystals)
+      // 2. Ore Fields (Asteroid Crystals with dynamic reserve scaling)
       for (const f of this.oreFields) {
         ctx.save();
-        ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
-        ctx.strokeStyle = f.color;
+        const ratio = Math.max(0, f.ore / (f.initialOre || 6000));
+        ctx.fillStyle = ratio > 0 ? 'rgba(15, 23, 42, 0.85)' : 'rgba(15, 23, 42, 0.4)';
+        ctx.strokeStyle = ratio > 0 ? f.color : '#475569';
         ctx.lineWidth = 1.5;
         ctx.beginPath();
         ctx.arc(f.x, f.y, f.radius, 0, Math.PI * 2);
         ctx.fill(); ctx.stroke();
 
-        // Glowing crystals
-        for (let i = 0; i < 8; i++) {
-          const a = (i / 8) * Math.PI * 2;
-          const cx = f.x + Math.cos(a) * (f.radius * 0.55);
-          const cy = f.y + Math.sin(a) * (f.radius * 0.55);
-          ctx.fillStyle = f.color;
-          ctx.beginPath();
-          ctx.arc(cx, cy, 5, 0, Math.PI * 2);
-          ctx.fill();
+        // Glowing crystals proportional to remaining ore
+        if (ratio > 0) {
+          const crystalCount = Math.max(2, Math.round(8 * ratio));
+          for (let i = 0; i < crystalCount; i++) {
+            const a = (i / crystalCount) * Math.PI * 2;
+            const cx = f.x + Math.cos(a) * (f.radius * 0.55);
+            const cy = f.y + Math.sin(a) * (f.radius * 0.55);
+            ctx.fillStyle = f.color;
+            ctx.beginPath();
+            ctx.arc(cx, cy, 3 + 3 * ratio, 0, Math.PI * 2);
+            ctx.fill();
+          }
         }
-        ctx.fillStyle = '#94a3b8';
+
+        ctx.fillStyle = ratio > 0 ? '#94a3b8' : '#ef4444';
         ctx.font = '11px ui-monospace, monospace';
         ctx.textAlign = 'center';
-        ctx.fillText(`矿石蕴藏量: ${f.ore}`, f.x, f.y + f.radius + 16);
+        ctx.fillText(`矿石蕴藏: ${Math.floor(f.ore)} / ${f.initialOre || 6000} ${ratio <= 0 ? '(已采空)' : ''}`, f.x, f.y + f.radius + 16);
         ctx.restore();
       }
 
@@ -22326,32 +22563,33 @@ canvas.sf-planet-canvas {
         ctx.save();
         ctx.translate(b.x, b.y);
 
-        // Building base
         ctx.fillStyle = '#0f172a';
         ctx.strokeStyle = b.color;
         ctx.lineWidth = 2;
         ctx.fillRect(-b.w / 2, -b.h / 2, b.w, b.h);
         ctx.strokeRect(-b.w / 2, -b.h / 2, b.w, b.h);
 
-        // Building internals
         if (b.type === 'tesla') {
-          // Tesla Coil
           ctx.strokeStyle = '#c084fc';
           ctx.lineWidth = 2;
           ctx.beginPath();
           ctx.arc(0, 0, 14, 0, Math.PI * 2);
           ctx.arc(0, 0, 8, 0, Math.PI * 2);
           ctx.stroke();
-          // Glowing top orb
           ctx.fillStyle = this.isLowPower ? '#64748b' : '#e9d5ff';
           ctx.beginPath(); ctx.arc(0, -18, 6, 0, Math.PI * 2); ctx.fill();
         } else if (b.type === 'prism') {
-          // Prism Tower
           ctx.fillStyle = this.isLowPower ? '#64748b' : '#38bdf8';
           ctx.beginPath();
           ctx.moveTo(0, -22); ctx.lineTo(12, 12); ctx.lineTo(-12, 12);
           ctx.closePath();
           ctx.fill();
+        } else if (b.type === 'shipyard') {
+          ctx.strokeStyle = '#38bdf8';
+          ctx.lineWidth = 1.5;
+          ctx.strokeRect(-b.w * 0.35, -b.h * 0.35, b.w * 0.7, b.h * 0.7);
+          ctx.fillStyle = '#0284c7';
+          ctx.fillRect(-b.w * 0.2, -b.h * 0.2, b.w * 0.4, b.h * 0.4);
         } else {
           ctx.fillStyle = b.color;
           ctx.fillRect(-b.w * 0.3, -b.h * 0.3, b.w * 0.6, b.h * 0.6);
@@ -22383,7 +22621,6 @@ canvas.sf-planet-canvas {
         ctx.lineWidth = 1.5;
         ctx.strokeRect(-18, -12, 36, 24);
 
-        // Mining beam when mining
         if (h.state === 'mining') {
           ctx.strokeStyle = '#34d399';
           ctx.lineWidth = 3;
@@ -22400,20 +22637,20 @@ canvas.sf-planet-canvas {
         ctx.translate(u.x, u.y);
         ctx.rotate(u.angle);
 
-        // Selection ring
         if (u.selected) {
           ctx.strokeStyle = '#38bdf8';
           ctx.lineWidth = 1.5;
           ctx.beginPath(); ctx.arc(0, 0, 22, 0, Math.PI * 2); ctx.stroke();
         }
 
-        // Hull shape
-        ctx.fillStyle = u.type === 'dreadnought' ? '#1e293b' : '#0284c7';
+        ctx.fillStyle = u.type === 'dreadnought' ? '#1e293b' : (u.type === 'cruiser' ? '#0369a1' : '#0284c7');
         ctx.strokeStyle = '#38bdf8';
         ctx.lineWidth = 1.5;
         ctx.beginPath();
         if (u.type === 'dreadnought') {
           ctx.moveTo(24, 0); ctx.lineTo(-18, 16); ctx.lineTo(-12, 0); ctx.lineTo(-18, -16);
+        } else if (u.type === 'cruiser') {
+          ctx.moveTo(20, 0); ctx.lineTo(-14, 12); ctx.lineTo(-8, 0); ctx.lineTo(-14, -12);
         } else {
           ctx.moveTo(16, 0); ctx.lineTo(-12, 10); ctx.lineTo(-8, 0); ctx.lineTo(-12, -10);
         }
@@ -22430,7 +22667,11 @@ canvas.sf-planet-canvas {
         ctx.strokeStyle = '#f43f5e';
         ctx.lineWidth = 1.5;
         ctx.beginPath();
-        ctx.moveTo(18, 0); ctx.lineTo(-14, 12); ctx.lineTo(-8, 0); ctx.lineTo(-14, -12);
+        if (e.type === 'dreadnought') {
+          ctx.moveTo(24, 0); ctx.lineTo(-18, 16); ctx.lineTo(-12, 0); ctx.lineTo(-18, -16);
+        } else {
+          ctx.moveTo(18, 0); ctx.lineTo(-14, 12); ctx.lineTo(-8, 0); ctx.lineTo(-14, -12);
+        }
         ctx.closePath();
         ctx.fill(); ctx.stroke();
         ctx.restore();
@@ -22460,6 +22701,10 @@ canvas.sf-planet-canvas {
           ctx.fillStyle = pt.color;
           ctx.font = 'bold 13px ui-monospace, monospace';
           ctx.fillText(pt.text, pt.x, pt.y);
+        } else if (pt.type === 'marker') {
+          ctx.strokeStyle = pt.color;
+          ctx.lineWidth = 1.5;
+          ctx.beginPath(); ctx.arc(pt.x, pt.y, pt.radius * (1 - pt.life / pt.maxLife), 0, Math.PI * 2); ctx.stroke();
         } else {
           ctx.fillStyle = pt.color;
           ctx.beginPath(); ctx.arc(pt.x, pt.y, pt.radius || 2, 0, Math.PI * 2); ctx.fill();
@@ -22475,7 +22720,6 @@ canvas.sf-planet-canvas {
           ctx.beginPath(); ctx.moveTo(s.x - 30, s.y); ctx.lineTo(s.x + 30, s.y); ctx.stroke();
           ctx.beginPath(); ctx.moveTo(s.x, s.y - 30); ctx.lineTo(s.x, s.y + 30); ctx.stroke();
         } else if (s.stage === 'blast') {
-          // Massive Orbital Pillar of Light
           const grad = ctx.createLinearGradient(s.x - 40, s.y, s.x + 40, s.y);
           grad.addColorStop(0, 'rgba(56, 189, 248, 0)');
           grad.addColorStop(0.5, '#ffffff');
@@ -22483,7 +22727,6 @@ canvas.sf-planet-canvas {
           ctx.fillStyle = grad;
           ctx.fillRect(s.x - 50, -500, 100, s.y + 500);
 
-          // Impact shockwave
           ctx.strokeStyle = '#38bdf8';
           ctx.lineWidth = 4;
           ctx.beginPath(); ctx.arc(s.x, s.y, s.radius, 0, Math.PI * 2); ctx.stroke();
@@ -22535,10 +22778,10 @@ canvas.sf-planet-canvas {
       this.solarSails = [];
       this.nodes = [];
       this.struts = [];
-      this.shells = [];
+      this.outerNodes = [];
+      this.outerStruts = [];
       this.rockets = [];
-      this.conveyorItems = [];
-      this.interstellarFreighters = [];
+      this.catapultProjectiles = [];
 
       this.universeMatrix = 150;
       this.totalPowerGW = 1.82;
@@ -22546,8 +22789,16 @@ canvas.sf-planet-canvas {
 
       this.planets = [
         { name: 'Gaia Prime (母星)', radius: 32, dist: 310, angle: 0.5, speed: 0.003, color: '#38bdf8', isMother: true },
-        { name: 'Vulcan (钛矿星)', radius: 24, dist: 510, angle: 2.2, speed: 0.0018, color: '#f97316' },
-        { name: 'Zephyr (气态巨星)', radius: 48, dist: 740, angle: 4.0, speed: 0.0009, color: '#a855f7', hasRings: true }
+        { name: 'Vulcan (钛矿星)', radius: 24, dist: 510, angle: 2.2, speed: 0.0018, color: '#f97316', hasMining: true },
+        { name: 'Zephyr (气态巨星)', radius: 48, dist: 740, angle: 4.0, speed: 0.0009, color: '#a855f7', hasRings: true, hasSiphon: true }
+      ];
+
+      // Simulated Interstellar Transport Freighters shuttling between planets
+      this.interstellarFreighters = [
+        { id: 1, origin: 'Vulcan', target: 'Gaia', progress: 0.15, speed: 0.08, cargo: '钛合金矿 (Titanium)', color: '#f97316' },
+        { id: 2, origin: 'Gaia', target: 'Vulcan', progress: 0.65, speed: 0.08, cargo: '空载返航', color: '#f97316' },
+        { id: 3, origin: 'Zephyr', target: 'Gaia', progress: 0.35, speed: 0.065, cargo: '重氢聚变棒 (Deuterium)', color: '#c084fc' },
+        { id: 4, origin: 'Gaia', target: 'Zephyr', progress: 0.85, speed: 0.065, cargo: '空载返航', color: '#c084fc' }
       ];
 
       this.dragState = { isDragging: false, lastX: 0, lastY: 0 };
@@ -22558,7 +22809,7 @@ canvas.sf-planet-canvas {
     }
 
     initGeodesicSphere() {
-      // 3D Geodesic Icosahedron Frame around Star
+      // 3D Geodesic Icosahedron Frame around Star (Radius 150)
       const phi = (1 + Math.sqrt(5)) / 2;
       const baseVertices = [
         [-1,  phi, 0], [ 1,  phi, 0], [-1, -phi, 0], [ 1, -phi, 0],
@@ -22594,10 +22845,43 @@ canvas.sf-planet-canvas {
           built: false
         });
       }
+
+      // Precompute Strut topology for high performance
+      this.struts = [];
+      for (let i = 0; i < this.nodes.length; i++) {
+        for (let j = i + 1; j < this.nodes.length; j++) {
+          const n1 = this.nodes[i], n2 = this.nodes[j];
+          if (Math.hypot(n1.x - n2.x, n1.y - n2.y, n1.z - n2.z) < 130) {
+            this.struts.push([i, j]);
+          }
+        }
+      }
+
+      // Outer Concentric Dyson Shell (Radius 230)
+      this.outerNodes = [];
+      this.outerStruts = [];
+      const R2 = 230;
+      for (let i = 0; i < 20; i++) {
+        const theta = (i / 20) * Math.PI * 2;
+        const phiAngle = ((i % 5) - 2) * 0.45;
+        this.outerNodes.push({
+          id: i,
+          x: Math.cos(theta) * Math.cos(phiAngle) * R2,
+          y: Math.sin(phiAngle) * R2,
+          z: Math.sin(theta) * Math.cos(phiAngle) * R2
+        });
+      }
+      for (let i = 0; i < this.outerNodes.length; i++) {
+        for (let j = i + 1; j < this.outerNodes.length; j++) {
+          const on1 = this.outerNodes[i], on2 = this.outerNodes[j];
+          if (Math.hypot(on1.x - on2.x, on1.y - on2.y, on1.z - on2.z) < 160) {
+            this.outerStruts.push([i, j]);
+          }
+        }
+      }
     }
 
     initInitialSwarm() {
-      // Initial 120 solar sails orbiting in Keplerian rings
       for (let i = 0; i < 120; i++) {
         this.solarSails.push({
           ring: i % 3,
@@ -22695,23 +22979,22 @@ canvas.sf-planet-canvas {
     launchSolarSails() {
       const count = 3 + this.techLevels.em * 3;
       for (let i = 0; i < count; i++) {
-        this.solarSails.push({
-          ring: Math.floor(Math.random() * 3),
+        const ring = Math.floor(Math.random() * 3);
+        this.catapultProjectiles.push({
+          progress: 0,
+          ring: ring,
           angle: Math.random() * Math.PI * 2,
-          speed: 0.008 + Math.random() * 0.006,
-          radius: 200 + (Math.floor(Math.random() * 3)) * 60,
-          inclination: Math.random() * 0.8 - 0.4,
-          life: (90 + Math.random() * 30) * (1 + this.techLevels.sail * 0.5)
+          inclination: Math.random() * 0.8 - 0.4
         });
       }
       spaceAudio.playSailLaunch();
-      if (typeof showToast === 'function') showToast(`⚡ 电磁弹射齐射！${count} 枚太阳帆注入戴森云！`, 2);
+      if (typeof showToast === 'function') showToast(`⚡ 电磁弹射齐射！${count} 枚太阳帆正冲入戴森云轨道！`, 2);
     }
 
     launchCarrierRocket() {
-      const targetNode = this.nodes.find(n => !n.built);
+      const targetNode = this.nodes.find(n => !n.built && !this.rockets.some(r => r.targetNode === n));
       if (!targetNode) {
-        if (typeof showToast === 'function') showToast('戴森球骨架已 100% 构筑完成！正在以全功率汲取恒星能量！', 2.5);
+        if (typeof showToast === 'function') showToast('全部 32 个戴森球骨架节点已完成或正在装配途中！', 2.5);
         return;
       }
 
@@ -22721,7 +23004,7 @@ canvas.sf-planet-canvas {
         targetNode: targetNode
       });
       spaceAudio.playRocketLaunch();
-      if (typeof showToast === 'function') showToast('🚀 垂直发射井点火！小型运载火箭正飞往戴森球骨架节点！', 2);
+      if (typeof showToast === 'function') showToast('🚀 垂直发射井点火！小型运载火箭升空组装戴森球骨架！', 2);
     }
 
     cycleCameraView() {
@@ -22761,10 +23044,20 @@ canvas.sf-planet-canvas {
       spaceAudio.playCredit();
 
       const spanLvl = document.getElementById(`sf-dsp-tech-lvl-${key}`);
-      if (spanLvl) spanLvl.textContent = `Lv.${this.techLevels[key]}`;
+      if (spanLvl) {
+        if (key === 'shell') {
+          spanLvl.textContent = '已构筑 (20 GW上限)';
+          spanLvl.style.color = '#38bdf8';
+        } else {
+          spanLvl.textContent = `Lv.${this.techLevels[key]}`;
+        }
+      }
 
       this.updateHUD();
-      if (typeof showToast === 'function') showToast('🎉 宇宙矩阵科技升级成功！', 2);
+      if (typeof showToast === 'function') {
+        if (key === 'shell') showToast('🌟 恒星奇迹！第二重同心戴森球壳构筑成功！发电上限跃升！', 3.5);
+        else showToast('🎉 宇宙矩阵科技升级成功！', 2);
+      }
     }
 
     updateHUD() {
@@ -22784,12 +23077,16 @@ canvas.sf-planet-canvas {
       const barFill = document.getElementById('sf-dsp-node-progress-fill');
       if (barFill) barFill.style.width = `${pct}%`;
 
-      this.totalPowerGW = Number(((swarmMW / 1000) + (builtCount * 0.18 * this.star.luminosity)).toFixed(2));
+      const shellBonusGW = (this.techLevels.shell > 0 ? 8.0 : 0);
+      this.totalPowerGW = Number(((swarmMW / 1000) + (builtCount * 0.18 * this.star.luminosity) + shellBonusGW).toFixed(2));
       const elPower = document.getElementById('sf-dsp-val-total-gw');
       if (elPower) elPower.textContent = `${this.totalPowerGW} GW`;
 
       const elMatrix = document.getElementById('sf-dsp-val-matrix');
       if (elMatrix) elMatrix.textContent = `${Math.floor(this.universeMatrix)} 矩阵`;
+
+      const elFreighters = document.getElementById('sf-dsp-val-freighters');
+      if (elFreighters) elFreighters.textContent = `${this.interstellarFreighters.length} 艘曲率飞船在轨穿梭`;
     }
 
     loop(timestamp) {
@@ -22804,13 +23101,53 @@ canvas.sf-planet-canvas {
     }
 
     update(dt) {
-      // Universe Matrix synthesis from Ray Receivers
+      // Universe Matrix synthesis from Ray Receivers & Logistics Delivery
       const lensMult = 1 + (this.techLevels.lens || 0) * 1.5;
-      this.universeMatrix += (0.8 + this.totalPowerGW * 0.4) * lensMult * dt;
+      const shellMult = 1 + (this.techLevels.shell || 0) * 0.8;
+      this.universeMatrix += (0.8 + this.totalPowerGW * 0.4) * lensMult * shellMult * dt;
 
       // Update planets orbit
       for (const p of this.planets) {
         p.angle += p.speed * 60 * dt;
+      }
+
+      // Update Interstellar Logistics Freighters
+      for (const f of this.interstellarFreighters) {
+        f.progress += f.speed * dt;
+        if (f.progress >= 1.0) {
+          f.progress = 0;
+          if (f.target === 'Gaia') {
+            this.universeMatrix += 6;
+            spaceAudio.playCredit();
+            f.target = f.origin;
+            f.origin = 'Gaia';
+            f.cargo = '空载返航';
+          } else {
+            const orig = f.target;
+            f.target = 'Gaia';
+            f.origin = orig;
+            f.cargo = (orig === 'Vulcan' ? '钛合金矿 (Titanium)' : '重氢聚变棒 (Deuterium)');
+          }
+        }
+      }
+
+      // Update EM Catapult Projectiles
+      for (let i = this.catapultProjectiles.length - 1; i >= 0; i--) {
+        const cp = this.catapultProjectiles[i];
+        cp.progress += 1.2 * dt;
+        if (cp.progress >= 1.0) {
+          if (this.solarSails.length < 1000) {
+            this.solarSails.push({
+              ring: cp.ring,
+              angle: cp.angle,
+              speed: 0.008 + Math.random() * 0.006,
+              radius: 200 + cp.ring * 60,
+              inclination: cp.inclination,
+              life: (90 + Math.random() * 30) * (1 + this.techLevels.sail * 0.5)
+            });
+          }
+          this.catapultProjectiles.splice(i, 1);
+        }
       }
 
       // Update solar sails in Dyson Swarm
@@ -22823,6 +23160,11 @@ canvas.sf-planet-canvas {
         }
       }
 
+      // Cap maximum solar sails to 1000 for high performance
+      if (this.solarSails.length > 1000) {
+        this.solarSails.splice(0, this.solarSails.length - 1000);
+      }
+
       // Update Rockets in transit
       for (let i = this.rockets.length - 1; i >= 0; i--) {
         const r = this.rockets[i];
@@ -22831,7 +23173,7 @@ canvas.sf-planet-canvas {
           r.targetNode.built = true;
           spaceAudio.playCredit();
           if (this.techLevels.rocket > 0) {
-            const nextNode = this.nodes.find(n => !n.built);
+            const nextNode = this.nodes.find(n => !n.built && !this.rockets.some(rk => rk.targetNode === n));
             if (nextNode) nextNode.built = true;
           }
           this.rockets.splice(i, 1);
@@ -22839,7 +23181,7 @@ canvas.sf-planet-canvas {
       }
 
       // Auto-launch minor solar sails
-      if (Math.random() < 0.05 + this.techLevels.em * 0.04) {
+      if (this.solarSails.length < 1000 && Math.random() < 0.05 + this.techLevels.em * 0.04) {
         this.solarSails.push({
           ring: Math.floor(Math.random() * 3),
           angle: 0,
@@ -22897,36 +23239,29 @@ canvas.sf-planet-canvas {
       ctx.arc(starProj.x, starProj.y, starR * 2.2, 0, Math.PI * 2);
       ctx.fill();
 
-      // 2. Geodesic Dyson Sphere Frame Struts & Nodes
+      // 2. Geodesic Dyson Sphere Frame Struts & Nodes (Precomputed)
       for (const n of this.nodes) {
         n.proj = this.project3D(n.x, n.y, n.z, cx, cy);
       }
 
       // Draw Struts
       ctx.lineWidth = 1.2;
-      for (let i = 0; i < this.nodes.length; i++) {
-        const n1 = this.nodes[i];
-        for (let j = i + 1; j < this.nodes.length; j++) {
-          const n2 = this.nodes[j];
-          const dist = Math.hypot(n1.x - n2.x, n1.y - n2.y, n1.z - n2.z);
-          if (dist < 130) {
-            const bothBuilt = (n1.built && n2.built);
-            ctx.strokeStyle = bothBuilt ? 'rgba(56, 189, 248, 0.65)' : 'rgba(255, 255, 255, 0.12)';
-            ctx.beginPath();
-            ctx.moveTo(n1.proj.x, n1.proj.y);
-            ctx.lineTo(n2.proj.x, n2.proj.y);
-            ctx.stroke();
+      for (const [i, j] of this.struts) {
+        const n1 = this.nodes[i], n2 = this.nodes[j];
+        const bothBuilt = (n1.built && n2.built);
+        ctx.strokeStyle = bothBuilt ? 'rgba(56, 189, 248, 0.65)' : 'rgba(255, 255, 255, 0.12)';
+        ctx.beginPath();
+        ctx.moveTo(n1.proj.x, n1.proj.y);
+        ctx.lineTo(n2.proj.x, n2.proj.y);
+        ctx.stroke();
 
-            // Shell panel glow if built
-            if (bothBuilt) {
-              ctx.fillStyle = 'rgba(56, 189, 248, 0.08)';
-              ctx.beginPath();
-              ctx.moveTo(starProj.x, starProj.y);
-              ctx.lineTo(n1.proj.x, n1.proj.y);
-              ctx.lineTo(n2.proj.x, n2.proj.y);
-              ctx.fill();
-            }
-          }
+        if (bothBuilt) {
+          ctx.fillStyle = 'rgba(56, 189, 248, 0.08)';
+          ctx.beginPath();
+          ctx.moveTo(starProj.x, starProj.y);
+          ctx.lineTo(n1.proj.x, n1.proj.y);
+          ctx.lineTo(n2.proj.x, n2.proj.y);
+          ctx.fill();
         }
       }
 
@@ -22938,7 +23273,29 @@ canvas.sf-planet-canvas {
         ctx.fill();
       }
 
-      // 3. Dyson Swarm (Solar Sails Orbiting in 3D Keplerian Rings)
+      // 3. Second Concentric Geodesic Outer Shell (If Researched)
+      if (this.techLevels.shell > 0) {
+        for (const on of this.outerNodes) {
+          on.proj = this.project3D(on.x, on.y, on.z, cx, cy);
+        }
+        ctx.lineWidth = 1.0;
+        ctx.strokeStyle = 'rgba(192, 132, 252, 0.45)';
+        for (const [i, j] of this.outerStruts) {
+          const on1 = this.outerNodes[i], on2 = this.outerNodes[j];
+          ctx.beginPath();
+          ctx.moveTo(on1.proj.x, on1.proj.y);
+          ctx.lineTo(on2.proj.x, on2.proj.y);
+          ctx.stroke();
+        }
+        for (const on of this.outerNodes) {
+          ctx.fillStyle = '#c084fc';
+          ctx.beginPath();
+          ctx.arc(on.proj.x, on.proj.y, 3 * on.proj.scale, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+
+      // 4. Dyson Swarm (Solar Sails Orbiting in 3D Keplerian Rings)
       for (const s of this.solarSails) {
         const sx = Math.cos(s.angle) * s.radius;
         const sz = Math.sin(s.angle) * s.radius;
@@ -22951,35 +23308,59 @@ canvas.sf-planet-canvas {
         ctx.fill();
       }
 
-      // 4. Planets & Conveyor Belt Logistics
+      // 5. EM Catapult Launch Projectiles
+      const mother = this.planets[0];
+      const mx = Math.cos(mother.angle) * mother.dist;
+      const mz = Math.sin(mother.angle) * mother.dist;
+      for (const cp of this.catapultProjectiles) {
+        const targetRadius = 200 + cp.ring * 60;
+        const tx = Math.cos(cp.angle) * targetRadius;
+        const tz = Math.sin(cp.angle) * targetRadius;
+        const ty = Math.sin(cp.angle) * targetRadius * cp.inclination;
+
+        const curX = mx + (tx - mx) * cp.progress;
+        const curY = ty * cp.progress;
+        const curZ = mz + (tz - mz) * cp.progress;
+        const proj = this.project3D(curX, curY, curZ, cx, cy);
+
+        ctx.fillStyle = '#38bdf8';
+        ctx.beginPath();
+        ctx.arc(proj.x, proj.y, 3.5 * proj.scale, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.strokeStyle = 'rgba(56, 189, 248, 0.4)';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(proj.x, proj.y);
+        ctx.lineTo(proj.x - 6, proj.y + 6);
+        ctx.stroke();
+      }
+
+      // 6. Planets & Planetary Logistics
       for (const p of this.planets) {
         const px = Math.cos(p.angle) * p.dist;
         const pz = Math.sin(p.angle) * p.dist;
         const py = 0;
         const pp = this.project3D(px, py, pz, cx, cy);
 
-        // Planet Body
         ctx.fillStyle = p.color;
         ctx.beginPath();
         ctx.arc(pp.x, pp.y, p.radius * pp.scale, 0, Math.PI * 2);
         ctx.fill();
 
-        // Planet Label
         ctx.fillStyle = '#f8fafc';
         ctx.font = `${Math.round(10 * pp.scale)}px ui-monospace, monospace`;
         ctx.textAlign = 'center';
         ctx.fillText(p.name, pp.x, pp.y + p.radius * pp.scale + 12);
 
-        // Mother Planet Conveyor Belts & Ray Receivers
         if (p.isMother) {
-          // Conveyor belt ring around planet
+          // Gaia Prime: Conveyor belt ring & ray receiver beam
           ctx.strokeStyle = 'rgba(56, 189, 248, 0.4)';
           ctx.lineWidth = 1.5;
           ctx.beginPath();
           ctx.arc(pp.x, pp.y, (p.radius + 14) * pp.scale, 0, Math.PI * 2);
           ctx.stroke();
 
-          // Flowing mineral cubes on conveyor
           const t = performance.now() * 0.003;
           for (let k = 0; k < 6; k++) {
             const ca = t + (k / 6) * Math.PI * 2;
@@ -22989,19 +23370,72 @@ canvas.sf-planet-canvas {
             ctx.fillRect(cxk - 2, cyk - 2, 4, 4);
           }
 
-          // Ray Receiver absorption beam to star
           ctx.strokeStyle = 'rgba(56, 189, 248, 0.25)';
           ctx.lineWidth = 2;
           ctx.beginPath();
           ctx.moveTo(pp.x, pp.y);
           ctx.lineTo(starProj.x, starProj.y);
           ctx.stroke();
+        } else if (p.hasMining) {
+          // Vulcan: Mining Extraction Laser
+          ctx.strokeStyle = 'rgba(249, 115, 22, 0.6)';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(pp.x - 8 * pp.scale, pp.y - 12 * pp.scale);
+          ctx.lineTo(pp.x, pp.y);
+          ctx.stroke();
+
+          ctx.fillStyle = '#fbbf24';
+          ctx.beginPath();
+          ctx.arc(pp.x - 8 * pp.scale, pp.y - 12 * pp.scale, 3 * pp.scale, 0, Math.PI * 2);
+          ctx.fill();
+        } else if (p.hasSiphon) {
+          // Zephyr: Gas Giant Deuterium Siphon Rings
+          ctx.strokeStyle = 'rgba(192, 132, 252, 0.5)';
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.ellipse(pp.x, pp.y, (p.radius + 20) * pp.scale, (p.radius + 6) * pp.scale, 0.4, 0, Math.PI * 2);
+          ctx.stroke();
         }
       }
 
-      // 5. Rockets In Flight
+      // 7. Interstellar Logistics Freighters (Simulated 3D Freighters cruising between planets)
+      for (const f of this.interstellarFreighters) {
+        const originPlanet = this.planets.find(p => p.name.includes(f.origin)) || this.planets[0];
+        const targetPlanet = this.planets.find(p => p.name.includes(f.target)) || this.planets[0];
+
+        const ox = Math.cos(originPlanet.angle) * originPlanet.dist;
+        const oz = Math.sin(originPlanet.angle) * originPlanet.dist;
+        const tx = Math.cos(targetPlanet.angle) * targetPlanet.dist;
+        const tz = Math.sin(targetPlanet.angle) * targetPlanet.dist;
+
+        const curX = ox + (tx - ox) * f.progress;
+        const curY = Math.sin(f.progress * Math.PI) * 45;
+        const curZ = oz + (tz - oz) * f.progress;
+        const fp = this.project3D(curX, curY, curZ, cx, cy);
+
+        // Freighter Hull
+        ctx.fillStyle = f.color;
+        ctx.beginPath();
+        ctx.arc(fp.x, fp.y, 4 * fp.scale, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Warp trail
+        ctx.strokeStyle = f.color;
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(fp.x, fp.y);
+        ctx.lineTo(fp.x - 12 * fp.scale, fp.y);
+        ctx.stroke();
+
+        ctx.fillStyle = '#94a3b8';
+        ctx.font = `${Math.round(8 * fp.scale)}px ui-monospace, monospace`;
+        ctx.textAlign = 'center';
+        ctx.fillText(f.cargo, fp.x, fp.y - 8);
+      }
+
+      // 8. Rockets In Flight
       for (const r of this.rockets) {
-        const mother = this.planets[0];
         const mx = Math.cos(mother.angle) * mother.dist;
         const mz = Math.sin(mother.angle) * mother.dist;
         const currX = mx + (r.targetNode.x - mx) * r.progress;
@@ -23014,7 +23448,6 @@ canvas.sf-planet-canvas {
         ctx.arc(rp.x, rp.y, 3 * rp.scale, 0, Math.PI * 2);
         ctx.fill();
 
-        // Smoke / thrust trail
         ctx.strokeStyle = '#f59e0b';
         ctx.lineWidth = 1.5;
         ctx.beginPath();
