@@ -2759,6 +2759,7 @@ img,canvas{-webkit-user-drag:none;user-drag:none}
 
       // Hotkey listener: H to toggle, Escape to close if open
       window.addEventListener('keydown', (e) => {
+        if ((typeof currentMode !== 'undefined' && currentMode !== 'cruise') || (window.currentMode && window.currentMode !== 'cruise')) return;
         if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
         if (e.key.toLowerCase() === 'h' && !e.ctrlKey && !e.altKey && !e.metaKey) {
           e.preventDefault();
@@ -8165,11 +8166,13 @@ const StarfieldSonar = {
   activeSonarRings: [],
   lastScanTime: 0,
   btnElement: null,
+  audioCtx: null,
 
   init() {
     if (this._inited) return;
     this._inited = true;
     window.addEventListener('keydown', (e) => {
+      if ((typeof currentMode !== 'undefined' && currentMode !== 'cruise') || (window.currentMode && window.currentMode !== 'cruise')) return;
       if ((e.key.toLowerCase() === 'f' || e.code === 'KeyF') && !e.repeat) {
         this.triggerScan();
       }
@@ -8282,7 +8285,12 @@ const StarfieldSonar = {
     try {
       const AudioCtx = window.AudioContext || window.webkitAudioContext;
       if (AudioCtx) {
-        const ctx = new AudioCtx();
+        if (!this.audioCtx || this.audioCtx.state === 'closed') {
+          this.audioCtx = new AudioCtx();
+        } else if (this.audioCtx.state === 'suspended') {
+          this.audioCtx.resume();
+        }
+        const ctx = this.audioCtx;
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
         osc.type = 'sine';
@@ -8292,6 +8300,9 @@ const StarfieldSonar = {
         gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.9);
         osc.connect(gain);
         gain.connect(ctx.destination);
+        osc.onended = () => {
+          try { osc.disconnect(); gain.disconnect(); } catch(e) {}
+        };
         osc.start();
         osc.stop(ctx.currentTime + 0.9);
       }
@@ -11459,6 +11470,7 @@ if(typeof FleetCustomizer !== 'undefined' && FleetCustomizer.init){
 
 $('warp-toggle').addEventListener('click', () => WarpDrive.cycle());
 window.addEventListener('keydown', e => {
+  if ((typeof currentMode !== 'undefined' && currentMode !== 'cruise') || (window.currentMode && window.currentMode !== 'cruise')) return;
   if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
   if (e.key === 'Shift' || e.code === 'KeyW') {
     if (!e.repeat) WarpDrive.setHold(true);
@@ -11467,6 +11479,7 @@ window.addEventListener('keydown', e => {
   }
 });
 window.addEventListener('keyup', e => {
+  if ((typeof currentMode !== 'undefined' && currentMode !== 'cruise') || (window.currentMode && window.currentMode !== 'cruise')) return;
   if (e.key === 'Shift' || e.code === 'KeyW') {
     WarpDrive.setHold(false);
   }
@@ -11477,6 +11490,7 @@ $('formation-toggle').addEventListener('click',()=>FleetFormations.cycle());
 const hangarBtn = $('hangar-toggle'); if(hangarBtn && !hangarBtn._customizerBound) { hangarBtn._customizerBound = true; hangarBtn.addEventListener('click',()=>FleetCustomizer.toggle()); }
 $('sound-toggle').addEventListener('click',toggleSound);$('poem-toggle').addEventListener('click',togglePoem);$('pause-toggle').addEventListener('click',togglePause);$('fullscreen-toggle').addEventListener('click',()=>fullscreen(true));
 window.addEventListener('keydown',e=>{
+ if ((typeof currentMode !== 'undefined' && currentMode !== 'cruise') || (window.currentMode && window.currentMode !== 'cruise')) return;
  if(!started||e.ctrlKey||e.metaKey||e.altKey)return;
  if(e.code==='Space'){if(e.target instanceof HTMLButtonElement)return;e.preventDefault();togglePause();}
  else if(e.key.toLowerCase()==='v')toggleCockpit();
@@ -11879,6 +11893,10 @@ let hudFrames=0,hudLastT=performance.now(),realFps=60,frameDurationMs=0;
 function frame(now){
  requestAnimationFrame(frame);
  if(document.hidden)return;
+ if ((typeof currentMode !== 'undefined' && currentMode !== 'cruise') || (window.currentMode && window.currentMode !== 'cruise')){
+  last = now;
+  return;
+ }
  const targetFps = (window.STARFIELD_QUALITY && window.STARFIELD_QUALITY.getTargetFps) ? window.STARFIELD_QUALITY.getTargetFps() : 0;
  if (targetFps > 0) {
   const frameInterval = 1000 / targetFps;
@@ -13243,6 +13261,7 @@ requestAnimationFrame(frame);
     };
     const clear = () => { if (t1) clearTimeout(t1); if (t2) clearTimeout(t2); t1 = t2 = 0; };
     const down = (e) => {
+      if ((typeof currentMode !== 'undefined' && currentMode !== 'cruise') || (window.currentMode && window.currentMode !== 'cruise')) return;
       const t = e.target;
       if (t && t.closest && t.closest('button,.sf-touch-joy-zone,.sf-touch-more-tray,#settings-drawer,#codex-modal')) return;
       if (!Engine.isFlightStarted || !Engine.isFlightStarted()) return;
@@ -13261,6 +13280,7 @@ requestAnimationFrame(frame);
   // --- Two-Finger Pinch-to-Zoom Handler ---
   function setupPinchZoomEvents() {
     window.addEventListener('touchstart', (e) => {
+      if ((typeof currentMode !== 'undefined' && currentMode !== 'cruise') || (window.currentMode && window.currentMode !== 'cruise')) return;
       for (let i = 0; i < e.changedTouches.length; i++) {
         const t = e.changedTouches[i];
         activeTouches.set(t.identifier, { x: t.clientX, y: t.clientY });
@@ -13274,6 +13294,7 @@ requestAnimationFrame(frame);
     }, { passive: true });
 
     window.addEventListener('touchmove', (e) => {
+      if ((typeof currentMode !== 'undefined' && currentMode !== 'cruise') || (window.currentMode && window.currentMode !== 'cruise')) return;
       for (let i = 0; i < e.changedTouches.length; i++) {
         const t = e.changedTouches[i];
         if (activeTouches.has(t.identifier)) {
@@ -13321,6 +13342,12 @@ requestAnimationFrame(frame);
   // --- Gamepad Main Polling & Processing Loop ---
   function pollGamepad(now) {
     if (document.hidden) {
+      rafId = requestAnimationFrame(pollGamepad);
+      return;
+    }
+    if ((typeof currentMode !== 'undefined' && currentMode !== 'cruise') || (window.currentMode && window.currentMode !== 'cruise')) {
+      const touchOverlay = document.getElementById('starfield-touch-overlay');
+      if (touchOverlay) touchOverlay.style.display = 'none';
       rafId = requestAnimationFrame(pollGamepad);
       return;
     }
@@ -14918,6 +14945,7 @@ requestAnimationFrame(frame);
 
       // 6. Global Keydown Handlers (R, E, A, D, Left, Right, Escape)
       window.addEventListener('keydown', (e) => {
+        if ((typeof currentMode !== 'undefined' && currentMode !== 'cruise') || (window.currentMode && window.currentMode !== 'cruise')) return;
         if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
 
         // Hotkey R: Radar Ping
@@ -15237,6 +15265,10 @@ requestAnimationFrame(frame);
 
   function onFrame(now) {
     if (document.hidden) {
+      requestAnimationFrame(onFrame);
+      return;
+    }
+    if ((typeof currentMode !== 'undefined' && currentMode !== 'cruise') || (window.currentMode && window.currentMode !== 'cruise')) {
       requestAnimationFrame(onFrame);
       return;
     }
@@ -19190,6 +19222,31 @@ canvas.sf-planet-canvas {
   color: #94a3b8;
   margin-top: 1px;
 }
+.sf-ext-joystick-zone {
+  width: 84px;
+  height: 84px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(56, 189, 248, 0.12) 0%, rgba(15, 23, 42, 0.75) 100%);
+  border: 1.5px solid rgba(56, 189, 248, 0.35);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+  pointer-events: auto;
+  touch-action: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  user-select: none;
+}
+.sf-ext-joystick-knob {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(56, 189, 248, 0.8) 0%, rgba(2, 132, 199, 0.8) 100%);
+  border: 1.5px solid #38bdf8;
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
+  pointer-events: none;
+  transition: transform 0.05s ease-out;
+}
 .sf-ext-radar {
   width: 90px;
   height: 90px;
@@ -19657,8 +19714,8 @@ canvas.sf-planet-canvas {
     </div>
 
     <div class="sf-ext-controls-bottom">
-      <div class="sf-ext-radar" id="sf-ext-radar-box">
-        <canvas id="sf-ext-radar-canvas" width="90" height="90"></canvas>
+      <div id="sf-ext-joystick-zone" class="sf-ext-joystick-zone">
+        <div class="sf-ext-joystick-knob"></div>
       </div>
 
       <div class="sf-ext-btn-cluster">
@@ -19698,6 +19755,7 @@ canvas.sf-planet-canvas {
           <span style="font-size:9.5px; color:#94a3b8; font-weight:700;">TARGETS</span>
           <span class="sf-sling-score-val" id="sf-sling-target-count" style="color:#38bdf8;">2 / 2</span>
         </div>
+        <button class="sf-exit-mode-btn" id="sf-sling-reset-btn" style="border-color:#fbbf24; color:#fbbf24; background:rgba(251,191,36,0.12);">重设 ↻</button>
         <button class="sf-exit-mode-btn" id="sf-sling-exit-btn">返回漫游 ✕</button>
       </div>
     </div>
@@ -20144,7 +20202,11 @@ canvas.sf-planet-canvas {
    * ========================================================================= */
   const BETA_KEY = 'sf_beta_channel_v1';
   function isBetaEnabled() {
-    return localStorage.getItem(BETA_KEY) === 'true';
+    try {
+      return localStorage.getItem(BETA_KEY) === 'true';
+    } catch(e) {
+      return false;
+    }
   }
 
   function setBetaEnabled(enabled) {
@@ -20208,10 +20270,12 @@ canvas.sf-planet-canvas {
   const overlayDyson = document.getElementById('sf-dyson-overlay');
 
   let currentMode = 'cruise';
+  window.currentMode = 'cruise';
 
   function switchMode(newMode) {
     if (currentMode === newMode) return;
     currentMode = newMode;
+    window.currentMode = newMode;
     [btnCruise, btnExtract, btnSling, btnRedAlert, btnDyson].forEach(b => b && b.classList.remove('active'));
     [overlayExtract, overlaySling, overlayRedAlert, overlayDyson].forEach(o => o && o.classList.remove('active'));
 
@@ -20222,6 +20286,8 @@ canvas.sf-planet-canvas {
     if (window.DysonSphereProgram) window.DysonSphereProgram.stop();
     document.getElementById('sf-dsp-tech-modal')?.classList.remove('active');
     document.querySelectorAll('.sf-ext-modal').forEach(m => m.remove());
+    const touchOverlay = document.getElementById('starfield-touch-overlay');
+    if (touchOverlay && newMode !== 'cruise') touchOverlay.style.display = 'none';
 
     if (newMode === 'cruise') {
       btnCruise.classList.add('active');
@@ -20333,6 +20399,8 @@ canvas.sf-planet-canvas {
       if (this.animId) cancelAnimationFrame(this.animId);
       clearInterval(this.timerInterval);
       document.querySelectorAll('.sf-ext-modal').forEach(m => m.remove());
+      this.keys = { w: false, a: false, s: false, d: false, fire: false, boost: false, interact: false };
+      if (typeof this.resetJoystick === 'function') this.resetJoystick();
     }
 
     resize() {
@@ -20341,6 +20409,8 @@ canvas.sf-planet-canvas {
     }
 
     resetGame() {
+      this.keys = { w: false, a: false, s: false, d: false, fire: false, boost: false, interact: false };
+      if (typeof this.resetJoystick === 'function') this.resetJoystick();
       this.player.x = 1600;
       this.player.y = 1600;
       this.player.vx = 0;
@@ -20459,39 +20529,61 @@ canvas.sf-planet-canvas {
       const btnFire = document.getElementById('sf-ext-btn-fire');
       btnFire?.addEventListener('pointerdown', (e) => { e.preventDefault(); this.keys.fire = true; });
       btnFire?.addEventListener('pointerup', (e) => { e.preventDefault(); this.keys.fire = false; });
+      btnFire?.addEventListener('pointercancel', (e) => { e.preventDefault(); this.keys.fire = false; });
 
       const btnBoost = document.getElementById('sf-ext-btn-boost');
       btnBoost?.addEventListener('pointerdown', (e) => { e.preventDefault(); this.keys.boost = true; });
       btnBoost?.addEventListener('pointerup', (e) => { e.preventDefault(); this.keys.boost = false; });
+      btnBoost?.addEventListener('pointercancel', (e) => { e.preventDefault(); this.keys.boost = false; });
 
       const btnLoot = document.getElementById('sf-ext-btn-loot');
       btnLoot?.addEventListener('pointerdown', (e) => { e.preventDefault(); this.keys.interact = true; });
       btnLoot?.addEventListener('pointerup', (e) => { e.preventDefault(); this.keys.interact = false; });
+      btnLoot?.addEventListener('pointercancel', (e) => { e.preventDefault(); this.keys.interact = false; });
 
-      // Virtual Joystick
+      // Virtual Joystick (Multi-Touch Isolated)
       const joyZone = document.getElementById('sf-ext-joystick-zone');
-      let joyActive = false, joyOrigin = { x: 0, y: 0 };
+      const joyKnob = joyZone?.querySelector('.sf-ext-joystick-knob');
+      let joyPointerId = null;
+      let joyOrigin = { x: 0, y: 0 };
+
+      this.resetJoystick = () => {
+        joyPointerId = null;
+        this.keys.w = this.keys.s = this.keys.a = this.keys.d = false;
+        if (joyKnob) joyKnob.style.transform = 'translate(0px, 0px)';
+      };
+
       joyZone?.addEventListener('pointerdown', (e) => {
         e.preventDefault();
-        joyActive = true;
+        if (joyPointerId !== null) return;
+        joyPointerId = e.pointerId;
+        try { joyZone.setPointerCapture(e.pointerId); } catch(err) {}
         const rect = joyZone.getBoundingClientRect();
         joyOrigin = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
       });
       window.addEventListener('pointermove', (e) => {
-        if (!joyActive) return;
+        if (joyPointerId === null || e.pointerId !== joyPointerId) return;
         const dx = e.clientX - joyOrigin.x;
         const dy = e.clientY - joyOrigin.y;
         this.keys.w = dy < -15;
         this.keys.s = dy > 15;
         this.keys.a = dx < -15;
         this.keys.d = dx > 15;
-      });
-      window.addEventListener('pointerup', () => {
-        if (joyActive) {
-          joyActive = false;
-          this.keys.w = this.keys.s = this.keys.a = this.keys.d = false;
+        if (joyKnob) {
+          const dist = Math.hypot(dx, dy);
+          const maxR = 26;
+          const kx = dist > maxR ? (dx / dist) * maxR : dx;
+          const ky = dist > maxR ? (dy / dist) * maxR : dy;
+          joyKnob.style.transform = 'translate(' + kx + 'px, ' + ky + 'px)';
         }
       });
+      const endJoy = (e) => {
+        if (joyPointerId !== null && e.pointerId === joyPointerId) {
+          this.resetJoystick();
+        }
+      };
+      window.addEventListener('pointerup', endJoy);
+      window.addEventListener('pointercancel', endJoy);
     }
 
     loop(timestamp) {
@@ -21034,9 +21126,11 @@ canvas.sf-planet-canvas {
       this.ctx = this.canvas.getContext('2d');
       this.active = false;
       this.animId = null;
+      this.timers = [];
 
       this.score = 0;
       this.levelIndex = 0;
+      this.totalTargets = 0;
 
       this.levels = [
         {
@@ -21096,6 +21190,15 @@ canvas.sf-planet-canvas {
     stop() {
       this.active = false;
       if (this.animId) cancelAnimationFrame(this.animId);
+      this.clearTimers();
+      this.dragState.isDragging = false;
+    }
+
+    clearTimers() {
+      if (this.timers) {
+        for (const t of this.timers) clearTimeout(t);
+        this.timers = [];
+      }
     }
 
     resize() {
@@ -21103,27 +21206,52 @@ canvas.sf-planet-canvas {
       this.canvas.height = window.innerHeight;
     }
 
+    getScaleMatrix() {
+      const BASE_W = 1024;
+      const BASE_H = 576;
+      const w = this.canvas.width;
+      const h = this.canvas.height;
+      const rawScale = (w > 0 && h > 0) ? Math.min(w / BASE_W, h / BASE_H) : 1;
+      const scale = (rawScale > 0.001) ? rawScale : 1;
+      const offsetX = (w - BASE_W * scale) / 2;
+      const offsetY = (h - BASE_H * scale) / 2;
+      return { scale, offsetX, offsetY };
+    }
+
     loadLevel(idx) {
+      this.clearTimers();
+      this.dragState.isDragging = false;
       const lvl = this.levels[idx % this.levels.length];
       this.currentLevel = JSON.parse(JSON.stringify(lvl));
+      this.totalTargets = this.currentLevel.targets ? this.currentLevel.targets.length : 0;
       this.birdsQueue = ['red', 'blue', 'bomb'];
       this.flyingBirds = [];
       this.particles = [];
       this.spawnNextBird();
 
-      const nameEl = document.getElementById('sf-sling-level-name');
+      const nameEl = document.getElementById('sf-sling-stage-title') || document.getElementById('sf-sling-level-name');
       if (nameEl) nameEl.textContent = lvl.name;
       this.updateRosterHUD();
+      this.updateTargetHUD();
+    }
+
+    updateTargetHUD() {
+      const countEl = document.getElementById('sf-sling-target-count');
+      if (countEl && this.currentLevel && this.currentLevel.targets) {
+        countEl.textContent = `${this.currentLevel.targets.length} / ${this.totalTargets || this.currentLevel.targets.length}`;
+      }
     }
 
     spawnNextBird() {
       if (this.birdsQueue.length === 0) {
         // Check if targets remaining
-        setTimeout(() => {
-          if (this.currentLevel.targets.length > 0) {
+        const t = setTimeout(() => {
+          if (!this.active) return;
+          if (this.currentLevel && this.currentLevel.targets && this.currentLevel.targets.length > 0) {
             if (typeof showToast === 'function') showToast('探针鸟已耗尽！点击重置再次尝试！', 3);
           }
         }, 3000);
+        this.timers.push(t);
         return;
       }
 
@@ -21145,21 +21273,29 @@ canvas.sf-planet-canvas {
 
       document.getElementById('sf-sling-reset-btn')?.addEventListener('click', () => {
         this.loadLevel(this.levelIndex);
+        if (typeof showToast === 'function') showToast('重置当前关卡弹弓与探针！', 2);
       });
 
       const getPos = (e) => {
         const rect = this.canvas.getBoundingClientRect();
-        return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+        const canvasX = e.clientX - rect.left;
+        const canvasY = e.clientY - rect.top;
+        const { scale, offsetX, offsetY } = this.getScaleMatrix();
+        return {
+          x: (canvasX - offsetX) / scale,
+          y: (canvasY - offsetY) / scale
+        };
       };
 
       this.canvas.addEventListener('pointerdown', (e) => {
-        if (!this.active) return;
+        if (!this.active || !this.currentLevel || !this.currentLevel.slingshot) return;
         const pos = getPos(e);
         const s = this.currentLevel.slingshot;
 
         // Click on Ready Bird to Drag Slingshot
         if (this.currentBird && this.currentBird.state === 'ready') {
-          if (Math.hypot(pos.x - s.x, pos.y - s.y) < 60) {
+          if (Math.hypot(pos.x - s.x, pos.y - s.y) < 75) {
+            try { this.canvas.setPointerCapture(e.pointerId); } catch(err) {}
             this.dragState.isDragging = true;
             this.dragState.dragX = pos.x;
             this.dragState.dragY = pos.y;
@@ -21193,8 +21329,8 @@ canvas.sf-planet-canvas {
         }
       });
 
-      this.canvas.addEventListener('pointermove', (e) => {
-        if (!this.active || !this.dragState.isDragging) return;
+      window.addEventListener('pointermove', (e) => {
+        if (!this.active || !this.dragState.isDragging || !this.currentLevel || !this.currentLevel.slingshot) return;
         const pos = getPos(e);
         const s = this.currentLevel.slingshot;
         const dx = pos.x - s.x;
@@ -21211,16 +21347,22 @@ canvas.sf-planet-canvas {
         }
       });
 
-      this.canvas.addEventListener('pointerup', () => {
-        if (!this.active || !this.dragState.isDragging) return;
+      const endSlingshot = () => {
+        if (!this.active || !this.dragState.isDragging || !this.currentLevel || !this.currentLevel.slingshot) return;
         this.dragState.isDragging = false;
 
         const s = this.currentLevel.slingshot;
         const dx = s.x - this.dragState.dragX;
         const dy = s.y - this.dragState.dragY;
-        const impulse = 6.8;
 
+        if (Math.hypot(dx, dy) < 10) {
+          return;
+        }
+
+        const impulse = 6.8;
         const b = this.currentBird;
+        if (!b) return;
+
         b.x = s.x;
         b.y = s.y;
         b.vx = dx * impulse;
@@ -21232,8 +21374,15 @@ canvas.sf-planet-canvas {
         playTone(580, 0.2, 'triangle', 0.25);
 
         // Spawn next bird after brief delay
-        setTimeout(() => this.spawnNextBird(), 2200);
-      });
+        const t = setTimeout(() => {
+          if (!this.active) return;
+          this.spawnNextBird();
+        }, 2200);
+        this.timers.push(t);
+      };
+
+      window.addEventListener('pointerup', endSlingshot);
+      window.addEventListener('pointercancel', endSlingshot);
     }
 
     triggerImplosion(x, y) {
@@ -21243,23 +21392,25 @@ canvas.sf-planet-canvas {
           x: x, y: y,
           vx: (Math.random() - 0.5) * 400,
           vy: (Math.random() - 0.5) * 400,
-          color: '#fbbf24',
-          life: 0.6, maxLife: 0.6,
-          size: Math.random() * 6 + 2
+          life: 0.4, maxLife: 0.4,
+          color: '#c084fc',
+          size: Math.random() * 5 + 2
         });
       }
 
-      for (let i = this.currentLevel.targets.length - 1; i >= 0; i--) {
-        const t = this.currentLevel.targets[i];
-        if (Math.hypot(t.x - x, t.y - y) < 160) {
-          t.hp -= 60;
+      const lvl = this.currentLevel;
+      for (let j = lvl.targets.length - 1; j >= 0; j--) {
+        const t = lvl.targets[j];
+        if (Math.hypot(t.x - x, t.y - y) < 140) {
+          t.hp -= 80;
           if (t.hp <= 0) {
-            this.currentLevel.targets.splice(i, 1);
-            this.addScore(5000);
+            lvl.targets.splice(j, 1);
+            this.addScore(3000);
+            this.updateTargetHUD();
+            this.checkLevelClear();
           }
         }
       }
-      this.checkLevelClear();
     }
 
     addScore(pts) {
@@ -21352,6 +21503,7 @@ canvas.sf-planet-canvas {
               lvl.targets.splice(j, 1);
               playExplosionSfx();
               this.addScore(3000);
+              this.updateTargetHUD();
               if (typeof showToast === 'function') showToast(`核心摧毁！+3000 PT 💥`, 2);
               this.checkLevelClear();
             }
@@ -21359,8 +21511,8 @@ canvas.sf-planet-canvas {
           }
         }
 
-        // Remove if off-screen
-        if (b.x < -100 || b.x > this.canvas.width + 100 || b.y < -100 || b.y > this.canvas.height + 100) {
+        // Remove if off-screen (extended boundary for logical scaled coordinate space)
+        if (b.x < -200 || b.x > 1400 || b.y < -200 || b.y > 900) {
           this.flyingBirds.splice(i, 1);
         }
       }
@@ -21378,13 +21530,15 @@ canvas.sf-planet-canvas {
     checkLevelClear() {
       if (this.currentLevel.targets.length === 0) {
         playTone(880, 0.35, 'sine', 0.3);
-        setTimeout(() => {
+        const t = setTimeout(() => {
+          if (!this.active) return;
           if (typeof showToast === 'function') {
             showToast('🎉 SECTOR CLEARED! 恭喜达成三星引力弹弓！', 4);
           }
           this.levelIndex = (this.levelIndex + 1) % this.levels.length;
           this.loadLevel(this.levelIndex);
         }, 1200);
+        this.timers.push(t);
       }
     }
 
@@ -21393,12 +21547,18 @@ canvas.sf-planet-canvas {
       const w = this.canvas.width;
       const h = this.canvas.height;
       const lvl = this.currentLevel;
+      if (!lvl) return;
 
       ctx.clearRect(0, 0, w, h);
 
       // 1. Starry Backdrop
       ctx.fillStyle = '#060a14';
       ctx.fillRect(0, 0, w, h);
+
+      const { scale, offsetX, offsetY } = this.getScaleMatrix();
+      ctx.save();
+      ctx.translate(offsetX, offsetY);
+      ctx.scale(scale, scale);
 
       // 2. Planets & Gravity Well Atmospheres
       for (const p of lvl.planets) {
@@ -21559,6 +21719,8 @@ canvas.sf-planet-canvas {
         ctx.arc(pt.x, pt.y, pt.size * (pt.life / pt.maxLife), 0, Math.PI * 2);
         ctx.fill();
       }
+
+      ctx.restore();
     }
   }
 
@@ -21573,6 +21735,8 @@ canvas.sf-planet-canvas {
       this.ctx = this.canvas.getContext('2d');
       this.active = false;
       this.animId = null;
+      this.waveTimer = null;
+      this.isSpawningWave = false;
 
       this.worldWidth = 2400;
       this.worldHeight = 1600;
@@ -21625,6 +21789,11 @@ canvas.sf-planet-canvas {
     stop() {
       this.active = false;
       if (this.animId) cancelAnimationFrame(this.animId);
+      if (this.waveTimer) {
+        clearTimeout(this.waveTimer);
+        this.waveTimer = null;
+      }
+      this.isSpawningWave = false;
     }
 
     resize() {
@@ -21640,6 +21809,11 @@ canvas.sf-planet-canvas {
     }
 
     resetGame() {
+      if (this.waveTimer) {
+        clearTimeout(this.waveTimer);
+        this.waveTimer = null;
+      }
+      this.isSpawningWave = false;
       this.credits = 3000;
       this.buildings = [
         { id: 1, type: 'hq', name: '基地指挥所', x: 450, y: 800, w: 90, h: 90, hp: 2500, maxHp: 2500, powerGen: 40, powerReq: 0, color: '#38bdf8' },
@@ -22535,8 +22709,13 @@ canvas.sf-planet-canvas {
         if (typeof showToast === 'function') {
           showToast(`🏆 敌军突击波次已肃清！战术嘉奖 +$800！第 ${this.wave} 波敌军正于深空跃迁...`, 4);
         }
-        setTimeout(() => {
-          if (!this.active) return;
+        if (this.waveTimer) clearTimeout(this.waveTimer);
+        this.waveTimer = setTimeout(() => {
+          this.waveTimer = null;
+          if (!this.active) {
+            this.isSpawningWave = false;
+            return;
+          }
           this.isSpawningWave = false;
           const count = 3 + this.wave * 2;
           for (let k = 0; k < count; k++) {
