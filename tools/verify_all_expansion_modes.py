@@ -28,6 +28,8 @@ async def main():
 
         await page.goto("file:///D:/items/code/starfield-pub/starfield.html")
         await page.wait_for_timeout(1200)
+        await page.evaluate("() => window.StarfieldBetaLab && window.StarfieldBetaLab.setEnabled(true)")
+        await page.wait_for_timeout(300)
 
         # 1. Check Mode Bar UI
         print("\n--- 1. Checking Mode Switcher Bar UI ---")

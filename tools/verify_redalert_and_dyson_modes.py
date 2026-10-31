@@ -302,6 +302,8 @@ async def main():
 
         # Let the game simulate a bit to show combat and rendering
         await page.wait_for_timeout(1000)
+        await page.evaluate("() => window.StarfieldBetaLab && window.StarfieldBetaLab.setEnabled(true)")
+        await page.wait_for_timeout(300)
         screenshot_ra = screenshots_dir / "test_redalert_space_command.png"
         await page.screenshot(path=str(screenshot_ra))
         print(f"Saved screenshot {screenshot_ra}")

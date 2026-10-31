@@ -1,0 +1,34 @@
+# -*- coding: utf-8 -*-
+import json
+
+# Update version.json
+v = {
+  "version": "1.18.0",
+  "build": 150,
+  "updated_at": "2026-10-31T15:35:00+08:00",
+  "min_native_version": "1.0.0",
+  "is_beta": True,
+  "title": "先锋实验版上线：搜打撤鸭科夫、引力弹弓太空鸟、红警前哨RTS与戴森球计划（自愿体验）",
+  "changelog": "1. 开启全新先锋实验室 (Beta Channel)：玩家可自愿在设置或弹窗中抢先体验 4 大太空新玩法（搜打撤·鸭科夫、引力弹弓太空鸟、红警前哨战RTS、戴森球计划）；2. 默认保持纯净经典漫游不变，自愿加入，随时一键退出；3. 完美兼容移动端触控与PC键鼠双向操作。",
+  "entry": "starfield.html",
+  "download_url": "https://jackeyloveseven.github.io/starfield/starfield.html",
+  "apk_release_url": "https://github.com/jackeyloveseven/starfield/releases/tag/v1.18.0-focus-apk"
+}
+
+with open('starfield-pub/version.json', 'w', encoding='utf-8') as f:
+    json.dump(v, f, ensure_ascii=False, indent=2)
+
+# Update build.gradle
+with open('starfield-pub/android/app/build.gradle', 'r', encoding='utf-8') as f:
+    gradle = f.read()
+
+gradle = gradle.replace('versionCode 48', 'versionCode 50').replace('1.17.5', '1.18.0')
+with open('starfield-pub/android/app/build.gradle', 'w', encoding='utf-8') as f:
+    f.write(gradle)
+
+# Ensure android assets mirror
+import shutil
+shutil.copyfile('starfield-pub/starfield.html', 'starfield-pub/android/app/src/main/assets/starfield.html')
+shutil.copyfile('starfield-pub/version.json', 'starfield-pub/android/app/src/main/assets/version.json')
+
+print("Updated version.json and build.gradle to v1.18.0 Build 150, mirrored assets successfully!")
