@@ -1714,7 +1714,7 @@ img,canvas{-webkit-user-drag:none;user-drag:none}
     <div class="shortcut-list">
       <div class="shortcut-row">
         <span>客户端版本</span>
-        <span class="shortcut-key" id="sf-version-tag">v1.2.2 (Build 114)</span>
+        <span class="shortcut-key" id="sf-version-tag">v1.18.0 (Build 150)</span>
       </div>
       <div class="shortcut-row">
         <span>OTA 实时热更新</span>
@@ -4220,9 +4220,9 @@ const GameSettings = {
         if (typeof window.checkStarfieldUpdates === 'function') window.checkStarfieldUpdates(true);
       });
     }
-    if (window.StarfieldNative && typeof window.StarfieldNative.getAppVersion === 'function') {
-      const vTag = $('sf-version-tag');
-      if (vTag) {
+    const vTag = $('sf-version-tag');
+    if (vTag) {
+      if (window.StarfieldNative && typeof window.StarfieldNative.getAppVersion === 'function') {
         // getBuildNumber() did not exist on the bridge, so this line threw and
         // the tag stayed at its hard-coded value forever.
         let build = '';
@@ -4241,6 +4241,8 @@ const GameSettings = {
           }
         } catch (e) { /* older APK */ }
         vTag.textContent = 'v' + window.StarfieldNative.getAppVersion() + build + ota;
+      } else {
+        vTag.textContent = 'v1.18.0 (Build 150)';
       }
     }
   },
@@ -20218,6 +20220,8 @@ canvas.sf-planet-canvas {
     if (window.OrbitalSlingshot) window.OrbitalSlingshot.stop();
     if (window.RedAlertRTS) window.RedAlertRTS.stop();
     if (window.DysonSphereProgram) window.DysonSphereProgram.stop();
+    document.getElementById('sf-dsp-tech-modal')?.classList.remove('active');
+    document.querySelectorAll('.sf-ext-modal').forEach(m => m.remove());
 
     if (newMode === 'cruise') {
       btnCruise.classList.add('active');
@@ -20328,6 +20332,7 @@ canvas.sf-planet-canvas {
       this.active = false;
       if (this.animId) cancelAnimationFrame(this.animId);
       clearInterval(this.timerInterval);
+      document.querySelectorAll('.sf-ext-modal').forEach(m => m.remove());
     }
 
     resize() {
@@ -21972,6 +21977,11 @@ canvas.sf-planet-canvas {
 
     produceUnit(type, cost) {
       const hasShipyard = this.buildings.some(b => b.type === 'shipyard' && b.hp > 0);
+      const hasRefinery = this.buildings.some(b => b.type === 'refinery' && b.hp > 0);
+      if (type === 'harvester' && !hasRefinery) {
+        if (typeof showToast === 'function') showToast('请先建造【矿石精炼厂】以停泊采矿飞船！', 2.5);
+        return;
+      }
       if (type !== 'harvester' && !hasShipyard) {
         if (typeof showToast === 'function') showToast('请先建造【战舰重工船坞】以制造主力战舰！', 2.5);
         return;
@@ -22247,7 +22257,13 @@ canvas.sf-planet-canvas {
       // 1. Harvester Loop with Ore Depletion & Multi-Field Relocation
       for (const h of this.harvesters) {
         if (h.hp <= 0) continue;
-        if (h.state === 'to_ore') {
+        if (h.state === 'idle') {
+          const nextOre = this.oreFields.find(f => f.ore > 0);
+          if (nextOre) {
+            h.targetOre = nextOre;
+            h.state = 'to_ore';
+          }
+        } else if (h.state === 'to_ore') {
           if (!h.targetOre || h.targetOre.ore <= 0) {
             h.targetOre = this.oreFields.find(f => f.ore > 0) || this.oreFields[0];
           }
@@ -22305,15 +22321,25 @@ canvas.sf-planet-canvas {
         } else if (h.state === 'unloading') {
           h.unloadTimer -= dt;
           if (h.unloadTimer <= 0) {
-            this.credits += 500;
-            spaceAudio.playCredit();
-            this.particles.push({
-              x: h.x, y: h.y - 20,
-              text: '+$500', color: '#34d399', life: 1.0, maxLife: 1.0, type: 'floatText'
-            });
+            const reward = Math.round((h.cargo / h.maxCargo) * 500);
+            if (reward > 0) {
+              this.credits += reward;
+              spaceAudio.playCredit();
+              this.particles.push({
+                x: h.x, y: h.y - 20,
+                text: '+$' + reward, color: '#34d399', life: 1.0, maxLife: 1.0, type: 'floatText'
+              });
+            }
             h.cargo = 0;
-            h.targetOre = this.oreFields.find(f => f.ore > 0) || this.oreFields[0];
-            h.state = 'to_ore';
+            const nextOre = this.oreFields.find(f => f.ore > 0);
+            if (nextOre) {
+              h.targetOre = nextOre;
+              h.state = 'to_ore';
+            } else {
+              h.targetOre = null;
+              h.state = 'idle';
+              if (typeof showToast === 'function') showToast('全区矿石已完全采尽，采矿车原地待命', 3);
+            }
           }
         }
       }
@@ -22498,6 +22524,38 @@ canvas.sf-planet-canvas {
           this.credits += (this.enemies[i].type === 'dreadnought' ? 400 : 80);
           this.enemies.splice(i, 1);
         }
+      }
+
+      // Check wave clear & spawn next wave with rewards
+      if (this.enemies.length === 0 && !this.isSpawningWave) {
+        this.isSpawningWave = true;
+        this.wave = (this.wave || 1) + 1;
+        this.credits += 800;
+        spaceAudio.playCredit();
+        if (typeof showToast === 'function') {
+          showToast(`🏆 敌军突击波次已肃清！战术嘉奖 +$800！第 ${this.wave} 波敌军正于深空跃迁...`, 4);
+        }
+        setTimeout(() => {
+          if (!this.active) return;
+          this.isSpawningWave = false;
+          const count = 3 + this.wave * 2;
+          for (let k = 0; k < count; k++) {
+            const isHeavy = (k % 4 === 0 && this.wave >= 2);
+            this.enemies.push({
+              id: Date.now() + k,
+              type: isHeavy ? 'dreadnought' : (k % 2 === 0 ? 'cruiser' : 'fighter'),
+              x: 2150 + Math.random() * 200,
+              y: 200 + Math.random() * 1100,
+              vx: 0, vy: 0, angle: Math.PI,
+              hp: isHeavy ? 1100 : (k % 2 === 0 ? 380 : 150),
+              maxHp: isHeavy ? 1100 : (k % 2 === 0 ? 380 : 150),
+              speed: isHeavy ? 1.2 : 2.4,
+              range: isHeavy ? 260 : 200,
+              dmg: isHeavy ? 130 : 25,
+              reload: 0, maxReload: isHeavy ? 1.9 : 0.8
+            });
+          }
+        }, 12000);
       }
       for (let i = this.units.length - 1; i >= 0; i--) {
         if (this.units[i].hp <= 0) {
@@ -23006,6 +23064,7 @@ canvas.sf-planet-canvas {
     stop() {
       this.active = false;
       if (this.animId) cancelAnimationFrame(this.animId);
+      this.toggleTechModal(false);
     }
 
     resize() {
@@ -23130,8 +23189,20 @@ canvas.sf-planet-canvas {
     toggleTechModal(open) {
       const m = document.getElementById('sf-dsp-tech-modal');
       if (m) {
-        if (open) m.classList.add('active');
-        else m.classList.remove('active');
+        if (open) {
+          m.classList.add('active');
+          if (this.techLevels.shell >= 1) {
+            const btn = document.getElementById('sf-dsp-btn-upgrade-shell');
+            if (btn) {
+              btn.disabled = true;
+              btn.textContent = '已达上限 (MAX)';
+              btn.style.opacity = '0.5';
+              btn.style.cursor = 'not-allowed';
+            }
+          }
+        } else {
+          m.classList.remove('active');
+        }
       }
     }
 
@@ -23149,6 +23220,13 @@ canvas.sf-planet-canvas {
         if (key === 'shell') {
           spanLvl.textContent = '已构筑 (20 GW上限)';
           spanLvl.style.color = '#38bdf8';
+          const btn = document.getElementById('sf-dsp-btn-upgrade-shell');
+          if (btn) {
+            btn.disabled = true;
+            btn.textContent = '已达上限 (MAX)';
+            btn.style.opacity = '0.5';
+            btn.style.cursor = 'not-allowed';
+          }
         } else {
           spanLvl.textContent = `Lv.${this.techLevels[key]}`;
         }
@@ -23283,12 +23361,13 @@ canvas.sf-planet-canvas {
 
       // Auto-launch minor solar sails
       if (this.solarSails.length < 1000 && Math.random() < 0.05 + this.techLevels.em * 0.04) {
+        const ringIdx = Math.floor(Math.random() * 3);
         this.solarSails.push({
-          ring: Math.floor(Math.random() * 3),
+          ring: ringIdx,
           angle: 0,
           speed: 0.008 + Math.random() * 0.006,
-          radius: 200 + (Math.floor(Math.random() * 3)) * 60,
-          inclination: Math.random() * 0.8 - 0.4,
+          radius: 200 + ringIdx * 60,
+          inclination: ringIdx === 0 ? 0.25 : (ringIdx === 1 ? 0.65 : -0.45),
           life: 90 * (1 + this.techLevels.sail * 0.5)
         });
       }
