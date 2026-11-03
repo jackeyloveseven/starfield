@@ -24,7 +24,7 @@ async def main():
             return vtag ? vtag.textContent : '';
         }''')
         print("Version tag text:", vtagText)
-        assert 'v1.18.0' in vtagText and '150' in vtagText, f"Expected v1.18.0 (Build 150), got {vtagText}"
+        assert 'v1.19.0' in vtagText and '152' in vtagText, f"Expected v1.18.0 (Build 150), got {vtagText}"
 
         # Enable Beta Lab
         await page.evaluate("() => window.StarfieldBetaLab && window.StarfieldBetaLab.setEnabled(true)")

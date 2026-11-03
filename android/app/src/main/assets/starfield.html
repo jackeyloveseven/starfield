@@ -1714,7 +1714,7 @@ img,canvas{-webkit-user-drag:none;user-drag:none}
     <div class="shortcut-list">
       <div class="shortcut-row">
         <span>客户端版本</span>
-        <span class="shortcut-key" id="sf-version-tag">v1.18.0 (Build 150)</span>
+        <span class="shortcut-key" id="sf-version-tag">v1.19.0 (Build 152)</span>
       </div>
       <div class="shortcut-row">
         <span>OTA 实时热更新</span>
@@ -4243,7 +4243,7 @@ const GameSettings = {
         } catch (e) { /* older APK */ }
         vTag.textContent = 'v' + window.StarfieldNative.getAppVersion() + build + ota;
       } else {
-        vTag.textContent = 'v1.18.0 (Build 150)';
+        vTag.textContent = 'v1.19.0 (Build 152)';
       }
     }
   },
@@ -12674,17 +12674,33 @@ window.addEventListener('resize', () => {
       if (manual && window.toast) window.toast('正在向 GitHub Pages 查询最新版本...');
       return;
     }
+    if (location.protocol === 'file:') {
+      if (manual && window.toast) window.toast('本地文件环境不执行远端更新查询');
+      return;
+    }
     fetch('./version.json?t=' + Date.now())
       .then(r => r.json())
       .then(data => {
-        if (data && data.version) {
-          if (manual && window.toast) window.toast(`当前线上版本: v${data.version} (Build ${data.build})`);
+        if (data && data.build) {
+          const localBuild = 152;
+          if (data.build > localBuild) {
+            showOtaNotification(data);
+          } else if (manual && window.toast) {
+            window.toast(`已是最新版本 · v${data.version} (Build ${data.build})`);
+          }
         }
       })
       .catch(e => {
         if (manual && window.toast) window.toast('检查更新失败，请确认网络连接');
       });
   };
+
+  // Automatically check for updates on startup after 2.5s delay
+  setTimeout(() => {
+    if (typeof window.checkStarfieldUpdates === 'function') {
+      window.checkStarfieldUpdates(false);
+    }
+  }, 2500);
 })();
 
 function resize(){

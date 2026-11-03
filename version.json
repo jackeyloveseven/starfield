@@ -1,12 +1,12 @@
 {
-  "version": "1.18.0",
-  "build": 150,
-  "updated_at": "2026-10-31T15:35:00+08:00",
+  "version": "1.19.0",
+  "build": 152,
+  "updated_at": "2026-11-03T21:30:00+08:00",
   "min_native_version": "1.0.0",
-  "is_beta": true,
-  "title": "先锋实验版上线：搜打撤鸭科夫、引力弹弓太空鸟、红警前哨RTS与戴森球计划（自愿体验）",
-  "changelog": "1. 开启全新先锋实验室 (Beta Channel)：玩家可自愿在设置或弹窗中抢先体验 4 大太空新玩法（搜打撤·鸭科夫、引力弹弓太空鸟、红警前哨战RTS、戴森球计划）；2. 默认保持纯净经典漫游不变，自愿加入，随时一键退出；3. 完美兼容移动端触控与PC键鼠双向操作。",
+  "is_beta": false,
+  "title": "星际文明与深空全域漫游版上线：星球文明巨构建模、3D大世界搜打撤与引力弹弓变轨",
+  "changelog": "1. 行星地表文明重磅升级：新增生态穹顶群、太空电梯基座、射电雷达天线、科考哨站、方尖碑遗迹与重工炼厂等 7 大类文明建筑；2. 搜打撤（逃离鸭科夫）深度融入 3D 深空大世界：航线遭遇 3D 舰船残骸群、战术货舱牵引搜刮、海盗跃迁空战交火、奇点折跃撤离；3. 引力弹弓（愤怒的小鸟太空版）深度融入真实 3D 轨道力学：实时引力井弹弓弯曲预测弧线、+280% 引力弹射变轨、[P] 发射引力探针鸟；4. 界面视野纯净化：彻底移除中下方多余声呐按钮；5. 多指并发触控隔离与全域能耗优化。",
   "entry": "starfield.html",
   "download_url": "https://jackeyloveseven.github.io/starfield/starfield.html",
-  "apk_release_url": "https://github.com/jackeyloveseven/starfield/releases/tag/v1.18.0-focus-apk"
+  "apk_release_url": "https://github.com/jackeyloveseven/starfield/releases/tag/v1.19.0-focus-apk"
 }
