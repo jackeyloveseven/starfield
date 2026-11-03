@@ -7645,6 +7645,7 @@ function updateWind(dt){
  wind.x=expStep(wind.x,autoCamera?targetX:0,1.4,dt);wind.y=expStep(wind.y,autoCamera?targetY:0,1.4,dt);
 }
 function craftWorld(b){return [routeX(travel)+b.x,courseY(travel)+b.y,travel+b.z];}
+window.craftWorld = craftWorld; window.fleet = fleet; window.LEAD = LEAD;
 /* Orbits. A body's place is a pure function of its own orbit and the world
  * clock - never of the last frame - so a seek lands on the same sky a flight of
  * the same length would have made, and a chunk that scrolls out and is rebuilt
@@ -8201,7 +8202,9 @@ const StarfieldSonar = {
     }
 
     this.currentTarget = candidate;
-    this.updateHUDButton(candidate);
+    // Bottom-center "按 F 探寻位置" HUD button removed per user request
+    const oldBtn = document.getElementById('sf-sonar-lock-btn');
+    if (oldBtn && oldBtn.style.display !== 'none') oldBtn.style.display = 'none';
 
     for (let i = this.activeSonarRings.length - 1; i >= 0; i--) {
       const ring = this.activeSonarRings[i];
@@ -8354,6 +8357,820 @@ const StarfieldSonar = {
   }
 };
 window.StarfieldSonar = StarfieldSonar;
+
+/* ============================================================================
+ * 3D IN-FLIGHT VOID EXTRACTION (深空搜打撤 · 空间域沉浸融入)
+ * ============================================================================ */
+const StarfieldInFlightExtraction = {
+  derelicts: [],
+  pirates: [],
+  evacGate: null,
+  cargo: [],
+  maxCargo: 6,
+  securedCredits: 0,
+  salvageTarget: null,
+  salvageProgress: 0,
+  lastSpawnTravel: 0,
+  lastAmbushTime: 0,
+  hudElement: null,
+  lootBtnElement: null,
+
+  init() {
+    if (this._inited) return;
+    this._inited = true;
+    window.addEventListener('keydown', (e) => {
+      if ((e.key.toLowerCase() === 'e' || e.code === 'KeyE') && !e.repeat) {
+        if (this.salvageTarget) this.fastLoot();
+      }
+    });
+    this.createHUD();
+  },
+
+  createHUD() {
+    if (typeof document === 'undefined') return;
+    if (!document.getElementById('sf-inflight-extract-hud')) {
+      const hud = document.createElement('div');
+      hud.id = 'sf-inflight-extract-hud';
+      hud.style.cssText = `
+        position: fixed;
+        top: calc(max(env(safe-area-inset-top, 0px), 16px) + 78px);
+        right: 18px;
+        z-index: 105;
+        background: linear-gradient(135deg, rgba(15, 23, 42, 0.88) 0%, rgba(8, 14, 26, 0.96) 100%);
+        border: 1px solid rgba(56, 189, 248, 0.45);
+        border-radius: 12px;
+        padding: 8px 12px;
+        color: #e0f2fe;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.55), 0 0 16px rgba(56, 189, 248, 0.22);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 10.5px;
+        pointer-events: auto;
+        display: none;
+        transition: opacity 0.25s ease, transform 0.25s ease;
+      `;
+      hud.innerHTML = `
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:6px; border-bottom:1px solid rgba(56,189,248,0.2); padding-bottom:4px;">
+          <span style="font-weight:700; color:#38bdf8; letter-spacing:0.05em; display:flex; align-items:center; gap:5px;">
+            <span style="width:6px; height:6px; border-radius:50%; background:#38bdf8; box-shadow:0 0 6px #38bdf8;"></span>
+            战术货舱
+          </span>
+          <span id="sf-inflight-cargo-count" style="color:#94a3b8; font-size:10px;">0 / 6</span>
+        </div>
+        <div id="sf-inflight-cargo-grid" style="display:grid; grid-template-columns:repeat(6, 26px); gap:5px; margin-bottom:6px;">
+        </div>
+        <div style="display:flex; justify-content:space-between; align-items:center; font-size:10px; color:#cbd5e1;">
+          <span id="sf-inflight-gate-status" style="color:#fbbf24;">✦ 正在搜寻折跃门...</span>
+          <span id="sf-inflight-loot-val" style="color:#38bdf8; font-weight:700;">0 ST</span>
+        </div>
+      `;
+      document.body.appendChild(hud);
+      this.hudElement = hud;
+    }
+
+    if (!document.getElementById('sf-inflight-loot-btn')) {
+      const btn = document.createElement('button');
+      btn.id = 'sf-inflight-loot-btn';
+      btn.style.cssText = `
+        position: fixed;
+        right: 18px;
+        bottom: calc(max(env(safe-area-inset-bottom, 0px), 16px) + 82px);
+        z-index: 110;
+        background: linear-gradient(135deg, rgba(14, 165, 233, 0.92) 0%, rgba(2, 132, 199, 0.98) 100%);
+        border: 1px solid #7dd3fc;
+        box-shadow: 0 4px 20px rgba(14, 165, 233, 0.55), 0 0 16px rgba(56, 189, 248, 0.45);
+        color: #ffffff;
+        border-radius: 22px;
+        padding: 9px 18px;
+        font-size: 11.5px;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        display: none;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+      `;
+      btn.innerHTML = `<span style="font-size:14px;">📦</span><span id="sf-inflight-loot-text">搜寻回收 [E]</span>`;
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (this.salvageTarget) this.fastLoot();
+      });
+      document.body.appendChild(btn);
+      this.lootBtnElement = btn;
+    }
+  },
+
+  update(dt) {
+    if (!this._inited) this.init();
+    if (!fleet || !fleet[LEAD]) return;
+    const leadPos = craftWorld(fleet[LEAD]);
+    const leadTravel = travel;
+
+    // Procedurally spawn derelicts along flight path every ~32,000 units
+    if (this.lastSpawnTravel === 0 || leadTravel - this.lastSpawnTravel > 32000) {
+      this.lastSpawnTravel = (leadTravel || 1);
+      const spawnZ = (leadTravel || 0) + 3800 + Math.random() * 5400;
+      const rx = routeX(spawnZ) + (Math.random() - 0.5) * 3200;
+      const ry = courseY(spawnZ) + (Math.random() - 0.5) * 1600;
+      
+      const lootTable = [
+        { name: '先驱聚能晶核', icon: '💎', value: 850, tier: 'legendary' },
+        { name: '跃迁折跃线圈', icon: '🌀', value: 520, tier: 'epic' },
+        { name: '高维星图磁盘', icon: '💾', value: 420, tier: 'rare' },
+        { name: '等离子反应堆废料', icon: '🔋', value: 260, tier: 'uncommon' },
+        { name: '星舰装甲残片', icon: '🛡️', value: 180, tier: 'common' }
+      ];
+      const lootItem = lootTable[Math.floor(Math.random() * lootTable.length)];
+      
+      this.derelicts.push({
+        id: 'derelict_' + Math.floor(spawnZ),
+        name: Math.random() < 0.5 ? '远古科考驱逐舰残骸' : '深空武装运输舰废墟',
+        x: rx, y: ry, z: spawnZ,
+        item: lootItem,
+        salvaged: false,
+        salvageProgress: 0,
+        roll: Math.random() * Math.PI * 2,
+        len: 140 + Math.random() * 80
+      });
+
+      // Evacuation gate portal every ~55,000 units
+      if (!this.evacGate || this.evacGate.z < leadTravel - 10000) {
+        this.evacGate = {
+          x: routeX(spawnZ + 10000),
+          y: courseY(spawnZ + 10000),
+          z: spawnZ + 10000,
+          radius: 1200,
+          progress: 0
+        };
+      }
+    }
+
+    // Cull old derelicts
+    for (let i = this.derelicts.length - 1; i >= 0; i--) {
+      if (this.derelicts[i].z < leadTravel - 12000) {
+        this.derelicts.splice(i, 1);
+      }
+    }
+
+    // Check closest derelict for salvage
+    let nearest = null;
+    let minDist = 1e9;
+    for (const d of this.derelicts) {
+      if (d.salvaged) continue;
+      const dist = Math.hypot(d.x - leadPos[0], d.y - leadPos[1], d.z - leadPos[2]);
+      if (dist < 4200 && dist < minDist) {
+        minDist = dist;
+        nearest = d;
+      }
+    }
+
+    this.salvageTarget = (minDist < 2400) ? nearest : null;
+
+    if (this.salvageTarget) {
+      this.salvageProgress = Math.min(1.0, this.salvageProgress + dt * 0.45);
+      if (this.salvageProgress >= 1.0) {
+        this.fastLoot();
+      }
+    } else {
+      this.salvageProgress = 0;
+    }
+
+    // Check Singularity Extraction Gate
+    if (this.evacGate) {
+      const gDist = Math.hypot(this.evacGate.x - leadPos[0], this.evacGate.y - leadPos[1], this.evacGate.z - leadPos[2]);
+      if (gDist < 2200) {
+        this.evacGate.progress = Math.min(1.0, this.evacGate.progress + dt * 0.65);
+        if (this.evacGate.progress >= 1.0) {
+          this.triggerEvacuation();
+        }
+      } else {
+        this.evacGate.progress = Math.max(0, this.evacGate.progress - dt * 0.2);
+      }
+    }
+
+    // Hostile pirate patrols & combat
+    const nowSec = performance.now() * 0.001;
+    if (this.salvageTarget && nowSec - this.lastAmbushTime > 36 && Math.random() < 0.02) {
+      this.lastAmbushTime = nowSec;
+      this.spawnPiratePatrol(leadPos);
+    }
+
+    for (let i = this.pirates.length - 1; i >= 0; i--) {
+      const p = this.pirates[i];
+      p.life -= dt;
+      p.fireCd = (p.fireCd || 0) - dt;
+      p.x += Math.sin(p.life * 2.5) * 45 * dt;
+      p.y += Math.cos(p.life * 2.0) * 25 * dt;
+      p.z -= 180 * dt;
+
+      if (p.fireCd <= 0) {
+        p.fireCd = 1.4;
+        if (typeof battles !== 'undefined' && Array.isArray(battles)) {
+          battles.push({
+            x: p.x, y: p.y, z: p.z,
+            fire: [{ x0: p.x, y0: p.y, z0: p.z, x1: leadPos[0], y1: leadPos[1], z1: leadPos[2], period: 0.8, phase: 0 }],
+            bursts: [{ x: p.x, y: p.y, z: p.z, size: 40, period: 0.8, phase: 0 }]
+          });
+        }
+      }
+      if (p.life <= 0) this.pirates.splice(i, 1);
+    }
+
+    this.updateHUD(leadPos);
+  },
+
+  updateHUD(leadPos) {
+    const hud = this.hudElement || document.getElementById('sf-inflight-extract-hud');
+    const lootBtn = this.lootBtnElement || document.getElementById('sf-inflight-loot-btn');
+    if (!hud) return;
+
+    const hasCargo = this.cargo.length > 0;
+    const nearTarget = !!this.salvageTarget;
+    const isExtractMode = (typeof currentMode !== 'undefined' && currentMode === 'extract');
+
+    if (hasCargo || nearTarget || isExtractMode) {
+      hud.style.display = 'block';
+      const cCount = document.getElementById('sf-inflight-cargo-count');
+      if (cCount) cCount.textContent = `${this.cargo.length} / ${this.maxCargo}`;
+
+      const grid = document.getElementById('sf-inflight-cargo-grid');
+      if (grid) {
+        let slotsHtml = '';
+        for (let i = 0; i < this.maxCargo; i++) {
+          const item = this.cargo[i];
+          if (item) {
+            const borderColor = item.tier === 'legendary' ? '#fbbf24' : (item.tier === 'epic' ? '#c084fc' : '#38bdf8');
+            slotsHtml += `<div style="width:26px; height:26px; border-radius:6px; border:1px solid ${borderColor}; background:rgba(15,23,42,0.8); display:flex; align-items:center; justify-content:center; font-size:13px;" title="${item.name} (+${item.value} ST)">${item.icon}</div>`;
+          } else {
+            slotsHtml += `<div style="width:26px; height:26px; border-radius:6px; border:1px dashed rgba(148,163,184,0.3); background:rgba(15,23,42,0.4);"></div>`;
+          }
+        }
+        grid.innerHTML = slotsHtml;
+      }
+
+      let totalVal = 0;
+      for (const c of this.cargo) totalVal += c.value;
+      const valEl = document.getElementById('sf-inflight-loot-val');
+      if (valEl) valEl.textContent = `+${totalVal} ST`;
+
+      const gateStatus = document.getElementById('sf-inflight-gate-status');
+      if (gateStatus) {
+        if (this.evacGate) {
+          const gDist = Math.round(Math.hypot(this.evacGate.x - leadPos[0], this.evacGate.y - leadPos[1], this.evacGate.z - leadPos[2]));
+          if (this.evacGate.progress > 0) {
+            gateStatus.innerHTML = `<span style="color:#4ade80;">✦ 折跃撤离中 ${Math.round(this.evacGate.progress * 100)}%</span>`;
+          } else {
+            gateStatus.innerHTML = `<span style="color:#fbbf24;">✦ 撤离门: ${gDist}m</span>`;
+          }
+        } else {
+          gateStatus.textContent = '✦ 搜寻撤离门中...';
+        }
+      }
+    } else {
+      hud.style.display = 'none';
+    }
+
+    if (lootBtn) {
+      if (this.salvageTarget) {
+        lootBtn.style.display = 'flex';
+        const txt = document.getElementById('sf-inflight-loot-text');
+        if (txt) txt.textContent = `回收【${this.salvageTarget.item.name}】 [E]`;
+      } else {
+        lootBtn.style.display = 'none';
+      }
+    }
+  },
+
+  fastLoot() {
+    if (!this.salvageTarget || this.salvageTarget.salvaged) return;
+    const d = this.salvageTarget;
+    d.salvaged = true;
+    this.salvageProgress = 0;
+    this.salvageTarget = null;
+
+    if (this.cargo.length < this.maxCargo) {
+      this.cargo.push(d.item);
+    }
+    const val = d.item.value;
+    const msg = `[战利品搜寻] 成功回收【${d.item.name}】(+${val} ST)！当前货舱 ${this.cargo.length}/${this.maxCargo}`;
+    if (typeof showToast === 'function') showToast(msg, 3.5);
+    else if (typeof window.toast === 'function') window.toast(msg, 3.5);
+  },
+
+  spawnPiratePatrol(leadPos) {
+    this.pirates.push({
+      x: leadPos[0] + (Math.random() - 0.5) * 1200,
+      y: leadPos[1] + (Math.random() - 0.5) * 800,
+      z: leadPos[2] + 2500,
+      life: 8.0,
+      fireCd: 0.5
+    });
+    const msg = '⚠ 警告: 侦测到虚空海盗拦截巡逻舰！护航编队已就位！';
+    if (typeof showToast === 'function') showToast(msg, 3.5);
+    else if (typeof window.toast === 'function') window.toast(msg, 3.5);
+  },
+
+  triggerEvacuation() {
+    let totalLoot = 0;
+    for (const c of this.cargo) totalLoot += c.value;
+    const bonus = 500;
+    const grandTotal = totalLoot + bonus;
+    this.securedCredits += grandTotal;
+    const count = this.cargo.length;
+    this.cargo.length = 0;
+    if (this.evacGate) this.evacGate.progress = 0;
+
+    warp = Math.max(warp, 2.8);
+    const msg = `✦ 成功抵达奇点折跃撤离点！安全带回 ${count} 件高维物资，总收益 +${grandTotal} ST！✦`;
+    if (typeof showToast === 'function') showToast(msg, 4.5);
+    else if (typeof window.toast === 'function') window.toast(msg, 4.5);
+  },
+
+  draw(c) {
+    if (!fleet || !fleet[LEAD]) return;
+    const leadPos = craftWorld(fleet[LEAD]);
+
+    // 1. Draw 3D Derelict Shipwrecks with Actual Hull Geometry & Salvage Tractor Beam
+    for (const d of this.derelicts) {
+      if (d.salvaged) continue;
+      const q = project([d.x, d.y, d.z]);
+      if (!q || q[2] <= 0 || q[2] > 42000) continue;
+
+      const sz = Math.max(16, Math.min(95, (400 / q[2]) * 65));
+      c.save();
+      c.translate(q[0], q[1]);
+      c.rotate(d.roll || 0);
+
+      // Render 3D fragmented starship wreckage hull
+      c.fillStyle = '#1e293b';
+      c.strokeStyle = '#64748b';
+      c.lineWidth = 1.4;
+      c.beginPath();
+      c.moveTo(-sz * 0.9, -sz * 0.25);
+      c.lineTo(sz * 0.5, -sz * 0.45);
+      c.lineTo(sz * 0.85, 0);
+      c.lineTo(sz * 0.35, sz * 0.4);
+      c.lineTo(-sz * 0.8, sz * 0.3);
+      c.closePath();
+      c.fill();
+      c.stroke();
+
+      // Armor plating & warning hazard markings
+      c.fillStyle = '#fbbf24';
+      c.beginPath();
+      c.moveTo(-sz * 0.3, -sz * 0.3);
+      c.lineTo(-sz * 0.1, -sz * 0.33);
+      c.lineTo(-sz * 0.25, -sz * 0.1);
+      c.closePath();
+      c.fill();
+
+      // Shattered solar array wing debris
+      c.fillStyle = '#1e3a8a';
+      c.strokeStyle = '#38bdf8';
+      c.lineWidth = 1.0;
+      c.beginPath();
+      c.rect(-sz * 0.7, -sz * 0.75, sz * 0.55, sz * 0.28);
+      c.fill();
+      c.stroke();
+
+      // Exposed pulsing fusion reactor / warp core
+      const pulse = 0.85 + Math.sin(performance.now() * 0.006) * 0.25;
+      c.beginPath();
+      c.arc(0, 0, sz * 0.22 * pulse, 0, TAU);
+      c.fillStyle = '#38bdf8';
+      c.shadowColor = '#38bdf8';
+      c.shadowBlur = 14;
+      c.fill();
+      c.shadowBlur = 0;
+
+      // Strobe emergency beacon light on wreck mast
+      if (Math.sin(performance.now() * 0.008) > 0.3) {
+        c.beginPath();
+        c.arc(sz * 0.6, -sz * 0.3, 3, 0, TAU);
+        c.fillStyle = '#ef4444';
+        c.shadowColor = '#ef4444';
+        c.shadowBlur = 10;
+        c.fill();
+        c.shadowBlur = 0;
+      }
+      c.restore();
+
+      // Tactical Wireframe Bracket & Telemetry
+      c.save();
+      c.translate(q[0], q[1]);
+      c.strokeStyle = 'rgba(56, 189, 248, 0.75)';
+      c.lineWidth = 1.5;
+      const bSz = sz * 0.95;
+      c.beginPath();
+      c.moveTo(-bSz, -bSz + 6); c.lineTo(-bSz, -bSz); c.lineTo(-bSz + 6, -bSz);
+      c.moveTo(bSz - 6, -bSz); c.lineTo(bSz, -bSz); c.lineTo(bSz, -bSz + 6);
+      c.moveTo(-bSz, bSz - 6); c.lineTo(-bSz, bSz); c.lineTo(-bSz + 6, bSz);
+      c.moveTo(bSz - 6, bSz); c.lineTo(bSz, bSz); c.lineTo(bSz, -bSz + 6);
+      c.stroke();
+
+      c.font = '10px ui-monospace, sans-serif';
+      c.fillStyle = '#38bdf8';
+      c.textAlign = 'center';
+      const distM = Math.round(q[2]);
+      c.fillText(`[残骸] ${d.name} · ${distM}m`, 0, -bSz - 8);
+      c.restore();
+
+      // Tractor beam & recovery progress bar
+      if (this.salvageTarget === d) {
+        const leadQ = project(leadPos);
+        if (leadQ) {
+          c.save();
+          c.beginPath();
+          c.moveTo(leadQ[0], leadQ[1]);
+          c.lineTo(q[0], q[1]);
+          c.strokeStyle = 'rgba(56, 189, 248, 0.85)';
+          c.lineWidth = 2.0;
+          c.setLineDash([8, 4]);
+          c.shadowColor = '#38bdf8';
+          c.shadowBlur = 12;
+          c.stroke();
+          c.restore();
+
+          c.save();
+          c.translate(q[0], q[1] + bSz + 14);
+          c.fillStyle = 'rgba(15, 23, 42, 0.85)';
+          c.fillRect(-45, 0, 90, 6);
+          c.fillStyle = '#38bdf8';
+          c.fillRect(-45, 0, 90 * this.salvageProgress, 6);
+          c.strokeStyle = 'rgba(56, 189, 248, 0.6)';
+          c.strokeRect(-45, 0, 90, 6);
+          c.font = '9.5px ui-monospace, sans-serif';
+          c.fillStyle = '#e0f2fe';
+          c.textAlign = 'center';
+          c.fillText(`回收中 ${Math.round(this.salvageProgress * 100)}% [E]`, 0, 16);
+          c.restore();
+        }
+      }
+    }
+
+    // 2. Draw Hostile Pirate Interceptors & Red Combat Brackets
+    for (const p of this.pirates) {
+      const pq = project([p.x, p.y, p.z]);
+      if (!pq || pq[2] <= 0 || pq[2] > 40000) continue;
+
+      const psz = Math.max(14, Math.min(85, (400 / pq[2]) * 55));
+      c.save();
+      c.translate(pq[0], pq[1]);
+
+      // Tactical Red Diamond Bracket
+      c.strokeStyle = 'rgba(244, 63, 94, 0.85)';
+      c.lineWidth = 1.6;
+      c.beginPath();
+      c.moveTo(0, -psz * 0.95);
+      c.lineTo(psz * 0.95, 0);
+      c.lineTo(0, psz * 0.95);
+      c.lineTo(-psz * 0.95, 0);
+      c.closePath();
+      c.stroke();
+
+      // Pirate Raider Fighter Craft Silhouette
+      c.fillStyle = '#0f172a';
+      c.strokeStyle = '#f43f5e';
+      c.lineWidth = 1.5;
+      c.beginPath();
+      c.moveTo(0, -psz * 0.65);
+      c.lineTo(psz * 0.55, psz * 0.45);
+      c.lineTo(0, psz * 0.2);
+      c.lineTo(-psz * 0.55, psz * 0.45);
+      c.closePath();
+      c.fill();
+      c.stroke();
+
+      // Twin red glowing engine thrusters
+      c.beginPath();
+      c.arc(-psz * 0.22, psz * 0.45, 3.5, 0, TAU);
+      c.arc(psz * 0.22, psz * 0.45, 3.5, 0, TAU);
+      c.fillStyle = '#f43f5e';
+      c.shadowColor = '#f43f5e';
+      c.shadowBlur = 10;
+      c.fill();
+      c.shadowBlur = 0;
+
+      c.font = '10px ui-monospace, sans-serif';
+      c.fillStyle = '#f87171';
+      c.textAlign = 'center';
+      c.fillText(`⚠ 虚空拦截舰 · ${Math.round(pq[2])}m`, 0, -psz * 0.95 - 6);
+      c.restore();
+    }
+
+    // 3. Draw Singularity Extraction Gate in 3D
+    if (this.evacGate) {
+      const g = this.evacGate;
+      const q = project([g.x, g.y, g.z]);
+      if (q && q[2] > 0 && q[2] < 50000) {
+        const gR = Math.max(18, Math.min(190, (400 / q[2]) * 85));
+        c.save();
+        c.translate(q[0], q[1]);
+
+        // Swirling golden accretion corona
+        const rotTime = performance.now() * 0.0015;
+        c.rotate(rotTime);
+        c.beginPath();
+        c.arc(0, 0, gR, 0, TAU);
+        c.strokeStyle = 'rgba(251, 191, 36, 0.88)';
+        c.lineWidth = 2.8;
+        c.shadowColor = '#fbbf24';
+        c.shadowBlur = 18;
+        c.stroke();
+
+        // Inner cosmic violet singularity disk
+        c.beginPath();
+        c.arc(0, 0, gR * 0.62, 0, TAU);
+        c.strokeStyle = 'rgba(168, 85, 247, 0.82)';
+        c.lineWidth = 2.0;
+        c.shadowColor = '#a855f7';
+        c.shadowBlur = 14;
+        c.stroke();
+        c.shadowBlur = 0;
+
+        c.rotate(-rotTime);
+        c.font = '11px ui-monospace, sans-serif';
+        c.fillStyle = '#ffd700';
+        c.textAlign = 'center';
+        c.fillText('✦ 奇点折跃撤离门 ✦', 0, -gR - 10);
+        c.restore();
+      }
+    }
+  }
+};
+window.StarfieldInFlightExtraction = StarfieldInFlightExtraction;
+
+/* ============================================================================
+ * 3D PLANETARY GRAVITATIONAL SLINGSHOT & PROBE SYSTEM (天体引力弹弓与轨道探针)
+ * ============================================================================ */
+const StarfieldOrbitalMechanics = {
+  activePlanet: null,
+  slingshotArc: [],
+  probes: [],
+  periapsisDist: 0,
+  boostReady: false,
+  slingshotCooldown: 0,
+  hudElement: null,
+  probeBtnElement: null,
+
+  init() {
+    if (this._inited) return;
+    this._inited = true;
+    window.addEventListener('keydown', (e) => {
+      if ((e.key.toLowerCase() === 'p' || e.code === 'KeyP') && !e.repeat) {
+        this.launchProbe();
+      }
+    });
+    this.createHUD();
+  },
+
+  createHUD() {
+    if (typeof document === 'undefined') return;
+    if (!document.getElementById('sf-inflight-probe-btn')) {
+      const btn = document.createElement('button');
+      btn.id = 'sf-inflight-probe-btn';
+      btn.style.cssText = `
+        position: fixed;
+        left: 18px;
+        bottom: calc(max(env(safe-area-inset-bottom, 0px), 16px) + 82px);
+        z-index: 110;
+        background: linear-gradient(135deg, rgba(249, 115, 22, 0.92) 0%, rgba(217, 70, 239, 0.95) 100%);
+        border: 1px solid #fbcfe8;
+        box-shadow: 0 4px 20px rgba(249, 115, 22, 0.55), 0 0 16px rgba(244, 63, 94, 0.45);
+        color: #ffffff;
+        border-radius: 22px;
+        padding: 9px 18px;
+        font-size: 11.5px;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        display: none;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+      `;
+      btn.innerHTML = `<span style="font-size:14px;">🚀</span><span>发射引力探针 [P]</span>`;
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.launchProbe();
+      });
+      document.body.appendChild(btn);
+      this.probeBtnElement = btn;
+    }
+  },
+
+  update(dt) {
+    if (!this._inited) this.init();
+    if (!fleet || !fleet[LEAD]) return;
+    const leadPos = craftWorld(fleet[LEAD]);
+
+    if (this.slingshotCooldown > 0) this.slingshotCooldown -= dt;
+
+    let nearestMass = null;
+    let minDist = 1e9;
+
+    if (typeof activeMasses !== 'undefined' && Array.isArray(activeMasses)) {
+      for (let i = 0; i < activeMasses.length; i++) {
+        const m = activeMasses[i];
+        if (!m || (!m.w && m.kind !== 1 && m.kind !== 8 && m.kind !== 6)) continue;
+        const dx = m.x - leadPos[0], dy = m.y - leadPos[1], dz = m.z - leadPos[2];
+        const dist = Math.hypot(dx, dy, dz);
+        const massR = m.rad || m.r || 240;
+        const influenceR = Math.max(3800, massR * 14);
+        if (dist < influenceR && dist < minDist) {
+          minDist = dist;
+          nearestMass = m;
+        }
+      }
+    }
+
+    this.activePlanet = nearestMass;
+    this.periapsisDist = minDist;
+
+    this.slingshotArc.length = 0;
+    if (this.activePlanet) {
+      const pm = this.activePlanet;
+      let simX = leadPos[0], simY = leadPos[1], simZ = leadPos[2];
+      let simVx = (routeX(travel + 100) - routeX(travel)) * 12;
+      let simVy = (courseY(travel + 100) - courseY(travel)) * 12;
+      let simVz = SPEED * (1 + (warp || 0));
+
+      const steps = 36;
+      const simDt = 0.045;
+      const massG = (pm.mass || 1.8e8);
+
+      for (let s = 0; s < steps; s++) {
+        const pdx = pm.x - simX, pdy = pm.y - simY, pdz = pm.z - simZ;
+        const pDistSq = pdx * pdx + pdy * pdy + pdz * pdz + 10000;
+        const pDist = Math.sqrt(pDistSq);
+        const force = massG / pDistSq;
+
+        simVx += (pdx / pDist) * force * simDt;
+        simVy += (pdy / pDist) * force * simDt;
+        simVz += (pdz / pDist) * force * simDt;
+
+        simX += simVx * simDt;
+        simY += simVy * simDt;
+        simZ += simVz * simDt;
+
+        this.slingshotArc.push([simX, simY, simZ]);
+      }
+
+      const sweetSpot = (pm.rad || 240) * 4.5;
+      if (minDist < sweetSpot && this.slingshotCooldown <= 0) {
+        this.slingshotCooldown = 12.0;
+        this.triggerSlingshotBoost(pm);
+      }
+    }
+
+    // Step active orbital probes
+    for (let i = this.probes.length - 1; i >= 0; i--) {
+      const pr = this.probes[i];
+      pr.life -= dt;
+      if (pr.targetMass) {
+        const pdx = pr.targetMass.x - pr.x;
+        const pdy = pr.targetMass.y - pr.y;
+        const pdz = pr.targetMass.z - pr.z;
+        const pDistSq = pdx * pdx + pdy * pdy + pdz * pdz + 4000;
+        const pDist = Math.sqrt(pDistSq);
+        const f = 2.4e8 / pDistSq;
+
+        pr.vx += (pdx / pDist) * f * dt;
+        pr.vy += (pdy / pDist) * f * dt;
+        pr.vz += (pdz / pDist) * f * dt;
+      }
+      pr.x += pr.vx * dt;
+      pr.y += pr.vy * dt;
+      pr.z += pr.vz * dt;
+
+      pr.trail.push([pr.x, pr.y, pr.z]);
+      if (pr.trail.length > 28) pr.trail.shift();
+
+      if (pr.life <= 0) this.probes.splice(i, 1);
+    }
+
+    // Update Mobile Launch Button
+    const pBtn = this.probeBtnElement || document.getElementById('sf-inflight-probe-btn');
+    if (pBtn) {
+      pBtn.style.display = this.activePlanet ? 'flex' : 'none';
+    }
+  },
+
+  triggerSlingshotBoost(pm) {
+    warp = Math.min(3.5, (warp || 0) + 1.85);
+    const pName = pm.name || (pm.w && pm.w.name) || '天体引力井';
+    const msg = `✦ 触发【${pName}】行星引力弹弓！变轨加速 +280%！✦`;
+    if (typeof showToast === 'function') showToast(msg, 3.5);
+    else if (typeof window.toast === 'function') window.toast(msg, 3.5);
+  },
+
+  launchProbe() {
+    if (!fleet || !fleet[LEAD]) return;
+    const leadPos = craftWorld(fleet[LEAD]);
+    const target = this.activePlanet || null;
+    this.probes.push({
+      x: leadPos[0],
+      y: leadPos[1],
+      z: leadPos[2],
+      vx: (routeX(travel + 100) - routeX(travel)) * 20 + (Math.random() - 0.5) * 400,
+      vy: (courseY(travel + 100) - courseY(travel)) * 20 + 200,
+      vz: (SPEED * (1 + (warp || 0))) + 1800,
+      targetMass: target,
+      life: 6.0,
+      trail: []
+    });
+    const msg = '✦ 成功发射引力弹弓探测鸟！探测星体引力弯曲弹道 [P] ✦';
+    if (typeof showToast === 'function') showToast(msg, 2.5);
+    else if (typeof window.toast === 'function') window.toast(msg, 2.5);
+  },
+
+  draw(c) {
+    if (this.slingshotArc.length > 2 && this.activePlanet) {
+      c.save();
+      c.beginPath();
+      let first = true;
+      for (let i = 0; i < this.slingshotArc.length; i++) {
+        const pt = this.slingshotArc[i];
+        const q = project(pt);
+        if (!q || q[2] <= 0) continue;
+        if (first) { c.moveTo(q[0], q[1]); first = false; }
+        else { c.lineTo(q[0], q[1]); }
+      }
+      c.strokeStyle = 'rgba(56, 189, 248, 0.65)';
+      c.lineWidth = 2.0;
+      c.setLineDash([6, 4]);
+      c.shadowColor = '#38bdf8';
+      c.shadowBlur = 12;
+      c.stroke();
+      c.restore();
+
+      const midQ = project(this.slingshotArc[Math.floor(this.slingshotArc.length * 0.45)]);
+      if (midQ && midQ[2] > 0) {
+        c.save();
+        c.translate(midQ[0], midQ[1]);
+        c.font = '10px ui-monospace, sans-serif';
+        c.fillStyle = '#ffd700';
+        c.textAlign = 'center';
+        c.fillText('✦ 引力借力点 · 弹弓加速 +280% ✦', 0, -12);
+        c.restore();
+      }
+    }
+
+    // Render Stylized Space Bird Gravity Probes & Ribbon Particle Trails
+    for (const pr of this.probes) {
+      if (pr.trail.length > 1) {
+        c.save();
+        c.beginPath();
+        let f = true;
+        for (let j = 0; j < pr.trail.length; j++) {
+          const q = project(pr.trail[j]);
+          if (!q || q[2] <= 0) continue;
+          if (f) { c.moveTo(q[0], q[1]); f = false; }
+          else { c.lineTo(q[0], q[1]); }
+        }
+        c.strokeStyle = 'rgba(244, 63, 94, 0.85)';
+        c.lineWidth = 2.5;
+        c.shadowColor = '#f43f5e';
+        c.shadowBlur = 12;
+        c.stroke();
+        c.restore();
+      }
+
+      const headQ = project([pr.x, pr.y, pr.z]);
+      if (headQ && headQ[2] > 0) {
+        c.save();
+        c.translate(headQ[0], headQ[1]);
+        // Stylized Orbital Bird Probe Satellite
+        c.beginPath();
+        c.arc(0, 0, 5, 0, TAU);
+        c.fillStyle = '#ffedd5';
+        c.shadowColor = '#fb923c';
+        c.shadowBlur = 12;
+        c.fill();
+
+        // Twin deployable solar panels
+        c.fillStyle = '#38bdf8';
+        c.fillRect(-9, -1.5, 4, 3);
+        c.fillRect(5, -1.5, 4, 3);
+
+        // Pulsing telemetry broadcast wave
+        c.beginPath();
+        c.arc(0, 0, 9 + Math.sin(performance.now() * 0.01) * 3, 0, TAU);
+        c.strokeStyle = 'rgba(251, 146, 60, 0.55)';
+        c.lineWidth = 1.0;
+        c.stroke();
+        c.restore();
+      }
+    }
+  }
+};
+window.StarfieldOrbitalMechanics = StarfieldOrbitalMechanics;
 
 const particles=[],MAX_PARTICLES=coarse?168:240;
 let particleSerial=0;
@@ -11925,10 +12742,10 @@ function frame(now){
    flightTime += dt;}else{previewTime+=dt;travel+=SPEED*.15*dt;}}
  updateDirector(realDt);
  currentPalette=region(routeX(travel),travel);
- if(dt){updateWind(dt);updateGravity();updateBirds(dt);updateGate(dt);updateCapture(dt);updateSling(dt);updateParticles(dt);updatePoem(dt);Narrator.update(dt);if(typeof StarfieldSonar!=='undefined')StarfieldSonar.update(dt);}
+ if(dt){updateWind(dt);updateGravity();updateBirds(dt);updateGate(dt);updateCapture(dt);updateSling(dt);updateParticles(dt);updatePoem(dt);Narrator.update(dt);if(typeof StarfieldSonar!=='undefined')StarfieldSonar.update(dt);if(typeof StarfieldInFlightExtraction!=='undefined')StarfieldInFlightExtraction.update(dt);if(typeof StarfieldOrbitalMechanics!=='undefined')StarfieldOrbitalMechanics.update(dt);}
  ctx.setTransform(DPR,0,0,DPR,0,0);drawCalls=0;queue.length=0;holeDraws=0;
  updateSkyEvents(realDt);
- drawSky();deepfield();drawCraftShadows();bodies();drawFleet();if(typeof drawEscortOrbits==='function')drawEscortOrbits();drawParticles();flush();if(typeof StarfieldSonar!=='undefined')StarfieldSonar.draw(ctx);drawSkyEvents();
+ drawSky();deepfield();drawCraftShadows();bodies();drawFleet();if(typeof drawEscortOrbits==='function')drawEscortOrbits();drawParticles();flush();if(typeof StarfieldSonar!=='undefined')StarfieldSonar.draw(ctx);if(typeof StarfieldOrbitalMechanics!=='undefined')StarfieldOrbitalMechanics.draw(ctx);if(typeof StarfieldInFlightExtraction!=='undefined')StarfieldInFlightExtraction.draw(ctx);drawSkyEvents();
  // The throat: a bell around the two seconds either side of the step.
  if(gateT>0){const b=gateT<3.0?clamp((gateT-.7)/2.3,0,1):clamp((6.2-gateT)/2.6,0,1);
   drawTunnel(b);}
@@ -15533,7 +16350,7 @@ requestAnimationFrame(frame);
     currentBufferSize: 512,
     shrinkCounter: 0,
     PLANET_R: 24.0,
-    CAM_EXTENT: 27.5, // leaves headroom for clouds (26.0) and birds (27.2)
+    CAM_EXTENT: 28.5, // leaves generous headroom for clouds (26.0), megastructures (27.2) and birds (27.2)
 
     init() {
       if (this.initialized || typeof THREE === 'undefined') return;
@@ -15893,38 +16710,210 @@ requestAnimationFrame(frame);
         bodyGroup.add(treesGroup);
       }
 
-      // Monuments (Lighthouses on beaches or Ziggurats on high land)
+      // Procedural Architectural Civilization & Planetary Megastructures (Properly Scaled & Non-Clipping)
       let monumentsGroup = null;
-      if (landVertices.length > 5) {
+      if (landVertices.length > 5 || oceanVertices.length > 5) {
         monumentsGroup = new THREE.Group();
-        const numM = Math.min(3, Math.floor(landVertices.length / 30) + 1);
         const up = new THREE.Vector3(0, 1, 0);
+        const totalCandidates = landVertices.length + oceanVertices.length;
+        const numStructures = Math.min(8, Math.max(3, Math.floor(totalCandidates / 18)));
+        
+        // High-performance shared materials
+        const domeMat = new THREE.MeshStandardMaterial({
+          color: isAlien ? 0xd946ef : (isForest ? 0x38bdf8 : 0x06b6d4),
+          transparent: true,
+          opacity: 0.75,
+          roughness: 0.12,
+          metalness: 0.25,
+          emissive: isAlien ? 0xa855f7 : 0x0284c7,
+          emissiveIntensity: 0.35,
+          flatShading: true
+        });
+        const metalMat = new THREE.MeshStandardMaterial({
+          color: 0x334155,
+          roughness: 0.45,
+          metalness: 0.85,
+          flatShading: true
+        });
+        const whiteAlloyMat = new THREE.MeshLambertMaterial({
+          color: 0xf1f5f9,
+          flatShading: true
+        });
+        const solarMat = new THREE.MeshStandardMaterial({
+          color: 0x1e3a8a,
+          roughness: 0.2,
+          metalness: 0.9,
+          emissive: 0x172554,
+          emissiveIntensity: 0.4,
+          flatShading: true
+        });
+        const alienMonolithMat = new THREE.MeshStandardMaterial({
+          color: 0x09090b,
+          roughness: 0.1,
+          metalness: 0.95,
+          emissive: 0xc084fc,
+          emissiveIntensity: 0.65,
+          flatShading: true
+        });
+        const energyGlowMat = new THREE.MeshBasicMaterial({
+          color: isAlien ? 0xf43f5e : 0x38bdf8
+        });
+        const cityLightsMat = new THREE.MeshStandardMaterial({
+          color: 0xfbbf24,
+          emissive: 0xf59e0b,
+          emissiveIntensity: 0.85,
+          flatShading: true
+        });
 
-        for (let i = 0; i < numM; i++) {
-          const pt = landVertices[(i * 15) % landVertices.length];
-          const mMeshGroup = new THREE.Group();
-          mMeshGroup.position.copy(pt.pos);
-          mMeshGroup.quaternion.setFromUnitVectors(up, pt.normal);
+        for (let i = 0; i < numStructures; i++) {
+          const isWater = (landVertices.length === 0) || (oceanVertices.length > 0 && (i % 4 === 3));
+          const pt = isWater ? oceanVertices[(i * 13) % oceanVertices.length] : landVertices[(i * 17) % landVertices.length];
+          if (!pt) continue;
 
-          if (pt.isBeach) {
-            // Coastal Lighthouse
-            const mTower = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.45, 2.0, 5), new THREE.MeshLambertMaterial({ color: 0xf4f1de }));
-            mTower.position.y = 1.0;
-            const mRing = new THREE.Mesh(new THREE.TorusGeometry(0.55, 0.08, 4, 12), new THREE.MeshStandardMaterial({ color: 0xe07a5f, metalness: 0.8 }));
-            mRing.position.y = 1.9;
-            mRing.rotation.x = Math.PI / 2;
-            mMeshGroup.add(mTower);
-            mMeshGroup.add(mRing);
+          const sGroup = new THREE.Group();
+          sGroup.position.copy(pt.pos);
+          sGroup.quaternion.setFromUnitVectors(up, pt.normal);
+
+          const archType = (seed + i * 7) % 7;
+
+          if (archType === 0) {
+            // 1. Sci-Fi Colony Bio-Dome Cluster (生态殖民地穹顶群)
+            const mainDome = new THREE.Mesh(new THREE.SphereGeometry(1.25, 12, 8, 0, Math.PI * 2, 0, Math.PI * 0.5), domeMat);
+            const baseRing = new THREE.Mesh(new THREE.TorusGeometry(1.3, 0.10, 5, 16), metalMat);
+            baseRing.rotation.x = Math.PI / 2;
+            const innerGreen = new THREE.Mesh(new THREE.CylinderGeometry(1.1, 1.1, 0.08, 8), new THREE.MeshLambertMaterial({ color: isAlien ? 0x701a75 : 0x15803d }));
+            innerGreen.position.y = 0.04;
+            sGroup.add(mainDome);
+            sGroup.add(baseRing);
+            sGroup.add(innerGreen);
+
+            for (let a = 0; a < 2; a++) {
+              const ang = a * 2.1 + 0.5;
+              const subX = Math.cos(ang) * 1.8, subZ = Math.sin(ang) * 1.8;
+              const subDome = new THREE.Mesh(new THREE.SphereGeometry(0.65, 8, 6, 0, Math.PI * 2, 0, Math.PI * 0.5), domeMat);
+              subDome.position.set(subX, 0, subZ);
+              const subRing = new THREE.Mesh(new THREE.TorusGeometry(0.68, 0.07, 4, 12), metalMat);
+              subRing.rotation.x = Math.PI / 2;
+              subRing.position.set(subX, 0, subZ);
+              sGroup.add(subDome);
+              sGroup.add(subRing);
+
+              const tube = new THREE.Mesh(new THREE.CylinderGeometry(0.10, 0.10, 1.1, 5), whiteAlloyMat);
+              tube.position.set(subX * 0.5, 0.06, subZ * 0.5);
+              tube.quaternion.setFromUnitVectors(up, new THREE.Vector3(subX, 0, subZ).normalize());
+              tube.rotation.x += Math.PI / 2;
+              sGroup.add(tube);
+            }
+          } else if (archType === 1) {
+            // 2. Orbital Elevator Tether Base & High-Altitude Spire (太空电梯地基与垂直天梯导轨)
+            const basePlatform = new THREE.Mesh(new THREE.CylinderGeometry(1.8, 2.2, 0.35, 8), metalMat);
+            basePlatform.position.y = 0.17;
+            const tetherSpire = new THREE.Mesh(new THREE.CylinderGeometry(0.10, 0.20, 3.0, 6), whiteAlloyMat);
+            tetherSpire.position.y = 1.5;
+            const tetherLaser = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 3.0, 4), energyGlowMat);
+            tetherLaser.position.y = 1.5;
+            const climberCar = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.5, 0.35), solarMat);
+            climberCar.position.set(0.18, 1.8, 0);
+            const beaconRing = new THREE.Mesh(new THREE.TorusGeometry(0.28, 0.05, 4, 12), energyGlowMat);
+            beaconRing.rotation.x = Math.PI / 2;
+            beaconRing.position.y = 2.9;
+            sGroup.add(basePlatform);
+            sGroup.add(tetherSpire);
+            sGroup.add(tetherLaser);
+            sGroup.add(climberCar);
+            sGroup.add(beaconRing);
+          } else if (archType === 2) {
+            // 3. Deep-Space Communication Array & Planetary Radar Dish (深空射电天线阵列与行星雷达)
+            const tripodBase = new THREE.Mesh(new THREE.CylinderGeometry(1.3, 1.6, 0.25, 6), metalMat);
+            tripodBase.position.y = 0.12;
+            const commMast = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.22, 1.6, 4), whiteAlloyMat);
+            commMast.position.y = 0.8;
+            const dishGroup = new THREE.Group();
+            dishGroup.position.set(0, 1.5, 0);
+            dishGroup.rotation.z = 0.45;
+            const dish = new THREE.Mesh(new THREE.ConeGeometry(0.9, 0.35, 12, 1, true), metalMat);
+            dish.rotation.x = Math.PI;
+            const feedHorn = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.55, 4), energyGlowMat);
+            feedHorn.position.y = 0.35;
+            dishGroup.add(dish);
+            dishGroup.add(feedHorn);
+            const solarWing1 = new THREE.Mesh(new THREE.BoxGeometry(1.3, 0.04, 0.5), solarMat);
+            solarWing1.position.set(1.1, 0.6, 0);
+            solarWing1.rotation.z = -0.3;
+            const solarWing2 = new THREE.Mesh(new THREE.BoxGeometry(1.3, 0.04, 0.5), solarMat);
+            solarWing2.position.set(-1.1, 0.6, 0);
+            solarWing2.rotation.z = 0.3;
+            sGroup.add(tripodBase);
+            sGroup.add(commMast);
+            sGroup.add(dishGroup);
+            sGroup.add(solarWing1);
+            sGroup.add(solarWing2);
+          } else if (archType === 3) {
+            // 4. Research Outpost & Modular Habitation Base (深空科考哨站与观测站)
+            for (let h = 0; h < 3; h++) {
+              const hAng = h * (Math.PI * 2 / 3);
+              const hX = Math.cos(hAng) * 0.8, hZ = Math.sin(hAng) * 0.8;
+              const habModule = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.55, 0.5, 6), whiteAlloyMat);
+              habModule.position.set(hX, 0.25, hZ);
+              sGroup.add(habModule);
+            }
+            const coreDrill = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.16, 1.5, 5), metalMat);
+            coreDrill.position.y = 0.75;
+            const drillGlow = new THREE.Mesh(new THREE.SphereGeometry(0.22, 6, 6), energyGlowMat);
+            drillGlow.position.y = 1.45;
+            const pad = new THREE.Mesh(new THREE.CylinderGeometry(1.1, 1.1, 0.08, 8), cityLightsMat);
+            pad.position.set(1.7, 0.04, 0);
+            sGroup.add(coreDrill);
+            sGroup.add(drillGlow);
+            sGroup.add(pad);
+          } else if (archType === 4 || isAlien) {
+            // 5. Alien Precursor Monolith & Levitating Obelisks (远古先驱方尖碑与浮空环)
+            const obelisk = new THREE.Mesh(new THREE.BoxGeometry(0.6, 2.2, 0.6), alienMonolithMat);
+            obelisk.position.y = 1.1;
+            const topPyramid = new THREE.Mesh(new THREE.ConeGeometry(0.42, 0.45, 4), alienMonolithMat);
+            topPyramid.position.y = 2.4;
+            topPyramid.rotation.y = Math.PI / 4;
+            const levRing1 = new THREE.Mesh(new THREE.TorusGeometry(0.75, 0.05, 4, 16), energyGlowMat);
+            levRing1.rotation.x = Math.PI / 2 + 0.2;
+            levRing1.position.y = 1.2;
+            const levRing2 = new THREE.Mesh(new THREE.TorusGeometry(0.95, 0.04, 4, 16), energyGlowMat);
+            levRing2.rotation.x = Math.PI / 2 - 0.25;
+            levRing2.position.y = 1.8;
+            sGroup.add(obelisk);
+            sGroup.add(topPyramid);
+            sGroup.add(levRing1);
+            sGroup.add(levRing2);
+          } else if (archType === 5) {
+            // 6. Industrial Mining Rig & Extraction Derrick (工业矿井与重工采矿基地)
+            const derrickTruss = new THREE.Mesh(new THREE.BoxGeometry(1.1, 1.8, 1.1), metalMat);
+            derrickTruss.position.y = 0.9;
+            const drillShaft = new THREE.Mesh(new THREE.CylinderGeometry(0.10, 0.10, 2.2, 6), energyGlowMat);
+            drillShaft.position.y = 0.95;
+            const silo1 = new THREE.Mesh(new THREE.CylinderGeometry(0.38, 0.38, 1.2, 8), whiteAlloyMat);
+            silo1.position.set(1.2, 0.6, 0.5);
+            const silo2 = new THREE.Mesh(new THREE.CylinderGeometry(0.38, 0.38, 1.2, 8), whiteAlloyMat);
+            silo2.position.set(1.2, 0.6, -0.5);
+            sGroup.add(derrickTruss);
+            sGroup.add(drillShaft);
+            sGroup.add(silo1);
+            sGroup.add(silo2);
           } else {
-            // Ancient Stepped Pyramid
-            const mZigg = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.35, 1.8), new THREE.MeshLambertMaterial({ color: 0xdeb887 }));
-            mZigg.position.y = 0.17;
-            const mTop = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.35, 1.0), new THREE.MeshLambertMaterial({ color: 0xdeb887 }));
-            mTop.position.y = 0.52;
-            mMeshGroup.add(mZigg);
-            mMeshGroup.add(mTop);
+            // 7. Coastal Seastead or Geothermal Power Hub (浮空深海基站或地热电网)
+            const hubBase = new THREE.Mesh(new THREE.CylinderGeometry(1.6, 1.6, 0.3, 6), metalMat);
+            hubBase.position.y = 0.15;
+            const turbineTower = new THREE.Mesh(new THREE.CylinderGeometry(0.10, 0.18, 1.8, 5), whiteAlloyMat);
+            turbineTower.position.y = 0.9;
+            const turbineHub = new THREE.Mesh(new THREE.SphereGeometry(0.24, 6, 6), energyGlowMat);
+            turbineHub.position.y = 1.8;
+            const reactorDome = new THREE.Mesh(new THREE.SphereGeometry(0.75, 8, 6, 0, Math.PI*2, 0, Math.PI*0.5), domeMat);
+            reactorDome.position.set(0.8, 0.3, 0.6);
+            sGroup.add(hubBase);
+            sGroup.add(turbineTower);
+            sGroup.add(turbineHub);
+            sGroup.add(reactorDome);
           }
-          monumentsGroup.add(mMeshGroup);
+
+          monumentsGroup.add(sGroup);
         }
         bodyGroup.add(monumentsGroup);
       }
@@ -19060,7 +20049,9 @@ canvas.sf-planet-canvas {
   height: 100vh;
   z-index: 900;
   display: none;
-  background: #04070d;
+  background: radial-gradient(circle at center, rgba(10, 18, 32, 0.42) 0%, rgba(4, 7, 13, 0.82) 100%);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
   touch-action: none;
   user-select: none;
   overflow: hidden;
