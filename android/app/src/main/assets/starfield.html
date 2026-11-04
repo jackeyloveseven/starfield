@@ -1714,7 +1714,7 @@ img,canvas{-webkit-user-drag:none;user-drag:none}
     <div class="shortcut-list">
       <div class="shortcut-row">
         <span>客户端版本</span>
-        <span class="shortcut-key" id="sf-version-tag">v1.19.0 (Build 152)</span>
+        <span class="shortcut-key" id="sf-version-tag">v1.19.1 (Build 153)</span>
       </div>
       <div class="shortcut-row">
         <span>OTA 实时热更新</span>
@@ -4253,7 +4253,7 @@ const GameSettings = {
         } catch (e) { /* older APK */ }
         vTag.textContent = 'v' + window.StarfieldNative.getAppVersion() + build + ota;
       } else {
-        vTag.textContent = 'v1.19.0 (Build 152)';
+        vTag.textContent = 'v1.19.1 (Build 153)';
       }
     }
   },
@@ -12612,7 +12612,7 @@ window.addEventListener('resize', () => {
       })
       .then(data => {
         if (data && data.build) {
-          const localBuild = 152;
+          const localBuild = 153;
           if (data.build > localBuild) {
             showOtaNotification(data);
           } else if (manual && window.toast) {

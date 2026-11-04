@@ -1,12 +1,12 @@
 {
-  "version": "1.19.0",
-  "build": 152,
-  "updated_at": "2026-11-03T21:30:00+08:00",
+  "version": "1.19.1",
+  "build": 153,
+  "updated_at": "2026-11-04T21:15:00+08:00",
   "min_native_version": "1.0.0",
   "is_beta": false,
-  "title": "星际文明与深空全域漫游版上线：星球文明巨构建模、3D大世界搜打撤与引力弹弓变轨",
-  "changelog": "1. 行星地表文明重磅升级：新增生态穹顶群、太空电梯基座、射电雷达天线、科考哨站、方尖碑遗迹与重工炼厂等 7 大类文明建筑；2. 搜打撤（逃离鸭科夫）深度融入 3D 深空大世界：航线遭遇 3D 舰船残骸群、战术货舱牵引搜刮、海盗跃迁空战交火、奇点折跃撤离；3. 引力弹弓（愤怒的小鸟太空版）深度融入真实 3D 轨道力学：实时引力井弹弓弯曲预测弧线、+280% 引力弹射变轨、[P] 发射引力探针鸟；4. 界面视野纯净化：彻底移除中下方多余声呐按钮；5. 多指并发触控隔离与全域能耗优化。",
+  "title": "纯净深空漫游与核心体验跃迁版上线：界面极致纯净、3D搜打撤与引力弹弓变轨",
+  "changelog": "1. 移除Beta实验室脱节的2D像素小游戏，纯化漫游核心；2. 彻底移除中下方遮挡主视野的冗余按钮，底栏视野极致纯净；3. 搜打撤深度融入3D深空世界：近距牵引光束自动搜刮废料核心与战术货舱；4. 引力弹弓深度融入3D真实轨道力学：实时引力弯曲预测弧线、+280%变轨加速、[P]发射探针鸟；5. 行星地表建模升级为7大文明巨构群；6. 新增第5编队形态【银翼天鹏】；7. 重构原生端与Web端多源镜像容灾机制，彻底解决推送丢失问题。",
   "entry": "starfield.html",
   "download_url": "https://raw.githubusercontent.com/jackeyloveseven/starfield/master/starfield.html",
-  "apk_release_url": "https://github.com/jackeyloveseven/starfield/releases/tag/v1.19.0-focus-apk"
+  "apk_release_url": "https://github.com/jackeyloveseven/starfield/releases/tag/v1.19.1-focus-apk"
 }

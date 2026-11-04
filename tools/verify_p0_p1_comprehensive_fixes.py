@@ -26,10 +26,10 @@ def verify_file_parity():
     with open(ROOT_SW, 'r', encoding='utf-8') as f1, open(ANDROID_SW, 'r', encoding='utf-8') as f2:
         sw1 = f1.read()
         sw2 = f2.read()
-        assert "v1.19.0-b152" in sw1, "Root service worker missing v1.19.0-b152"
-        assert "v1.19.0-b152" in sw2, "Android service worker missing v1.19.0-b152"
+        assert "v1.19.1-b153" in sw1, "Root service worker missing v1.19.1-b153"
+        assert "v1.19.1-b153" in sw2, "Android service worker missing v1.19.1-b153"
         assert sw1 == sw2, "service-worker.js mismatch between root and android"
-        print("✓ service-worker.js synchronized to v1.19.0-b152 on both root and Android assets")
+        print("✓ service-worker.js synchronized to v1.19.1-b153 on both root and Android assets")
 
 async def test_p0_and_p1_in_browser():
     print("\n=== STEP 2: Running Automated In-Browser Verification ===")

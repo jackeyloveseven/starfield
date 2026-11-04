@@ -10,8 +10,8 @@ android {
         applicationId "com.starfield.focus"
         minSdk 24
         targetSdk 34
-        versionCode 52
-        versionName "1.19.0"
+        versionCode 53
+        versionName "1.19.1"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
