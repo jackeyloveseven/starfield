@@ -31,33 +31,34 @@ async def main():
 
         await page.goto(url)
         await page.wait_for_timeout(1200)
+        await page.evaluate("() => window.StarfieldBetaLab && window.StarfieldBetaLab.setEnabled(true)")
+        await page.wait_for_timeout(300)
 
-        # 1. Check Mode Bar for all 5 modes
-        print("\n--- 1. Checking 5 Expansion Mode Bar Tabs ---")
+        # 1. Check Mode Bar for active expansion modes
+        print("\n--- 1. Checking Expansion Mode Bar Tabs ---")
         mode_bar_info = await page.evaluate('''() => {
             const bar = document.getElementById('sf-mode-bar');
             const btnCruise = document.getElementById('sf-btn-mode-cruise');
-            const btnExt = document.getElementById('sf-btn-mode-extract');
-            const btnSling = document.getElementById('sf-btn-mode-slingshot');
             const btnRA = document.getElementById('sf-btn-mode-redalert');
             const btnDSP = document.getElementById('sf-btn-mode-dyson');
+            const legacyExt = document.getElementById('sf-btn-mode-extract');
+            const legacySling = document.getElementById('sf-btn-mode-slingshot');
             return {
                 hasBar: !!bar,
                 hasBtnCruise: !!btnCruise,
-                hasBtnExt: !!btnExt,
-                hasBtnSling: !!btnSling,
                 hasBtnRA: !!btnRA,
                 hasBtnDSP: !!btnDSP,
+                legacyExtAbsent: !legacyExt,
+                legacySlingAbsent: !legacySling,
                 cruiseActive: btnCruise ? btnCruise.classList.contains('active') : false
             };
         }''')
         print("Mode bar check:", mode_bar_info)
         assert mode_bar_info['hasBar']
         assert mode_bar_info['hasBtnCruise']
-        assert mode_bar_info['hasBtnExt']
-        assert mode_bar_info['hasBtnSling']
         assert mode_bar_info['hasBtnRA']
         assert mode_bar_info['hasBtnDSP']
+        assert mode_bar_info['legacyExtAbsent'] and mode_bar_info['legacySlingAbsent']
         assert mode_bar_info['cruiseActive']
 
         # 2. Test Red Alert RTS Mode

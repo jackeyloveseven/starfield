@@ -36,8 +36,11 @@ public class MainActivity extends AppCompatActivity {
     private static final String PREFS_NAME = "starfield_ota_prefs";
     private static final String KEY_BUILD = "ota_build_timestamp";
     private static final String KEY_VERSION = "ota_version";
-    private static final String OTA_VERSION_URL = "https://jackeyloveseven.github.io/starfield/version.json";
-    private static final String OTA_HTML_URL = "https://jackeyloveseven.github.io/starfield/starfield.html";
+    private static final String[] OTA_VERSION_URLS = {
+        "https://raw.githubusercontent.com/jackeyloveseven/starfield/master/version.json",
+        "https://jackeyloveseven.github.io/starfield/version.json"
+    };
+    private static final String OTA_HTML_URL = "https://raw.githubusercontent.com/jackeyloveseven/starfield/master/starfield.html";
     /** The page is ~21 MB. Anything under this is a truncated download, not a build. */
     private static final long MIN_HTML_BYTES = 4_000_000L;
     /** Assets the page resolves relatively; they must sit next to the OTA'd HTML. */
@@ -199,30 +202,41 @@ public class MainActivity extends AppCompatActivity {
                 SharedPreferences prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
                 long currentBuild = prefs.getLong(KEY_BUILD, 0L);
 
-                // 1. Fetch remote version descriptor
-                URL vUrl = new URL(OTA_VERSION_URL);
-                HttpURLConnection conn = (HttpURLConnection) vUrl.openConnection();
-                // 4 s was tight for GitHub Pages on a mobile network; a timeout
-                // there was reported as "network error" and nothing else.
-                conn.setConnectTimeout(15000);
-                conn.setReadTimeout(20000);
-                conn.setRequestMethod("GET");
-                conn.setUseCaches(false);
-                conn.setRequestProperty("Cache-Control", "no-cache");
+                // 1. Fetch remote version descriptor (with multi-mirror fallback)
+                JSONObject obj = null;
+                String lastError = "";
+                for (String vUrlStr : OTA_VERSION_URLS) {
+                    try {
+                        URL vUrl = new URL(vUrlStr);
+                        HttpURLConnection conn = (HttpURLConnection) vUrl.openConnection();
+                        conn.setConnectTimeout(15000);
+                        conn.setReadTimeout(20000);
+                        conn.setRequestMethod("GET");
+                        conn.setUseCaches(false);
+                        conn.setRequestProperty("Cache-Control", "no-cache");
 
-                int code = conn.getResponseCode();
-                if (code != 200) {
-                    fail(isManual, "云端检查失败 (HTTP " + code + ")");
+                        int code = conn.getResponseCode();
+                        if (code == 200) {
+                            BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                            StringBuilder sb = new StringBuilder();
+                            String line;
+                            while ((line = reader.readLine()) != null) sb.append(line);
+                            reader.close();
+                            obj = new JSONObject(sb.toString());
+                            break;
+                        } else {
+                            lastError = "HTTP " + code;
+                        }
+                    } catch (Exception e) {
+                        lastError = e.getMessage();
+                    }
+                }
+
+                if (obj == null) {
+                    fail(isManual, "云端检查失败 (" + lastError + ")");
                     return;
                 }
 
-                BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
-                StringBuilder sb = new StringBuilder();
-                String line;
-                while ((line = reader.readLine()) != null) sb.append(line);
-                reader.close();
-
-                JSONObject obj = new JSONObject(sb.toString());
                 long remoteBuild = obj.optLong("timestamp", obj.optLong("build", 0L));
                 String remoteVersion = obj.optString("version", "1.1.0");
                 String changelog = obj.optString("changelog", "");
@@ -234,15 +248,28 @@ public class MainActivity extends AppCompatActivity {
                     return;
                 }
 
-                // 2. Download latest starfield.html
+                // 2. Download latest starfield.html (with descriptor download_url & fallback)
                 stage = "下载更新包";
-                URL htmlUrl = new URL(OTA_HTML_URL);
+                String targetHtmlUrl = obj.optString("download_url", OTA_HTML_URL);
+                URL htmlUrl = new URL(targetHtmlUrl);
                 HttpURLConnection htmlConn = (HttpURLConnection) htmlUrl.openConnection();
                 htmlConn.setConnectTimeout(15000);
                 htmlConn.setReadTimeout(45000);
                 htmlConn.setRequestMethod("GET");
                 htmlConn.setUseCaches(false);
                 htmlConn.setRequestProperty("Cache-Control", "no-cache");
+
+                if (htmlConn.getResponseCode() != 200) {
+                    if (!targetHtmlUrl.equals(OTA_HTML_URL)) {
+                        htmlUrl = new URL(OTA_HTML_URL);
+                        htmlConn = (HttpURLConnection) htmlUrl.openConnection();
+                        htmlConn.setConnectTimeout(15000);
+                        htmlConn.setReadTimeout(45000);
+                        htmlConn.setRequestMethod("GET");
+                        htmlConn.setUseCaches(false);
+                        htmlConn.setRequestProperty("Cache-Control", "no-cache");
+                    }
+                }
 
                 if (htmlConn.getResponseCode() != 200) {
                     fail(isManual, "下载热更新包失败 (HTTP " + htmlConn.getResponseCode() + ")");

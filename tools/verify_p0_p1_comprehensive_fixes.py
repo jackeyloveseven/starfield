@@ -79,7 +79,7 @@ async def test_p0_and_p1_in_browser():
         # -------------------------------------------------------------
         print("\n--- P0-2: Testing Global Keydown Isolation ---")
         # Enter Void Extraction mode
-        await page.click('#sf-btn-mode-extract')
+        await page.click('#sf-btn-mode-redalert')
         await page.wait_for_timeout(400)
 
         key_isolation = await page.evaluate('''() => {
@@ -104,7 +104,7 @@ async def test_p0_and_p1_in_browser():
             };
         }''')
         print("Keydown isolation test result:", key_isolation)
-        assert key_isolation['mode'] == 'extract'
+        assert key_isolation['mode'] == 'redalert'
         assert key_isolation['pausedBefore'] == key_isolation['pausedAfterSpace'], "Space key leaked and toggled pause in non-cruise mode!"
         assert key_isolation['isCockpit'] == key_isolation['cockpitAfterV'], "V key leaked and toggled cockpit in non-cruise mode!"
         print("✓ Global keydown isolated: background pause and cockpit controls protected")
@@ -138,109 +138,97 @@ async def test_p0_and_p1_in_browser():
         print("✓ Web Audio context cleanly reused across sonar pulses without channel leak")
 
         # -------------------------------------------------------------
-        # P0-4: Void Extraction Mobile Joystick Zone
+        # P0-4: 2D Extraction Removed & 3D In-Flight Scavenging Active
         # -------------------------------------------------------------
-        print("\n--- P0-4: Testing Void Extraction Mobile Joystick ---")
+        print("\n--- P0-4: Testing 2D Extraction Removal & 3D In-Flight Scavenging ---")
         joy_result = await page.evaluate('''() => {
-            const joyZone = document.getElementById('sf-ext-joystick-zone');
-            const knob = joyZone ? joyZone.querySelector('.sf-ext-joystick-knob') : null;
-            const game = window.VoidExtraction;
+            const legacyJoyZone = document.getElementById('sf-ext-joystick-zone');
+            const legacyOverlay = document.getElementById('sf-extraction-overlay');
+            const legacyBtn = document.getElementById('sf-btn-mode-extract');
+            const inflightExt = window.StarfieldInFlightExtraction;
+            const lootBtn = document.getElementById('sf-inflight-loot-btn');
 
-            if (!joyZone || !game) return { hasZone: false };
-
-            // Simulate pointerdown & pointermove on joystick
-            const rect = joyZone.getBoundingClientRect();
-            joyZone.dispatchEvent(new PointerEvent('pointerdown', {
-                clientX: rect.left + rect.width / 2,
-                clientY: rect.top + rect.height / 2,
-                bubbles: true
-            }));
-
-            // Drag up and right (expect keys.w = true, keys.d = true)
-            window.dispatchEvent(new PointerEvent('pointermove', {
-                clientX: rect.left + rect.width / 2 + 30,
-                clientY: rect.top + rect.height / 2 - 30,
-                bubbles: true
-            }));
-
-            const keysMoving = { w: game.keys.w, s: game.keys.s, a: game.keys.a, d: game.keys.d };
-
-            // Release pointer
-            window.dispatchEvent(new PointerEvent('pointerup', { bubbles: true }));
-            const keysReleased = { w: game.keys.w, s: game.keys.s, a: game.keys.a, d: game.keys.d };
+            let lootCollected = false;
+            if (inflightExt) {
+                inflightExt.init();
+                const initialCargo = inflightExt.cargo.length;
+                window.travel = 35000;
+                inflightExt.update(0.016);
+                if (inflightExt.derelicts.length > 0) {
+                    const lead = craftWorld(fleet[LEAD]);
+                    inflightExt.derelicts[0].x = lead[0] + 80;
+                    inflightExt.derelicts[0].y = lead[1] - 40;
+                    inflightExt.derelicts[0].z = lead[2] + 1200;
+                    inflightExt.update(0.016);
+                    inflightExt.fastLoot();
+                }
+                lootCollected = (inflightExt.cargo.length > initialCargo);
+            }
 
             return {
-                hasZone: !!joyZone,
-                hasKnob: !!knob,
-                keysMoving,
-                keysReleased
+                hasLegacyJoyZone: !!legacyJoyZone,
+                hasLegacyOverlay: !!legacyOverlay,
+                hasLegacyBtn: !!legacyBtn,
+                hasInflightExt: !!inflightExt,
+                hasObstructingBtn: !!lootBtn,
+                lootCollected
             };
         }''')
-        print("Void Extraction Joystick test result:", joy_result)
-        assert joy_result['hasZone'], "Missing #sf-ext-joystick-zone in DOM"
-        assert joy_result['hasKnob'], "Missing .sf-ext-joystick-knob in joystick zone"
-        assert joy_result['keysMoving']['w'] and joy_result['keysMoving']['d'], "Joystick movement did not activate keys.w / keys.d"
-        assert not joy_result['keysReleased']['w'] and not joy_result['keysReleased']['d'], "Joystick release did not reset keys"
-        print("✓ Void Extraction mobile joystick zone active and steers ship accurately")
+        print("Extraction test result:", joy_result)
+        assert not joy_result['hasLegacyJoyZone'], "Legacy #sf-ext-joystick-zone should be removed from DOM"
+        assert not joy_result['hasLegacyOverlay'], "Legacy #sf-extraction-overlay should be removed from DOM"
+        assert not joy_result['hasLegacyBtn'], "Legacy #sf-btn-mode-extract should be removed from mode bar"
+        assert not joy_result['hasObstructingBtn'], "Bottom #sf-inflight-loot-btn should be cleanly removed"
+        assert joy_result['hasInflightExt'], "3D StarfieldInFlightExtraction missing"
+        assert joy_result['lootCollected'], "3D In-Flight extraction failed to collect loot into cargo"
+        print("✓ Legacy 2D extraction cleanly removed, 3D in-flight scavenging mechanics active without bottom obstruction")
 
         # -------------------------------------------------------------
-        # P0-5 & P1-8: Orbital Slingshot Viewport Scaling, ID Alignment & Reset
+        # P0-5 & P1-8: 2D Slingshot Removed & 3D Orbital Mechanics Active
         # -------------------------------------------------------------
-        print("\n--- P0-5 & P1-8: Testing Orbital Slingshot Scaling & HUD Alignment ---")
-        await page.click('#sf-btn-mode-slingshot')
-        await page.wait_for_timeout(400)
-
+        print("\n--- P0-5 & P1-8: Testing 2D Slingshot Removal & 3D Orbital Mechanics ---")
         sling_test = await page.evaluate('''() => {
-            const game = window.OrbitalSlingshot;
-            const titleEl = document.getElementById('sf-sling-stage-title');
-            const targetCountEl = document.getElementById('sf-sling-target-count');
-            const resetBtn = document.getElementById('sf-sling-reset-btn');
+            const legacyOverlay = document.getElementById('sf-slingshot-overlay');
+            const legacyBtn = document.getElementById('sf-btn-mode-slingshot');
+            const orbitalMechanics = window.StarfieldOrbitalMechanics;
+            const probeBtn = document.getElementById('sf-inflight-probe-btn');
+            const sonarLockBtn = document.getElementById('sf-sonar-lock-btn');
 
-            if (!game) return { active: false };
-
-            const scaleMatrix = game.getScaleMatrix();
-            const initialTitle = titleEl ? titleEl.textContent : '';
-            const initialTargets = targetCountEl ? targetCountEl.textContent : '';
-
-            // Destroy one target manually to test dynamic HUD count update
-            const targetsBefore = game.currentLevel.targets.length;
-            if (targetsBefore > 0) {
-                game.currentLevel.targets.pop();
-                game.updateTargetHUD();
+            let orbitalArcActive = false;
+            let probeLaunched = false;
+            if (orbitalMechanics) {
+                orbitalMechanics.init();
+                window.activeMasses = [{
+                    x: 300, y: 150, z: window.travel + 1200,
+                    rad: 300, mass: 2.0e8,
+                    name: '开普勒-452b',
+                    kind: 1
+                }];
+                orbitalMechanics.update(0.016);
+                orbitalArcActive = orbitalMechanics.slingshotArc && orbitalMechanics.slingshotArc.length > 0;
+                orbitalMechanics.launchProbe();
+                probeLaunched = orbitalMechanics.probes.length > 0;
             }
-            const updatedTargets = targetCountEl ? targetCountEl.textContent : '';
-
-            // Click reset button
-            if (resetBtn) resetBtn.click();
-            const targetsAfterReset = targetCountEl ? targetCountEl.textContent : '';
-
-            // Test timers tracking
-            const timersActive = game.timers.length;
-            game.stop();
-            const timersAfterStop = game.timers.length;
 
             return {
-                active: true,
-                hasTitle: !!titleEl,
-                titleText: initialTitle,
-                hasResetBtn: !!resetBtn,
-                initialTargets,
-                updatedTargets,
-                targetsAfterReset,
-                scaleMatrix,
-                timersActive,
-                timersAfterStop
+                hasLegacyOverlay: !!legacyOverlay,
+                hasLegacyBtn: !!legacyBtn,
+                hasOrbitalMechanics: !!orbitalMechanics,
+                hasProbeBtn: !!probeBtn,
+                hasSonarLockBtn: !!sonarLockBtn,
+                orbitalArcActive,
+                probeLaunched
             };
         }''')
         print("Orbital Slingshot test result:", sling_test)
-        assert sling_test['hasTitle'] and 'SECTOR 1' in sling_test['titleText'], "sf-sling-stage-title not aligned with level name!"
-        assert sling_test['hasResetBtn'], "Missing #sf-sling-reset-btn in Slingshot HUD!"
-        assert sling_test['initialTargets'] == '2 / 2', f"Expected initial targets '2 / 2', got {sling_test['initialTargets']}"
-        assert sling_test['updatedTargets'] == '1 / 2', f"Expected updated targets '1 / 2', got {sling_test['updatedTargets']}"
-        assert sling_test['targetsAfterReset'] == '2 / 2', f"Expected reset targets '2 / 2', got {sling_test['targetsAfterReset']}"
-        assert sling_test['scaleMatrix']['scale'] < 0.5, f"Scale matrix {sling_test['scaleMatrix']} should fit mobile portrait!"
-        assert sling_test['timersAfterStop'] == 0, "Timers were not cleared on game stop!"
-        print("✓ Orbital Slingshot DOM ID aligned, target HUD dynamic, reset button operational, scaling active, timers leak-free")
+        assert not sling_test['hasLegacyOverlay'], "Legacy #sf-slingshot-overlay should be removed from DOM"
+        assert not sling_test['hasLegacyBtn'], "Legacy #sf-btn-mode-slingshot should be removed from mode bar"
+        assert not sling_test['hasProbeBtn'], "Bottom #sf-inflight-probe-btn should be cleanly removed"
+        assert not sling_test['hasSonarLockBtn'], "Bottom #sf-sonar-lock-btn should be cleanly removed"
+        assert sling_test['hasOrbitalMechanics'], "3D StarfieldOrbitalMechanics missing"
+        assert sling_test['orbitalArcActive'], "3D Orbital Mechanics trajectory prediction failed"
+        assert sling_test['probeLaunched'], "3D Gravitational probe launch failed"
+        print("✓ Legacy 2D slingshot cleanly removed, 3D gravitational orbital mechanics active without bottom obstruction")
 
         # -------------------------------------------------------------
         # P1-6: Cruise engine background rendering pause
@@ -254,17 +242,17 @@ async def test_p0_and_p1_in_browser():
         t_cruise_2 = await page.evaluate('() => window.Starfield.getTravel()')
         cruise_delta = t_cruise_2 - t_cruise_1
 
-        # In slingshot mode, travel does NOT advance because cruise loop skips
-        await page.click('#sf-btn-mode-slingshot')
+        # In Red Alert mode, travel does NOT advance because cruise loop skips
+        await page.click('#sf-btn-mode-redalert')
         await page.wait_for_timeout(300)
-        t_sling_1 = await page.evaluate('() => window.Starfield.getTravel()')
+        t_ra_1 = await page.evaluate('() => window.Starfield.getTravel()')
         await page.wait_for_timeout(200)
-        t_sling_2 = await page.evaluate('() => window.Starfield.getTravel()')
-        sling_delta = t_sling_2 - t_sling_1
+        t_ra_2 = await page.evaluate('() => window.Starfield.getTravel()')
+        ra_delta = t_ra_2 - t_ra_1
 
-        print(f"Travel advance in Cruise: {cruise_delta:.2f}, in Slingshot: {sling_delta:.2f}")
+        print(f"Travel advance in Cruise: {cruise_delta:.2f}, in Red Alert: {ra_delta:.2f}")
         assert cruise_delta > 0, "Cruise travel did not advance while active"
-        assert sling_delta == 0, "Cruise travel continued advancing while in Slingshot mode!"
+        assert ra_delta == 0, "Cruise travel continued advancing while in Red Alert mode!"
         print("✓ Cruise engine frame loop cleanly pauses during expansion gameplay")
 
         # -------------------------------------------------------------

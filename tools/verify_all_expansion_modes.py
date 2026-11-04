@@ -35,54 +35,27 @@ async def main():
         print("\n--- 1. Checking Mode Switcher Bar UI ---")
         bar_check = await page.evaluate('''() => {
             const bar = document.getElementById('sf-mode-bar');
-            const btns = ['cruise', 'extract', 'slingshot', 'redalert', 'dyson'].map(m => 
+            const btns = ['cruise', 'redalert', 'dyson'].map(m => 
                 document.getElementById('sf-btn-mode-' + m)
             );
+            const legacyExt = document.getElementById('sf-btn-mode-extract');
+            const legacySling = document.getElementById('sf-btn-mode-slingshot');
             return {
                 hasBar: !!bar,
                 btnCount: btns.filter(Boolean).length,
-                activeId: document.querySelector('#sf-mode-bar .sf-mode-btn.active')?.id
+                activeId: document.querySelector('#sf-mode-bar .sf-mode-btn.active')?.id,
+                legacyExtAbsent: !legacyExt,
+                legacySlingAbsent: !legacySling
             };
         }''')
         print("Mode Bar Check:", bar_check)
         assert bar_check['hasBar']
-        assert bar_check['btnCount'] == 5
+        assert bar_check['btnCount'] == 3
+        assert bar_check['legacyExtAbsent'] and bar_check['legacySlingAbsent']
         assert bar_check['activeId'] == 'sf-btn-mode-cruise'
 
-        # 2. Test Void Extraction Mode
-        print("\n--- 2. Testing Void Extraction (Duckov/Tarkov in Space) ---")
-        await page.click('#sf-btn-mode-extract')
-        await page.wait_for_timeout(500)
-        ext_state = await page.evaluate('''() => {
-            const game = window.VoidExtraction;
-            return {
-                active: game && game.active,
-                enemies: game ? game.enemies.length : 0,
-                derelicts: game ? game.derelicts.length : 0,
-                cargoSlots: document.querySelectorAll('#sf-ext-cargo-grid .sf-ext-slot').length
-            };
-        }''')
-        print("Void Extraction State:", ext_state)
-        assert ext_state['active'] and ext_state['enemies'] > 0 and ext_state['cargoSlots'] == 6
-
-        # 3. Test Orbital Slingshot Mode
-        print("\n--- 3. Testing Orbital Slingshot (Angry Birds Space) ---")
-        await page.click('#sf-btn-mode-slingshot')
-        await page.wait_for_timeout(500)
-        sling_state = await page.evaluate('''() => {
-            const game = window.OrbitalSlingshot;
-            return {
-                active: game && game.active,
-                planets: game && game.currentLevel ? game.currentLevel.planets.length : 0,
-                targets: game && game.currentLevel ? game.currentLevel.targets.length : 0,
-                hasBird: game && !!game.currentBird
-            };
-        }''')
-        print("Orbital Slingshot State:", sling_state)
-        assert sling_state['active'] and sling_state['planets'] > 0 and sling_state['hasBird']
-
-        # 4. Test Red Alert RTS Mode
-        print("\n--- 4. Testing Red Alert RTS (Command & Conquer Space Base) ---")
+        # 2. Test Red Alert RTS Mode
+        print("\n--- 2. Testing Red Alert RTS (Command & Conquer Space Base) ---")
         await page.click('#sf-btn-mode-redalert')
         await page.wait_for_timeout(500)
         ra_state = await page.evaluate('''() => {
@@ -115,8 +88,8 @@ async def main():
         assert ra_state['units'] >= 3
         assert ra_state['strikes'] >= 1
 
-        # 5. Test Dyson Sphere Program Mode
-        print("\n--- 5. Testing Dyson Sphere Program (Megastructure & Logistics) ---")
+        # 3. Test Dyson Sphere Program Mode
+        print("\n--- 3. Testing Dyson Sphere Program (Megastructure & Logistics) ---")
         await page.click('#sf-btn-mode-dyson')
         await page.wait_for_timeout(500)
         dsp_state = await page.evaluate('''() => {
@@ -148,36 +121,33 @@ async def main():
         assert dsp_state['emLevel'] == 1
         assert dsp_state['camMode'] == 'planet'
 
-        # 6. Switch Back to Cruise Mode
-        print("\n--- 6. Returning to Cruise Mode ---")
+        # 4. Switch Back to Cruise Mode
+        print("\n--- 4. Returning to Cruise Mode ---")
         await page.click('#sf-btn-mode-cruise')
         await page.wait_for_timeout(400)
         cruise_state = await page.evaluate('''() => {
             return {
                 cruiseActive: document.getElementById('sf-btn-mode-cruise').classList.contains('active'),
-                extStopped: !window.VoidExtraction.active,
-                slingStopped: !window.OrbitalSlingshot.active,
                 raStopped: !window.RedAlertRTS.active,
                 dspStopped: !window.DysonSphereProgram.active,
-                allOverlaysHidden: ['sf-extraction-overlay', 'sf-slingshot-overlay', 'sf-redalert-overlay', 'sf-dyson-overlay']
+                allOverlaysHidden: ['sf-redalert-overlay', 'sf-dyson-overlay']
                     .every(id => !document.getElementById(id).classList.contains('active'))
             };
         }''')
         print("Back to Cruise State:", cruise_state)
         assert cruise_state['cruiseActive']
-        assert cruise_state['extStopped'] and cruise_state['slingStopped']
         assert cruise_state['raStopped'] and cruise_state['dspStopped']
         assert cruise_state['allOverlaysHidden']
 
-        # 7. Total Console Errors
-        print("\n--- 7. Comprehensive Console Error Check ---")
+        # 5. Total Console Errors
+        print("\n--- 5. Comprehensive Console Error Check ---")
         print(f"Total Errors Count: {len(errors)}")
         if errors:
             print("Errors detected:", errors)
         assert len(errors) == 0, f"Found {len(errors)} console errors!"
 
         print("\n================================================================================")
-        print("🏆 ALL 5 STARFIELD GAMEPLAY MODES VERIFIED WITH 100% SUCCESS AND 0 CONSOLE ERRORS!")
+        print("🏆 ALL STARFIELD GAMEPLAY MODES VERIFIED WITH 100% SUCCESS AND 0 CONSOLE ERRORS!")
         print("================================================================================")
         await browser.close()
 

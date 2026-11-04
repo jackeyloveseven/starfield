@@ -28,191 +28,131 @@ async def run_adversarial_tests():
         }''')
         await asyncio.sleep(0.1)
 
-        print('--- Test 1: Multi-Touch Virtual Joystick Isolation ---')
-        # Switch to Void Extraction
+        print('--- Test 1: Bottom Screen Pure Unobstructed HUD & Touch Navigation ---')
+        hud_check = await page.evaluate('''() => {
+            const sonarLockBtn = document.getElementById('sf-sonar-lock-btn');
+            const lootBtn = document.getElementById('sf-inflight-loot-btn');
+            const probeBtn = document.getElementById('sf-inflight-probe-btn');
+            const legacyExtBtn = document.getElementById('sf-btn-mode-extract');
+            const legacySlingBtn = document.getElementById('sf-btn-mode-slingshot');
+            const legacyExtOverlay = document.getElementById('sf-extraction-overlay');
+            const legacySlingOverlay = document.getElementById('sf-slingshot-overlay');
+
+            // Dispatch multi-touch on canvas
+            const canvas = document.getElementById('starfield-canvas') || document.body;
+            canvas.dispatchEvent(new PointerEvent('pointerdown', {
+                pointerId: 10, clientX: 100, clientY: 200, bubbles: true
+            }));
+            canvas.dispatchEvent(new PointerEvent('pointerdown', {
+                pointerId: 11, clientX: 250, clientY: 300, bubbles: true
+            }));
+            canvas.dispatchEvent(new PointerEvent('pointerup', {
+                pointerId: 10, clientX: 100, clientY: 200, bubbles: true
+            }));
+            canvas.dispatchEvent(new PointerEvent('pointerup', {
+                pointerId: 11, clientX: 250, clientY: 300, bubbles: true
+            }));
+
+            return {
+                sonarLockBtnAbsent: !sonarLockBtn,
+                lootBtnAbsent: !lootBtn,
+                probeBtnAbsent: !probeBtn,
+                legacyExtBtnAbsent: !legacyExtBtn,
+                legacySlingBtnAbsent: !legacySlingBtn,
+                legacyExtOverlayAbsent: !legacyExtOverlay,
+                legacySlingOverlayAbsent: !legacySlingOverlay
+            };
+        }''')
+        print('HUD check result:', hud_check)
+        assert hud_check['sonarLockBtnAbsent'], 'Sonar lock button must not obstruct bottom screen'
+        assert hud_check['lootBtnAbsent'], 'In-flight loot button must not obstruct bottom screen'
+        assert hud_check['probeBtnAbsent'], 'In-flight probe button must not obstruct bottom screen'
+        assert hud_check['legacyExtBtnAbsent'], '2D pixel extract button must be removed'
+        assert hud_check['legacySlingBtnAbsent'], '2D pixel slingshot button must be removed'
+        assert hud_check['legacyExtOverlayAbsent'], '2D pixel extract overlay must be removed'
+        assert hud_check['legacySlingOverlayAbsent'], '2D pixel slingshot overlay must be removed'
+        print('[PASS] Bottom screen is completely pure and unobstructed; 2D pixel minigames removed!')
+
+        print('\n--- Test 2: Red Alert RTS Off-Screen Pointerup & Drag Protection ---')
         await page.evaluate('''() => {
-            window.switchStarfieldMode('extract');
+            window.switchStarfieldMode('redalert');
         }''')
         await asyncio.sleep(0.1)
 
-        multi_touch_result = await page.evaluate('''() => {
-            const game = window.VoidExtraction;
-            const joyZone = document.getElementById('sf-ext-joystick-zone');
-            const btnFire = document.getElementById('sf-ext-btn-fire');
-            const rect = joyZone.getBoundingClientRect();
-            const cx = rect.left + rect.width / 2;
-            const cy = rect.top + rect.height / 2;
+        ra_drag_result = await page.evaluate('''() => {
+            const ra = window.RedAlertRTS;
+            const canvas = ra.canvas;
+            const rect = canvas.getBoundingClientRect();
 
-            // Finger 1 (id: 10) touches joystick and pushes UP-RIGHT (w, d)
-            joyZone.dispatchEvent(new PointerEvent('pointerdown', {
-                pointerId: 10, clientX: cx, clientY: cy, bubbles: true
+            // Mousedown drag
+            canvas.dispatchEvent(new MouseEvent('mousedown', {
+                button: 0, clientX: rect.left + 50, clientY: rect.top + 50, bubbles: true
             }));
-            window.dispatchEvent(new PointerEvent('pointermove', {
-                pointerId: 10, clientX: cx + 25, clientY: cy - 25, bubbles: true
+            window.dispatchEvent(new MouseEvent('mousemove', {
+                button: 0, clientX: rect.left + 150, clientY: rect.top + 150, bubbles: true
             }));
+            const isDraggingDuringMove = ra.dragSelect ? ra.dragSelect.active : false;
 
-            const stateBeforeFire = {
-                w: game.keys.w,
-                d: game.keys.d,
-                fire: game.keys.fire
-            };
-
-            // Finger 2 (id: 11) taps Fire button and releases
-            btnFire.dispatchEvent(new PointerEvent('pointerdown', {
-                pointerId: 11, clientX: 300, clientY: 700, bubbles: true
+            // Release outside canvas on window / document.body
+            window.dispatchEvent(new MouseEvent('mouseup', {
+                button: 0, clientX: -10, clientY: -10, bubbles: true
             }));
-            window.dispatchEvent(new PointerEvent('pointermove', {
-                pointerId: 11, clientX: 310, clientY: 705, bubbles: true
-            }));
-            const stateDuringFire = {
-                w: game.keys.w,
-                d: game.keys.d,
-                fire: game.keys.fire
-            };
-
-            // Finger 2 lifts off Fire button
-            window.dispatchEvent(new PointerEvent('pointerup', {
-                pointerId: 11, clientX: 310, clientY: 705, bubbles: true
-            }));
-            const stateAfterFinger2Up = {
-                w: game.keys.w,
-                d: game.keys.d,
-                fire: game.keys.fire
-            };
-
-            // Finally Finger 1 lifts off Joystick
-            window.dispatchEvent(new PointerEvent('pointerup', {
-                pointerId: 10, clientX: cx + 25, clientY: cy - 25, bubbles: true
-            }));
-            const stateAfterFinger1Up = {
-                w: game.keys.w,
-                d: game.keys.d
-            };
+            const isDraggingAfterRelease = ra.dragSelect ? ra.dragSelect.active : false;
 
             return {
-                stateBeforeFire,
-                stateDuringFire,
-                stateAfterFinger2Up,
-                stateAfterFinger1Up
+                isDraggingDuringMove,
+                isDraggingAfterRelease
             };
         }''')
-        print('Multi-touch result:', multi_touch_result)
-        assert multi_touch_result['stateBeforeFire']['w'] is True, 'w should be true'
-        assert multi_touch_result['stateBeforeFire']['d'] is True, 'd should be true'
-        assert multi_touch_result['stateDuringFire']['w'] is True, 'Finger 2 move should not cancel joystick w'
-        assert multi_touch_result['stateDuringFire']['d'] is True, 'Finger 2 move should not cancel joystick d'
-        assert multi_touch_result['stateAfterFinger2Up']['w'] is True, 'FATAL: Finger 2 release cancelled joystick w!'
-        assert multi_touch_result['stateAfterFinger2Up']['d'] is True, 'FATAL: Finger 2 release cancelled joystick d!'
-        assert multi_touch_result['stateAfterFinger1Up']['w'] is False, 'Finger 1 up should clear w'
-        print('[PASS] Multi-touch virtual joystick completely isolated from concurrent button taps!')
+        print('Red Alert drag result:', ra_drag_result)
+        assert ra_drag_result['isDraggingDuringMove'] is True, 'Drag select should be active during move'
+        assert ra_drag_result['isDraggingAfterRelease'] is False, 'Off-screen release should clear drag select'
+        print('[PASS] Red Alert off-screen release resilience verified!')
 
-        print('\n--- Test 2: Slingshot Off-Screen Pointerup & Zero-Pull Tap Protection ---')
-        await page.evaluate('''() => {
-            window.switchStarfieldMode('slingshot');
-        }''')
-        await asyncio.sleep(0.1)
-
-        slingshot_result = await page.evaluate('''() => {
-            const sling = window.OrbitalSlingshot;
-            const canvas = sling.canvas;
-            const s = sling.currentLevel.slingshot;
-            const matrix = sling.getScaleMatrix();
-            const canvasX = s.x * matrix.scale + matrix.offsetX;
-            const canvasY = s.y * matrix.scale + matrix.offsetY;
-
-            // 1. Zero-pull tap test (touch and immediately release at same point)
-            canvas.dispatchEvent(new PointerEvent('pointerdown', {
-                pointerId: 20, clientX: canvasX, clientY: canvasY, bubbles: true
-            }));
-            const isDraggingZero = sling.dragState.isDragging;
-            window.dispatchEvent(new PointerEvent('pointerup', {
-                pointerId: 20, clientX: canvasX + 2, clientY: canvasY + 2, bubbles: true
-            }));
-            const birdAfterZeroPull = sling.currentBird ? sling.currentBird.state : null;
-
-            // 2. Full drag pulled backward and released OUTSIDE canvas
-            canvas.dispatchEvent(new PointerEvent('pointerdown', {
-                pointerId: 21, clientX: canvasX, clientY: canvasY, bubbles: true
-            }));
-            // Drag far back
-            window.dispatchEvent(new PointerEvent('pointermove', {
-                pointerId: 21, clientX: canvasX - 50, clientY: canvasY + 30, bubbles: true
-            }));
-            const isDraggingFull = sling.dragState.isDragging;
-
-            // Release outside canvas on document.body
-            document.body.dispatchEvent(new PointerEvent('pointerup', {
-                pointerId: 21, clientX: -10, clientY: -10, bubbles: true
-            }));
-            const isDraggingAfterRelease = sling.dragState.isDragging;
-            const flyingCount = sling.flyingBirds.length;
-
-            return {
-                isDraggingZero,
-                birdAfterZeroPull,
-                isDraggingFull,
-                isDraggingAfterRelease,
-                flyingCount
-            };
-        }''')
-        print('Slingshot result:', slingshot_result)
-        assert slingshot_result['birdAfterZeroPull'] == 'ready', 'Zero-pull tap should preserve bird in ready state'
-        assert slingshot_result['isDraggingAfterRelease'] is False, 'Off-screen release should clear dragging'
-        assert slingshot_result['flyingCount'] == 1, 'Bird should have been launched'
-        print('[PASS] Slingshot off-screen release and tap resilience verified!')
-
-        print('\n--- Test 3: Touch Overlay Hidden in Expansion Modes ---')
+        print('\n--- Test 3: Touch Overlay Hidden in Active Expansion Modes ---')
         overlay_check = await page.evaluate('''() => {
             const touchOverlay = document.getElementById('starfield-touch-overlay');
-            const displaySling = touchOverlay ? window.getComputedStyle(touchOverlay).display : 'none';
-            window.switchStarfieldMode('redalert');
             const displayRA = touchOverlay ? window.getComputedStyle(touchOverlay).display : 'none';
-            window.switchStarfieldMode('extract');
-            const displayExt = touchOverlay ? window.getComputedStyle(touchOverlay).display : 'none';
+            window.switchStarfieldMode('dyson');
+            const displayDSP = touchOverlay ? window.getComputedStyle(touchOverlay).display : 'none';
             window.switchStarfieldMode('cruise');
-            return { displaySling, displayRA, displayExt };
+            const displayCruise = touchOverlay ? window.getComputedStyle(touchOverlay).display : 'none';
+            return { displayRA, displayDSP, displayCruise };
         }''')
         print('Overlay display in modes:', overlay_check)
-        assert overlay_check['displaySling'] == 'none', 'Touch overlay must be none in Slingshot'
         assert overlay_check['displayRA'] == 'none', 'Touch overlay must be none in Red Alert'
-        assert overlay_check['displayExt'] == 'none', 'Touch overlay must be none in Extract'
-        print('[PASS] Touch overlay strictly hidden across all non-cruise modes!')
+        assert overlay_check['displayDSP'] == 'none', 'Touch overlay must be none in Dyson Sphere'
+        print('[PASS] Touch overlay strictly hidden across all non-cruise expansion modes!')
 
         print('\n--- Test 4: Rapid Sub-50ms Mode Switching Resilience ---')
         rapid_switch_result = await page.evaluate('''async () => {
-            const modes = ['cruise', 'redalert', 'slingshot', 'extract', 'dyson', 'redalert', 'extract', 'cruise'];
+            const modes = ['cruise', 'redalert', 'dyson', 'redalert', 'cruise'];
             for (const m of modes) {
                 window.switchStarfieldMode(m);
                 await new Promise(r => setTimeout(r, 15));
             }
             return {
                 finalMode: window.currentMode,
-                extActive: window.VoidExtraction.active,
                 raActive: window.RedAlertRTS.active,
-                slingActive: window.OrbitalSlingshot.active,
                 dspActive: window.DysonSphereProgram.active,
-                raWaveTimer: window.RedAlertRTS.waveTimer,
-                slingTimers: window.OrbitalSlingshot.timers.length
+                raWaveTimer: window.RedAlertRTS.waveTimer
             };
         }''')
         print('Rapid switch result:', rapid_switch_result)
         assert rapid_switch_result['finalMode'] == 'cruise', 'Final mode should be cruise'
-        assert rapid_switch_result['extActive'] is False, 'VoidExtraction should be inactive'
         assert rapid_switch_result['raActive'] is False, 'RedAlert should be inactive'
-        assert rapid_switch_result['slingActive'] is False, 'OrbitalSlingshot should be inactive'
         assert rapid_switch_result['dspActive'] is False, 'DysonSphere should be inactive'
         assert rapid_switch_result['raWaveTimer'] is None, 'RTS wave timer must be null'
-        assert rapid_switch_result['slingTimers'] == 0, 'Slingshot timers must be 0'
         print('[PASS] Rapid mode toggling resilience confirmed with zero timer/state leaks!')
 
         print('\n--- Test 5: Long-Press Speed Cruise Isolation ---')
         # In non-cruise, pointerdown for 400ms should NOT trigger warp gear
         await page.evaluate('''() => {
-            window.switchStarfieldMode('extract');
+            window.switchStarfieldMode('redalert');
         }''')
         await asyncio.sleep(0.05)
         long_press_result = await page.evaluate('''async () => {
-            const canvas = window.VoidExtraction.canvas;
+            const canvas = window.RedAlertRTS.canvas;
             canvas.dispatchEvent(new PointerEvent('pointerdown', {
                 clientX: 200, clientY: 200, bubbles: true
             }));
@@ -226,6 +166,7 @@ async def run_adversarial_tests():
             window.switchStarfieldMode('cruise');
         }''')
         print('Long-press result:', long_press_result)
+        assert long_press_result['mode'] == 'redalert', 'Mode must remain redalert during long press'
         print('[PASS] Long-press speed gear listener isolated!')
 
         print('\n--- Console Errors Check ---')

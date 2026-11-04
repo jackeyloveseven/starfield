@@ -164,10 +164,10 @@ async def main():
         assert ext_flight_test['derelictCount'] > 0, "No derelicts spawned in flight"
         assert ext_flight_test['hasGate'], "Missing singularity evac gate"
         assert ext_flight_test['hasHUD'], "Missing in-flight tactical HUD"
-        assert ext_flight_test['hasLootBtn'], "Missing mobile loot button"
+        assert not ext_flight_test['hasLootBtn'], "Bottom obstructing loot button should be removed"
         assert ext_flight_test['cargoCount'] == 1, "Cargo not looted into tactical bay"
         assert ext_flight_test['pirateCount'] > 0, "Pirate patrols not spawned"
-        print("[PASS] 3D in-flight Void Extraction mechanics & tactical HUD operational!")
+        print("[PASS] 3D in-flight Void Extraction mechanics operational without bottom obstruction!")
 
         # 4. Verify 3D Planetary Gravitational Slingshot & Probe Launch
         print("\n--- 4. Testing 3D Planetary Gravitational Slingshot & Probe System ---")
@@ -207,10 +207,10 @@ async def main():
         assert sling_flight_test['available']
         assert sling_flight_test['hasActivePlanet'], "Planet gravitational well not detected"
         assert sling_flight_test['arcSteps'] > 10, "Predictive slingshot arc trajectory not generated"
-        assert sling_flight_test['hasProbeBtn'], "Missing mobile probe launch button"
-        assert sling_flight_test['probeBtnVisible'], "Probe button should be visible near planet"
+        assert not sling_flight_test['hasProbeBtn'], "Bottom obstructing probe button should be removed"
+        assert not sling_flight_test['probeBtnVisible'], "Probe button should NOT be visible"
         assert sling_flight_test['probeCount'] == 1, "Gravity probe not launched"
-        print("[PASS] 3D planetary gravitational slingshot & probe launches fully functional!")
+        print("[PASS] 3D planetary gravitational slingshot & probe launches functional without bottom obstruction!")
 
         # 5. Check Console Errors
         print("\n--- Total Console Errors ---")
