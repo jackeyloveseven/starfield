@@ -8333,6 +8333,9 @@ window.StarfieldSonar = StarfieldSonar;
 const StarfieldInFlightExtraction = {
   derelicts: [],
   pirates: [],
+  lasers: [],
+  bursts: [],
+  sparks: [],
   evacGate: null,
   cargo: [],
   maxCargo: 6,
@@ -8347,12 +8350,13 @@ const StarfieldInFlightExtraction = {
   tractorPulse: 0,
   fleetShieldFlare: 0,
   escortLaserTimer: 0,
-  sparks: [],
 
   init() {
     if (this._inited) return;
     this._inited = true;
     window.addEventListener('keydown', (e) => {
+      if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable)) return;
+      if (typeof currentMode !== 'undefined' && currentMode !== 'cruise') return;
       if ((e.key.toLowerCase() === 'e' || e.code === 'KeyE') && !e.repeat) {
         if (this.salvageTarget) this.fastLoot();
       }
@@ -8390,6 +8394,12 @@ const StarfieldInFlightExtraction = {
         osc.frequency.linearRampToValueAtTime(1046.5, ctx.currentTime + 0.55);
         gain.gain.setValueAtTime(0.14, ctx.currentTime);
         gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.55);
+      } else if (type === 'laser') {
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(980, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(220, ctx.currentTime + 0.12);
+        gain.gain.setValueAtTime(0.05, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.12);
       }
       osc.connect(gain);
       gain.connect(ctx.destination);
@@ -8463,10 +8473,10 @@ const StarfieldInFlightExtraction = {
 
     if (this.fleetShieldFlare > 0) this.fleetShieldFlare = Math.max(0, this.fleetShieldFlare - dt * 2.5);
 
-    // Procedurally spawn space encounters along flight path every ~16,000 units
-    if (this.lastSpawnTravel === 0 || leadTravel - this.lastSpawnTravel > 16000 || this.derelicts.length === 0) {
+    // Procedurally spawn space encounters along flight path every ~8,000 units
+    if (this.lastSpawnTravel === 0 || leadTravel - this.lastSpawnTravel > 8000 || this.derelicts.length === 0) {
       this.lastSpawnTravel = (leadTravel || 1);
-      const spawnZ = (leadTravel || 0) + 3800 + Math.random() * 4800;
+      const spawnZ = (leadTravel || 0) + 3600 + Math.random() * 4200;
       const rx = routeX(spawnZ) + (Math.random() - 0.5) * 2800;
       const ry = courseY(spawnZ) + (Math.random() - 0.5) * 1400;
 
@@ -8510,13 +8520,15 @@ const StarfieldInFlightExtraction = {
       });
 
       // Singularity evacuation gate portal placed ahead
-      if (!this.evacGate || this.evacGate.z < leadTravel - 10000) {
+      if (!this.evacGate || this.evacGate.evacuated || this.evacGate.z < leadTravel - 10000) {
         this.evacGate = {
-          x: routeX(spawnZ + 9500),
-          y: courseY(spawnZ + 9500),
-          z: spawnZ + 9500,
+          x: routeX(spawnZ + 8500),
+          y: courseY(spawnZ + 8500),
+          z: spawnZ + 8500,
           radius: 1200,
-          progress: 0
+          progress: 0,
+          evacuated: false,
+          imploding: 0
         };
       }
     }
@@ -8559,14 +8571,21 @@ const StarfieldInFlightExtraction = {
 
     // Check Singularity Extraction Gate
     if (this.evacGate) {
-      const gDist = Math.hypot(this.evacGate.x - leadPos[0], this.evacGate.y - leadPos[1], this.evacGate.z - leadPos[2]);
-      if (gDist < 2400) {
-        this.evacGate.progress = Math.min(1.0, this.evacGate.progress + dt * 0.65);
-        if (this.evacGate.progress >= 1.0) {
-          this.triggerEvacuation();
+      if (this.evacGate.imploding > 0) {
+        this.evacGate.imploding -= dt * 1.5;
+        if (this.evacGate.imploding <= 0) {
+          this.evacGate = null;
         }
-      } else {
-        this.evacGate.progress = Math.max(0, this.evacGate.progress - dt * 0.2);
+      } else if (!this.evacGate.evacuated) {
+        const gDist = Math.hypot(this.evacGate.x - leadPos[0], this.evacGate.y - leadPos[1], this.evacGate.z - leadPos[2]);
+        if (gDist < 2400) {
+          this.evacGate.progress = Math.min(1.0, this.evacGate.progress + dt * 0.65);
+          if (this.evacGate.progress >= 1.0) {
+            this.triggerEvacuation();
+          }
+        } else {
+          this.evacGate.progress = Math.max(0, this.evacGate.progress - dt * 0.2);
+        }
       }
     }
 
@@ -8593,47 +8612,68 @@ const StarfieldInFlightExtraction = {
 
       // Pirate fires crimson laser pulse at fleet
       if (p.fireCd <= 0) {
-        p.fireCd = 1.3 + Math.random() * 0.6;
+        p.fireCd = 1.3 + Math.random() * 0.7;
         this.fleetShieldFlare = 1.0;
-        if (typeof battles !== 'undefined' && Array.isArray(battles)) {
-          battles.push({
-            x: p.x, y: p.y, z: p.z,
-            fire: [{ x0: p.x, y0: p.y, z0: p.z, x1: leadPos[0] + (Math.random()-0.5)*120, y1: leadPos[1] + (Math.random()-0.5)*60, z1: leadPos[2], period: 0.6, phase: 0 }],
-            bursts: [{ x: p.x, y: p.y, z: p.z, size: 45, period: 0.6, phase: 0 }]
-          });
-        }
+        this.playChirp('laser');
+        this.lasers.push({
+          x0: p.x, y0: p.y, z0: p.z,
+          x1: leadPos[0] + (Math.random() - 0.5) * 80,
+          y1: leadPos[1] + (Math.random() - 0.5) * 40,
+          z1: leadPos[2],
+          color: '#f43f5e',
+          life: 0.28,
+          maxLife: 0.28
+        });
       }
 
       // Escorts retaliate against pirate
       if (this.escortLaserTimer <= 0 && fleet.length > 1) {
-        this.escortLaserTimer = 0.8;
+        this.escortLaserTimer = 0.6;
         const escortCraft = fleet[1 + (i % (fleet.length - 1))];
         if (escortCraft) {
           const ep = craftWorld(escortCraft);
           p.hp = (p.hp || 3) - 1;
-          if (typeof battles !== 'undefined' && Array.isArray(battles)) {
-            battles.push({
-              x: ep[0], y: ep[1], z: ep[2],
-              fire: [{ x0: ep[0], y0: ep[1], z0: ep[2], x1: p.x, y1: p.y, z1: p.z, period: 0.5, phase: 0 }],
-              bursts: [{ x: p.x, y: p.y, z: p.z, size: 50, period: 0.5, phase: 0 }]
-            });
-          }
+          this.lasers.push({
+            x0: ep[0], y0: ep[1], z0: ep[2],
+            x1: p.x, y1: p.y, z1: p.z,
+            color: '#38bdf8',
+            life: 0.28,
+            maxLife: 0.28
+          });
         }
       }
 
       if (p.life <= 0 || (p.hp !== undefined && p.hp <= 0)) {
-        // Destroyed: spawn spark debris
-        for (let s = 0; s < 12; s++) {
+        // Destroyed: spawn explosion burst and spark debris
+        this.bursts.push({
+          x: p.x, y: p.y, z: p.z,
+          size: 55,
+          life: 0.45,
+          maxLife: 0.45
+        });
+        for (let s = 0; s < 14; s++) {
           this.sparks.push({
             x: p.x, y: p.y, z: p.z,
-            vx: (Math.random() - 0.5) * 300,
-            vy: (Math.random() - 0.5) * 300,
-            vz: (Math.random() - 0.5) * 300,
+            vx: (Math.random() - 0.5) * 360,
+            vy: (Math.random() - 0.5) * 360,
+            vz: (Math.random() - 0.5) * 360,
             life: 1.2
           });
         }
         this.pirates.splice(i, 1);
       }
+    }
+
+    // Step combat lasers
+    for (let l = this.lasers.length - 1; l >= 0; l--) {
+      this.lasers[l].life -= dt;
+      if (this.lasers[l].life <= 0) this.lasers.splice(l, 1);
+    }
+
+    // Step explosion bursts
+    for (let b = this.bursts.length - 1; b >= 0; b--) {
+      this.bursts[b].life -= dt;
+      if (this.bursts[b].life <= 0) this.bursts.splice(b, 1);
     }
 
     // Step spark particles
@@ -8653,6 +8693,12 @@ const StarfieldInFlightExtraction = {
     const hud = this.hudElement || document.getElementById('sf-inflight-extract-hud');
     const lootBtn = this.lootBtnElement || document.getElementById('sf-inflight-loot-btn');
     if (!hud) return;
+
+    const isNonCruise = (typeof currentMode !== 'undefined' && currentMode !== 'cruise');
+    if (isNonCruise) {
+      hud.style.display = 'none';
+      return;
+    }
 
     const hasCargo = this.cargo.length > 0;
     const nearTarget = !!this.salvageTarget;
@@ -8685,7 +8731,7 @@ const StarfieldInFlightExtraction = {
 
       const gateStatus = document.getElementById('sf-inflight-gate-status');
       if (gateStatus) {
-        if (this.evacGate) {
+        if (this.evacGate && !this.evacGate.evacuated) {
           const gDist = Math.round(Math.hypot(this.evacGate.x - leadPos[0], this.evacGate.y - leadPos[1], this.evacGate.z - leadPos[2]));
           if (this.evacGate.progress > 0) {
             gateStatus.innerHTML = `<span style="color:#4ade80;">✦ 折跃撤离中 ${Math.round(this.evacGate.progress * 100)}%</span>`;
@@ -8717,7 +8763,9 @@ const StarfieldInFlightExtraction = {
     }
     const val = d.item.value;
     this.playChirp('loot');
-    if (navigator.vibrate) navigator.vibrate([40, 30, 60]);
+    if (typeof navigator !== 'undefined' && (navigator.userActivation ? navigator.userActivation.hasBeenActive : true) && navigator.vibrate) {
+      try { navigator.vibrate([40, 30, 60]); } catch(e) {}
+    }
 
     const msg = `[战利品搜寻] 成功回收【${d.item.name}】(+${val} ST)！当前货舱 ${this.cargo.length}/${this.maxCargo}`;
     if (typeof showToast === 'function') showToast(msg, 3.5);
@@ -8740,7 +8788,7 @@ const StarfieldInFlightExtraction = {
         y: leadPos[1] + (Math.random() - 0.5) * 900,
         z: leadPos[2] + 2400 + k * 400,
         hp: 3,
-        life: 10.0,
+        life: 12.0,
         fireCd: 0.5 + k * 0.4,
         phase: Math.random() * Math.PI * 2
       });
@@ -8751,14 +8799,14 @@ const StarfieldInFlightExtraction = {
   },
 
   triggerEvacuation() {
+    if (!this.evacGate || this.evacGate.evacuated) return;
+    this.evacGate.evacuated = true;
+    this.evacGate.imploding = 1.0;
+
     let totalLoot = 0;
     for (const c of this.cargo) totalLoot += c.value;
-    const bonus = 600;
-    const grandTotal = totalLoot + bonus;
-    this.securedCredits += grandTotal;
     const count = this.cargo.length;
     this.cargo.length = 0;
-    if (this.evacGate) this.evacGate.progress = 0;
 
     this.playChirp('evac');
     warp = Math.max(warp || 0, 3.2);
@@ -8767,17 +8815,29 @@ const StarfieldInFlightExtraction = {
       slingshotSurgeTimer = 4.5;
     }
 
-    // Award permanent unopened celestial cores for starship fleet crafting/upgrades
-    let coresGained = 0;
-    if (window.StarfieldHatch && typeof window.StarfieldHatch.addCores === 'function') {
-      coresGained = Math.max(1, Math.floor(grandTotal / 450));
-      window.StarfieldHatch.addCores(coresGained);
-    }
+    // Warp escape leaves pursuing pirates behind
+    this.pirates.length = 0;
 
-    const coreMsg = coresGained > 0 ? ` · 转化未开采星核 × ${coresGained}` : '';
-    const msg = `✦ 成功穿透奇点折跃门！安全撤离 ${count} 件物资，星尘 +${grandTotal} ST${coreMsg}！✦`;
-    if (typeof showToast === 'function') showToast(msg, 4.5);
-    else if (typeof window.toast === 'function') window.toast(msg, 4.5);
+    if (count > 0) {
+      const bonus = 600;
+      const grandTotal = totalLoot + bonus;
+      this.securedCredits += grandTotal;
+
+      let coresGained = 0;
+      if (window.StarfieldHatch && typeof window.StarfieldHatch.addCores === 'function') {
+        coresGained = Math.max(1, Math.floor(grandTotal / 450));
+        window.StarfieldHatch.addCores(coresGained);
+      }
+
+      const coreMsg = coresGained > 0 ? ` · 转化未开采星核 × ${coresGained}` : '';
+      const msg = `✦ 成功穿透奇点折跃门！安全撤离 ${count} 件物资，星尘 +${grandTotal} ST${coreMsg}！✦`;
+      if (typeof showToast === 'function') showToast(msg, 4.5);
+      else if (typeof window.toast === 'function') window.toast(msg, 4.5);
+    } else {
+      const msg = `✦ 成功穿透奇点折跃门！跃迁航道畅通，完成战术折跃冲刺！✦`;
+      if (typeof showToast === 'function') showToast(msg, 3.5);
+      else if (typeof window.toast === 'function') window.toast(msg, 3.5);
+    }
   },
 
   draw(c) {
@@ -8928,13 +8988,14 @@ const StarfieldInFlightExtraction = {
       c.restore();
 
       // 3D Automated Tractor Beam & Recovery Progress Bar
-      if (this.salvageTarget === d && leadQ) {
+      if (this.salvageTarget === d) {
         c.save();
+        const originQ = leadQ || [camera.cx || ((typeof W !== 'undefined' ? W : 400) * 0.5), (typeof H !== 'undefined' ? H : 600) * 0.92];
         // Dual braided luminous tractor beam
         const tOffset = Math.sin(performance.now() * 0.01) * 6;
         c.beginPath();
-        c.moveTo(leadQ[0], leadQ[1]);
-        c.quadraticCurveTo((leadQ[0] + q[0]) * 0.5 + tOffset, (leadQ[1] + q[1]) * 0.5 - tOffset, q[0], q[1]);
+        c.moveTo(originQ[0], originQ[1]);
+        c.quadraticCurveTo((originQ[0] + q[0]) * 0.5 + tOffset, (originQ[1] + q[1]) * 0.5 - tOffset, q[0], q[1]);
         c.strokeStyle = 'rgba(56, 189, 248, 0.88)';
         c.lineWidth = 2.4;
         c.setLineDash([8, 4]);
@@ -8943,8 +9004,8 @@ const StarfieldInFlightExtraction = {
         c.stroke();
 
         c.beginPath();
-        c.moveTo(leadQ[0], leadQ[1]);
-        c.quadraticCurveTo((leadQ[0] + q[0]) * 0.5 - tOffset, (leadQ[1] + q[1]) * 0.5 + tOffset, q[0], q[1]);
+        c.moveTo(originQ[0], originQ[1]);
+        c.quadraticCurveTo((originQ[0] + q[0]) * 0.5 - tOffset, (originQ[1] + q[1]) * 0.5 + tOffset, q[0], q[1]);
         c.strokeStyle = 'rgba(251, 191, 36, 0.75)';
         c.lineWidth = 1.4;
         c.stroke();
@@ -9016,6 +9077,51 @@ const StarfieldInFlightExtraction = {
       c.restore();
     }
 
+    // 3. Draw Active 3D Combat Lasers
+    for (const l of this.lasers) {
+      const A = project([l.x0, l.y0, l.z0]);
+      const B = project([l.x1, l.y1, l.z1]);
+      if (!A || !B || A[2] <= 0 || B[2] <= 0) continue;
+      const alpha = Math.max(0, l.life / (l.maxLife || 0.28));
+      c.save();
+      c.beginPath();
+      c.moveTo(A[0], A[1]);
+      c.lineTo(B[0], B[1]);
+      c.strokeStyle = l.color;
+      c.globalAlpha = alpha;
+      c.lineWidth = 2.4;
+      c.shadowColor = l.color;
+      c.shadowBlur = 12;
+      c.stroke();
+
+      c.beginPath();
+      c.moveTo(A[0], A[1]);
+      c.lineTo(B[0], B[1]);
+      c.strokeStyle = '#ffffff';
+      c.globalAlpha = alpha * 0.9;
+      c.lineWidth = 1.0;
+      c.stroke();
+      c.restore();
+    }
+
+    // 4. Draw Active 3D Explosion Bursts
+    for (const b of this.bursts) {
+      const q = project([b.x, b.y, b.z]);
+      if (!q || q[2] <= 0) continue;
+      const prog = 1 - (b.life / (b.maxLife || 0.45));
+      const r = (b.size * (0.3 + prog * 1.2)) * q[3];
+      const alpha = Math.max(0, (1 - prog) * 0.85);
+      c.save();
+      c.beginPath();
+      c.arc(q[0], q[1], r, 0, TAU);
+      c.strokeStyle = `rgba(251, 146, 60, ${alpha.toFixed(2)})`;
+      c.lineWidth = 2.5;
+      c.shadowColor = '#fb923c';
+      c.shadowBlur = 14;
+      c.stroke();
+      c.restore();
+    }
+
     // Flagship Shield Flare Deflection Ripple
     if (this.fleetShieldFlare > 0 && leadQ) {
       c.save();
@@ -9038,12 +9144,15 @@ const StarfieldInFlightExtraction = {
       }
     }
 
-    // 3. Draw Singularity Extraction Gate in 3D
+    // 5. Draw Singularity Extraction Gate in 3D
     if (this.evacGate) {
       const g = this.evacGate;
       const q = project([g.x, g.y, g.z]);
       if (q && q[2] > 0 && q[2] < 55000) {
-        const gR = Math.max(18, Math.min(200, (400 / q[2]) * 85));
+        let gR = Math.max(18, Math.min(200, (400 / q[2]) * 85));
+        if (g.imploding > 0) {
+          gR *= Math.max(0.05, g.imploding);
+        }
         c.save();
         c.translate(q[0], q[1]);
 
@@ -9086,9 +9195,11 @@ window.StarfieldInFlightExtraction = StarfieldInFlightExtraction;
 const StarfieldOrbitalMechanics = {
   activePlanet: null,
   slingshotArc: [],
+  slingshotPeriapsisIdx: 0,
   probes: [],
   shockwaves: [],
   periapsisDist: 0,
+  lastMinDist: 0,
   boostReady: false,
   slingshotCooldown: 0,
   slingshotGlowTimer: 0,
@@ -9100,6 +9211,8 @@ const StarfieldOrbitalMechanics = {
     if (this._inited) return;
     this._inited = true;
     window.addEventListener('keydown', (e) => {
+      if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable)) return;
+      if (typeof currentMode !== 'undefined' && currentMode !== 'cruise') return;
       if ((e.key.toLowerCase() === 'p' || e.code === 'KeyP') && !e.repeat) {
         this.launchProbe();
       }
@@ -9182,11 +9295,11 @@ const StarfieldOrbitalMechanics = {
     if (typeof activeMasses !== 'undefined' && Array.isArray(activeMasses)) {
       for (let i = 0; i < activeMasses.length; i++) {
         const m = activeMasses[i];
-        if (!m || (!m.w && m.kind !== 1 && m.kind !== 8 && m.kind !== 6)) continue;
+        if (!m || (!m.w && m.kind !== 1 && m.kind !== 8 && m.kind !== 6 && m.kind !== 4)) continue;
         const dx = m.x - leadPos[0], dy = m.y - leadPos[1], dz = m.z - leadPos[2];
         const dist = Math.hypot(dx, dy, dz);
-        const massR = m.rad || m.r || 240;
-        const influenceR = Math.max(3800, massR * 14);
+        const massR = m.r || m.rad || 240;
+        const influenceR = Math.max(4800, massR * 14);
         if (dist < influenceR && dist < minDist) {
           minDist = dist;
           nearestMass = m;
@@ -9198,16 +9311,24 @@ const StarfieldOrbitalMechanics = {
     this.periapsisDist = minDist;
 
     this.slingshotArc.length = 0;
+    this.slingshotPeriapsisIdx = 0;
+
     if (this.activePlanet) {
       const pm = this.activePlanet;
+      const pRad = pm.r || pm.rad || 240;
       let simX = leadPos[0], simY = leadPos[1], simZ = leadPos[2];
       let simVx = (routeX(travel + 100) - routeX(travel)) * 12;
       let simVy = (courseY(travel + 100) - courseY(travel)) * 12;
       let simVz = SPEED * (1 + (warp || 0));
 
       const steps = 36;
-      const simDt = 0.045;
-      const massG = (pm.mass || 1.8e8);
+      const targetZDist = Math.max(1200, pm.z - simZ);
+      const totalSimTime = (targetZDist / Math.max(30, simVz)) * 1.5;
+      const simDt = Math.max(0.08, Math.min(1.2, totalSimTime / steps));
+      const massG = (pm.mass || (pRad * pRad * 320));
+
+      let minArcDist = 1e9;
+      let closestIdx = 0;
 
       for (let s = 0; s < steps; s++) {
         const pdx = pm.x - simX, pdy = pm.y - simY, pdz = pm.z - simZ;
@@ -9224,23 +9345,31 @@ const StarfieldOrbitalMechanics = {
         simZ += simVz * simDt;
 
         this.slingshotArc.push([simX, simY, simZ]);
+        if (pDist < minArcDist) {
+          minArcDist = pDist;
+          closestIdx = s;
+        }
       }
+      this.slingshotPeriapsisIdx = closestIdx;
 
       // Gravitational Well Force: Celestial gravity gently influences flight trajectory
-      if (minDist < (pm.rad || 240) * 8.0) {
+      if (minDist < pRad * 8.0) {
         const pdx = pm.x - leadPos[0], pdy = pm.y - leadPos[1];
         const pDist = Math.hypot(pdx, pdy) || 1;
         if (fleet[LEAD]) {
-          fleet[LEAD].vx += (pdx / pDist) * 35 * dt;
-          fleet[LEAD].vy += (pdy / pDist) * 20 * dt;
+          const pull = Math.min(60, (pRad * 40) / Math.max(pRad * 0.5, pDist));
+          fleet[LEAD].vx += (pdx / pDist) * pull * dt;
+          fleet[LEAD].vy += (pdy / pDist) * (pull * 0.5) * dt;
         }
       }
 
-      const sweetSpot = (pm.rad || 240) * 4.5;
-      if (minDist < sweetSpot && this.slingshotCooldown <= 0) {
+      const sweetSpot = pRad * 4.5;
+      const isPassingPeriapsis = (minDist < sweetSpot && ((this.lastMinDist && minDist > this.lastMinDist) || minDist < pRad * 2.2));
+      if (isPassingPeriapsis && this.slingshotCooldown <= 0) {
         this.slingshotCooldown = 12.0;
         this.triggerSlingshotBoost(pm);
       }
+      this.lastMinDist = minDist;
     }
 
     // Step active orbital probes
@@ -9248,6 +9377,18 @@ const StarfieldOrbitalMechanics = {
       const pr = this.probes[i];
       pr.life -= dt;
       pr.spin = (pr.spin || 0) + dt * 8.0;
+
+      // If probe has no target, dynamically scan for upcoming celestial body ahead
+      if (!pr.targetMass && typeof activeMasses !== 'undefined') {
+        for (const m of activeMasses) {
+          if (!m) continue;
+          const dz = m.z - pr.z;
+          if (dz > 0 && dz < 18000 && Math.hypot(m.x - pr.x, m.y - pr.y) < (m.r || 240) * 8) {
+            pr.targetMass = m;
+            break;
+          }
+        }
+      }
 
       if (pr.targetMass) {
         const pdx = pr.targetMass.x - pr.x;
@@ -9262,7 +9403,7 @@ const StarfieldOrbitalMechanics = {
         pr.vz += (pdz / pDist) * f * dt;
 
         // Periapsis proximity triggers chain gravitational shockwave
-        const rad = pr.targetMass.rad || 240;
+        const rad = pr.targetMass.r || pr.targetMass.rad || 240;
         if (pDist < rad * 1.8 && !pr.hasTriggeredShock) {
           pr.hasTriggeredShock = true;
           this.triggerShockwave(pr.x, pr.y, pr.z, pr.targetMass);
@@ -9276,8 +9417,9 @@ const StarfieldOrbitalMechanics = {
       if (pr.trail.length > 28) pr.trail.shift();
 
       if (pr.life <= 0) {
-        if (!pr.hasTriggeredShock && pr.targetMass) {
-          this.triggerShockwave(pr.x, pr.y, pr.z, pr.targetMass);
+        if (!pr.hasTriggeredShock) {
+          pr.hasTriggeredShock = true;
+          this.triggerShockwave(pr.x, pr.y, pr.z, pr.targetMass || null);
         }
         this.probes.splice(i, 1);
       }
@@ -9319,7 +9461,9 @@ const StarfieldOrbitalMechanics = {
     if (toastEl) toastEl.classList.add('show');
 
     this.playGravSound('slingshot');
-    if (navigator.vibrate) navigator.vibrate([60, 40, 100]);
+    if (typeof navigator !== 'undefined' && (navigator.userActivation ? navigator.userActivation.hasBeenActive : true) && navigator.vibrate) {
+      try { navigator.vibrate([60, 40, 100]); } catch(e) {}
+    }
 
     const pName = pm.name || (pm.w && pm.w.name) || '天体引力井';
     const msg = `✦ 触发【${pName}】行星引力弹弓！变轨加速 +280%！✦`;
@@ -9336,7 +9480,9 @@ const StarfieldOrbitalMechanics = {
       maxLife: 1.8
     });
     this.playGravSound('shockwave');
-    if (navigator.vibrate) navigator.vibrate([80, 50, 140]);
+    if (typeof navigator !== 'undefined' && (navigator.userActivation ? navigator.userActivation.hasBeenActive : true) && navigator.vibrate) {
+      try { navigator.vibrate([80, 50, 140]); } catch(e) {}
+    }
 
     // Resonate with deep planetary core: awards unopened celestial core or telemetry stardust
     if (window.StarfieldHatch && typeof window.StarfieldHatch.addCores === 'function') {
@@ -9393,7 +9539,7 @@ const StarfieldOrbitalMechanics = {
       c.restore();
 
       // Periapsis Sweet-Spot Marker
-      const midIdx = Math.floor(this.slingshotArc.length * 0.45);
+      const midIdx = Math.max(0, Math.min(this.slingshotArc.length - 1, this.slingshotPeriapsisIdx || Math.floor(this.slingshotArc.length * 0.45)));
       const midQ = project(this.slingshotArc[midIdx]);
       if (midQ && midQ[2] > 0) {
         c.save();
@@ -9436,7 +9582,8 @@ const StarfieldOrbitalMechanics = {
     }
 
     // Atmospheric Entry Plasma Compression Glow during Low-Orbit Skims
-    if (this.activePlanet && this.periapsisDist < (this.activePlanet.rad || 300) * 2.2) {
+    const activeRad = this.activePlanet ? (this.activePlanet.r || this.activePlanet.rad || 300) : 300;
+    if (this.activePlanet && this.periapsisDist < activeRad * 2.2) {
       c.save();
       const pColor = this.activePlanet.w && this.activePlanet.w.type && this.activePlanet.w.type.id === 'forest' ? 'rgba(52, 211, 153, 0.45)' :
                      this.activePlanet.w && this.activePlanet.w.type && this.activePlanet.w.type.id === 'ocean' ? 'rgba(56, 189, 248, 0.55)' :
@@ -9533,6 +9680,7 @@ const StarfieldOrbitalMechanics = {
   }
 };
 window.StarfieldOrbitalMechanics = StarfieldOrbitalMechanics;
+
 
 const particles=[],MAX_PARTICLES=coarse?168:240;
 let particleSerial=0;

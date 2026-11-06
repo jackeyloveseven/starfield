@@ -198,7 +198,7 @@ def main():
         }""")
         print(f"Deep Space Sonar check: {sonar_res}")
         assert sonar_res["hasSonar"], "StarfieldSonar system must exist"
-        assert sonar_res["hasHudBtn"], "Sonar HUD button must exist"
+        assert not sonar_res["hasHudBtn"], "Sonar HUD button must be cleanly absent from bottom"
         assert sonar_res["triggerSuccess"], "Sonar activeSonarRings should have triggered"
 
         # Take screenshot of clean in-flight state with escort orbits
