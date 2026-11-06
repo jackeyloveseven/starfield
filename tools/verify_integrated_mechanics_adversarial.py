@@ -152,6 +152,59 @@ async def main():
         print("[PASS] Deep space probe telemetry & shockwave resonance verified successfully!")
 
         # ---------------------------------------------------------------------
+        # 3b. Test Active Deep Space Sonar with Injected Bodies & Gargantua
+        # ---------------------------------------------------------------------
+        print("\n--- 3b. Testing Deep Space Sonar (window.activeMasses & Gargantua) ---")
+        sonar_res = await page.evaluate('''() => {
+            const Sonar = window.StarfieldSonar;
+            Sonar.init();
+            const lead = craftWorld(fleet[LEAD]);
+
+            // 1. Injected terrestrial planet
+            window.activeMasses = [{
+                x: lead[0] + 400,
+                y: lead[1],
+                z: lead[2] + 2500,
+                r: 1200,
+                name: '开普勒-452b',
+                kind: 1
+            }];
+            Sonar.update(0.016);
+            const planetTargetName = Sonar.currentTarget ? Sonar.currentTarget.name : null;
+
+            // Trigger sonar scan
+            Sonar.activeSonarRings.length = 0;
+            Sonar.triggerScan();
+            const sonarRingsCount = Sonar.activeSonarRings.length;
+
+            // 2. Injected supermassive black hole (kind 4)
+            window.activeMasses = [{
+                x: lead[0] - 600,
+                y: lead[1] + 100,
+                z: lead[2] + 4000,
+                r: 3500,
+                name: '卡冈图雅奇点',
+                kind: 4
+            }];
+            Sonar.update(0.016);
+            const blackHoleTargetName = Sonar.currentTarget ? Sonar.currentTarget.name : null;
+
+            // Reset activeMasses
+            window.activeMasses = [];
+
+            return {
+                planetTargetName,
+                sonarRingsCount,
+                blackHoleTargetName
+            };
+        }''')
+        print("Sonar test result:", sonar_res)
+        assert sonar_res['planetTargetName'] == '开普勒-452b', f"Expected 开普勒-452b, got {sonar_res['planetTargetName']}"
+        assert sonar_res['sonarRingsCount'] >= 1, "Sonar scan should generate active sonar pulse ring"
+        assert sonar_res['blackHoleTargetName'] == '卡冈图雅奇点', f"Expected 卡冈图雅奇点, got {sonar_res['blackHoleTargetName']}"
+        print("[PASS] Active deep space sonar target lock-on & Gargantua mapping verified successfully!")
+
+        # ---------------------------------------------------------------------
         # 4. Test Mode Keydown & HUD Isolation in Expansion Modes
         # ---------------------------------------------------------------------
         print("\n--- 4. Testing Mode Keydown & HUD Isolation ---")

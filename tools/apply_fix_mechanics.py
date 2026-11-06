@@ -2,7 +2,165 @@
 import os
 import sys
 
-new_code = '''const StarfieldInFlightExtraction = {
+new_code = '''const StarfieldSonar = {
+  currentTarget: null,
+  activeSonarRings: [],
+  lastScanTime: -9999,
+  btnElement: null,
+  audioCtx: null,
+
+  init() {
+    if (this._inited) return;
+    this._inited = true;
+    window.addEventListener('keydown', (e) => {
+      if ((typeof currentMode !== 'undefined' && currentMode !== 'cruise') || (typeof window !== 'undefined' && window.currentMode && window.currentMode !== 'cruise')) return;
+      if ((e.key.toLowerCase() === 'f' || e.code === 'KeyF') && !e.repeat) {
+        this.triggerScan();
+      }
+    });
+  },
+
+  update(dt) {
+    if (!this._inited) this.init();
+    if (!fleet || !fleet[LEAD]) return;
+    const leadPos = craftWorld(fleet[LEAD]);
+
+    let candidate = null;
+    let minCandidateDist = 1e9;
+
+    const massesPool = (typeof window !== 'undefined' && Array.isArray(window.activeMasses) && window.activeMasses.length > 0) ? window.activeMasses : (typeof activeMasses !== 'undefined' && Array.isArray(activeMasses) ? activeMasses : []);
+    for (let i = 0; i < massesPool.length; i++) {
+      const m = massesPool[i];
+      if (!m || (!m.w && m.kind !== 1 && m.kind !== 8 && m.kind !== 6 && m.kind !== 4)) continue;
+      if (!Number.isFinite(m.x) || !Number.isFinite(m.y) || !Number.isFinite(m.z)) continue;
+      const dx = m.x - leadPos[0], dy = m.y - leadPos[1], dz = m.z - leadPos[2];
+      const dist = Math.hypot(dx, dy, dz);
+      if (dist > 800 && dist < 32000 && dist < minCandidateDist) {
+        minCandidateDist = dist;
+        candidate = m;
+      }
+    }
+
+    this.currentTarget = candidate;
+    // Completely remove bottom-center HUD button to keep screen pure & unobstructed
+    const oldBtn = document.getElementById('sf-sonar-lock-btn');
+    if (oldBtn) oldBtn.remove();
+
+    for (let i = this.activeSonarRings.length - 1; i >= 0; i--) {
+      const ring = this.activeSonarRings[i];
+      ring.r += dt * 4800;
+      ring.life -= dt * 0.9;
+      if (ring.life <= 0 || ring.r > ring.maxR * 1.2) {
+        this.activeSonarRings.splice(i, 1);
+      }
+    }
+  },
+
+  updateHUDButton(target) {
+    // Non-obstructive: No bottom button created. Press [F] or tap celestial body to scan.
+    const btn = document.getElementById('sf-sonar-lock-btn');
+    if (btn) btn.remove();
+  },
+
+  triggerScan() {
+    if (!this.currentTarget) {
+      if (typeof showToast === 'function') showToast('当前空域未检测到可测绘天体信号', 3); else if (typeof window.toast === 'function') window.toast('当前空域未检测到可测绘天体信号', 3);
+      return;
+    }
+    const target = this.currentTarget;
+    const now = performance.now();
+    if (now - this.lastScanTime < 1500) return;
+    this.lastScanTime = now;
+
+    const leadPos = craftWorld(fleet[LEAD]);
+    const dx = target.x - leadPos[0], dy = target.y - leadPos[1], dz = target.z - leadPos[2];
+    const dist = Math.hypot(dx, dy, dz) || 1000;
+
+    this.activeSonarRings.push({
+      start: [...leadPos],
+      target: [target.x, target.y, target.z],
+      r: 10,
+      maxR: dist,
+      life: 1.2
+    });
+
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (AudioCtx) {
+        if (!this.audioCtx || this.audioCtx.state === 'closed') {
+          this.audioCtx = new AudioCtx();
+        } else if (this.audioCtx.state === 'suspended') {
+          this.audioCtx.resume();
+        }
+        const ctx = this.audioCtx;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(880, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(1760, ctx.currentTime + 0.35);
+        gain.gain.setValueAtTime(0.18, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.9);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.onended = () => {
+          try { osc.disconnect(); gain.disconnect(); } catch(e) {}
+        };
+        osc.start();
+        osc.stop(ctx.currentTime + 0.9);
+      }
+    } catch(e) {}
+
+    const stardust = 150 + Math.floor(Math.random() * 120);
+    const targetName = target.name || (target.w && target.w.name) || '深空未知天体';
+
+    const foundCore = Math.random() < 0.22;
+    if (foundCore && window.StarfieldHatch && typeof window.StarfieldHatch.addCores === 'function') {
+      window.StarfieldHatch.addCores(1);
+      const msg = `[天体共振] 成功测绘 ${targetName} · 捕获未开采星核 × 1! 🌌`;
+      if (typeof showToast === 'function') showToast(msg, 4);
+      else if (typeof window.toast === 'function') window.toast(msg, 4);
+    } else {
+      const msg = `[巡天测绘完成] 测绘 ${targetName} · 获得星尘 +${stardust}`;
+      if (typeof showToast === 'function') showToast(msg, 3);
+      else if (typeof window.toast === 'function') window.toast(msg, 3);
+    }
+
+    if (typeof Codex !== 'undefined' && Codex.checkCelestialEncounter) {
+      Codex.checkCelestialEncounter(target);
+    }
+  },
+
+  draw(c) {
+    if (!this.activeSonarRings.length) return;
+    c.save();
+    for (let i = 0; i < this.activeSonarRings.length; i++) {
+      const ring = this.activeSonarRings[i];
+      const prog = clamp(ring.r / Math.max(ring.maxR, 1), 0, 1);
+      const currPos = [
+        ring.start[0] + (ring.target[0] - ring.start[0]) * prog,
+        ring.start[1] + (ring.target[1] - ring.start[1]) * prog,
+        ring.start[2] + (ring.target[2] - ring.start[2]) * prog
+      ];
+      const q = project(currPos);
+      if (!q || q[2] <= 0) continue;
+      const screenR = clamp((350 / q[2]) * ring.r * 0.08, 12, 280);
+      c.beginPath();
+      c.arc(q[0], q[1], screenR, 0, TAU);
+      c.strokeStyle = `rgba(56, 189, 248, ${(ring.life * 0.7).toFixed(2)})`;
+      c.lineWidth = 2.5;
+      c.shadowColor = '#38bdf8';
+      c.shadowBlur = 15;
+      c.stroke();
+    }
+    c.restore();
+  }
+};
+window.StarfieldSonar = StarfieldSonar;
+
+/* ============================================================================
+ * 3D IN-FLIGHT VOID EXTRACTION (深空搜打撤 · 空间域沉浸融入)
+ * ============================================================================ */
+const StarfieldInFlightExtraction = {
   derelicts: [],
   pirates: [],
   lasers: [],
@@ -28,7 +186,7 @@ new_code = '''const StarfieldInFlightExtraction = {
     this._inited = true;
     window.addEventListener('keydown', (e) => {
       if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable)) return;
-      if (typeof currentMode !== 'undefined' && currentMode !== 'cruise') return;
+      if ((typeof currentMode !== 'undefined' && currentMode !== 'cruise') || (typeof window !== 'undefined' && window.currentMode && window.currentMode !== 'cruise')) return;
       if ((e.key.toLowerCase() === 'e' || e.code === 'KeyE') && !e.repeat) {
         if (this.salvageTarget) this.fastLoot();
       }
@@ -366,7 +524,7 @@ new_code = '''const StarfieldInFlightExtraction = {
     const lootBtn = this.lootBtnElement || document.getElementById('sf-inflight-loot-btn');
     if (!hud) return;
 
-    const isNonCruise = (typeof currentMode !== 'undefined' && currentMode !== 'cruise');
+    const isNonCruise = ((typeof currentMode !== 'undefined' && currentMode !== 'cruise') || (typeof window !== 'undefined' && window.currentMode && window.currentMode !== 'cruise'));
     if (isNonCruise) {
       hud.style.display = 'none';
       return;
@@ -884,7 +1042,7 @@ const StarfieldOrbitalMechanics = {
     this._inited = true;
     window.addEventListener('keydown', (e) => {
       if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable)) return;
-      if (typeof currentMode !== 'undefined' && currentMode !== 'cruise') return;
+      if ((typeof currentMode !== 'undefined' && currentMode !== 'cruise') || (typeof window !== 'undefined' && window.currentMode && window.currentMode !== 'cruise')) return;
       if ((e.key.toLowerCase() === 'p' || e.code === 'KeyP') && !e.repeat) {
         this.launchProbe();
       }
@@ -893,7 +1051,7 @@ const StarfieldOrbitalMechanics = {
     // Touch gesture: Double-tap on canvas in flight launches telemetry probe
     let lastTapTime = 0;
     window.addEventListener('touchend', (e) => {
-      if (typeof currentMode !== 'undefined' && currentMode !== 'cruise') return;
+      if ((typeof currentMode !== 'undefined' && currentMode !== 'cruise') || (typeof window !== 'undefined' && window.currentMode && window.currentMode !== 'cruise')) return;
       const now = performance.now();
       if (now - lastTapTime < 320) {
         this.launchProbe();
@@ -964,21 +1122,25 @@ const StarfieldOrbitalMechanics = {
     let nearestMass = null;
     let minDist = 1e9;
 
-    if (typeof activeMasses !== 'undefined' && Array.isArray(activeMasses)) {
-      for (let i = 0; i < activeMasses.length; i++) {
-        const m = activeMasses[i];
-        if (!m || (!m.w && m.kind !== 1 && m.kind !== 8 && m.kind !== 6 && m.kind !== 4)) continue;
-        const dx = m.x - leadPos[0], dy = m.y - leadPos[1], dz = m.z - leadPos[2];
-        const dist = Math.hypot(dx, dy, dz);
-        const massR = m.r || m.rad || 240;
-        const influenceR = Math.max(4800, massR * 14);
-        if (dist < influenceR && dist < minDist) {
-          minDist = dist;
-          nearestMass = m;
-        }
+    const massesPool = (typeof window !== 'undefined' && Array.isArray(window.activeMasses) && window.activeMasses.length > 0) ? window.activeMasses : (typeof activeMasses !== 'undefined' && Array.isArray(activeMasses) ? activeMasses : []);
+    for (let i = 0; i < massesPool.length; i++) {
+      const m = massesPool[i];
+      if (!m || (!m.w && m.kind !== 1 && m.kind !== 8 && m.kind !== 6 && m.kind !== 4)) continue;
+      if (!Number.isFinite(m.x) || !Number.isFinite(m.y) || !Number.isFinite(m.z)) continue;
+      const dx = m.x - leadPos[0], dy = m.y - leadPos[1], dz = m.z - leadPos[2];
+      const dist = Math.hypot(dx, dy, dz);
+      const massR = m.r || m.rad || 240;
+      const influenceR = Math.max(4800, massR * 14);
+      if (dist < influenceR && dist < minDist) {
+        minDist = dist;
+        nearestMass = m;
       }
     }
 
+    if (this.activePlanet !== nearestMass) {
+      this._lastActivePlanet = this.activePlanet;
+      this.lastMinDist = minDist;
+    }
     this.activePlanet = nearestMass;
     this.periapsisDist = minDist;
 
@@ -1051,18 +1213,18 @@ const StarfieldOrbitalMechanics = {
       pr.spin = (pr.spin || 0) + dt * 8.0;
 
       // If probe has no target, dynamically scan for upcoming celestial body ahead
-      if (!pr.targetMass && typeof activeMasses !== 'undefined') {
-        for (const m of activeMasses) {
-          if (!m) continue;
+      if (!pr.targetMass) {
+        for (const m of massesPool) {
+          if (!m || !Number.isFinite(m.x) || !Number.isFinite(m.y) || !Number.isFinite(m.z)) continue;
           const dz = m.z - pr.z;
-          if (dz > 0 && dz < 18000 && Math.hypot(m.x - pr.x, m.y - pr.y) < (m.r || 240) * 8) {
+          if (dz > 0 && dz < 18000 && Math.hypot(m.x - pr.x, m.y - pr.y) < (m.r || m.rad || 240) * 8) {
             pr.targetMass = m;
             break;
           }
         }
       }
 
-      if (pr.targetMass) {
+      if (pr.targetMass && Number.isFinite(pr.targetMass.x) && Number.isFinite(pr.targetMass.y) && Number.isFinite(pr.targetMass.z)) {
         const pdx = pr.targetMass.x - pr.x;
         const pdy = pr.targetMass.y - pr.y;
         const pdz = pr.targetMass.z - pr.z;
@@ -1169,7 +1331,7 @@ const StarfieldOrbitalMechanics = {
   launchProbe() {
     if (!fleet || !fleet[LEAD]) return;
     const leadPos = craftWorld(fleet[LEAD]);
-    const target = this.activePlanet || null;
+    const target = (this.activePlanet && (this.activePlanet.z >= leadPos[2] - 400)) ? this.activePlanet : null;
     this.probes.push({
       x: leadPos[0],
       y: leadPos[1],
@@ -1359,7 +1521,7 @@ def patch_file(filepath):
     with open(filepath, 'r', encoding='utf-8') as f:
         content = f.read()
     
-    start_marker = "const StarfieldInFlightExtraction = {"
+    start_marker = "const StarfieldSonar = {"
     end_marker = "const particles=[],MAX_PARTICLES=coarse?168:240;"
     
     p1 = content.find(start_marker)

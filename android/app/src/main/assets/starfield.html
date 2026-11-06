@@ -8175,7 +8175,7 @@ function drawEscortOrbits() {
 const StarfieldSonar = {
   currentTarget: null,
   activeSonarRings: [],
-  lastScanTime: 0,
+  lastScanTime: -9999,
   btnElement: null,
   audioCtx: null,
 
@@ -8183,7 +8183,7 @@ const StarfieldSonar = {
     if (this._inited) return;
     this._inited = true;
     window.addEventListener('keydown', (e) => {
-      if ((typeof currentMode !== 'undefined' && currentMode !== 'cruise') || (window.currentMode && window.currentMode !== 'cruise')) return;
+      if ((typeof currentMode !== 'undefined' && currentMode !== 'cruise') || (typeof window !== 'undefined' && window.currentMode && window.currentMode !== 'cruise')) return;
       if ((e.key.toLowerCase() === 'f' || e.code === 'KeyF') && !e.repeat) {
         this.triggerScan();
       }
@@ -8198,16 +8198,16 @@ const StarfieldSonar = {
     let candidate = null;
     let minCandidateDist = 1e9;
 
-    if (typeof activeMasses !== 'undefined' && Array.isArray(activeMasses)) {
-      for (let i = 0; i < activeMasses.length; i++) {
-        const m = activeMasses[i];
-        if (!m || (!m.w && m.kind !== 1 && m.kind !== 8 && m.kind !== 6)) continue;
-        const dx = m.x - leadPos[0], dy = m.y - leadPos[1], dz = m.z - leadPos[2];
-        const dist = Math.hypot(dx, dy, dz);
-        if (dist > 800 && dist < 32000 && dist < minCandidateDist) {
-          minCandidateDist = dist;
-          candidate = m;
-        }
+    const massesPool = (typeof window !== 'undefined' && Array.isArray(window.activeMasses) && window.activeMasses.length > 0) ? window.activeMasses : (typeof activeMasses !== 'undefined' && Array.isArray(activeMasses) ? activeMasses : []);
+    for (let i = 0; i < massesPool.length; i++) {
+      const m = massesPool[i];
+      if (!m || (!m.w && m.kind !== 1 && m.kind !== 8 && m.kind !== 6 && m.kind !== 4)) continue;
+      if (!Number.isFinite(m.x) || !Number.isFinite(m.y) || !Number.isFinite(m.z)) continue;
+      const dx = m.x - leadPos[0], dy = m.y - leadPos[1], dz = m.z - leadPos[2];
+      const dist = Math.hypot(dx, dy, dz);
+      if (dist > 800 && dist < 32000 && dist < minCandidateDist) {
+        minCandidateDist = dist;
+        candidate = m;
       }
     }
 
@@ -8356,7 +8356,7 @@ const StarfieldInFlightExtraction = {
     this._inited = true;
     window.addEventListener('keydown', (e) => {
       if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable)) return;
-      if (typeof currentMode !== 'undefined' && currentMode !== 'cruise') return;
+      if ((typeof currentMode !== 'undefined' && currentMode !== 'cruise') || (typeof window !== 'undefined' && window.currentMode && window.currentMode !== 'cruise')) return;
       if ((e.key.toLowerCase() === 'e' || e.code === 'KeyE') && !e.repeat) {
         if (this.salvageTarget) this.fastLoot();
       }
@@ -8694,7 +8694,7 @@ const StarfieldInFlightExtraction = {
     const lootBtn = this.lootBtnElement || document.getElementById('sf-inflight-loot-btn');
     if (!hud) return;
 
-    const isNonCruise = (typeof currentMode !== 'undefined' && currentMode !== 'cruise');
+    const isNonCruise = ((typeof currentMode !== 'undefined' && currentMode !== 'cruise') || (typeof window !== 'undefined' && window.currentMode && window.currentMode !== 'cruise'));
     if (isNonCruise) {
       hud.style.display = 'none';
       return;
@@ -9212,7 +9212,7 @@ const StarfieldOrbitalMechanics = {
     this._inited = true;
     window.addEventListener('keydown', (e) => {
       if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable)) return;
-      if (typeof currentMode !== 'undefined' && currentMode !== 'cruise') return;
+      if ((typeof currentMode !== 'undefined' && currentMode !== 'cruise') || (typeof window !== 'undefined' && window.currentMode && window.currentMode !== 'cruise')) return;
       if ((e.key.toLowerCase() === 'p' || e.code === 'KeyP') && !e.repeat) {
         this.launchProbe();
       }
@@ -9221,7 +9221,7 @@ const StarfieldOrbitalMechanics = {
     // Touch gesture: Double-tap on canvas in flight launches telemetry probe
     let lastTapTime = 0;
     window.addEventListener('touchend', (e) => {
-      if (typeof currentMode !== 'undefined' && currentMode !== 'cruise') return;
+      if ((typeof currentMode !== 'undefined' && currentMode !== 'cruise') || (typeof window !== 'undefined' && window.currentMode && window.currentMode !== 'cruise')) return;
       const now = performance.now();
       if (now - lastTapTime < 320) {
         this.launchProbe();
@@ -9292,21 +9292,25 @@ const StarfieldOrbitalMechanics = {
     let nearestMass = null;
     let minDist = 1e9;
 
-    if (typeof activeMasses !== 'undefined' && Array.isArray(activeMasses)) {
-      for (let i = 0; i < activeMasses.length; i++) {
-        const m = activeMasses[i];
-        if (!m || (!m.w && m.kind !== 1 && m.kind !== 8 && m.kind !== 6 && m.kind !== 4)) continue;
-        const dx = m.x - leadPos[0], dy = m.y - leadPos[1], dz = m.z - leadPos[2];
-        const dist = Math.hypot(dx, dy, dz);
-        const massR = m.r || m.rad || 240;
-        const influenceR = Math.max(4800, massR * 14);
-        if (dist < influenceR && dist < minDist) {
-          minDist = dist;
-          nearestMass = m;
-        }
+    const massesPool = (typeof window !== 'undefined' && Array.isArray(window.activeMasses) && window.activeMasses.length > 0) ? window.activeMasses : (typeof activeMasses !== 'undefined' && Array.isArray(activeMasses) ? activeMasses : []);
+    for (let i = 0; i < massesPool.length; i++) {
+      const m = massesPool[i];
+      if (!m || (!m.w && m.kind !== 1 && m.kind !== 8 && m.kind !== 6 && m.kind !== 4)) continue;
+      if (!Number.isFinite(m.x) || !Number.isFinite(m.y) || !Number.isFinite(m.z)) continue;
+      const dx = m.x - leadPos[0], dy = m.y - leadPos[1], dz = m.z - leadPos[2];
+      const dist = Math.hypot(dx, dy, dz);
+      const massR = m.r || m.rad || 240;
+      const influenceR = Math.max(4800, massR * 14);
+      if (dist < influenceR && dist < minDist) {
+        minDist = dist;
+        nearestMass = m;
       }
     }
 
+    if (this.activePlanet !== nearestMass) {
+      this._lastActivePlanet = this.activePlanet;
+      this.lastMinDist = minDist;
+    }
     this.activePlanet = nearestMass;
     this.periapsisDist = minDist;
 
@@ -9379,18 +9383,18 @@ const StarfieldOrbitalMechanics = {
       pr.spin = (pr.spin || 0) + dt * 8.0;
 
       // If probe has no target, dynamically scan for upcoming celestial body ahead
-      if (!pr.targetMass && typeof activeMasses !== 'undefined') {
-        for (const m of activeMasses) {
-          if (!m) continue;
+      if (!pr.targetMass) {
+        for (const m of massesPool) {
+          if (!m || !Number.isFinite(m.x) || !Number.isFinite(m.y) || !Number.isFinite(m.z)) continue;
           const dz = m.z - pr.z;
-          if (dz > 0 && dz < 18000 && Math.hypot(m.x - pr.x, m.y - pr.y) < (m.r || 240) * 8) {
+          if (dz > 0 && dz < 18000 && Math.hypot(m.x - pr.x, m.y - pr.y) < (m.r || m.rad || 240) * 8) {
             pr.targetMass = m;
             break;
           }
         }
       }
 
-      if (pr.targetMass) {
+      if (pr.targetMass && Number.isFinite(pr.targetMass.x) && Number.isFinite(pr.targetMass.y) && Number.isFinite(pr.targetMass.z)) {
         const pdx = pr.targetMass.x - pr.x;
         const pdy = pr.targetMass.y - pr.y;
         const pdz = pr.targetMass.z - pr.z;
@@ -9497,7 +9501,7 @@ const StarfieldOrbitalMechanics = {
   launchProbe() {
     if (!fleet || !fleet[LEAD]) return;
     const leadPos = craftWorld(fleet[LEAD]);
-    const target = this.activePlanet || null;
+    const target = (this.activePlanet && (this.activePlanet.z >= leadPos[2] - 400)) ? this.activePlanet : null;
     this.probes.push({
       x: leadPos[0],
       y: leadPos[1],
