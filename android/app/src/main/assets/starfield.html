@@ -126,10 +126,10 @@
 .serif{font-family:"Iowan Old Style","Palatino Linotype","Noto Serif CJK SC","Songti SC","SimSun",serif}.mono{font-family:"SFMono-Regular",Consolas,"Liberation Mono",monospace;font-variant-numeric:tabular-nums}.eyebrow{font-size:calc(10px * var(--unit));letter-spacing:.24em;text-transform:uppercase}.muted{opacity:.52}.hairline{height:1px;background:currentColor;opacity:.25}
 #masthead{position:absolute;left:var(--pad);top:calc(var(--pad) - 4px);z-index:4;pointer-events:none;display:flex;align-items:center;gap:14px}.craft-mark{width:36px;height:30px;position:relative;display:inline-block}.craft-mark:before,.craft-mark:after{content:"";position:absolute;background:currentColor;top:8px;width:25px;height:15px;clip-path:polygon(0 0,100% 56%,74% 100%)}.craft-mark:before{left:-3px;transform:rotate(8deg)}.craft-mark:after{right:-3px;transform:scaleX(-1) rotate(8deg)}#masthead .small-title{font-size:calc(11px * var(--unit));letter-spacing:.17em;line-height:1.9}#masthead .small-title span{font-size:calc(8px * var(--unit));letter-spacing:.20em;opacity:.5;display:block}#edition{position:absolute;right:var(--pad);top:var(--pad);font-size:calc(10px * var(--unit));letter-spacing:.15em;opacity:.48;z-index:4;pointer-events:none}
 #intro{position:absolute;inset:0;z-index:5;pointer-events:none;transition:opacity 1.8s ease,visibility 1.8s}#intro.gone{opacity:0;visibility:hidden}#intro:before{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent 36%,var(--soft) 80%);z-index:-1}.intro-inner{position:absolute;left:65%;right:6%;top:50%;transform:translateY(-48%);pointer-events:auto}.intro-kicker{display:flex;align-items:center;gap:12px;white-space:nowrap;opacity:.7;animation:sfHeroIn 0.85s cubic-bezier(0.16,1,0.3,1) both;animation-delay:0.04s}.intro-kicker:before{content:"";width:26px;height:1px;background:currentColor}h1{font-size:clamp(62px,6.6vw,148px);font-weight:400;letter-spacing:.12em;margin:23px 0 3px;line-height:1.18;text-indent:-.025em;background:linear-gradient(135deg,#ffffff 0%,#e2e8f0 55%,#94a3b8 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;text-wrap:balance;animation:sfHeroIn 0.95s cubic-bezier(0.16,1,0.3,1) both;animation-delay:0.12s}.english-title{font-size:clamp(12px,1.1vw,23px);letter-spacing:.48em;margin:15px 0 33px;font-weight:400;text-wrap:balance;animation:sfHeroIn 0.85s cubic-bezier(0.16,1,0.3,1) both;animation-delay:0.20s}.intro-poem{font-size:calc(15px * var(--unit));line-height:2.1;letter-spacing:.13em;margin:0 0 30px;opacity:.76;text-wrap:pretty;animation:sfHeroIn 0.85s cubic-bezier(0.16,1,0.3,1) both;animation-delay:0.28s}.departure-label{font-size:calc(10px * var(--unit));letter-spacing:.15em;opacity:.52;margin-bottom:12px}.destinations{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:25px;animation:sfHeroIn 0.85s cubic-bezier(0.16,1,0.3,1) both;animation-delay:0.36s}.destination{border:1px solid transparent;background:transparent;border-radius:20px;padding:7px 10px;font-size:calc(11px * var(--unit));transition:background .3s,border-color .3s;white-space:nowrap}.destination[aria-checked=true]{border-color:var(--line);background:var(--soft)}.destination:hover{border-color:var(--line)}.destination i{display:inline-block;width:5px;height:5px;margin-right:6px;vertical-align:2px;border-radius:50%;background:var(--dot)}#begin{position:relative;overflow:hidden;border:1px solid rgba(255,215,0,0.35);background:linear-gradient(135deg,rgba(255,215,0,0.18),rgba(15,23,42,0.88));color:#fce79a;border-radius:100px;padding:16px 26px;min-width:210px;font-size:calc(13px * var(--unit));letter-spacing:.15em;display:flex;align-items:center;justify-content:space-between;gap:35px;box-shadow:0 4px 25px rgba(255,215,0,0.18),inset 0 1px 0 rgba(255,255,255,0.22);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);transition:transform .25s cubic-bezier(0.16,1,0.3,1),box-shadow .25s ease,border-color .25s ease;cursor:pointer;transform:translateZ(0);animation:sfHeroIn 0.85s cubic-bezier(0.16,1,0.3,1) both;animation-delay:0.44s}#begin::after{content:"";position:absolute;top:0;left:-120%;width:50%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.25),transparent);transform:skewX(-25deg);pointer-events:none;animation:sfSheen 4.5s infinite cubic-bezier(0.16,1,0.3,1)}@keyframes sfSheen{0%,70%{left:-120%}100%{left:220%}}@keyframes sfHeroIn{from{opacity:0;transform:translateY(10px);filter:blur(4px)}to{opacity:1;transform:translateY(0);filter:blur(0)}}#begin:hover{transform:translateY(-2px) scale(1.02);box-shadow:0 6px 32px rgba(255,215,0,0.35),inset 0 1px 0 rgba(255,255,255,0.35);border-color:rgba(255,215,0,0.65)}#begin:active{transform:translateY(1px) scale(0.98);box-shadow:0 2px 14px rgba(255,215,0,0.25)}#begin b{font-size:20px;font-weight:400}.intro-note{margin-top:19px;font-size:calc(9px * var(--unit));letter-spacing:.07em;opacity:.43;line-height:1.9}.intro-footer{position:absolute;left:var(--pad);bottom:var(--pad);display:flex;align-items:center;gap:14px;font-size:calc(10px * var(--unit));letter-spacing:.15em;opacity:.56}.intro-footer:before{content:"";width:40px;height:1px;background:currentColor}.intro-foot-right{position:absolute;bottom:var(--pad);right:var(--pad);font-size:calc(8px * var(--unit));letter-spacing:.21em;opacity:.38}
-.hud{transition:opacity 1.8s ease;opacity:0;pointer-events:none}.flying .hud{opacity:1}.flying #masthead{opacity:0;visibility:hidden;pointer-events:none;transition:opacity .5s ease,visibility .5s}.flying #edition{opacity:.58}#camera-hud{position:absolute;top:var(--pad);left:var(--pad);z-index:3;display:flex;flex-direction:column;gap:10px;padding:10px 14px;border-radius:14px;background:rgba(10,16,26,0.45);border:1px solid rgba(255,255,255,0.08);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:0 4px 20px rgba(0,0,0,0.25);pointer-events:auto}#camera-meta{display:flex;align-items:center;gap:10px}.record-dot{position:relative;width:5px;height:5px;background:#38bdf8;border-radius:50%;opacity:.9;box-shadow:0 0 6px #38bdf8}.record-dot::after{content:"";position:absolute;inset:-3px;border-radius:50%;border:1px solid #38bdf8;animation:sfRadarPulse 2.2s infinite cubic-bezier(0.16,1,0.3,1);pointer-events:none}@keyframes sfRadarPulse{0%{transform:scale(0.8);opacity:0.8}100%{transform:scale(2.8);opacity:0}}#camera-name{font-size:calc(19px * var(--unit));font-weight:400;letter-spacing:.14em;margin:0}#camera-progress{height:1px;width:95px;background:var(--line);margin-top:5px}#camera-progress i{height:1px;display:block;background:currentColor;transform-origin:left;width:100%;transform:scaleX(0);opacity:.62}#flight-stats{font-size:calc(9px * var(--unit));letter-spacing:.09em;line-height:1.9;opacity:.46;margin-top:3px}
+.hud{transition:opacity 1.8s ease;opacity:0;pointer-events:none}.flying .hud{opacity:1}.flying #masthead{opacity:0;visibility:hidden;pointer-events:none;transition:opacity .5s ease,visibility .5s}.flying #edition{opacity:.58}#camera-hud{position:absolute;top:var(--pad);left:var(--pad);z-index:3;display:flex;flex-direction:column;gap:6px;padding:0;background:transparent;border:none;backdrop-filter:none;-webkit-backdrop-filter:none;box-shadow:none;pointer-events:none;text-shadow:0 1px 6px rgba(0,0,0,0.85)}#camera-meta{display:flex;align-items:center;gap:10px}.record-dot{position:relative;width:5px;height:5px;background:#38bdf8;border-radius:50%;opacity:.9;box-shadow:0 0 6px #38bdf8}.record-dot::after{content:"";position:absolute;inset:-3px;border-radius:50%;border:1px solid #38bdf8;animation:sfRadarPulse 2.2s infinite cubic-bezier(0.16,1,0.3,1);pointer-events:none}@keyframes sfRadarPulse{0%{transform:scale(0.8);opacity:0.8}100%{transform:scale(2.8);opacity:0}}#camera-name{font-size:calc(19px * var(--unit));font-weight:400;letter-spacing:.14em;margin:0}#camera-progress{height:1px;width:95px;background:var(--line);margin-top:5px}#camera-progress i{height:1px;display:block;background:currentColor;transform-origin:left;width:100%;transform:scaleX(0);opacity:.62}#flight-stats{font-size:calc(9px * var(--unit));letter-spacing:.09em;line-height:1.9;opacity:.46;margin-top:3px}
 #poem{position:absolute;right:8%;top:59%;max-width:34%;z-index:3;pointer-events:none;opacity:0;transition:opacity 1.8s;text-shadow:0 0 26px rgba(4,8,14,.78),0 0 4px rgba(4,8,14,.55)}#poem-index{font-size:calc(8px * var(--unit));letter-spacing:.23em;margin-bottom:22px;opacity:.48}.poem-line{font-size:calc(20px * var(--unit));letter-spacing:.18em;font-weight:400;line-height:2.05;white-space:nowrap}.poem-line span{display:inline-block;animation:letter-in 1.8s both;animation-delay:var(--delay)}@keyframes letter-in{from{opacity:0;transform:translateY(6px);filter:blur(3px)}to{opacity:1;transform:translateY(0);filter:blur(0)}}#poem-rule{margin-top:27px;width:80px;height:1px;background:currentColor;opacity:.42;transform-origin:left;animation:rule-in 3.8s both}@keyframes rule-in{from{transform:scaleX(0)}to{transform:scaleX(1)}}
-#journey{position:absolute;left:var(--pad);bottom:calc(var(--pad) - 3px);z-index:3;width:260px;padding:10px 14px;border-radius:14px;background:rgba(10,16,26,0.45);border:1px solid rgba(255,255,255,0.08);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:0 4px 20px rgba(0,0,0,0.25);pointer-events:auto}#region-name{font-size:calc(12px * var(--unit));letter-spacing:.14em}#region-caption{font-size:calc(8px * var(--unit));letter-spacing:.17em;opacity:.45;margin-top:9px}#route{display:block;width:210px;height:31px;margin-top:12px;opacity:.78}.journey-bottom{display:flex;align-items:center;gap:18px;font-size:calc(9px * var(--unit));letter-spacing:.10em;opacity:.55}.journey-bottom .divider{width:23px;height:1px;background:currentColor;opacity:.45}
-#controls{position:absolute;right:var(--pad);bottom:var(--pad);z-index:6;display:flex;align-items:center;gap:10px;pointer-events:none}.flying #controls{pointer-events:auto}.control{height:36px;min-width:36px;display:flex;align-items:center;justify-content:center;gap:8px;padding:0 10px;border:1px solid transparent;border-radius:40px;background:transparent;opacity:.68;transition:opacity .2s,border-color .2s,background .2s;font-size:calc(11px * var(--unit));letter-spacing:.05em}.control:hover,.control:focus-visible{opacity:1;background:var(--soft);border-color:var(--line)}.control[aria-pressed=false]{opacity:.34}.control.camera{border:1px solid var(--line);padding:0 15px}.icon{position:relative;width:16px;height:16px;display:block}.orbit-icon{border:1px solid currentColor;border-radius:50%;transform:rotate(-30deg) scaleY(.58)}.orbit-icon:after{content:"";width:4px;height:4px;border-radius:50%;background:currentColor;position:absolute;right:-2px;top:5px}.sound-icon{display:flex;align-items:center;justify-content:center;gap:2px}.sound-icon i{width:1px;height:12px;background:currentColor;transform:scaleY(.35)}.sound-on .sound-icon i{animation:equalizer 1.2s ease-in-out infinite alternate}.sound-icon i:nth-child(2){animation-delay:-.65s}.sound-icon i:nth-child(3){animation-delay:-.22s}.sound-icon i:nth-child(4){animation-delay:-.85s}@keyframes equalizer{from{transform:scaleY(.28)}to{transform:scaleY(1)}}.poem-icon{border-top:1px solid currentColor;border-bottom:1px solid currentColor;height:10px;margin-top:3px}.poem-icon:after{content:"";position:absolute;top:4px;left:0;width:10px;height:1px;background:currentColor}.fullscreen-icon{background:linear-gradient(currentColor,currentColor) left top/5px 1px no-repeat,linear-gradient(currentColor,currentColor) left top/1px 5px no-repeat,linear-gradient(currentColor,currentColor) right top/5px 1px no-repeat,linear-gradient(currentColor,currentColor) right top/1px 5px no-repeat,linear-gradient(currentColor,currentColor) left bottom/5px 1px no-repeat,linear-gradient(currentColor,currentColor) left bottom/1px 5px no-repeat,linear-gradient(currentColor,currentColor) right bottom/5px 1px no-repeat,linear-gradient(currentColor,currentColor) right bottom/1px 5px no-repeat}.pause-icon:before,.pause-icon:after{content:"";position:absolute;top:2px;bottom:2px;width:2px;background:currentColor}.pause-icon:before{left:4px}.pause-icon:after{right:4px}.paused .pause-icon:before{top:2px;left:5px;width:10px;height:12px;clip-path:polygon(0 0,100% 50%,0 100%)}.paused .pause-icon:after{display:none}.control-separator{width:1px;height:15px;background:var(--line);margin:0 5px}
+#journey{position:absolute;left:var(--pad);bottom:calc(var(--pad) - 3px);z-index:3;width:260px;padding:0;background:transparent;border:none;backdrop-filter:none;-webkit-backdrop-filter:none;box-shadow:none;pointer-events:none;text-shadow:0 1px 6px rgba(0,0,0,0.85)}#region-name{font-size:calc(12px * var(--unit));letter-spacing:.14em}#region-caption{font-size:calc(8px * var(--unit));letter-spacing:.17em;opacity:.45;margin-top:9px}#route{display:block;width:210px;height:31px;margin-top:12px;opacity:.78}.journey-bottom{display:flex;align-items:center;gap:18px;font-size:calc(9px * var(--unit));letter-spacing:.10em;opacity:.55}.journey-bottom .divider{width:23px;height:1px;background:currentColor;opacity:.45}
+#controls{position:absolute;right:var(--pad);bottom:var(--pad);z-index:6;display:flex;align-items:center;gap:10px;pointer-events:none}#radar-button-name{display:none!important}.flying #controls{pointer-events:auto;opacity:.72;transition:opacity .35s ease}.flying #controls:hover{opacity:1}.control{height:36px;min-width:36px;display:flex;align-items:center;justify-content:center;gap:8px;padding:0 10px;border:1px solid transparent;border-radius:40px;background:transparent;opacity:.68;transition:opacity .2s,border-color .2s,background .2s;font-size:calc(11px * var(--unit));letter-spacing:.05em}.control:hover,.control:focus-visible{opacity:1;background:var(--soft);border-color:var(--line)}.control[aria-pressed=false]{opacity:.34}.control.camera{border:1px solid var(--line);padding:0 15px}.icon{position:relative;width:16px;height:16px;display:block}.orbit-icon{border:1px solid currentColor;border-radius:50%;transform:rotate(-30deg) scaleY(.58)}.orbit-icon:after{content:"";width:4px;height:4px;border-radius:50%;background:currentColor;position:absolute;right:-2px;top:5px}.sound-icon{display:flex;align-items:center;justify-content:center;gap:2px}.sound-icon i{width:1px;height:12px;background:currentColor;transform:scaleY(.35)}.sound-on .sound-icon i{animation:equalizer 1.2s ease-in-out infinite alternate}.sound-icon i:nth-child(2){animation-delay:-.65s}.sound-icon i:nth-child(3){animation-delay:-.22s}.sound-icon i:nth-child(4){animation-delay:-.85s}@keyframes equalizer{from{transform:scaleY(.28)}to{transform:scaleY(1)}}.poem-icon{border-top:1px solid currentColor;border-bottom:1px solid currentColor;height:10px;margin-top:3px}.poem-icon:after{content:"";position:absolute;top:4px;left:0;width:10px;height:1px;background:currentColor}.fullscreen-icon{background:linear-gradient(currentColor,currentColor) left top/5px 1px no-repeat,linear-gradient(currentColor,currentColor) left top/1px 5px no-repeat,linear-gradient(currentColor,currentColor) right top/5px 1px no-repeat,linear-gradient(currentColor,currentColor) right top/1px 5px no-repeat,linear-gradient(currentColor,currentColor) left bottom/5px 1px no-repeat,linear-gradient(currentColor,currentColor) left bottom/1px 5px no-repeat,linear-gradient(currentColor,currentColor) right bottom/5px 1px no-repeat,linear-gradient(currentColor,currentColor) right bottom/1px 5px no-repeat}.pause-icon:before,.pause-icon:after{content:"";position:absolute;top:2px;bottom:2px;width:2px;background:currentColor}.pause-icon:before{left:4px}.pause-icon:after{right:4px}.paused .pause-icon:before{top:2px;left:5px;width:10px;height:12px;clip-path:polygon(0 0,100% 50%,0 100%)}.paused .pause-icon:after{display:none}.control-separator{width:1px;height:15px;background:var(--line);margin:0 5px}
 #hint{position:absolute;left:50%;bottom:calc(var(--pad) + 52px);transform:translateX(-50%);z-index:4;font-size:calc(10px * var(--unit));letter-spacing:.12em;opacity:0;transition:opacity 2s;pointer-events:none;white-space:nowrap}#toast{position:absolute;left:50%;top:12%;transform:translate(-50%,0);padding:11px 19px;border:1px solid var(--line);border-radius:24px;background:var(--soft);backdrop-filter:blur(12px);font-size:calc(11px * var(--unit));letter-spacing:.05em;opacity:0;transition:opacity .4s;z-index:10;pointer-events:none;max-width:80%;text-align:center}#pause-label{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-size:13px;letter-spacing:.5em;opacity:0;transition:opacity .8s;pointer-events:none}.paused #pause-label{opacity:.65}
 @media(min-width:2200px){:root{--unit:1.5;--pad:60px}.control{height:48px;min-width:48px}.icon{transform:scale(1.3)}#journey{width:330px}.destinations{gap:9px}.destination{padding:9px 13px}#begin{padding:22px 34px;min-width:280px}.english-title{margin-bottom:44px}}
 @media(min-width:3200px){:root{--unit:2;--pad:80px}.control{height:60px;min-width:60px}.icon{transform:scale(1.6)}#journey{width:410px}#begin{min-width:340px}}
@@ -892,18 +892,19 @@ body.modal-open #sf-perf-hud {
   top: calc(var(--pad, 32px) + 8px);
   left: 50%;
   transform: translateX(-50%) translateY(-24px);
-  width: min(640px, 88vw);
-  background: rgba(14, 18, 26, 0.84);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  border: 1px solid rgba(136, 192, 208, 0.35);
-  border-radius: 8px;
-  padding: 12px 20px 14px 20px;
-  box-shadow: 0 10px 36px rgba(0,0,0,0.55), 0 0 20px rgba(136,192,208,0.15);
+  width: min(560px, 86vw);
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border: none;
+  border-radius: 12px;
+  padding: 6px 14px;
+  box-shadow: none;
   pointer-events: none;
   opacity: 0;
   transition: opacity 0.38s ease, transform 0.38s cubic-bezier(0.16, 1, 0.3, 1);
   z-index: 1000;
+  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.95), 0 0 6px rgba(0, 0, 0, 0.85);
 }
 #comms-hud.active {
   opacity: 1;
@@ -1366,19 +1367,21 @@ body.modal-open #sf-perf-hud {
   top: 72px;
   left: 50%;
   transform: translateX(-50%) scale(0.9);
-  background: rgba(255, 215, 0, 0.15);
-  border: 1px solid rgba(255, 215, 0, 0.5);
+  background: transparent;
+  border: none;
   color: #fff3a8;
-  padding: 8px 24px;
+  padding: 4px 16px;
   border-radius: 20px;
   font-size: 13px;
   letter-spacing: 2px;
-  box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
-  backdrop-filter: blur(10px);
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
   opacity: 0;
   pointer-events: none;
   transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   z-index: 50;
+  text-shadow: 0 0 16px rgba(255, 215, 0, 0.85), 0 2px 10px rgba(0, 0, 0, 0.95);
 }
 #slingshot-toast.show {
   opacity: 1;
@@ -1391,7 +1394,7 @@ body.modal-open #sf-perf-hud {
 html,body,#world,#landscape{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
 img,canvas{-webkit-user-drag:none;user-drag:none}
 </style>
-<style id="v138-cockpit">body.cockpit-on #journey,body.cockpit-on #camera-hud,body.cockpit-on #hint{opacity:0!important;pointer-events:none!important}@media(min-width:760px){body.cockpit-on #controls{opacity:0!important;pointer-events:none!important}}</style></head>
+<style id="v138-cockpit">body.cockpit-on #hint{opacity:0!important;pointer-events:none!important}</style></head>
 <body>
 <main id="world" aria-label="星空，一场由引力引航的无限航行">
 <canvas id="landscape" tabindex="0" aria-label="程序化星海、星云、陨石与折纸船队；移动鼠标或触摸屏幕来引导航向"></canvas>
@@ -1492,7 +1495,7 @@ img,canvas{-webkit-user-drag:none;user-drag:none}
 <button class="control" id="pause-toggle" aria-pressed="true" title="暂停 / 继续（空格）" aria-label="暂停飞行"><i class="icon pause-icon" aria-hidden="true"></i></button>
 <button class="control" id="fullscreen-toggle" title="全屏（F）" aria-label="切换全屏"><i class="icon fullscreen-icon" aria-hidden="true"></i></button>
 </nav>
-<div id="hint">移动光标引航 &nbsp; · &nbsp; 滚轮远眺 &nbsp; · &nbsp; G 曲速 &nbsp; · &nbsp; H 折纸坞 &nbsp; · &nbsp; C 镜头 &nbsp; · &nbsp; N 切歌 · 古典名曲 &nbsp; · &nbsp; V 驾驶舱</div><div id="toast" role="status" aria-live="polite"></div><div id="pause-label" class="serif">星光在等你</div>
+<div id="hint">移动光标引航 &nbsp; · &nbsp; G 曲速 &nbsp; · &nbsp; C 视角 &nbsp; · &nbsp; ESC 菜单</div><div id="toast" role="status" aria-live="polite"></div><div id="pause-label" class="serif">星光在等你</div>
 <section id="comms-hud" class="hud" aria-label="领航员通信"><div class="comms-header"><div class="comms-dot"></div><span class="comms-title mono">COMMS // NAVIGATOR-07</span><div class="comms-wave" id="comms-wave"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div><div id="comms-text" class="comms-body serif"></div></section>
 
 <!-- CELESTIAL CODEX MODAL -->
@@ -1669,7 +1672,7 @@ img,canvas{-webkit-user-drag:none;user-drag:none}
     <div class="settings-section-title mono">键位操作速查 // SHORTCUTS</div>
     <div class="shortcut-list">
       <div class="shortcut-row"><span>移动光标</span><span class="shortcut-key">引航编队</span></div>
-      <div class="shortcut-row"><span>G / V</span><span class="shortcut-key">曲速巡航 / 驾驶舱</span></div>
+      <div class="shortcut-row"><span>G / V</span><span class="shortcut-key">曲速巡航 / 旗舰特写</span></div>
       <div class="shortcut-row"><span>Shift / W</span><span class="shortcut-key">超载加速 BOOST</span></div>
       <div class="shortcut-row"><span>C</span><span class="shortcut-key">自动运镜 ⇄ 自由机位</span></div>
       <div class="shortcut-row"><span>1 - 4 / F</span><span class="shortcut-key">编队形态切换</span></div>
@@ -1684,7 +1687,7 @@ img,canvas{-webkit-user-drag:none;user-drag:none}
     <div class="settings-section-title mono">触控手势指南 // TOUCH GESTURES</div>
     <div class="shortcut-list">
       <div class="shortcut-row"><span>左下区域</span><span class="shortcut-key">引航虚拟舵</span></div>
-      <div class="shortcut-row"><span>右下按键</span><span class="shortcut-key">专注 / 镜头 / 舱内 / 阵型</span></div>
+      <div class="shortcut-row"><span>右下按键</span><span class="shortcut-key">专注 / 视角 / 编队 / 菜单</span></div>
       <div class="shortcut-row"><span>BOOST 按钮</span><span class="shortcut-key">脉冲加速 / 弹射爆冲</span></div>
       <div class="shortcut-row"><span>双指捏合</span><span class="shortcut-key">缩放运镜景深</span></div>
       <div class="shortcut-row"><span>滑动屏幕</span><span class="shortcut-key">自主机位自由巡航</span></div>
@@ -4320,7 +4323,7 @@ function makePlan(c,prevYaw){
 makePlan(0,null);makePlan(1,plans.get(0)[5].yaw);
 function poseAt(p,t){return {...p,yaw:p.yaw+Math.sin(t*.047+p.id)*p.drift,pitch:p.pitch+Math.sin(t*.039+p.id*.5)*.007};}
 function updateDirector(dt){
- if(cockpitMode){cockpitPose();captureCamPose=null;return;}
+ if(cockpitMode && cockpitBlend >= 0.999){cockpitPose();captureCamPose=null;return;}
  
  // Pre-check skimming state so we can freeze the shot progression during close planetary skimming
  const isCloseToPlanet = activeMasses.some(m => m.w && !m.isMiller && m.kind !== 4 && Math.abs(m.z - travel) < 1400);
@@ -4509,6 +4512,20 @@ function updateDirector(dt){
   camera.cx += (Math.random() - 0.5) * WarpDrive.shake * 3.5;
   camera.cy += (Math.random() - 0.5) * WarpDrive.shake * 2.5;
   camera.eye[2] -= WarpDrive.brakeKick;
+ }
+ if(cockpitBlend > 0.001){
+  const cp = getChasePose(dt);
+  const b = smoother(cockpitBlend);
+  for(let i = 0; i < 3; i++){
+   camera.eye[i] = mix(camera.eye[i], cp.eye[i], b);
+   camera.forward[i] = mix(camera.forward[i], cp.forward[i], b);
+   camera.right[i] = mix(camera.right[i], cp.right[i], b);
+   camera.up[i] = mix(camera.up[i], cp.up[i], b);
+  }
+  camera.roll = mix(camera.roll, cp.roll, b);
+  camera.focal = mix(camera.focal, cp.focal, b);
+  camera.cx = mix(camera.cx, cp.cx, b);
+  camera.cy = mix(camera.cy, cp.cy, b);
  }
 }
 
@@ -8421,16 +8438,17 @@ const StarfieldInFlightExtraction = {
         top: calc(max(env(safe-area-inset-top, 0px), 16px) + 78px);
         right: 18px;
         z-index: 105;
-        background: linear-gradient(135deg, rgba(15, 23, 42, 0.88) 0%, rgba(8, 14, 26, 0.96) 100%);
-        border: 1px solid rgba(56, 189, 248, 0.45);
+        background: transparent;
+        border: none;
         border-radius: 12px;
-        padding: 8px 12px;
+        padding: 6px 10px;
         color: #e0f2fe;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.55), 0 0 16px rgba(56, 189, 248, 0.22);
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
+        box-shadow: none;
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
         font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
         font-size: 10.5px;
+        text-shadow: 0 2px 10px rgba(0,0,0,0.9);
         pointer-events: auto;
         display: none;
         transition: opacity 0.25s ease, transform 0.25s ease;
@@ -8966,25 +8984,25 @@ const StarfieldInFlightExtraction = {
       }
       c.restore();
 
-      // Tactical Wireframe Bracket & Telemetry HUD
+      // Subtle Sci-Fi Beacon & Clean Telemetry
       c.save();
       c.translate(q[0], q[1]);
-      c.strokeStyle = 'rgba(56, 189, 248, 0.75)';
-      c.lineWidth = 1.5;
-      const bSz = sz * 0.95;
-      c.beginPath();
-      c.moveTo(-bSz, -bSz + 6); c.lineTo(-bSz, -bSz); c.lineTo(-bSz + 6, -bSz);
-      c.moveTo(bSz - 6, -bSz); c.lineTo(bSz, -bSz); c.lineTo(bSz, -bSz + 6);
-      c.moveTo(-bSz, bSz - 6); c.lineTo(-bSz, bSz); c.lineTo(-bSz + 6, bSz);
-      c.moveTo(bSz - 6, bSz); c.lineTo(bSz, bSz); c.lineTo(bSz, -bSz + 6);
-      c.stroke();
-
-      c.font = '10px ui-monospace, sans-serif';
-      c.fillStyle = '#38bdf8';
-      c.textAlign = 'center';
       const distM = Math.round(q[2]);
-      const typeTag = d.type === 'debris' ? '[战损残骸]' : (d.type === 'outpost' ? '[先驱哨所]' : (d.type === 'distress' ? '[求救信号]' : '[空间沉船]'));
-      c.fillText(`${typeTag} ${d.name} · ${distM}m`, 0, -bSz - 8);
+      if (distM < 5000) {
+        c.strokeStyle = 'rgba(56, 189, 248, 0.45)';
+        c.lineWidth = 1.2;
+        const bSz = sz * 0.85;
+        c.beginPath();
+        c.moveTo(-bSz, -bSz + 5); c.lineTo(-bSz, -bSz); c.lineTo(-bSz + 5, -bSz);
+        c.moveTo(bSz - 5, -bSz); c.lineTo(bSz, -bSz); c.lineTo(bSz, -bSz + 5);
+        c.moveTo(-bSz, bSz - 5); c.lineTo(-bSz, bSz); c.lineTo(-bSz + 5, bSz);
+        c.moveTo(bSz - 5, bSz); c.lineTo(bSz, bSz); c.lineTo(bSz, -bSz + 5);
+        c.stroke();
+        c.font = '9.5px "SFMono-Regular", Consolas, monospace';
+        c.fillStyle = 'rgba(56, 189, 248, 0.85)';
+        c.textAlign = 'center';
+        c.fillText(`${d.name}`, 0, -bSz - 6);
+      }
       c.restore();
 
       // 3D Automated Tractor Beam & Recovery Progress Bar
@@ -9178,10 +9196,10 @@ const StarfieldInFlightExtraction = {
         c.shadowBlur = 0;
 
         c.rotate(-rotTime);
-        c.font = '11px ui-monospace, sans-serif';
-        c.fillStyle = '#ffd700';
+        c.font = '10px "SFMono-Regular", Consolas, monospace';
+        c.fillStyle = 'rgba(255, 215, 0, 0.75)';
         c.textAlign = 'center';
-        c.fillText('✦ 奇点折跃撤离门 ✦', 0, -gR - 10);
+        c.fillText('✦ 奇点折跃 ✦', 0, -gR - 8);
         c.restore();
       }
     }
@@ -9556,10 +9574,10 @@ const StarfieldOrbitalMechanics = {
         c.closePath();
         c.stroke();
 
-        c.font = '10px ui-monospace, sans-serif';
-        c.fillStyle = '#ffd700';
+        c.font = '9.5px "SFMono-Regular", Consolas, monospace';
+        c.fillStyle = 'rgba(255, 215, 0, 0.7)';
         c.textAlign = 'center';
-        c.fillText('✦ 引力借力点 · 弹弓加速 +280% ✦', 0, -12);
+        c.fillText('✦ 弹弓借力', 0, -10);
         c.restore();
       }
     }
@@ -12126,7 +12144,7 @@ function drawRoute(){
 function updateUI(){
  const p=currentPalette,style=rawStyles[p.index],list=plans.get(cycle),lens=list[shot],progress=shotTime/lens.duration;
  root.style.setProperty('--ink',css(p.ink));root.style.setProperty('--paper',css(p.paper));root.style.setProperty('--line',css(p.ink,.20));root.style.setProperty('--soft',css(p.paper,.70));
- $('camera-name').textContent=autoCamera?lens.name:'随风而观';$('camera-mode-label').textContent=autoCamera?(progress>.44?'AUTO · IN TRANSIT':'AUTO FLIGHT'):'FREE FLIGHT';$('variation').textContent=`VAR ${String(cycle+1).padStart(2,'0')}`;
+ $('camera-name').textContent=cockpitMode?'星海引航':autoCamera?lens.name:'随风而观';$('camera-mode-label').textContent=cockpitMode?'FLAGSHIP CHASE':autoCamera?(progress>.44?'AUTO · IN TRANSIT':'AUTO FLIGHT'):'FREE FLIGHT';$('variation').textContent=`VAR ${String(cycle+1).padStart(2,'0')}`;
  $('camera-progress').firstElementChild.style.transform=`scaleX(${progress})`;
  const effW = Math.max(warp, WarpDrive.currentWarp);
    const spdReadout = effW > 1 ? `  /  WARP ${(1 + effW/2).toFixed(1)}c` : '';
@@ -12136,7 +12154,7 @@ function updateUI(){
  $('distance').textContent=`${((travel-departure)/1000).toFixed(1).padStart(5,'0')} KM`;
  const seconds=Math.floor(flightTime);$('flight-time').textContent=`${String(Math.floor(seconds/60)).padStart(2,'0')}:${String(seconds%60).padStart(2,'0')}`;
  if(time>toastUntil)$('toast').style.opacity=0;
- $('hint').style.opacity=started&&flightTime<22&&!paused?.48:0;
+ $('hint').style.opacity=started&&flightTime<6&&!paused?.42:0;
  drawRoute();sound.update();
 }
 
@@ -12218,217 +12236,73 @@ canvas.addEventListener('wheel',e=>{
  * than seen. A cockpit that moves like a camera reads as a chase view; one that
  * moves like a body reads as a person.
  * -------------------------------------------------------------------------*/
-function cockpitPose(){
- const lead=fleet[LEAD]||fleet[0],p=craftWorld(lead);
- const back=580,rise=100;
- const yawToLane=Math.atan(laneD(travel)*.68);
- const breath=Math.sin(time*.82)*1.9+Math.sin(time*1.31)*.7;
- const tremor=Math.sin(time*2.3)*.35+Math.sin(time*3.7)*.18;
+/* ---- The Third-Person Smooth Close Chase Camera ----------------------------
+ * Pure, clean, cinematic third-person follow. Positioned gracefully behind and
+ * slightly above the flagship origami crane, looking out across the endless cosmos.
+ * Exponential damping eliminates origami wing-flap jitter and delivers weightless flight.
+ * -------------------------------------------------------------------------*/
+let chaseSmoothEye = null, chaseSmoothLook = null;
+function getChasePose(dt = 0.016){
+ const lead = fleet[LEAD] || fleet[0], p = craftWorld(lead);
+ const back = 640, rise = 160;
+ const yawToLane = Math.atan(laneD(travel) * 0.45);
  
- // Pilot dynamic head-turn towards grand celestial masses (Gargantua or low-orbit planets)
- let headTurnX = 0, headTurnY = 0;
- let targetBody = null, minBD = 22000;
- for(const m of activeMasses){
-  const dz = m.z - travel;
-  if(dz < -2000 || dz > 22000) continue;
-  const d = Math.hypot(m.x - p[0], m.y - p[1], dz);
-  if(d < minBD && (m.kind === 4 || m.r > 2000 || (m.w && m.w.pSize && m.w.pSize.r > 800))){
-   minBD = d; targetBody = m;
-  }
+ const targetEye = [p[0], p[1] + rise, p[2] - back];
+ const targetLook = [routeX(travel + 850), courseY(travel + 850) - 25, travel + 850];
+ 
+ if(!chaseSmoothEye){
+  chaseSmoothEye = [...targetEye];
+  chaseSmoothLook = [...targetLook];
+ } else {
+  const kEye = Math.min(1, dt * 5.5);
+  const kLook = Math.min(1, dt * 4.8);
+  chaseSmoothEye[0] += (targetEye[0] - chaseSmoothEye[0]) * kEye;
+  chaseSmoothEye[1] += (targetEye[1] - chaseSmoothEye[1]) * kEye;
+  chaseSmoothEye[2] += (targetEye[2] - chaseSmoothEye[2]) * Math.min(1, dt * 7.5);
+  chaseSmoothLook[0] += (targetLook[0] - chaseSmoothLook[0]) * kLook;
+  chaseSmoothLook[1] += (targetLook[1] - chaseSmoothLook[1]) * kLook;
+  chaseSmoothLook[2] += (targetLook[2] - chaseSmoothLook[2]) * Math.min(1, dt * 7.0);
  }
- if(targetBody){
-  const wGaze = clamp((22000 - minBD) / 14000, 0, 1) * 0.24;
-  const angX = Math.atan2(targetBody.x - p[0], Math.max(800, targetBody.z - travel));
-  const angY = Math.atan2(targetBody.y - p[1], Math.max(800, targetBody.z - travel));
-  headTurnX = angX * wGaze;
-  headTurnY = angY * wGaze;
- }
  
- const eye=[p[0],p[1]+rise+breath,p[2]-back];
- const look=[routeX(travel+760) + Math.sin(headTurnX)*760, courseY(travel+760)-110 + Math.sin(headTurnY)*420, travel+760];
- let f=[look[0]-eye[0],look[1]-eye[1],look[2]-eye[2]];
- const fl=Math.hypot(f[0],f[1],f[2])||1;f=[f[0]/fl,f[1]/fl,f[2]/fl];
- let r=[f[2],0,-f[0]];const rl=Math.hypot(r[0],r[2])||1;r=[r[0]/rl,0,r[2]/rl];
- let u=[f[1]*r[2]-f[2]*r[1],f[2]*r[0]-f[0]*r[2],f[0]*r[1]-f[1]*r[0]];
- const roll=yawToLane*.55+tremor*.004 + headTurnX * 0.15;
- const co=Math.cos(roll),si=Math.sin(roll);
- const rr=[r[0]*co+u[0]*si,r[1]*co+u[1]*si,r[2]*co+u[2]*si];
- u=[u[0]*co-r[0]*si,u[1]*co-r[1]*si,u[2]*co-r[2]*si];
- camera.eye=eye;camera.forward=f;camera.right=rr;camera.up=u;
- camera.roll=roll;camera.cx=W*.5;camera.cy=H*.46;
+ let f = [chaseSmoothLook[0] - chaseSmoothEye[0], chaseSmoothLook[1] - chaseSmoothEye[1], chaseSmoothLook[2] - chaseSmoothEye[2]];
+ const fl = Math.hypot(f[0], f[1], f[2]) || 1; f = [f[0]/fl, f[1]/fl, f[2]/fl];
+ let r = [f[2], 0, -f[0]]; const rl = Math.hypot(r[0], r[2]) || 1; r = [r[0]/rl, 0, r[2]/rl];
+ let u = [f[1]*r[2] - f[2]*r[1], f[2]*r[0] - f[0]*r[2], f[0]*r[1] - f[1]*r[0]];
+ const roll = yawToLane * 0.35;
+ const co = Math.cos(roll), si = Math.sin(roll);
+ const rr = [r[0]*co + u[0]*si, r[1]*co + u[1]*si, r[2]*co + u[2]*si];
+ u = [u[0]*co - r[0]*si, u[1]*co - r[1]*si, u[2]*co - r[2]*si];
  
- // Dynamic warp tunnel FOV expansion in cockpit mode
  const effWarp = Math.max(warp, WarpDrive.currentWarp);
- camera.focal = (W < H ? W * 1.52 : H * 1.12) / (1 + effWarp * 0.024);
+ const focal = (W < H ? W * 1.35 : H * 1.08) / (1 + effWarp * 0.015);
+ return { eye: chaseSmoothEye, forward: f, right: rr, up: u, roll, focal, cx: W * 0.5, cy: H * (W < H ? 0.52 : 0.48) };
 }
 
-/* The dash. Three dials that read the running simulation, a compass ribbon, and
- * a trip line - all flat, printed, and low enough that they sit under the sky
- * rather than over it. */
-function drawDash(k){
- const ink=currentPalette.ink,paper=currentPalette.paper;
- const portrait=W<H;
- const plate=blend(ink,paper,.40),print=blend(paper,ink,.04);
- const bh=portrait?Math.min(H*.165,142):Math.min(H*.19,172);
- const bw=portrait?W*.92:Math.min(W*.54,864);
- const bx=W*.5-bw*.5,by=H-bh;
- const pad=portrait?16:30,R=portrait?18:28,gap=portrait?54:82;
- const dialY=by+(portrait?50:64);
- ctx.save();ctx.globalAlpha=k;
- // The desk is paper, so it is LIGHT: a dark plate was the same value as the
- // sky on every region and read as a smudge on the bottom of the frame.
- ctx.fillStyle=css(plate,.96);
- ctx.beginPath();
- ctx.moveTo(bx,by+bh*.10);ctx.lineTo(bx+bw*.03,by);
- ctx.lineTo(bx+bw*.97,by);ctx.lineTo(bx+bw,by+bh*.10);
- ctx.lineTo(bx+bw,H);ctx.lineTo(bx,H);ctx.closePath();ctx.fill();
- ctx.strokeStyle=css(blend(paper,ink,.10),.72);ctx.lineWidth=2;ctx.stroke();
- ctx.strokeStyle=css(ink,.45);ctx.lineWidth=1;
- ctx.beginPath();ctx.moveTo(bx+bw*.06,by+8);ctx.lineTo(bx+bw*.94,by+8);ctx.stroke();
- // Three dials that read the running simulation.
- const speed=Math.hypot(wind.x,wind.y)*1.4+
-   Math.max(warp,WarpDrive.currentWarp)*1.1+1;
- const vals=[
-  {v:clamp(speed/16,0,1)},
-  {v:clamp((travel-departure)/240000,0,1)},
-  {v:clamp((camera.eye[1]-60)/2400,0,1)}
- ];
- for(let i=0;i<3;i++){
-  const cx=bx+pad+R+i*gap,cy=dialY;
-  ctx.beginPath();ctx.arc(cx,cy,R,Math.PI*.78,Math.PI*.22,false);
-  ctx.strokeStyle=css(print,.68);ctx.lineWidth=1.3;ctx.stroke();
-  for(let t=0;t<7;t++){
-   const a=Math.PI*.78+(Math.PI*1.44)*(t/6);
-   ctx.beginPath();
-   ctx.moveTo(cx+Math.cos(a)*R*.82,cy-Math.sin(a)*R*.82);
-   ctx.lineTo(cx+Math.cos(a)*R*.96,cy-Math.sin(a)*R*.96);
-   ctx.strokeStyle=css(print,.70);ctx.lineWidth=.9;ctx.stroke();
-  }
-  const a=Math.PI*.78+(Math.PI*1.44)*vals[i].v;
-  ctx.beginPath();ctx.moveTo(cx,cy);
-  ctx.lineTo(cx+Math.cos(a)*R*.74,cy-Math.sin(a)*R*.74);
-  ctx.strokeStyle=css(blend(print,[180,56,44],.45),.92);ctx.lineWidth=2;ctx.stroke();
-  ctx.beginPath();ctx.arc(cx,cy,Math.max(1.6,R*.10),0,TAU);
-  ctx.fillStyle=css(print,.62);ctx.fill();
-  ctx.font=`${Math.max(8,Math.round(R*.42))}px "Songti SC","Noto Serif SC",serif`;
-  ctx.fillStyle=css(print,.72);ctx.textAlign='center';ctx.textBaseline='top';
-  ctx.fillText(['速','程','高'][i],cx,cy+R*.34);
- }
- // Compass ribbon.
- const crx=bx+(portrait?180:300),crw=portrait?bw*.40:bw*.19,cry=dialY;
- ctx.strokeStyle=css(print,.55);ctx.lineWidth=1.2;
- ctx.beginPath();ctx.moveTo(crx,cry);ctx.lineTo(crx+crw,cry);ctx.stroke();
- for(let i=0;i<=12;i++){
-  const x=crx+crw*(i/12),tall=i%3===0;
-  ctx.beginPath();ctx.moveTo(x,cry);ctx.lineTo(x,cry-(tall?R*.72:R*.48));
-  ctx.strokeStyle=css(print,tall?.72:.50);ctx.lineWidth=tall?1.2:.9;ctx.stroke();
- }
- const hdg=((camera.yaw*180/Math.PI)%360+360)%360/360;
- ctx.fillStyle=css(blend(print,[180,56,44],.45),.95);
- ctx.fillRect(crx+crw*hdg-1.2,cry-R*1.06,2.4,R*.34);
- // Two registers: the trip, then who is out there.
- ctx.textAlign='left';ctx.textBaseline='alphabetic';
- const tx=bx+(portrait?pad:bw*.60),ty=by+(portrait?bh*.72:bh*.58);
- ctx.font=`${portrait?10:13}px "Songti SC","Noto Serif SC",serif`;
- ctx.fillStyle=css(print,.90);
- ctx.fillText('航程 '+(travel-departure).toFixed(0)+' · 第 '+((cycle|0)+1)+' 段',tx,ty);
- ctx.font=`${portrait?9:11}px "Songti SC","Noto Serif SC",serif`;
- ctx.fillStyle=css(print,.68);
- ctx.fillText('编队 '+fleet.length+' · 领队 '+String(LEAD+1).padStart(2,'0'),tx,ty+(portrait?17:22));
- ctx.restore();ctx.globalAlpha=1;
+function cockpitPose(){
+ const cp = getChasePose(0.016);
+ camera.eye = [...cp.eye]; camera.forward = [...cp.forward]; camera.right = [...cp.right]; camera.up = [...cp.up];
+ camera.roll = cp.roll; camera.focal = cp.focal; camera.cx = cp.cx; camera.cy = cp.cy;
 }
-function drawCockpit(t){
- const k=cockpitBlend;if(k<=.01)return;
- const ink=currentPalette.ink,paper=currentPalette.paper;
- const portrait=W<H;
- // Paper again: the hood is a lit fold, not a value close to the sky.
- const board=blend(ink,paper,.46),boardDark=blend(ink,paper,.60);
- const seam=blend(paper,ink,.04),lit=blend(ink,[255,255,255],.55);
- const pw=W*(portrait?.070:.060),topH=H*(portrait?.045:.055);
- ctx.save();ctx.globalAlpha=k;
- // The glass: one soft ceiling of reflection, never more than .055, and a
- // little dust fixed to the canopy rather than to the sky.
- let g=ctx.createLinearGradient(0,0,W*.62,H*.30);
- g.addColorStop(0,css([255,255,255],.032));
- g.addColorStop(.45,css([255,255,255],.012));
- g.addColorStop(1,css([255,255,255],0));
- ctx.fillStyle=g;ctx.fillRect(0,0,W*.74,H*.34);
- ctx.fillStyle=css(blend(ink,[255,255,255],.5),.13);
- for(const d of [[.24,.27,1.7],[.70,.16,1.1],[.81,.46,1.9],[.36,.58,1.2]]){
-  ctx.beginPath();ctx.arc(W*d[0],H*d[1],d[2],0,TAU);ctx.fill();
- }
- // The window is set into the hood: shadow along the inside edges first.
- g=ctx.createLinearGradient(0,topH,0,topH+H*.09);
- g.addColorStop(0,css(seam,.55));g.addColorStop(1,css(seam,0));
- ctx.fillStyle=g;ctx.fillRect(0,topH,W,H*.09);
- g=ctx.createLinearGradient(pw,0,pw+W*.04,0);
- g.addColorStop(0,css(seam,.48));g.addColorStop(1,css(seam,0));
- ctx.fillStyle=g;ctx.fillRect(pw,0,W*.04,H);
- g=ctx.createLinearGradient(W-pw,0,W-pw-W*.04,0);
- g.addColorStop(0,css(seam,.48));g.addColorStop(1,css(seam,0));
- ctx.fillStyle=g;ctx.fillRect(W-pw-W*.04,0,W*.04,H);
- // Two posts: a folded panel, lit edge inward, dark edge outward.
- for(const side of [0,1]){
-  const sx=side?W:0,sgn=side?-1:1;
-  ctx.beginPath();
-  ctx.moveTo(sx,0);ctx.lineTo(sx+sgn*pw,0);
-  ctx.lineTo(sx+sgn*pw*.80,H);ctx.lineTo(sx,H);ctx.closePath();
-  ctx.fillStyle=css(board,.92);ctx.fill();
-  // the fold down the middle of the panel
-  ctx.beginPath();ctx.moveTo(sx+sgn*pw*.52,0);ctx.lineTo(sx+sgn*pw*.40,H);
-  ctx.strokeStyle=css(boardDark,.55);ctx.lineWidth=1.6;ctx.stroke();
-  // the inner edge is what makes it read as structure
-  ctx.beginPath();ctx.moveTo(sx+sgn*pw,0);ctx.lineTo(sx+sgn*pw*.80,H);
-  ctx.strokeStyle=css(lit,.70);ctx.lineWidth=2;ctx.stroke();
-  ctx.beginPath();ctx.moveTo(sx+sgn*pw*.995,0);ctx.lineTo(sx+sgn*pw*.795,H);
-  ctx.strokeStyle=css(seam,.70);ctx.lineWidth=1.2;ctx.stroke();
- }
- // Stitches: a made thing, not a bezel.
- ctx.fillStyle=css(seam,.30);
- for(let y=topH+12;y<H*.72;y+=14){
-  const x=pw-(y/H)*(pw-pw*.80)-5;
-  ctx.fillRect(x-1.1,y,2.2,4.2);
-  ctx.fillRect(W-x-1.1,y,2.2,4.2);
- }
- // The top beam. One fold under it, no centre visor: the visor read as a
- // patch of different value pasted onto the beam.
- ctx.fillStyle=css(board,.92);ctx.fillRect(0,0,W,topH);
- ctx.strokeStyle=css(lit,.70);ctx.lineWidth=2;
- ctx.beginPath();ctx.moveTo(0,topH);ctx.lineTo(W,topH);ctx.stroke();
- ctx.strokeStyle=css(boardDark,.50);ctx.lineWidth=1;
- ctx.beginPath();ctx.moveTo(0,topH*.42);ctx.lineTo(W,topH*.42);ctx.stroke();
- // A note taped inside, fully on the plate this time.
- const nw=W*(portrait?.11:.042),nh=nw*.62;
- ctx.save();
- ctx.translate(W-pw-14-nw*.5,topH+22+nh*.5);ctx.rotate(-.05);
- ctx.fillStyle=css(blend(ink,[255,255,255],.6),.55);
- ctx.fillRect(-nw/2,-nh/2,nw,nh);
- ctx.fillStyle=css(blend(paper,[180,60,50],.55),.62);
- ctx.fillRect(-nw/2,-nh/2,nw,Math.max(2,nw*.03));
- ctx.strokeStyle=css(paper,.45);ctx.lineWidth=.8;
- ctx.beginPath();ctx.moveTo(-nw*.36,-nh*.06);ctx.lineTo(nw*.10,-nh*.14);ctx.stroke();
- ctx.beginPath();ctx.moveTo(-nw*.36,nh*.12);ctx.lineTo(nw*.24,nh*.05);ctx.stroke();
- ctx.beginPath();ctx.moveTo(-nw*.36,nh*.26);ctx.lineTo(-nw*.06,nh*.22);ctx.stroke();
- ctx.restore();
- ctx.restore();
- ctx.globalAlpha=1;
- drawDash(k);
-}
+
+function drawDash(k){ return; }
+function drawCockpit(t){ return; }
+
 function toggleCockpit(){
- cockpitMode=!cockpitMode;
- document.body.classList.toggle('cockpit-on',cockpitMode);
- if(cockpitMode) Narrator.speak(Narrator.scripts.cockpit_enter, { id: 'cockpit_enter' });
- else Narrator.speak(Narrator.scripts.cockpit_exit, { id: 'cockpit_exit' });
- if(cockpitMode)cockpitBlend=Math.max(cockpitBlend,.55);
- if(cockpitMode){autoCamera=false;wind.active=false;manual.yaw=camera.yaw;manual.pitch=camera.pitch;manual.distance=Math.max(600,manual.distance);}
- else{autoCamera=true;}
- canvas.classList.toggle('manual',!autoCamera);
- $('camera-toggle').setAttribute('aria-pressed',String(autoCamera));
- $('camera-button-name').textContent=cockpitMode?'驾驶舱':autoCamera?'自动运镜':'自主镜头';
- toast(cockpitMode?'驾驶舱视角 · 按 V 回到外部镜头':'回到外部镜头');
+ cockpitMode = !cockpitMode;
+ document.body.classList.toggle('cockpit-on', cockpitMode);
+ if(cockpitMode){
+  autoCamera = false; wind.active = false;
+  manual.yaw = camera.yaw; manual.pitch = camera.pitch; manual.distance = Math.max(600, manual.distance);
+ } else {
+  autoCamera = true;
+ }
+ canvas.classList.toggle('manual', !autoCamera);
+ $('camera-toggle').setAttribute('aria-pressed', String(autoCamera));
+ $('camera-button-name').textContent = cockpitMode ? '旗舰特写' : autoCamera ? '自动运镜' : '自主机位';
+ toast(cockpitMode ? '旗舰特写视角 · 追随领航折纸鹤' : '电影全景运镜 · 自动运镜');
 }
 function toggleCamera(){
- if(cockpitMode){cockpitMode=false;document.body.classList.remove('cockpit-on');toast('回到外部镜头');}
+ if(cockpitMode){cockpitMode=false;cockpitBlend=0;document.body.classList.remove('cockpit-on');}
  autoCamera=!autoCamera;
  if(!autoCamera) Narrator.speak(Narrator.scripts.cam_manual, { id: 'cam_manual' });
  else Narrator.speak(Narrator.scripts.cam_auto, { id: 'cam_auto' });
@@ -12439,8 +12313,8 @@ function toggleCamera(){
   manual.aimY=isFinite(camera.aimY)?camera.aimY:0;
   manual.lane=0;wind.active=false;
  }
- canvas.classList.toggle('manual',!autoCamera);$('camera-toggle').setAttribute('aria-pressed',String(autoCamera));$('camera-button-name').textContent=autoCamera?'自动运镜':'自主镜头';
- toast(autoCamera?'镜头交还航行，移动光标引航':'拖拽调整方向 · 方向键微调 · 滚轮缩放');
+ canvas.classList.toggle('manual',!autoCamera);$('camera-toggle').setAttribute('aria-pressed',String(autoCamera));$('camera-button-name').textContent=autoCamera?'自动运镜':'自主机位';
+ toast(autoCamera?'镜头交还航行，移动光标引航':'自由机位 · 拖拽旋转 / 滚轮远眺');
 }
 function toggleSound(){soundEnabled=!soundEnabled;$('sound-toggle').setAttribute('aria-pressed',String(soundEnabled));$('sound-toggle').classList.toggle('sound-on',soundEnabled);sound.setEnabled(soundEnabled);}
 
@@ -12502,8 +12376,8 @@ const Narrator = {
   warp_1x: [{"id": "warp_1x", "text": "退出极速巡航。散热中，说实话纸质散热效果居然还不错。"}, {"id": "warp_1x_alt1", "text": "曲率泡平稳消散，重返常规巡航速度。机体结构完整，各机归位。"}, {"id": "warp_1x_alt2", "text": "航速回落。刚才有一瞬间，我以为我们要折叠进虚数空间了。"}, {"id": "warp_1x_alt3", "text": "速度恢复常态。星光重新舒展开来，各机体结构应力读数正常。"}, {"id": "warp_1x_alt4", "text": "减速完成。从相对论极速脱离，终于能看清周围星系的名字了。"}, {"id": "warp_1x_alt5", "text": "退出超光速。纸鹤翼尖的热量正在向真空辐射，平稳滑行。"}, {"id": "warp_1x_alt6", "text": "曲率引擎怠速运转。慢下来欣赏一下星空吧，跑那么快容易错过奇观。"}, {"id": "warp_1x_alt7", "text": "恢复一倍基准航速。引擎声平复，深空又恢复了原本的寂静。"}],
   pause: [{"id": "pause", "text": "突然定格？思维爆炸，时空凝固了？行吧，在空间里通个风。"}, {"id": "pause_alt1", "text": "时间暂停。14只纸鹤悬停在真空中，哪怕是一张纸，也有权利在中途喘口气。"}, {"id": "pause_alt2", "text": "相对论时钟锁定。怎么，是想慢慢欣赏当前的构图，还是去冲了杯咖啡？"}, {"id": "pause_alt3", "text": "全局静止。所有星子、引力波和激光束都凝固了，这是造物主的手笔。"}, {"id": "pause_alt4", "text": "飞行中断。折叠的时空暂时冻结，你可以趁现在仔细数数每只鹤有几道褶子。"}, {"id": "pause_alt5", "text": "时间锚下潜。世界停在这一帧，真是一幅静谧而荒唐的深空油画。"}, {"id": "pause_alt6", "text": "按下暂停键。怎么，被前方的黑洞吓退了？随时等你重新出发。"}, {"id": "pause_alt7", "text": "维度挂起。所有物理定律都在为你等候，别让我挂机太久就行。"}],
   resume: [{"id": "resume", "text": "欢迎回到现实。航道还在，编队也没散架，走吧。"}, {"id": "resume_alt1", "text": "时间流恢复流动。引力场重新咬合，编队继续巡航。"}, {"id": "resume_alt2", "text": "时钟解冻。深空迁徙继续，下一站还远着呢。"}, {"id": "resume_alt3", "text": "继续推进。静止的星尘重新飞掠而过，飞船各系统恢复自旋。"}, {"id": "resume_alt4", "text": "暂停解除。纸鹤重新振翼，前方的星海正在召唤我们。"}, {"id": "resume_alt5", "text": "时间齿轮重新转动。别再发愣了，前面的深空走廊还有好几百个光年要飞。"}, {"id": "resume_alt6", "text": "航程继续。引力牵引就绪，折纸机群再次冲入黑暗。"}, {"id": "resume_alt7", "text": "重新点火。时空的波澜又涌上来了，跟紧主航道。"}],
-  cockpit_enter: [{"id": "cockpit_enter", "text": "切换至领航员座舱视角。第一视角的视野很棒吧，注意迎面掠过的星尘与微光。"}, {"id": "cockpit_enter_alt1", "text": "进入第一人称座舱。前面是无垠星海，两侧是护航的纸鹤羽翼，这才是航行的感觉。"}, {"id": "cockpit_enter_alt2", "text": "座舱挡风开启。你现在是机群的锋刃了，握紧操纵杆，别眨眼。"}, {"id": "cockpit_enter_alt3", "text": "第一人称模式。仪表板上的指针对准航向，感受星光洒在座舱玻璃上的温度。"}, {"id": "cockpit_enter_alt4", "text": "切入驾驶员席位。低头看是纸折的操控台，抬头看是浩瀚的银河。"}, {"id": "cockpit_enter_alt5", "text": "进入驾驶舱。两侧的僚机就在你翼尖几米之外，这压迫感和全景视角可不一样。"}, {"id": "cockpit_enter_alt6", "text": "领航员视角就绪。前方视界纯净通透，深空的冰冷与宏大尽收眼底。"}, {"id": "cockpit_enter_alt7", "text": "座舱视界锁定。你是十四只候鸟中领头的那一只，带我们飞吧。"}],
-  cockpit_exit: [{"id": "cockpit_exit", "text": "退出驾驶舱。又回到全知上帝视角看我挨撞是吧，行，谁不喜欢看高处那群纸鹤呢。"}, {"id": "cockpit_exit_alt1", "text": "机位拉远，重返第三人称编队视角。看整支纸鹤阵列在星海中起伏，确实更具诗意。"}, {"id": "cockpit_exit_alt2", "text": "座舱视角已切出。全景机位接管，继续守望这支沉默的迁徙队。"}, {"id": "cockpit_exit_alt3", "text": "视角升空。从高维俯瞰整个编队，整齐划一的白羽在黑夜中宛若神迹。"}, {"id": "cockpit_exit_alt4", "text": "重回机外全景。看这十四只小家伙在宏大的宇宙背景下扑腾，确实很治愈。"}, {"id": "cockpit_exit_alt5", "text": "退出驾驶位。从第三视角更能看清整支舰队的流线与星云的呼应。"}, {"id": "cockpit_exit_alt6", "text": "观察机位归位。从远处看，我们的飞船真像几片飘在宇宙暴风雨里的落叶。"}, {"id": "cockpit_exit_alt7", "text": "镜头移至舷外。全景深空视野恢复，继续巡视整条迁徙走廊。"}],
+  cockpit_enter: [{"id": "cockpit_enter", "text": "切换至旗舰特写追随机位。领航折纸鹤破空引渡，编队如影随形。"}, {"id": "cockpit_enter_alt1", "text": "镜头贴近旗舰后方。无垠星海在前，翼尖划开星光，群鹤共赴远方。"}, {"id": "cockpit_enter_alt2", "text": "旗舰引航特写。追随领航纸鹤的飞行轨迹，感受星海流光掠过身侧。"}, {"id": "cockpit_enter_alt3", "text": "特写追随模式。领航鹤引领全队航向，极简纯净，星河尽览。"}, {"id": "cockpit_enter_alt4", "text": "旗舰跟拍机位。看素白折纸在深空起伏，伴随着群鹤的低语。"}, {"id": "cockpit_enter_alt5", "text": "近距追随机位就绪。两侧僚机随行护航，在无垠深空中优雅翱翔。"}, {"id": "cockpit_enter_alt6", "text": "旗舰引航视角锁定。前方视界纯净通透，深空的宏大尽收眼底。"}, {"id": "cockpit_enter_alt7", "text": "特写追随启动。跟随领航白鹤，穿越静谧的星际走廊。"}],
+  cockpit_exit: [{"id": "cockpit_exit", "text": "重返电影全景运镜。群鹤翱翔，星河无垠，漫漫长路静谧铺展。"}, {"id": "cockpit_exit_alt1", "text": "机位拉远，重返广角全景运镜。看整支纸鹤阵列在星海中起伏，诗意悠长。"}, {"id": "cockpit_exit_alt2", "text": "全景运镜接管。镜头自由漫游，守望这支沉默的星际迁徙队。"}, {"id": "cockpit_exit_alt3", "text": "视角升空。从广袤星空中俯瞰整个编队，整齐划一的白羽宛若诗篇。"}, {"id": "cockpit_exit_alt4", "text": "重回深空全景。看群鹤在宏大宇宙中自在翱翔，天地开阔。"}, {"id": "cockpit_exit_alt5", "text": "切换至电影运镜。从远景领略整支舰队流线与星云的空灵呼应。"}, {"id": "cockpit_exit_alt6", "text": "全景运镜归位。在静谧的宇宙背景中，纸鹤如轻舟破浪。"}, {"id": "cockpit_exit_alt7", "text": "镜头移至广角。全景深空视野恢复，群鹤与星光同在。"}],
   bh_approach: [{"id": "bh_approach", "text": "梯度急剧增强！卡冈图雅……那不是教科书里画的黑色圆盘，注意它周围刺眼的时空扭曲光环！"}, {"id": "bh_approach_alt1", "text": "侦测到超大质量引力阱！卡冈图雅的吸积盘正在升起，它比一千个太阳还要巨大，直视它。"}, {"id": "bh_approach_alt2", "text": "警告，前方进入卡冈图雅引力影响区。背景光线开始极化弯曲，那是一切物理定律的尽头。"}, {"id": "bh_approach_alt3", "text": "引力波在机体上共振。看那圈金色的爱因斯坦环，光线在绕着绝对的虚无旋转。"}, {"id": "bh_approach_alt4", "text": "卡冈图雅正在吞噬前方视界。哪怕相隔上万单位，那股拉扯感依然让人喘不过气。"}, {"id": "bh_approach_alt5", "text": "视界面越来越近了。背景的恒星被撕裂成环状光晕，那是连光都无法逃脱的深渊。"}, {"id": "bh_approach_alt6", "text": "空间曲率达到陡峭悬崖。不要惊慌，只要顺着测地线滑行，纸鹤就能完整掠过它。"}, {"id": "bh_approach_alt7", "text": "极度致密天体接触。前面就是宇宙最宏伟也最致命的艺术品，保持航向。"}],
   bh_capture: [{"id": "bh_capture", "text": "正在横穿事件视界边缘！时间膨胀已达极限。这一秒，足够外面过上一万年了。"}, {"id": "bh_capture_alt1", "text": "我们正在顺着吸积盘的耀斑轨道切入。看那道光辉巨塔，渺小的纸鹤正飞越泰坦的深渊！"}, {"id": "bh_capture_alt2", "text": "捕获轨道确立。这里的一分钟，在外界是数千年的岁月流逝，保持姿态，我们正在创造奇迹。"}, {"id": "bh_capture_alt3", "text": "沿视界掠行！金色的高能等离子体流就在我们羽翼之下咆哮，纸质机翼折射出神圣的光辉！"}, {"id": "bh_capture_alt4", "text": "正在以极限光速滑过卡冈图雅的天际线！时空的尺度在这里彻底崩塌，太壮丽了。"}, {"id": "bh_capture_alt5", "text": "奇点就在我们正侧方。吸积盘的光芒撕破了黑暗，十四只纸鹤在视界面上留下了折影。"}, {"id": "bh_capture_alt6", "text": "极低轨道捕获中！时间在这里变得极其粘稠，感受这颗巨兽搏动的心跳。"}, {"id": "bh_capture_alt7", "text": "飞越泰坦深渊。全舰队正在吸积盘的金色风暴中穿行，这一幕值得被刻进所有文明的历史。"}, {"id": "bh_capture_alt8", "text": "视界掠影完成度百分之五十。引力势能正在积蓄，准备迎接即将到来的弹弓爆发。"}, {"id": "bh_capture_alt9", "text": "永恒的六十秒。外面的银河已经沧海桑田，而我们，正在与宇宙最狂暴的力量共舞。"}],
   bh_sling: [{"id": "bh_sling", "text": "成功脱离！刚才那一瞬间的引力弹射，回头去给爱因斯坦写感谢信吧。"}, {"id": "bh_sling_alt1", "text": "弹弓加速完成！卡冈图雅的引力不仅没有撕碎我们，还成了我们的喷射引擎，重返深空！"}, {"id": "bh_sling_alt2", "text": "引力枷锁被挣脱了！超大质量黑洞被我们抛在身后，航向锁定深空走廊！"}, {"id": "bh_sling_alt3", "text": "速度暴增！我们借用了巨兽的自转角动量，像一颗脱弦的利箭射向无垠星海！"}, {"id": "bh_sling_alt4", "text": "挣脱视界！时间流速重新对齐，我们活着从黑洞的嘴边擦过去了！"}, {"id": "bh_sling_alt5", "text": "弹弓喷射完毕。卡冈图雅正在后视镜里渐渐缩小，这是一次载入教科书的变轨。"}, {"id": "bh_sling_alt6", "text": "引力红移解除。机体结构应力平复，我们从虚无的边缘偷回了一条命。"}, {"id": "bh_sling_alt7", "text": "航速突破峰值。重返浩瀚深空，下一次，可别再离这种深渊这么近了。"}],
@@ -13234,7 +13108,7 @@ function resize(){
 window.addEventListener('resize',resize);document.addEventListener('fullscreenchange',resize);
 $('edition-seed').textContent=`FIELD ${SEED.toString(16).toUpperCase().slice(0,6)}`;
 const btnOri = document.getElementById('orientation-toggle-btn'); if (btnOri) btnOri.addEventListener('click', () => { if (window.STARFIELD_ORIENTATION) window.STARFIELD_ORIENTATION.toggle(); });
-if(coarse){document.querySelector('.intro-footer').textContent='22 CRAFT.  ONE OPEN SKY.';document.querySelector('.intro-note').innerHTML='触摸屏幕，让风带路。<br>建议开启声音 · 无终点，无需抵达';$('hint').textContent='触摸引航 · 切换自主镜头后，可拖拽与双指缩放 · 轻触舱内键切换视角';}
+if(coarse){document.querySelector('.intro-footer').textContent='22 CRAFT.  ONE OPEN SKY.';document.querySelector('.intro-note').innerHTML='触摸屏幕，让风带路。<br>建议开启声音 · 无终点，无需抵达';$('hint').textContent='触摸引航 · 自由视角可拖拽缩放 · 旗舰特写平滑护航';}
 resize();updateUI();GameSettings.init();if(window.STARFIELD_QUALITY)window.STARFIELD_QUALITY.updateUI();
 let lastFillPx=0,fps=60,framesInWindow=0,measureStart=performance.now(),slowWindows=0,fastWindows=0;
 // The display's refresh, measured from the first clean frames. rAF cannot run
@@ -14375,7 +14249,7 @@ requestAnimationFrame(frame);
       focus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M12 5V2M10 2h4"/></svg>',
       camera: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>',
       planet: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="6"/><path d="M3.5 14.5c4-5 13-5 17 0M2.5 13c5-7 14-7 19 0"/></svg>',
-      cockpit: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 19V9l8-5 8 5v10M2 19h20M9 19v-4h6v4"/></svg>',
+      cockpit: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 19 21 12 17 5 21 12 2"/></svg>',
       formation: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l4 7h-8zM6 14l3 6h-6zM18 14l3 6h-6z"/></svg>',
       codex: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20M4 19.5A2.5 2.5 0 0 0 6.5 22H20V2H6.5A2.5 2.5 0 0 0 4 4.5v15zM8 7h8M8 11h5"/></svg>',
       settings: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>',
@@ -14398,7 +14272,7 @@ requestAnimationFrame(frame);
       Engine.toggleCodex();
       moreTray.classList.remove('open');
     });
-    const btnCockpit = createTouchButton(SVG_ICONS.cockpit, '舱内', () => {
+    const btnCockpit = createTouchButton(SVG_ICONS.cockpit, '旗舰特写', () => {
       Engine.toggleCockpit();
       moreTray.classList.remove('open');
     });
