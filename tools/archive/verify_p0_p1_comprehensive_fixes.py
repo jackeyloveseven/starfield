@@ -79,7 +79,7 @@ async def test_p0_and_p1_in_browser():
         # -------------------------------------------------------------
         print("\n--- P0-2: Testing Global Keydown Isolation ---")
         # Enter Void Extraction mode
-        await page.click('#sf-btn-mode-redalert')
+        await page.evaluate("() => window.switchStarfieldMode('redalert')")
         await page.wait_for_timeout(400)
 
         key_isolation = await page.evaluate('''() => {
@@ -235,7 +235,7 @@ async def test_p0_and_p1_in_browser():
         # -------------------------------------------------------------
         print("\n--- P1-6: Testing Cruise Engine Background Rendering Pause ---")
         # In cruise mode, travel advances with time
-        await page.click('#sf-btn-mode-cruise')
+        await page.evaluate("() => window.switchStarfieldMode('cruise')")
         await page.wait_for_timeout(300)
         t_cruise_1 = await page.evaluate('() => window.Starfield.getTravel()')
         await page.wait_for_timeout(200)
@@ -243,7 +243,7 @@ async def test_p0_and_p1_in_browser():
         cruise_delta = t_cruise_2 - t_cruise_1
 
         # In Red Alert mode, travel does NOT advance because cruise loop skips
-        await page.click('#sf-btn-mode-redalert')
+        await page.evaluate("() => window.switchStarfieldMode('redalert')")
         await page.wait_for_timeout(300)
         t_ra_1 = await page.evaluate('() => window.Starfield.getTravel()')
         await page.wait_for_timeout(200)
@@ -259,7 +259,7 @@ async def test_p0_and_p1_in_browser():
         # P1-7: Red Alert RTS wave timer deadlock fix
         # -------------------------------------------------------------
         print("\n--- P1-7: Testing Red Alert RTS Wave Timer Deadlock Prevention ---")
-        await page.click('#sf-btn-mode-redalert')
+        await page.evaluate("() => window.switchStarfieldMode('redalert')")
         await page.wait_for_timeout(400)
 
         ra_wave_test = await page.evaluate('''() => {
@@ -304,7 +304,7 @@ async def test_p0_and_p1_in_browser():
         # Return to Cruise and check final console errors
         # -------------------------------------------------------------
         print("\n--- Return to Cruise and Final Stability Check ---")
-        await page.click('#sf-btn-mode-cruise')
+        await page.evaluate("() => window.switchStarfieldMode('cruise')")
         await page.wait_for_timeout(400)
 
         cruise_active = await page.evaluate('() => window.currentMode === "cruise"')

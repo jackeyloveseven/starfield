@@ -1,21 +1,28 @@
 # -*- coding: utf-8 -*-
 """
-Master Playwright Verification Suite for ALL 5 Starfield Modes:
-1. 🌌 Cruise Mode (自由漫游)
-2. 🚀 Void Extraction (搜打撤 · 鸭科夫)
-3. 🪐 Orbital Slingshot (引力弹弓太空鸟)
-4. ⚡ Red Alert RTS (红色警戒 · 前哨争霸)
-5. ☀️ Dyson Sphere Program (戴森球计划 · 星系工程)
+Master Playwright Verification Suite for the main cruise plus the two
+Experiment Lab prototypes:
+1. 🌌 Cruise Mode (主航线 · 深空漫游)
+2. ⚡ Red Alert RTS (实验舱 · 前哨争霸)
+3. ☀️ Dyson Sphere Program (实验舱 · 星系工程)
+
+Void Extraction and Orbital Slingshot are no longer standalone modes —
+they live inside the cruise loop, see verify_integrated_mechanics_adversarial.py.
 """
 
 import asyncio
 import sys
+from pathlib import Path
+
 sys.stdout.reconfigure(encoding='utf-8')
 from playwright.async_api import async_playwright
 
+BASE_DIR = Path(__file__).resolve().parent.parent
+HTML_URL = (BASE_DIR / 'starfield.html').as_uri()
+
 async def main():
     print("================================================================================")
-    print("Testing Starfield URL: file:///D:/items/code/starfield-pub/starfield.html")
+    print(f"Testing Starfield URL: {HTML_URL}")
     print("================================================================================")
 
     async with async_playwright() as p:
@@ -26,37 +33,38 @@ async def main():
         page.on("console", lambda msg: errors.append(f"[{msg.type}] {msg.text}") if msg.type == "error" else None)
         page.on("pageerror", lambda err: errors.append(str(err)))
 
-        await page.goto("file:///D:/items/code/starfield-pub/starfield.html")
+        await page.goto(HTML_URL)
         await page.wait_for_timeout(1200)
         await page.evaluate("() => window.StarfieldBetaLab && window.StarfieldBetaLab.setEnabled(true)")
         await page.wait_for_timeout(300)
 
-        # 1. Check Mode Bar UI
-        print("\n--- 1. Checking Mode Switcher Bar UI ---")
-        bar_check = await page.evaluate('''() => {
-            const bar = document.getElementById('sf-mode-bar');
-            const btns = ['cruise', 'redalert', 'dyson'].map(m => 
-                document.getElementById('sf-btn-mode-' + m)
+        # 1. 实验舱（原常驻模式栏已拆除）：主航线是唯一主屏
+        print("\n--- 1. Checking Experiment Lab (no persistent mode bar) ---")
+        lab_check = await page.evaluate('''() => {
+            const modal = document.getElementById('sf-lab-modal');
+            const items = ['cruise', 'redalert', 'dyson'].map(m =>
+                document.getElementById('sf-lab-item-' + m)
             );
-            const legacyExt = document.getElementById('sf-btn-mode-extract');
-            const legacySling = document.getElementById('sf-btn-mode-slingshot');
             return {
-                hasBar: !!bar,
-                btnCount: btns.filter(Boolean).length,
-                activeId: document.querySelector('#sf-mode-bar .sf-mode-btn.active')?.id,
-                legacyExtAbsent: !legacyExt,
-                legacySlingAbsent: !legacySling
+                hasModal: !!modal,
+                labOpen: modal ? modal.classList.contains('open') : false,
+                noModeBar: !document.getElementById('sf-mode-bar'),
+                itemCount: items.filter(Boolean).length,
+                currentId: document.querySelector('#sf-lab-modal .sf-lab-item.is-current')?.id,
+                legacyExtAbsent: !document.getElementById('sf-btn-mode-extract'),
+                legacySlingAbsent: !document.getElementById('sf-btn-mode-slingshot')
             };
         }''')
-        print("Mode Bar Check:", bar_check)
-        assert bar_check['hasBar']
-        assert bar_check['btnCount'] == 3
-        assert bar_check['legacyExtAbsent'] and bar_check['legacySlingAbsent']
-        assert bar_check['activeId'] == 'sf-btn-mode-cruise'
+        print("Lab Check:", lab_check)
+        assert lab_check['hasModal'] and lab_check['labOpen']
+        assert lab_check['noModeBar'], "常驻模式栏必须已经拆除"
+        assert lab_check['itemCount'] == 3
+        assert lab_check['legacyExtAbsent'] and lab_check['legacySlingAbsent']
+        assert lab_check['currentId'] == 'sf-lab-item-cruise'
 
         # 2. Test Red Alert RTS Mode
         print("\n--- 2. Testing Red Alert RTS (Command & Conquer Space Base) ---")
-        await page.click('#sf-btn-mode-redalert')
+        await page.evaluate("() => window.switchStarfieldMode('redalert')")
         await page.wait_for_timeout(500)
         ra_state = await page.evaluate('''() => {
             const game = window.RedAlertRTS;
@@ -90,7 +98,7 @@ async def main():
 
         # 3. Test Dyson Sphere Program Mode
         print("\n--- 3. Testing Dyson Sphere Program (Megastructure & Logistics) ---")
-        await page.click('#sf-btn-mode-dyson')
+        await page.evaluate("() => window.switchStarfieldMode('dyson')")
         await page.wait_for_timeout(500)
         dsp_state = await page.evaluate('''() => {
             const game = window.DysonSphereProgram;
@@ -123,11 +131,11 @@ async def main():
 
         # 4. Switch Back to Cruise Mode
         print("\n--- 4. Returning to Cruise Mode ---")
-        await page.click('#sf-btn-mode-cruise')
+        await page.evaluate("() => window.switchStarfieldMode('cruise')")
         await page.wait_for_timeout(400)
         cruise_state = await page.evaluate('''() => {
             return {
-                cruiseActive: document.getElementById('sf-btn-mode-cruise').classList.contains('active'),
+                cruiseActive: document.querySelector('#sf-lab-item-cruise').classList.contains('is-current'),
                 raStopped: !window.RedAlertRTS.active,
                 dspStopped: !window.DysonSphereProgram.active,
                 allOverlaysHidden: ['sf-redalert-overlay', 'sf-dyson-overlay']

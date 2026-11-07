@@ -5,10 +5,10 @@
 ![Starfield 3b1b Promo](docs/assets/promo_still_4_title.png)
 
 **一个单文件的纯数学纸上宇宙。**  
-基于 Canvas2D + WebGL + Web Audio 纯原生技术栈，零外部依赖、零第三方库、零网络请求，双击 `starfield.html` 即可起航。
+基于 Canvas2D + WebGL + Web Audio 纯原生技术栈，零构建工具、零运行时请求（three.js 等运行时库全部本地内置，仅在内置文件缺失时才回落到 CDN），双击 `starfield.html` 即可起航。
 
 [![GitHub Pages](https://img.shields.io/badge/GitHub_Pages-Online_Demo-58C4DD?style=for-the-badge&logo=github)](https://jackeyloveseven.github.io/starfield/)
-[![Release](https://img.shields.io/badge/Release-v1.16.0_(Build_42)-F9C74F?style=for-the-badge&logo=android)](https://github.com/jackeyloveseven/starfield/releases)
+[![Release](https://img.shields.io/badge/Release-v1.19.1_(Build_153)-F9C74F?style=for-the-badge&logo=android)](https://github.com/jackeyloveseven/starfield/releases)
 [![Godot 4.3](https://img.shields.io/badge/Godot-4.3_Native_3D-478CBF?style=for-the-badge&logo=godotengine)](godot/)
 [![License](https://img.shields.io/badge/License-MIT-9A79DB?style=for-the-badge)](CREDITS.md)
 [![Zero Dependency](https://img.shields.io/badge/Zero-Dependencies-success?style=for-the-badge)](#技术架构)
@@ -28,7 +28,9 @@
 - **纯粹至简**：纯单文件 `starfield.html`，无需 Node.js、无需构建工具、无需配置任何服务器环境；
 - **全平台支持**：支持 PC 桌面浏览器、手机触控原生界面、iPad 平板、Xbox/PS4 手柄即插即用；
 - **专注番茄钟**：融合引力时间膨胀物理公式的深空沉浸式挂机放置与专注系统；
-- **声学合成器**：使用 Web Audio API 物理合成三角钢琴与室内乐弦乐团，实时演奏六首世界级古典名曲；
+- **声学合成器**：使用 Web Audio API 物理合成三角钢琴与室内乐弦乐团，实时演奏六首古典名曲，另加两首典藏原声（共 8 轨点播台）；
+- **危险与损伤**：三种危险共用一条完整度——**碎片带**（对准缺口穿过去，撞密区 −15）、**恒星耀斑**（3.2 秒内把曲率提到 5.0c 才能甩掉，否则 −20）、**黑洞潮汐**（靠近视界持续剪切）。完整度低于 25% 曲率被锁回 1.0c，6 秒无伤自动维修——终于需要"开船"，而不是只看风景。
+- **航行委托**：航程中会持续下发短委托（深空测绘 / 曲率跃迁 / 抵近观测 / 引力借力 / 远航里程），完成换天体核心并累积连击倍率——给「一直往前飞」一个当下的目的，过期不惩罚。
 - **姊妹篇**：`migration.html`（候鸟 · MIGRATION）—— 同一个纸的世界，光影逆转。
 
 ---
@@ -123,7 +125,8 @@ $$\mathbf{P}_{\text{ship}}(t) = \mathbf{r}_{\text{route}}(z) + \mathbf{R}_y(\the
    - 采用单色扁平微透明磨砂（`rgba(15, 23, 42, 0.78)` + `backdrop-filter: blur(20px)`），提供纯净的机械按键触觉反馈；
    - 左下角隐形摇杆在静止时 100% 透明，手指触碰瞬间在落点浮现，松手平滑回弹淡出。
 3. **天象馆星球孵化与命名权持久化**：
-   - 专注航程可获得天体核心；在天象馆中可进行星球孵化点火，为每一颗探索到的新星赋予永久自定义命名；
+   - 专注航程可获得天体核心；开启时是一段仪器校准仪式——同心发丝环收束、矩形光栅展开、卡片分层显影，卡片为纯色面 + 1px 发丝线 + 扁平几何星球，稀有度用几何复杂度（弧 → 环 → 刻度 → 双环）而非发光表达；
+   - 为每一颗探索到的新星赋予永久自定义命名；
    - 数据由 `localStorage` 原子持久化，跨浏览器重启与离线环境下永久保存。
 4. **Android APK 离线壳与热更新 (OTA)**：
    - 采用原生轻量级 Android WebView 架构，内嵌离线静态 Web 资产包；
@@ -146,7 +149,7 @@ $$\mathbf{P}_{\text{ship}}(t) = \mathbf{r}_{\text{route}}(z) + \mathbf{R}_y(\the
 
 ## 🎹 世界级古典名曲点播台 (Classical Jukebox)
 
-系统内置 Web Audio API 物理建模声学合成器，无需加载任何庞大音频采样文件，纯靠正弦波与包络实时合成演奏六首世界级古典名曲（按 `N` 键自由切歌）：
+系统内置 Web Audio API 物理建模声学合成器，前六轨纯靠正弦波与包络实时合成、不加载任何采样文件；后两轨为内嵌典藏原声（按 `N` 键自由切歌）：
 
 1. **德彪西 ·《月光》**(Clair de Lune · Claude Debussy)
 2. **萨蒂 ·《第一号裸体歌舞》**(Gymnopédie No. 1 · Erik Satie)
@@ -154,6 +157,8 @@ $$\mathbf{P}_{\text{ship}}(t) = \mathbf{r}_{\text{route}}(z) + \mathbf{R}_y(\the
 4. **巴赫 ·《G弦上的咏叹调》**(Air on the G String · J.S. Bach · 旅行者金唱片收录曲目)
 5. **肖邦 ·《降E大调夜曲 Op. 9 No. 2》**(Nocturne Op. 9 No. 2 · Frédéric Chopin)
 6. **约翰·施特劳斯 ·《蓝色多瑙河》**(The Blue Danube · Johann Strauss II · 2001太空漫游致敬)
+7. **Little Barrie ·《Better Call Saul》主题曲**(律政狂想 · 15s 冲浪摇滚原声 OP)
+8. **圣-桑 ·《引子与回旋随想曲 Op.28》**(《四月是你的谎言》第4话现场版 · 9 分 15 秒完整录音)
 
 ---
 
@@ -161,14 +166,14 @@ $$\mathbf{P}_{\text{ship}}(t) = \mathbf{r}_{\text{route}}(z) + \mathbf{R}_y(\the
 
 ```
 starfield/
-├── starfield.html              # 核心主作品：单文件零依赖纸上宇宙引擎 (~21 MB)
+├── starfield.html              # 核心主作品：单文件零依赖纸上宇宙引擎 (~34 MB，含内嵌配乐)
 ├── migration.html              # 姊妹篇：候鸟世界
 ├── planet_studio.html          # 3D 活体生态星球工坊与实时调参台
 ├── manifest.json               # PWA 清单声明
 ├── service-worker.js           # 离线缓存 Service Worker
 ├── version.json                # OTA 热更新版本描述契约
 ├── android/                    # Android 原生轻量级离线打包工程
-│   └── app/build.gradle        # Android 构建与版本管理 (v1.16.0 Build 42)
+│   └── app/build.gradle        # Android 构建与版本管理 (v1.19.1 Build 153)
 ├── godot/                      # Godot 4.3 原生 3D 引擎工程目录
 │   ├── project.godot           # 引擎工程定义
 │   ├── scenes/                 # 主场景与 HUD 界面
@@ -178,12 +183,14 @@ starfield/
 ├── docs/                       # 项目文档与多媒体展示
 │   └── assets/                 # 宣传视频关键帧与 3b1b 风格数学图鉴
 ├── tools/                      # 验证套件、性能探针与 3b1b 宣传片渲染器
-│   ├── BUILD-LOG.md                  # 历代构建与踩坑实录 (v1 - v142)
+│   ├── BUILD-LOG.md                  # 历代构建与踩坑实录 (v1 - v146)
 │   ├── generate_3b1b_promo_video.py  # 3Blue1Brown (Manim) 风格视频生成器
 │   ├── verify_cores_and_ui.py        # 天象馆与 UI 交互断言测试
 │   ├── verify_dilation.py            # 引力时间膨胀数学物理断言
 │   ├── verify_skyevent.py            # 天空事件确定性光学验证
-│   └── verify_fps_and_telemetry.py   # 高刷与帧率性能监控验证
+│   ├── verify_fps_and_telemetry.py   # 高刷与帧率性能监控验证
+│   ├── verify_assets_parity.py        # 根目录 / Android 镜像 / SW 版本号三处一致性
+│   └── verify_integrated_mechanics_adversarial.py  # 3D 搜打撤 · 轨道力学 · 狗斗整链回归
 └── CREDITS.md                  # 第三方开源代码致谢与许可协议
 ```
 
@@ -211,7 +218,7 @@ starfield/
 - **自动化 Pages 部署 (`pages.yml`)**：代码推送到 `master` 分支即刻完成全站静态资源打包与 GitHub Pages 发布；
 - **自动化 Android APK & PCK 构建与发布 (`build-apk.yml`)**：
   - 监听 `starfield.html`、`version.json`、`android/**` 与 `godot/**` 变更；
-  - 动态解析版本号（自动生成 `v1.16.0-focus-apk` Release）；
+  - 动态解析版本号（自动生成 `v1.19.1-focus-apk` Release）；
   - 采用 Gradle 依赖缓存机制，自动打包 Android APK (`StarfieldFocus.apk`) 与 PC 原生包 (`StarfieldNative.pck`) 并同步发布至 GitHub Releases；
 - **物理与引擎回归验证 (`ci-verify.yml`)**：
   - 每次代码提交自动在无头 Linux 环境下拉起 Playwright 与 Chromium；

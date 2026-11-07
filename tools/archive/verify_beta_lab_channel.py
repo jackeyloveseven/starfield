@@ -1,11 +1,16 @@
 # -*- coding: utf-8 -*-
 import asyncio
 import sys
+from pathlib import Path
+
 sys.stdout.reconfigure(encoding='utf-8')
 from playwright.async_api import async_playwright
 
+BASE_DIR = Path(__file__).resolve().parent.parent
+HTML_URL = (BASE_DIR / 'starfield.html').as_uri()
+
 async def main():
-    print("Testing URL: file:///D:/items/code/starfield-pub/starfield.html")
+    print(f"Testing URL: {HTML_URL}")
     async with async_playwright() as p:
         browser = await p.chromium.launch(channel="chrome", headless=True)
         page = await browser.new_page(viewport={"width": 390, "height": 844})
@@ -14,24 +19,27 @@ async def main():
         page.on("console", lambda msg: errors.append(msg.text) if msg.type == "error" else None)
         page.on("pageerror", lambda err: errors.append(str(err)))
 
-        await page.goto("file:///D:/items/code/starfield-pub/starfield.html")
+        await page.goto(HTML_URL)
         await page.wait_for_timeout(1000)
 
         # 1. Verify Default Clean State (Beta Disabled by default)
         print("\n--- 1. Testing Default Clean State (Beta Disabled) ---")
         state1 = await page.evaluate('''() => {
-            const bar = document.getElementById('sf-mode-bar');
+            const modal = document.getElementById('sf-lab-modal');
             const lab = window.StarfieldBetaLab;
             return {
                 hasLab: !!lab,
                 isEnabled: lab ? lab.isEnabled() : false,
-                barDisplay: bar ? getComputedStyle(bar).display : 'none',
-                barVisible: bar ? (getComputedStyle(bar).display !== 'none') : false
+                noModeBar: !document.getElementById('sf-mode-bar'),
+                labOpen: modal ? modal.classList.contains('open') : false,
+                entryDisplay: getComputedStyle(document.getElementById('btn-open-lab')).display
             };
         }''')
         print("Default state:", state1)
         assert not state1['isEnabled'], "Beta must be disabled by default"
-        assert not state1['barVisible'], "Mode bar must be hidden by default"
+        assert state1['noModeBar'], "常驻模式栏必须已拆除（主航线不该是一个 tab）"
+        assert not state1['labOpen'], "Lab must stay closed by default"
+        assert state1['entryDisplay'] == 'none', "未加入测试时不显示实验舱入口"
 
         # 2. Verify Voluntary Enrollment (Clicking Join Beta)
         print("\n--- 2. Testing Voluntary Beta Channel Enrollment ---")
@@ -41,29 +49,50 @@ async def main():
         await page.wait_for_timeout(400)
 
         state2 = await page.evaluate('''() => {
-            const bar = document.getElementById('sf-mode-bar');
+            const modal = document.getElementById('sf-lab-modal');
             const lab = window.StarfieldBetaLab;
             const statusTag = document.getElementById('sf-beta-channel-status');
             const toggleBtn = document.getElementById('btn-toggle-beta-channel');
             return {
                 isEnabled: lab.isEnabled(),
-                barDisplay: getComputedStyle(bar).display,
+                labOpen: modal ? modal.classList.contains('open') : false,
+                entryDisplay: getComputedStyle(document.getElementById('btn-open-lab')).display,
+                currentItem: document.querySelector('#sf-lab-modal .sf-lab-item.is-current')?.id,
                 statusText: statusTag ? statusTag.textContent : '',
                 btnText: toggleBtn ? toggleBtn.textContent : ''
             };
         }''')
         print("Enrolled state:", state2)
         assert state2['isEnabled'], "Beta should now be enabled"
-        assert state2['barDisplay'] == 'flex', "Mode bar should be visible"
+        assert state2['labOpen'], "加入测试后实验舱应当自动展开"
+        assert state2['entryDisplay'] == 'block', "实验舱入口应可见"
+        assert state2['currentItem'] == 'sf-lab-item-cruise', "主航线仍应是当前项"
         assert '先锋测试' in state2['statusText']
 
         # 3. Test Mode Switching While in Beta
         print("\n--- 3. Testing Gameplay Mode Switch Under Beta ---")
-        await page.click('#sf-btn-mode-redalert')
+        await page.evaluate("() => window.switchStarfieldMode('redalert')")
         await page.wait_for_timeout(400)
         raActive = await page.evaluate('() => window.RedAlertRTS && window.RedAlertRTS.active')
         print("Red Alert activated under Beta:", raActive)
-        assert raActive, "Red Alert should activate when clicked"
+        assert raActive, "Red Alert should activate when entered"
+
+        # ESC 必须能从原型退回主航线（旧版主键位表在非 cruise 时整体 return，ESC 是死路）
+        await page.keyboard.press("Escape")
+        await page.wait_for_timeout(400)
+        esc_state = await page.evaluate('''() => ({
+            mode: window.currentMode,
+            raActive: !!(window.RedAlertRTS && window.RedAlertRTS.active),
+            drawerOpen: document.getElementById('settings-drawer').classList.contains('open')
+        })''')
+        print("ESC exit state:", esc_state)
+        assert esc_state['mode'] == 'cruise', "ESC 应退回主航线"
+        assert not esc_state['raActive'], "ESC 应停止原型引擎"
+        assert not esc_state['drawerOpen'], "ESC 不应同时弹出设置抽屉"
+
+        # 再进一次，供下一步验证「退出测试自动回主航线」
+        await page.evaluate("() => window.switchStarfieldMode('redalert')")
+        await page.wait_for_timeout(400)
 
         # 4. Verify Voluntary Exit (Switching Back to Stable)
         print("\n--- 4. Testing Voluntary Exit from Beta ---")
@@ -73,20 +102,22 @@ async def main():
         await page.wait_for_timeout(400)
 
         state4 = await page.evaluate('''() => {
-            const bar = document.getElementById('sf-mode-bar');
+            const modal = document.getElementById('sf-lab-modal');
             const lab = window.StarfieldBetaLab;
             const statusTag = document.getElementById('sf-beta-channel-status');
             const raActive = window.RedAlertRTS && window.RedAlertRTS.active;
             return {
                 isEnabled: lab.isEnabled(),
-                barDisplay: getComputedStyle(bar).display,
+                labOpen: modal ? modal.classList.contains('open') : false,
+                entryDisplay: getComputedStyle(document.getElementById('btn-open-lab')).display,
                 statusText: statusTag ? statusTag.textContent : '',
                 raStopped: !raActive
             };
         }''')
         print("Exited state:", state4)
         assert not state4['isEnabled'], "Beta should now be disabled"
-        assert state4['barDisplay'] == 'none', "Mode bar must be hidden again"
+        assert not state4['labOpen'], "Lab must be closed on exit"
+        assert state4['entryDisplay'] == 'none', "退出测试后实验舱入口应隐藏"
         assert state4['raStopped'], "Red Alert should automatically stop on exit"
         assert '稳定正式版' in state4['statusText']
 

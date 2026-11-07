@@ -34,36 +34,35 @@ async def main():
         await page.evaluate("() => window.StarfieldBetaLab && window.StarfieldBetaLab.setEnabled(true)")
         await page.wait_for_timeout(300)
 
-        # 1. Check Mode Bar for active expansion modes
-        print("\n--- 1. Checking Expansion Mode Bar Tabs ---")
-        mode_bar_info = await page.evaluate('''() => {
-            const bar = document.getElementById('sf-mode-bar');
-            const btnCruise = document.getElementById('sf-btn-mode-cruise');
-            const btnRA = document.getElementById('sf-btn-mode-redalert');
-            const btnDSP = document.getElementById('sf-btn-mode-dyson');
-            const legacyExt = document.getElementById('sf-btn-mode-extract');
-            const legacySling = document.getElementById('sf-btn-mode-slingshot');
+        # 1. 实验舱（原常驻模式栏已拆除）
+        print("\n--- 1. Checking Experiment Lab Entry ---")
+        lab_info = await page.evaluate('''() => {
+            const modal = document.getElementById('sf-lab-modal');
+            const itemCruise = document.getElementById('sf-lab-item-cruise');
+            const itemRA = document.getElementById('sf-lab-item-redalert');
+            const itemDSP = document.getElementById('sf-lab-item-dyson');
             return {
-                hasBar: !!bar,
-                hasBtnCruise: !!btnCruise,
-                hasBtnRA: !!btnRA,
-                hasBtnDSP: !!btnDSP,
-                legacyExtAbsent: !legacyExt,
-                legacySlingAbsent: !legacySling,
-                cruiseActive: btnCruise ? btnCruise.classList.contains('active') : false
+                hasModal: !!modal,
+                labOpen: modal ? modal.classList.contains('open') : false,
+                noModeBar: !document.getElementById('sf-mode-bar'),
+                hasItemCruise: !!itemCruise,
+                hasItemRA: !!itemRA,
+                hasItemDSP: !!itemDSP,
+                legacyExtAbsent: !document.getElementById('sf-btn-mode-extract'),
+                legacySlingAbsent: !document.getElementById('sf-btn-mode-slingshot'),
+                cruiseActive: itemCruise ? itemCruise.classList.contains('is-current') : false
             };
         }''')
-        print("Mode bar check:", mode_bar_info)
-        assert mode_bar_info['hasBar']
-        assert mode_bar_info['hasBtnCruise']
-        assert mode_bar_info['hasBtnRA']
-        assert mode_bar_info['hasBtnDSP']
-        assert mode_bar_info['legacyExtAbsent'] and mode_bar_info['legacySlingAbsent']
-        assert mode_bar_info['cruiseActive']
+        print("Lab entry check:", lab_info)
+        assert lab_info['hasModal'] and lab_info['labOpen']
+        assert lab_info['noModeBar'], "常驻模式栏必须已经拆除"
+        assert lab_info['hasItemCruise'] and lab_info['hasItemRA'] and lab_info['hasItemDSP']
+        assert lab_info['legacyExtAbsent'] and lab_info['legacySlingAbsent']
+        assert lab_info['cruiseActive']
 
         # 2. Test Red Alert RTS Mode
         print("\n--- 2. Testing Red Alert RTS Mode (Command & Conquer Base) ---")
-        await page.click('#sf-btn-mode-redalert')
+        await page.evaluate("() => window.switchStarfieldMode('redalert')")
         await page.wait_for_timeout(600)
 
         ra_init_state = await page.evaluate('''() => {
@@ -311,7 +310,7 @@ async def main():
 
         # 3. Test Dyson Sphere Program Mode
         print("\n--- 3. Testing Dyson Sphere Program Mode (Megastructure & Logistics) ---")
-        await page.click('#sf-btn-mode-dyson')
+        await page.evaluate("() => window.switchStarfieldMode('dyson')")
         await page.wait_for_timeout(600)
 
         dsp_init_state = await page.evaluate('''() => {
@@ -440,17 +439,17 @@ async def main():
 
         # 4. Test Switching back to Cruise Mode
         print("\n--- 4. Testing Switching back to Cruise Mode ---")
-        await page.click('#sf-btn-mode-cruise')
+        await page.evaluate("() => window.switchStarfieldMode('cruise')")
         await page.wait_for_timeout(400)
 
         cruise_state = await page.evaluate('''() => {
             const raOverlay = document.getElementById('sf-redalert-overlay');
             const dspOverlay = document.getElementById('sf-dyson-overlay');
-            const btnCruise = document.getElementById('sf-btn-mode-cruise');
+            const itemCruise = document.getElementById('sf-lab-item-cruise');
             return {
                 raHidden: !raOverlay.classList.contains('active'),
                 dspHidden: !dspOverlay.classList.contains('active'),
-                cruiseActive: btnCruise.classList.contains('active'),
+                cruiseActive: itemCruise.classList.contains('is-current'),
                 raStopped: !window.RedAlertRTS.active,
                 dspStopped: !window.DysonSphereProgram.active
             };

@@ -1,11 +1,16 @@
 # -*- coding: utf-8 -*-
 import asyncio
 import sys
+from pathlib import Path
+
 sys.stdout.reconfigure(encoding='utf-8')
 from playwright.async_api import async_playwright
 
+BASE_DIR = Path(__file__).resolve().parent.parent
+HTML_URL = (BASE_DIR / 'starfield.html').as_uri()
+
 async def main():
-    print("Testing URL: file:///D:/items/code/starfield-pub/starfield.html")
+    print(f"Testing URL: {HTML_URL}")
     async with async_playwright() as p:
         browser = await p.chromium.launch(channel="chrome", headless=True)
         page = await browser.new_page(viewport={"width": 390, "height": 844})
@@ -14,7 +19,7 @@ async def main():
         page.on("console", lambda msg: errors.append(msg.text) if msg.type == "error" else None)
         page.on("pageerror", lambda err: errors.append(str(err)))
 
-        await page.goto("file:///D:/items/code/starfield-pub/starfield.html")
+        await page.goto(HTML_URL)
         await page.wait_for_timeout(1000)
 
         # 1. Test Drawer Version Tag Fallback
@@ -24,7 +29,7 @@ async def main():
             return vtag ? vtag.textContent : '';
         }''')
         print("Version tag text:", vtagText)
-        assert 'v1.19.1' in vtagText and '153' in vtagText, f"Expected v1.18.0 (Build 150), got {vtagText}"
+        assert 'v1.19.1' in vtagText and '153' in vtagText, f"Expected v1.19.1 (Build 153), got {vtagText}"
 
         # Enable Beta Lab
         await page.evaluate("() => window.StarfieldBetaLab && window.StarfieldBetaLab.setEnabled(true)")
@@ -32,7 +37,7 @@ async def main():
 
         # 2. Test Red Alert Harvester Proportional Pay & Depletion Idle
         print("\n--- 2. Testing Red Alert Harvester Proportional Pay & Depletion Idle ---")
-        await page.click('#sf-btn-mode-redalert')
+        await page.evaluate("() => window.switchStarfieldMode('redalert')")
         await page.wait_for_timeout(500)
 
         harvTest = await page.evaluate('''() => {
@@ -104,7 +109,7 @@ async def main():
 
         # 5. Test Dyson Sphere Shell Tech Locking
         print("\n--- 5. Testing Dyson Sphere Shell Tech Button Locking ---")
-        await page.click('#sf-btn-mode-dyson')
+        await page.evaluate("() => window.switchStarfieldMode('dyson')")
         await page.wait_for_timeout(500)
 
         techTest = await page.evaluate('''() => {
@@ -128,7 +133,7 @@ async def main():
 
         # 6. Test Modal Cleanup on Mode Stop
         print("\n--- 6. Testing Modal Cleanup on Mode Stop ---")
-        await page.click('#sf-btn-mode-cruise')
+        await page.evaluate("() => window.switchStarfieldMode('cruise')")
         await page.wait_for_timeout(400)
         dspModalOpen = await page.evaluate('() => document.getElementById("sf-dsp-tech-modal").classList.contains("active")')
         print("DSP tech modal closed on exit:", not dspModalOpen)

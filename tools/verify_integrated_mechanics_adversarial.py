@@ -1,11 +1,16 @@
 # -*- coding: utf-8 -*-
 import asyncio
 import sys
+from pathlib import Path
+
 sys.stdout.reconfigure(encoding='utf-8')
 from playwright.async_api import async_playwright
 
+BASE_DIR = Path(__file__).resolve().parent.parent
+HTML_URL = (BASE_DIR / 'starfield.html').as_uri()
+
 async def main():
-    print("Testing Starfield URL: file:///D:/items/code/starfield-pub/starfield.html")
+    print(f"Testing Starfield URL: {HTML_URL}")
     async with async_playwright() as p:
         browser = await p.chromium.launch(channel="chrome", headless=True)
         page = await browser.new_page(viewport={"width": 390, "height": 844})
@@ -14,7 +19,7 @@ async def main():
         page.on("console", lambda msg: errors.append(msg.text) if msg.type == "error" else None)
         page.on("pageerror", lambda err: errors.append(str(err)))
 
-        await page.goto("file:///D:/items/code/starfield-pub/starfield.html")
+        await page.goto(HTML_URL)
         await page.wait_for_timeout(1000)
 
         # ---------------------------------------------------------------------
@@ -205,50 +210,9 @@ async def main():
         print("[PASS] Active deep space sonar target lock-on & Gargantua mapping verified successfully!")
 
         # ---------------------------------------------------------------------
-        # 4. Test Mode Keydown & HUD Isolation in Expansion Modes
+        # 4. Test Dogfight Combat Visuals (Lasers & Bursts)
         # ---------------------------------------------------------------------
-        print("\n--- 4. Testing Mode Keydown & HUD Isolation ---")
-        # Enable Beta Lab and enter Red Alert RTS
-        await page.evaluate("() => window.StarfieldBetaLab && window.StarfieldBetaLab.setEnabled(true)")
-        await page.wait_for_timeout(200)
-        await page.click('#sf-btn-mode-redalert')
-        await page.wait_for_timeout(400)
-
-        isolation_res = await page.evaluate('''() => {
-            const Ext = window.StarfieldInFlightExtraction;
-            const Sling = window.StarfieldOrbitalMechanics;
-            const probesBefore = Sling.probes.length;
-
-            // Give cargo to Ext
-            Ext.cargo = [{ name: '暗物质折跃燃料', icon: '🌌', value: 620, tier: 'epic' }];
-            Ext.update(0.016);
-            const hud = document.getElementById('sf-inflight-extract-hud');
-            const hudDisplayInRA = hud ? hud.style.display : 'none';
-
-            // Press [P] and [E] in Red Alert
-            window.dispatchEvent(new KeyboardEvent('keydown', { key: 'p', code: 'KeyP', bubbles: true }));
-            window.dispatchEvent(new KeyboardEvent('keydown', { key: 'e', code: 'KeyE', bubbles: true }));
-
-            const probesAfter = Sling.probes.length;
-
-            return {
-                hudHiddenInRA: hudDisplayInRA === 'none',
-                probesIsolated: probesBefore === probesAfter
-            };
-        }''')
-        print("Mode isolation result:", isolation_res)
-        assert isolation_res['hudHiddenInRA'], "Cargo HUD must be hidden in Red Alert mode"
-        assert isolation_res['probesIsolated'], "Probe hotkey must be isolated from Red Alert mode"
-        print("[PASS] Non-cruise expansion mode isolation verified successfully!")
-
-        # Return to cruise mode
-        await page.click('#sf-btn-mode-cruise')
-        await page.wait_for_timeout(400)
-
-        # ---------------------------------------------------------------------
-        # 5. Test Dogfight Combat Visuals (Lasers & Bursts)
-        # ---------------------------------------------------------------------
-        print("\n--- 5. Testing Dogfight Combat Visuals (Lasers & Bursts) ---")
+        print("\n--- 4. Testing Dogfight Combat Visuals (Lasers & Bursts) ---")
         dogfight_res = await page.evaluate('''() => {
             const Ext = window.StarfieldInFlightExtraction;
             const lead = craftWorld(fleet[LEAD]);
@@ -283,9 +247,9 @@ async def main():
         print("[PASS] Dogfight combat lasers, shield flares, and bursts verified successfully!")
 
         # ---------------------------------------------------------------------
-        # 6. Final Console Errors Audit
+        # 5. Final Console Errors Audit
         # ---------------------------------------------------------------------
-        print("\n--- 6. Console Error Audit ---")
+        print("\n--- 5. Console Error Audit ---")
         print("Total Errors:", len(errors))
         if errors:
             print("Errors logged:", errors)

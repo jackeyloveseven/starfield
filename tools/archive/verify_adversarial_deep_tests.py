@@ -1,9 +1,11 @@
 import asyncio
 import os
 import sys
+from pathlib import Path
 from playwright.async_api import async_playwright
 
-HTML_URL = 'file:///D:/items/code/starfield-pub/starfield.html'
+BASE_DIR = Path(__file__).resolve().parent.parent
+HTML_URL = (BASE_DIR / 'starfield.html').as_uri()
 
 async def run_adversarial_tests():
     async with async_playwright() as p:
@@ -20,7 +22,7 @@ async def run_adversarial_tests():
         page.on('pageerror', lambda err: console_errors.append(str(err)))
 
         await page.goto(HTML_URL)
-        await page.wait_for_selector('#sf-mode-bar', state='attached')
+        await page.wait_for_selector('#sf-lab-modal', state='attached')
 
         # Enable beta lab to unlock modes
         await page.evaluate('''() => {

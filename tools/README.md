@@ -17,6 +17,11 @@
 | [`verify_fps_and_telemetry.py`](verify_fps_and_telemetry.py) | 120Hz/144Hz 满血硬件高刷新率、性能 HUD 监视器与 Eco Cruise 巡航节能降温 |
 | [`verify_thermal_and_retina.py`](verify_thermal_and_retina.py) | 移动端 2K Ultra 视网膜清晰度 (DPR 2.75x) 与黑洞着色器 GPU 负载降低 94.7% 验证 |
 | [`verify_naming.py`](verify_naming.py) | 探索遭遇绑定、天象馆 3D 卡面翻转与星球自命名权 `localStorage` 原子持久化 |
+| [`verify_hazard_system.py`](verify_hazard_system.py) | 碎片带预警、错位撞击扣血、对准缺口零伤、低完整度锁曲率、自修回血，0 控制台错误 |
+| [`verify_voyage_contracts.py`](verify_voyage_contracts.py) | 航行委托：起航前后 HUD 状态、自动下发、完成发核心与连击、暂停收回 / 恢复重现、0 控制台错误 |
+| [`verify_assets_parity.py`](verify_assets_parity.py) | 根目录与 Android 镜像字节一致、service-worker 双份一致、version.json / SW 缓存号 / 抽屉版本号三处自洽 |
+| [`verify_ui_uniformity.py`](verify_ui_uniformity.py) | 运行时遍历 9 个界面状态，扫描大圆角、高饱和填充、彩色 emoji（白名单为几何与星象符号），并断言 0 控制台错误 |
+| [`verify_integrated_mechanics_adversarial.py`](verify_integrated_mechanics_adversarial.py) | 3D 撤离门、行星弹弓、深空探针、声呐锁定、狗斗等集成机制对抗回归 |
 
 ---
 
@@ -54,5 +59,12 @@
 
 ### 5. 📜 工程演进实录与历史补丁
 
-- [`BUILD-LOG.md`](BUILD-LOG.md)：**星空核心构建与架构演进日志**，系统记录从 v1 初始脚手架至 v141 最新版本的美学升级、数学物理模型推演、性能优化与排错实录。
-- `v*.py`：早期单次补丁脚本。
+- [`BUILD-LOG.md`](BUILD-LOG.md)：**星空核心构建与架构演进日志**，系统记录从 v1 初始脚手架至 v1.19.1 的美学升级、数学物理模型推演、性能优化与排错实录。
+- `patch_*.py`：一次性结构补丁，均已应用，保留供追溯；被后续决策推翻的（如先做「实验舱」、随后整体删除两个仿制玩法）一并移入 `archive/`。
+- `v*.py`：单次补丁脚本，均已应用，保留供追溯。近期一组是「开星核」从爆炸式抽卡改为极简几何 / 3D 扁平的递进序列：
+  - `v150_hatch_flat.py` 主改造（校准仪式、扁平星球、矩形光栅、分层显影、3D 地板网格、音色）
+  - `v151_hatch_tighten.py` 停用粒子层与收紧版面 · `v152_hatch_finish.py` 清彩色 emoji 与直角化背面
+  - `v153_hatch_polish.py` 明暗分界偏侧光与桌面放大 · `v154_hatch_timing.py` 仪式节奏压到 1.92s
+  - `v155_hatch_font.py` / `v156_hatch_cjk.py` 修正中文字体回退（`monospace` 通用族会截断回退链，中文会退成宋体）
+  - `v157_hatch_blocks.py` 斑块群岛化与底色提亮 · `v158_hatch_enter.py` 斑块加密与 `0.986 → 1` 浮起入场
+- [`archive/`](archive/)：已随产品迭代失效的历史探针——2D 搜打撤 / 弹弓小游戏的验证脚本（玩法已并入主航线 3D 系统）、以及随两个仿制玩法一起下线的前哨 RTS / 星系巨构 / 先锋通道探针。
