@@ -1,11 +1,11 @@
 {
-  "version": "1.19.1",
-  "build": 153,
-  "updated_at": "2026-11-04T21:15:00+08:00",
+  "version": "1.9.9.9.9",
+  "build": 154,
+  "updated_at": "2026-11-08T00:15:00+08:00",
   "min_native_version": "1.0.0",
   "is_beta": false,
-  "title": "纯净深空漫游与核心体验跃迁版上线：界面极致纯净、3D搜打撤与引力弹弓变轨",
-  "changelog": "1. 移除Beta实验室脱节的2D像素小游戏，纯化漫游核心；2. 彻底移除中下方遮挡主视野的冗余按钮，底栏视野极致纯净；3. 搜打撤深度融入3D深空世界：近距牵引光束自动搜刮废料核心与战术货舱；4. 引力弹弓深度融入3D真实轨道力学：实时引力弯曲预测弧线、+280%变轨加速、[P]发射探针鸟；5. 行星地表建模升级为7大文明巨构群；6. 新增第5编队形态【银翼天鹏】；7. 重构原生端与Web端多源镜像容灾机制，彻底解决推送丢失问题。",
+  "title": "全站内部界面重制：发丝线直角语言、WebGL 纯色星球与危险体系",
+  "changelog": "1. 新增危险与损伤：碎片带 / 恒星耀斑 / 黑洞潮汐，共用一套完整度（<25% 锁曲率、自动维修）；2. 新增航行委托：5 种目标 + 连击倍率，过期不惩罚；3. 移除红色警戒 RTS 与戴森球两个仿制玩法；4. 全站内部 UI 重制：新增 sf-ui-system 层（发丝线 + 直角 + 单色），起航页 / 开卡 / 设置抽屉 / 天象馆 / 档案与命名 / 图鉴 / 飞行 HUD / 摄影 / 折纸坞 全部重做；5. 开卡星球改 WebGL 纯色几何（球冠斑块 + 硬边昼夜 + 发丝轮廓）；6. 清掉17处彩色 emoji，保留几何与星象符号；7. 修复命名链断裂、触摸簇遮挡弹窗、委托卡越界与中文字体回退。",
   "entry": "starfield.html",
   "download_url": "https://raw.githubusercontent.com/jackeyloveseven/starfield/master/starfield.html",
   "apk_release_url": "https://github.com/jackeyloveseven/starfield/releases/tag/v1.19.1-focus-apk"

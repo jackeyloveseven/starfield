@@ -31,7 +31,7 @@ def main():
     assert s1 == s2, 'service-worker.js 根目录与 Android 镜像不一致'
     print('  ok  两份一致')
 
-    print('== 3. 版本号三处自洽 ==')
+    print('== 3. 版本号四处自洽 ==')
     meta = json.loads(VERSION.read_text(encoding='utf-8'))
     version = str(meta['version'])
     build = str(meta['build'])
@@ -45,7 +45,15 @@ def main():
     assert tag.group(1) == version and tag.group(2) == build, (
         f'抽屉版本 v{tag.group(1)} (Build {tag.group(2)}) != version.json v{version} (Build {build})'
     )
-    print(f'  ok  v{version} (Build {build}) 三处一致')
+    # 第 4 处：OTA 比较用的硬编码常量。它和 version.json 不同步的话，
+    # 客户端会「拉下来还是旧 localBuild」-> 永远提示有更新，形成更新死循环。
+    lb = re.search(r'const localBuild = (\d+);', html)
+    assert lb, 'starfield.html 里找不到 OTA 比较常量 localBuild'
+    assert lb.group(1) == build, (
+        f'OTA 常量 localBuild={lb.group(1)} != version.json build {build}'
+        f'（不同步会导致提示有更新但装完仍是旧版）'
+    )
+    print(f'  ok  v{version} (Build {build}) 四处一致（含 OTA localBuild）')
 
 
 if __name__ == '__main__':
