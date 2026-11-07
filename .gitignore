@@ -10,3 +10,7 @@ __pycache__/
 tools/test_*.png
 .gradle/
 local.properties
+
+# 临时诊断脚本与截图
+tools/_*.py
+tools/_*.png

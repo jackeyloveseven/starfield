@@ -1698,7 +1698,7 @@ img,canvas{-webkit-user-drag:none;user-drag:none}
     <div class="shortcut-list">
       <div class="shortcut-row">
         <span>客户端版本</span>
-        <span class="shortcut-key" id="sf-version-tag">v1.9.9.9.9 (Build 154)</span>
+        <span class="shortcut-key" id="sf-version-tag">v1.9.9.9.9 (Build 155)</span>
       </div>
       <div class="shortcut-row">
         <span>OTA 实时热更新</span>
@@ -13039,7 +13039,7 @@ window.addEventListener('resize', () => {
       })
       .then(data => {
         if (data && data.build) {
-          const localBuild = 154;
+          const localBuild = 155;
           if (data.build > localBuild) {
             showOtaNotification(data);
           } else if (manual && window.toast) {
@@ -21789,17 +21789,19 @@ canvas.sf-planet-canvas {
 }
 
 /* ---------- 起航页压暗：UI 必须在任意随机背景上都读得清 ---------- */
-#intro::after{
-  content:"";position:absolute;inset:0;pointer-events:none;z-index:0;
+#masthead{position:relative;z-index:6}
+
+/* 起航页压暗：并入原有的 ::before（z-index:-1，永远在内容之下，不会遮挡触摸） */
+#intro::before{
   background:
     radial-gradient(ellipse 68% 52% at 50% 46%,
       rgba(5,9,14,.78) 0%, rgba(5,9,14,.52) 52%, rgba(5,9,14,.16) 78%, transparent 100%),
     linear-gradient(to bottom,
       rgba(5,9,14,.34) 0%, rgba(5,9,14,.06) 22%,
-      rgba(5,9,14,.06) 64%, rgba(5,9,14,.84) 100%);
+      rgba(5,9,14,.06) 64%, rgba(5,9,14,.84) 100%),
+    linear-gradient(90deg, transparent 36%, var(--soft) 80%) !important;
 }
-#masthead{position:relative;z-index:6}
-#intro .intro-inner{position:relative;z-index:1}
+#intro .intro-inner{z-index:1}
 
 /* ---------- 起航点：胶囊 → 下方发丝下划线 ---------- */
 .destinations{
@@ -22859,7 +22861,6 @@ body:has(#photo-ui.active) #edition-seed{
   background:#05080c !important;
   -webkit-backdrop-filter:none !important;backdrop-filter:none !important;
   padding:0 !important;
-  opacity:1 !important;
 }
 #hangar-modal .hangar-container{
   width:100% !important;max-width:none !important;
