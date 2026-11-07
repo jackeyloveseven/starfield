@@ -7,6 +7,6 @@
   "title": "全站内部界面重制：发丝线直角语言、WebGL 纯色星球与危险体系",
   "changelog": "1. 新增危险与损伤：碎片带 / 恒星耀斑 / 黑洞潮汐，共用一套完整度（<25% 锁曲率、自动维修）；2. 新增航行委托：5 种目标 + 连击倍率，过期不惩罚；3. 移除红色警戒 RTS 与戴森球两个仿制玩法；4. 全站内部 UI 重制：新增 sf-ui-system 层（发丝线 + 直角 + 单色），起航页 / 开卡 / 设置抽屉 / 天象馆 / 档案与命名 / 图鉴 / 飞行 HUD / 摄影 / 折纸坞 全部重做；5. 开卡星球改 WebGL 纯色几何（球冠斑块 + 硬边昼夜 + 发丝轮廓）；6. 清掉17处彩色 emoji，保留几何与星象符号；7. 修复命名链断裂、触摸簇遮挡弹窗、委托卡越界与中文字体回退。",
   "entry": "starfield.html",
-  "download_url": "https://raw.githubusercontent.com/jackeyloveseven/starfield/master/starfield.html",
+  "download_url": "https://jackeyloveseven.github.io/starfield/starfield.html",
   "apk_release_url": "https://github.com/jackeyloveseven/starfield/releases/tag/v1.19.1-focus-apk"
 }
