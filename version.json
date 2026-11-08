@@ -1,11 +1,11 @@
 {
   "version": "1.9.9.9.9",
-  "build": 158,
-  "updated_at": "2026-11-08T12:45:00+08:00",
+  "build": 159,
+  "updated_at": "2026-11-08T13:10:00+08:00",
   "min_native_version": "1.0.0",
   "is_beta": false,
-  "title": "视野清理：移除弹弓辐射流光，预测弧线收敛",
-  "changelog": "1. 移除引力弹弓激活时从屏幕中心向四面八方辐射的 18 条青色流光（遮挡视野且无信息量，速度感改由星尘拖尾承担）；2. 弹弓预测弧线收敛：线宽 2.2 -> 1.1、透明度 0.72 -> 0.34、光晕 12 -> 5，不再抢视野。",
+  "title": "修复设置里版本号显示错误",
+  "changelog": "修复：无原生桥时（浏览器 / PWA），设置里的客户端版本号一直显示 v1.19.1 (Build 153)。那是一个硬编码的兜底值，覆盖了 HTML 里的正确版本。",
   "entry": "starfield.html",
   "download_url": "https://jackeyloveseven.github.io/starfield/starfield.html",
   "apk_release_url": "https://github.com/jackeyloveseven/starfield/releases/tag/v1.19.1-focus-apk"
