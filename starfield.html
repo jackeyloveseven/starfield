@@ -4597,7 +4597,7 @@ body:has(#photo-ui.active) .sf-touch-cluster{
     <div class="shortcut-list">
       <div class="shortcut-row">
         <span>客户端版本</span>
-        <span class="shortcut-key" id="sf-version-tag">v1.9.9.9.9 (Build 163)</span>
+        <span class="shortcut-key" id="sf-version-tag">v1.9.9.9.9 (Build 164)</span>
       </div>
       <div class="shortcut-row">
         <span>OTA 实时热更新</span>
@@ -15920,7 +15920,7 @@ window.addEventListener('resize', () => {
       })
       .then(data => {
         if (data && data.build) {
-          const localBuild = 163;
+          const localBuild = 164;
           if (data.build > localBuild) {
             showOtaNotification(data);
           } else if (manual && window.toast) {
@@ -15999,7 +15999,7 @@ function frame(now){
  if(dt){updateWind(dt);updateGravity();updateBirds(dt);updateGate(dt);updateCapture(dt);updateSling(dt);updateParticles(dt);updatePoem(dt);Narrator.update(dt);if(typeof StarfieldSonar!=='undefined')StarfieldSonar.update(dt);if(typeof StarfieldInFlightExtraction!=='undefined')StarfieldInFlightExtraction.update(dt);if(typeof StarfieldOrbitalMechanics!=='undefined')StarfieldOrbitalMechanics.update(dt);}
  ctx.setTransform(DPR,0,0,DPR,0,0);drawCalls=0;queue.length=0;holeDraws=0;
  updateSkyEvents(realDt);
- drawSky();deepfield();drawCraftShadows();bodies();drawFleet();if(typeof drawEscortOrbits==='function')drawEscortOrbits();drawParticles();flush();if(typeof StarfieldSonar!=='undefined')StarfieldSonar.draw(ctx);if(typeof StarfieldOrbitalMechanics!=='undefined')StarfieldOrbitalMechanics.draw(ctx);if(typeof StarfieldInFlightExtraction!=='undefined')StarfieldInFlightExtraction.draw(ctx);if(window.SFHazard&&window.SFHazard.draw)window.SFHazard.draw(ctx);drawSkyEvents();
+ drawSky();deepfield();drawCraftShadows();bodies();drawFleet();if(typeof drawEscortOrbits==='function')drawEscortOrbits();drawParticles();flush();if(typeof StarfieldSonar!=='undefined')StarfieldSonar.draw(ctx);if(typeof StarfieldOrbitalMechanics!=='undefined')StarfieldOrbitalMechanics.draw(ctx);if(typeof StarfieldInFlightExtraction!=='undefined')StarfieldInFlightExtraction.draw(ctx);if(window.SFHazard&&window.SFHazard.draw)window.SFHazard.draw(ctx);drawSkyEvents(); if(window.SFPassersby) window.SFPassersby.draw({ctx:ctx, project:project, routeX:routeX, courseY:courseY, W:W, H:H, travel:travel, CHUNK:CHUNK, hash:hash, started:started});
  // The throat: a bell around the two seconds either side of the step.
  if(gateT>0){const b=gateT<3.0?clamp((gateT-.7)/2.3,0,1):clamp((6.2-gateT)/2.6,0,1);
   drawTunnel(b);}
@@ -16168,7 +16168,7 @@ function updateSkyEvents(dt) {
  if (k !== _skyEventsChunk) {
   _skyEventsChunk = k;
   /* One roll per chunk: ~1 burst per 200 chunks. */
-  if (started && _skyGrbT < 0 && hash(k, 7001) < .005) skyTriggerGRB(0);
+  if (started && _skyGrbT < 0 && hash(k, 7001) < .20) skyTriggerGRB(0);
   /* Occultations only where the page already placed a world. */
   let hasWorld = false;
   if (started) {
@@ -23894,6 +23894,271 @@ class LivingPlanet {
   }
 }
 
+
+/* ============================================================
+   星球形态层（manif）：独立于品阶
+   移植自游戏内 PLANET_MANIFESTATIONS 的 Canvas 分支。
+   tier 只管光效/环/卫星；manif 决定这颗星球"是什么"。
+   ============================================================ */
+var SF_MANIFS = [
+  { id: 'skimming_water',     cn: '掠过水世界',   preset: 'archipelago' },
+  { id: 'mothership_fleet',   cn: '母舰编队',     preset: 'monument' },
+  { id: 'protoss_crystal',    cn: '幽能水晶星',   preset: 'alien' },
+  { id: 'zerg_biomorphic',    cn: '生化菌毯星',   preset: 'alien' },
+  { id: 'earth_egg',          cn: '盖亚绿洲',     preset: 'archipelago' },
+  { id: 'cyber_metropolis',   cn: '工业巨构',     preset: 'monument' },
+  { id: 'dune_arrakis',       cn: '沙丘世界',     preset: 'desert_oasis' },
+  { id: 'shattered_cataclysm',cn: '大撕裂',       preset: 'monument' },
+  { id: 'super_storm',        cn: '雷暴木星',     preset: 'abyss' },
+  { id: 'dark_void',          cn: '虚空幽冥',     preset: 'abyss' }
+];
+
+function sfManifFor(item) {
+  if (item && item.manif) {
+    for (var i = 0; i < SF_MANIFS.length; i++) {
+      if (SF_MANIFS[i].id === item.manif) return SF_MANIFS[i];
+    }
+  }
+  /* 没有指定就按 hue 确定性分配，保证同一颗星永远是同一形态 */
+  var h = (item && item.hue) || 200;
+  return SF_MANIFS[Math.floor(h) % SF_MANIFS.length];
+}
+
+/* ---- 各形态的专属几何构建，挂在 LivingPlanet.group 上 ---- */
+function sfBuildManif(THREE, planet, manifId, hue, rng) {
+  var g = planet.group, R = planet.cfg.radius;
+  var extra = { updaters: [] };
+
+  /* 形态标志色固定：水晶是青的、菌毯是紫红的、霓虹是青的。
+   * 只有地形随 hue 变；标志色跟着 hue 跑，形态就认不出来了。
+   * （原写法 hue + n*37 是笔误，会把色相甩到完全不同的颜色） */
+  function H(n) { return n; }
+  function col(h, s, l) {
+    var c = new THREE.Color();
+    c.setHSL(((h % 360) + 360) % 360 / 360, s, l);
+    return c;
+  }
+
+  if (manifId === 'protoss_crystal') {
+    /* 折光水晶簇：八面体，立在表面，法线对齐 */
+    var cg = new THREE.OctahedronGeometry(1, 0);
+    var cm = new THREE.MeshPhysicalMaterial({
+      color: col(197, 0.88, 0.60),
+      roughness: 0.05, metalness: 0.1,
+      clearcoat: 1.0, clearcoatRoughness: 0.03,
+      transparent: true, opacity: 0.88,
+      emissive: col(197, 0.92, 0.30),
+      flatShading: true
+    });
+    var gold = new THREE.LineBasicMaterial({ color: col(45, 0.95, 0.62), transparent: true, opacity: 0.72 });
+    var tops = [];
+    for (var i = 0; i < 9; i++) {
+      var u = rng() * Math.PI * 2, v = Math.acos(2 * rng() - 1);
+      var n = new THREE.Vector3(Math.sin(v) * Math.cos(u), Math.cos(v), Math.sin(v) * Math.sin(u));
+      var h = 9 + rng() * 12;
+      var m = new THREE.Mesh(cg, cm);
+      m.position.copy(n).multiplyScalar(R + 5.5 + h * 0.42);
+      m.scale.set(2.4 + rng() * 1.4, h, 2.4 + rng() * 1.4);
+      m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), n);
+      g.add(m);
+      tops.push(n.clone().multiplyScalar(R + 5.5 + h));
+    }
+    /* 金色能量矩阵：晶体之间的连线 */
+    var pts = [];
+    for (var a = 0; a < tops.length; a++) {
+      for (var b = a + 1; b < tops.length; b++) {
+        if (tops[a].distanceTo(tops[b]) < R * 1.25) { pts.push(tops[a]); pts.push(tops[b]); }
+      }
+    }
+    if (pts.length) {
+      var lg = new THREE.BufferGeometry().setFromPoints(pts);
+      g.add(new THREE.LineSegments(lg, gold));
+    }
+    extra.updaters.push(function (t) {
+      cm.emissiveIntensity = 0.55 + 0.45 * Math.sin(t * 2.1);
+    });
+  }
+
+  else if (manifId === 'zerg_biomorphic') {
+    /* 有机囊肿：贴在表面的半球，随时间脉动 */
+    var cystMat = new THREE.MeshPhysicalMaterial({
+      color: col(H(315), 0.80, 0.30),
+      roughness: 0.42, metalness: 0.0,
+      clearcoat: 0.85, clearcoatRoughness: 0.3,
+      emissive: col(H(330), 0.85, 0.10),
+      flatShading: true
+    });
+    var veinMat = new THREE.LineBasicMaterial({ color: col(H(285), 0.75, 0.34), transparent: true, opacity: 0.8 });
+    var cysts = [];
+    for (var z = 0; z < 14; z++) {
+      var zu = rng() * Math.PI * 2, zv = Math.acos(2 * rng() - 1);
+      var zn = new THREE.Vector3(Math.sin(zv) * Math.cos(zu), Math.cos(zv), Math.sin(zv) * Math.sin(zu));
+      var cr = 1.6 + rng() * 2.6;
+      var cm2 = new THREE.Mesh(new THREE.SphereGeometry(cr, 10, 8, 0, Math.PI * 2, 0, Math.PI * 0.62), cystMat);
+      cm2.position.copy(zn).multiplyScalar(R + 6.0 + cr * 0.18);
+      cm2.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), zn);
+      g.add(cm2);
+      cysts.push({ mesh: cm2, base: cr, phase: rng() * 6.28, n: zn });
+      /* 菌丝 */
+      var vp = [];
+      for (var s = 0; s < 5; s++) {
+        var ang = rng() * 6.28;
+        var p0 = zn.clone().multiplyScalar(R + 6.2);
+        var tangent = new THREE.Vector3(-Math.sin(ang), 0, Math.cos(ang)).normalize();
+        var p1 = p0.clone().add(tangent.multiplyScalar(3 + rng() * 4)).normalize().multiplyScalar(R + 6.2);
+        vp.push(p0); vp.push(p1);
+      }
+      if (vp.length) g.add(new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(vp), veinMat));
+    }
+    extra.updaters.push(function (t) {
+      for (var i = 0; i < cysts.length; i++) {
+        var c = cysts[i];
+        var s = 1 + 0.22 * Math.sin(t * 3.2 + c.phase);
+        c.mesh.scale.set(s, s * (0.9 + 0.2 * Math.sin(t * 2.4 + c.phase)), s);
+      }
+    });
+  }
+
+  else if (manifId === 'shattered_cataclysm') {
+    /* 裂开的壳：地表电弧 + 外圈碎片环 */
+    var arcMat = new THREE.LineBasicMaterial({ color: col(H(190), 0.9, 0.72), transparent: true, opacity: 0.9 });
+    var arcs = [];
+    for (var ai = 0; ai < 7; ai++) {
+      var ap = [];
+      var a0 = rng() * Math.PI * 2, v0 = Math.acos(2 * rng() - 1);
+      var segs = 5;
+      for (var si = 0; si <= segs; si++) {
+        var aa = a0 + si * 0.16;
+        var jitter = 1 + (rng() - 0.5) * 0.05;
+        ap.push(new THREE.Vector3(
+          Math.sin(v0) * Math.cos(aa) * (R + 6.5) * jitter,
+          Math.cos(v0) * (R + 6.5) * jitter,
+          Math.sin(v0) * Math.sin(aa) * (R + 6.5) * jitter));
+      }
+      var line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(ap), arcMat.clone());
+      g.add(line);
+      arcs.push(line);
+    }
+    /* 碎片环 */
+    var shardGeo = new THREE.TetrahedronGeometry(1, 0);
+    var shardMat = new THREE.MeshStandardMaterial({ color: col(H(30), 0.35, 0.32), roughness: 0.9, flatShading: true });
+    var shards = new THREE.InstancedMesh(shardGeo, shardMat, 260);
+    var dummy = new THREE.Object3D();
+    for (var si2 = 0; si2 < 260; si2++) {
+      var ang2 = rng() * Math.PI * 2;
+      var rr = R * (1.5 + rng() * 0.65);
+      dummy.position.set(Math.cos(ang2) * rr, (rng() - 0.5) * 5, Math.sin(ang2) * rr);
+      dummy.rotation.set(rng() * 6.28, rng() * 6.28, rng() * 6.28);
+      dummy.scale.setScalar(0.5 + rng() * 1.4);
+      dummy.updateMatrix();
+      shards.setMatrixAt(si2, dummy.matrix);
+    }
+    shards.instanceMatrix.needsUpdate = true;
+    shards.rotation.x = 0.32;
+    g.add(shards);
+    extra.updaters.push(function (t) {
+      shards.rotation.y = t * 0.16;
+      for (var i = 0; i < arcs.length; i++) {
+        arcs[i].material.opacity = 0.35 + 0.6 * Math.abs(Math.sin(t * 6 + i * 1.7));
+      }
+    });
+  }
+
+  else if (manifId === 'super_storm') {
+    /* 极光冥环：上下两个亮环 + 雷暴闪光 */
+    var ringMat = new THREE.MeshBasicMaterial({
+      color: col(H(150), 0.95, 0.6), transparent: true, opacity: 0.55,
+      side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false
+    });
+    for (var sy = -1; sy <= 1; sy += 2) {
+      var rg = new THREE.TorusGeometry(R * 0.62, 0.9, 8, 64);
+      var rm = new THREE.Mesh(rg, ringMat);
+      rm.rotation.x = Math.PI / 2;
+      rm.position.y = sy * R * 0.78;
+      g.add(rm);
+    }
+    /* 不罩整球：闪光只落在雷暴带上，且亮度变化幅度 <=0.15 */
+    var bandMat = new THREE.MeshBasicMaterial({
+      color: 0xffffff, transparent: true, opacity: 0,
+      side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false
+    });
+    for (var by = -1; by <= 1; by += 2) {
+      var bg2 = new THREE.TorusGeometry(R * 0.62, 1.4, 6, 48);
+      var bm = new THREE.Mesh(bg2, bandMat);
+      bm.rotation.x = Math.PI / 2;
+      bm.position.y = by * R * 0.78;
+      g.add(bm);
+    }
+    extra.updaters.push(function (t) {
+      bandMat.opacity = Math.sin(t * 8.5) > 0.86 ? 0.15 : 0;
+      ringMat.opacity = 0.42 + 0.2 * Math.sin(t * 1.8);
+    });
+  }
+
+  else if (manifId === 'cyber_metropolis') {
+    /* 霓虹网格：经纬亮线 + 夜面城市光点 */
+    var neonMat = new THREE.LineBasicMaterial({ color: col(188, 0.95, 0.62), transparent: true, opacity: 0.62 });
+    for (var lat = -3; lat <= 3; lat++) {
+      var phi = lat * 0.34;
+      var rr2 = Math.cos(phi) * (R + 7.0), yy = Math.sin(phi) * (R + 7.0);
+      var pts2 = [];
+      for (var s2 = 0; s2 <= 72; s2++) {
+        var a2 = s2 / 72 * Math.PI * 2;
+        pts2.push(new THREE.Vector3(Math.cos(a2) * rr2, yy, Math.sin(a2) * rr2));
+      }
+      g.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts2), neonMat));
+    }
+    for (var lon = 0; lon < 12; lon++) {
+      var la = lon / 12 * Math.PI * 2, pts3 = [];
+      for (var s3 = 0; s3 <= 48; s3++) {
+        var p3 = s3 / 48 * Math.PI;
+        pts3.push(new THREE.Vector3(
+          Math.sin(p3) * Math.cos(la) * (R + 7.0),
+          Math.cos(p3) * (R + 7.0),
+          Math.sin(p3) * Math.sin(la) * (R + 7.0)));
+      }
+      g.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts3), neonMat));
+    }
+    /* 城市光点 */
+    var cityGeo = new THREE.BufferGeometry();
+    var cp = [];
+    for (var ci = 0; ci < 900; ci++) {
+      var cu = rng() * Math.PI * 2, cv = Math.acos(2 * rng() - 1);
+      cp.push(Math.sin(cv) * Math.cos(cu) * (R + 7.2),
+              Math.cos(cv) * (R + 7.2),
+              Math.sin(cv) * Math.sin(cu) * (R + 7.2));
+    }
+    cityGeo.setAttribute('position', new THREE.Float32BufferAttribute(cp, 3));
+    var cityMat = new THREE.PointsMaterial({ color: col(H(45), 0.9, 0.7), size: 0.85, transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending, depthWrite: false });
+    g.add(new THREE.Points(cityGeo, cityMat));
+    extra.updaters.push(function (t) {
+      cityMat.opacity = 0.7 + 0.25 * Math.sin(t * 3.4);
+      neonMat.opacity = 0.42 + 0.18 * Math.sin(t * 1.3);
+    });
+  }
+
+  else if (manifId === 'dark_void') {
+    /* 幽冥辉光：暗色外壳 + 紫色边缘 */
+    var shellMat = new THREE.ShaderMaterial({
+      vertexShader: 'varying vec3 vN; void main(){ vN = normalize(normalMatrix * normal); gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }',
+      fragmentShader: 'varying vec3 vN; uniform vec3 uC; void main(){ float i = pow(max(0.0, 0.72 - dot(vN, vec3(0,0,1))), 3.0); gl_FragColor = vec4(uC, 1.0) * i * 1.4; }',
+      uniforms: { uC: { value: col(H(270), 0.85, 0.5) } },
+      blending: THREE.AdditiveBlending, side: THREE.BackSide, transparent: true, depthWrite: false
+    });
+    var shell = new THREE.Mesh(new THREE.SphereGeometry(R * 1.18, 32, 24), shellMat);
+    g.add(shell);
+    if (planet.terrainMesh && planet.terrainMesh.material) {
+      planet.terrainMesh.material.color.multiplyScalar(0.62);
+    }
+    extra.updaters.push(function (t) {
+      shell.rotation.y = -t * 0.06;
+    });
+  }
+
+  return extra;
+}
+
+
   /* Tier -> preset + presentation. This is what makes the rarities
    * read differently at a glance instead of only shifting hue. */
   var TIER_LOOK = {
@@ -23949,7 +24214,7 @@ class LivingPlanet {
 
   var host = null, renderer = null, scene = null, camera = null,
       planet = null, sun = null, rimLight = null, amb = null, envTarget = null,
-      outlineMesh = null,
+      outlineMesh = null, manifExtra = null,
       ok = false, failed = false, curKey = '', ringMeshes = [], moonMeshes = [],
       startT = 0, look = null;
 
@@ -24052,14 +24317,16 @@ class LivingPlanet {
     var L = TIER_LOOK[tier] || TIER_LOOK.common;
     var hue = item.hue || 200;
 
-    var basePreset = Presets[L.preset] || Presets.archipelago;
+    /* 形态独立于品阶：manif 决定"这是什么星球"，tier 只管光效 */
+    var manif = sfManifFor(item);
+    var basePreset = Presets[manif.preset] || Presets[L.preset] || Presets.archipelago;
     var satBoost = tier === 'myth' ? 0.92 : tier === 'legend' ? 0.88 : tier === 'epic' ? 0.86 : 0.82;
     var lightBoost = tier === 'myth' ? 0.86 : tier === 'legend' ? 0.84 : 0.82;
 
     var cfg = {
       radius: 36,
       seed: (item.hue || 200) * 31 + (item.id ? item.id.length * 7 : 0) + 12345,
-      preset: L.preset,
+      preset: manif.preset,
       landRatio: basePreset.landRatio,
       ruggedness: basePreset.ruggedness * (tier === 'myth' ? 1.1 : tier === 'legend' ? 1.05 : 0.9),
       treeCount: L.trees,
@@ -24076,6 +24343,12 @@ class LivingPlanet {
 
     planet = new LivingPlanet(scene, cfg);
     planet.build();
+
+    /* 形态专属几何：水晶簇 / 菌毯囊肿 / 裂壳电弧 / 雷暴带 / 霓虹网格 / 幽冥壳 */
+    manifExtra = sfBuildManif(THREE, planet, manif.id, hue, (function () {
+      var s = (hue * 131 + 7) >>> 0;
+      return function () { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; };
+    })());
 
     /* 卡通描边：把地形网格复制一份，沿法线外扩，只渲染背面，
      * 得到一圈等宽轮廓线（比后期边缘检测便宜且稳定）。 */
@@ -24192,6 +24465,9 @@ class LivingPlanet {
         mo.position.set(Math.cos(a) * ud.orbit, Math.sin(a * 0.6) * 9, Math.sin(a) * ud.orbit);
       }
 
+      if (manifExtra && manifExtra.updaters) {
+        for (var ui = 0; ui < manifExtra.updaters.length; ui++) manifExtra.updaters[ui](t);
+      }
       planet.update(t, 1 / 60);
 
       renderer.render(scene, camera);
@@ -24243,6 +24519,165 @@ class LivingPlanet {
 
 
 
+
+<script id="sf-passersby">
+/* ============================================================
+   路过景观（纯视觉，不可交互）
+   - 彗星：小亮核 + 离子尾(蓝直) + 尘埃尾(黄弯)
+   - 暗星云：黑色剪影，遮住背景星光（不遮舰队）
+   - 行星状星云：环形壳层 + 中心亮星
+   硬约束：中央 ±30% 屏宽不画；单元素 alpha <= 0.35；无全屏覆盖。
+   ============================================================ */
+(function () {
+  if (window.SFPassersby) return;
+
+  var E = null;   /* 由 frame() 注入的游戏内作用域 */
+
+  function fadeAtCenter(sx) {
+    var W = E.W;
+    /* 中央 30% 完全不画，30%-48% 之间渐显 */
+    var c = Math.abs(sx - W * 0.5) / (W * 0.5);
+    if (c < 0.30) return 0;
+    if (c > 0.48) return 1;
+    return (c - 0.30) / 0.18;
+  }
+
+  function comet(x, y, z, side, seed, fade) {
+    var project = E.project, ctx = E.ctx;
+    var head = project([x, y, z]);
+    if (!head) return;
+    var k = head[3];
+    /* 尾端在世界坐标里向后上方延伸，投影自然成透视 */
+    var tailLen = 2600 + seed * 2200;
+    var t1 = project([x + side * tailLen * 0.22, y + tailLen * 0.10, z + tailLen]);
+    var t2 = project([x + side * tailLen * 0.46, y + tailLen * 0.30, z + tailLen * 0.92]);
+    var hx = head[0], hy = head[1];
+
+    if (t1) {
+      /* 离子尾：细、直、蓝 */
+      ctx.save();
+      ctx.globalAlpha = 0.32 * fade;
+      var g1 = ctx.createLinearGradient(hx, hy, t1[0], t1[1]);
+      g1.addColorStop(0, 'rgba(150,205,255,0.9)');
+      g1.addColorStop(1, 'rgba(150,205,255,0)');
+      ctx.strokeStyle = g1;
+      ctx.lineWidth = Math.max(1, 5 * k);
+      ctx.beginPath(); ctx.moveTo(hx, hy); ctx.lineTo(t1[0], t1[1]); ctx.stroke();
+      ctx.restore();
+    }
+    if (t2) {
+      /* 尘埃尾：略弯、暖、更淡 */
+      ctx.save();
+      ctx.globalAlpha = 0.22 * fade;
+      var g2 = ctx.createLinearGradient(hx, hy, t2[0], t2[1]);
+      g2.addColorStop(0, 'rgba(240,220,180,0.85)');
+      g2.addColorStop(1, 'rgba(240,220,180,0)');
+      ctx.strokeStyle = g2;
+      ctx.lineWidth = Math.max(1, 11 * k);
+      ctx.beginPath();
+      ctx.moveTo(hx, hy);
+      ctx.quadraticCurveTo((hx + t2[0]) * 0.5, (hy + t2[1]) * 0.5 - 30 * k, t2[0], t2[1]);
+      ctx.stroke();
+      ctx.restore();
+    }
+    /* 彗核 */
+    var r = Math.max(2, 26 * k);
+    ctx.save();
+    ctx.globalAlpha = 0.85 * fade;
+    var gg = ctx.createRadialGradient(hx, hy, 0, hx, hy, r * 3);
+    gg.addColorStop(0, 'rgba(255,255,255,0.95)');
+    gg.addColorStop(0.25, 'rgba(210,235,255,0.5)');
+    gg.addColorStop(1, 'rgba(210,235,255,0)');
+    ctx.fillStyle = gg;
+    ctx.beginPath(); ctx.arc(hx, hy, r * 3, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+  }
+
+  function darkNebula(x, y, z, seed, fade) {
+    var project = E.project, ctx = E.ctx;
+    var q = project([x, y, z]);
+    if (!q) return;
+    var k = q[3], sx = q[0], sy = q[1];
+    var base = 900 * k;
+    if (base < 6) return;
+    ctx.save();
+    /* 深色剪影：盖的是背景星光，不是舰队 */
+    for (var i = 0; i < 7; i++) {
+      var a = seed * 6.28 + i * 1.1;
+      var rr = base * (0.55 + 0.45 * Math.sin(seed * 9 + i));
+      var ox = Math.cos(a) * base * 0.42, oy = Math.sin(a) * base * 0.30;
+      var g = ctx.createRadialGradient(sx + ox, sy + oy, 0, sx + ox, sy + oy, rr);
+      g.addColorStop(0, 'rgba(4,7,13,' + (0.30 * fade).toFixed(3) + ')');
+      g.addColorStop(0.6, 'rgba(4,7,13,' + (0.20 * fade).toFixed(3) + ')');
+      g.addColorStop(1, 'rgba(4,7,13,0)');
+      ctx.fillStyle = g;
+      ctx.beginPath(); ctx.arc(sx + ox, sy + oy, rr, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  function planetaryNebula(x, y, z, seed, fade) {
+    var project = E.project, ctx = E.ctx;
+    var q = project([x, y, z]);
+    if (!q) return;
+    var k = q[3], sx = q[0], sy = q[1];
+    var R = 620 * k;
+    if (R < 5) return;
+    var hue = 150 + seed * 90;
+    ctx.save();
+    /* 壳层：一个薄环，不是实心圆盘 */
+    var g = ctx.createRadialGradient(sx, sy, R * 0.55, sx, sy, R * 1.25);
+    g.addColorStop(0, 'hsla(' + hue + ',70%,65%,0)');
+    g.addColorStop(0.55, 'hsla(' + hue + ',75%,68%,' + (0.30 * fade).toFixed(3) + ')');
+    g.addColorStop(0.78, 'hsla(' + hue + ',80%,72%,' + (0.20 * fade).toFixed(3) + ')');
+    g.addColorStop(1, 'hsla(' + hue + ',70%,65%,0)');
+    ctx.fillStyle = g;
+    ctx.beginPath(); ctx.arc(sx, sy, R * 1.25, 0, Math.PI * 2); ctx.fill();
+    /* 中心亮星 */
+    var gs = ctx.createRadialGradient(sx, sy, 0, sx, sy, R * 0.16);
+    gs.addColorStop(0, 'rgba(255,255,255,' + (0.9 * fade).toFixed(3) + ')');
+    gs.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = gs;
+    ctx.beginPath(); ctx.arc(sx, sy, R * 0.16, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+  }
+
+  window.SFPassersby = {
+    draw: function (env) {
+      E = env;
+      var D = window.__passDbg = window.__passDbg || { called:0, notStarted:0, cand:0, noQ:0, faded:0, offY:0 };
+      D.called++;
+      if (!E || !E.started) { D.notStarted++; return; }
+      var ctx = E.ctx, project = E.project, routeX = E.routeX, courseY = E.courseY,
+          W = E.W, H = E.H, travel = E.travel, CHUNK = E.CHUNK, hash = E.hash;
+      var k0 = Math.floor(travel / CHUNK);
+      for (var k = Math.max(1, k0 - 1); k <= k0 + 9; k++) {
+        var h = hash(k, 9001);
+        if (h > 0.55) continue;
+        D.cand++;                 /* 约每 2 个 chunk 一处 */
+        var type = Math.floor(hash(k, 9002) * 3);
+        var z = k * CHUNK + CHUNK * (0.2 + hash(k, 9003) * 0.6);
+        var side = hash(k, 9004) < 0.5 ? -1 : 1;
+        var off = 2800 + hash(k, 9005) * 5200;  /* 永远在航道两侧 */
+        var x = routeX(z) + side * off;
+        var y = courseY(z) + (hash(k, 9006) - 0.5) * 1500;
+        var q = project([x, y, z]);
+        if (!q) { D.noQ++; continue; }
+        var fade = fadeAtCenter(q[0]);
+        if (fade <= 0) { D.faded++; continue; }
+        /* 不做 y 方向预过滤：canvas 自行裁剪屏外内容。
+           之前 2046 个候选全被这一条拦掉，导致一个景观都没画出来。 */
+        var seed = hash(k, 9007);
+        window.__passDrawn = (window.__passDrawn || 0) + 1;
+        if (type === 0) { window.__passComet = (window.__passComet||0)+1; comet(x, y, z, side, seed, fade); }
+        else if (type === 1) { window.__passDark = (window.__passDark||0)+1; darkNebula(x, y, z, seed, fade); }
+        else { window.__passPlan = (window.__passPlan||0)+1; planetaryNebula(x, y, z, seed, fade); }
+      }
+    }
+  };
+})();
+
+</script>
 </body>
 
 </html>
