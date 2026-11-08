@@ -1698,7 +1698,7 @@ img,canvas{-webkit-user-drag:none;user-drag:none}
     <div class="shortcut-list">
       <div class="shortcut-row">
         <span>客户端版本</span>
-        <span class="shortcut-key" id="sf-version-tag">v1.9.9.9.9 (Build 155)</span>
+        <span class="shortcut-key" id="sf-version-tag">v1.9.9.9.9 (Build 156)</span>
       </div>
       <div class="shortcut-row">
         <span>OTA 实时热更新</span>
@@ -13039,7 +13039,7 @@ window.addEventListener('resize', () => {
       })
       .then(data => {
         if (data && data.build) {
-          const localBuild = 155;
+          const localBuild = 156;
           if (data.build > localBuild) {
             showOtaNotification(data);
           } else if (manual && window.toast) {
@@ -18820,7 +18820,7 @@ canvas.sf-planet-canvas {
     this.ctx = canvas.getContext('2d');
     this.rotX = 0.25;
     this.rotY = 0.0;
-    this.spinSpeed = 0.004;
+    this.spinSpeed = 0.016;
     this.cloudRot = 0.0;
     this.isDragging = false;
     this.lastPointerX = 0;
@@ -21375,6 +21375,7 @@ canvas.sf-planet-canvas {
     'uniform vec3  uTint;',
     'uniform vec3  uBase;',
     'uniform vec3  uLand;',
+    'uniform vec3  uLand2;',
     'uniform float uRotX;',
     'uniform float uRotY;',
     'uniform float uSeed;',
@@ -21414,16 +21415,22 @@ canvas.sf-planet-canvas {
     'float blob(vec3 nw, vec3 dir, float radius){',
     '  return smoothstep(1.0 - radius - 0.012, 1.0 - radius + 0.012, dot(nw, normalize(dir)));',
     '}',
-    'float landMask(vec3 nw){',
+    '/* 二级地块：落在大陆内部的更亮小块，给出层次 */',
+    'float landMask2(vec3 nw){',
     '  float m = 0.0;',
-    '  m = max(m, blob(nw, vec3( 0.52,  0.62,  0.58), 0.17));',
-    '  m = max(m, blob(nw, vec3(-0.58,  0.06,  0.70), 0.15));',
-    '  m = max(m, blob(nw, vec3( 0.06, -0.76,  0.55), 0.13));',
-    '  m = max(m, blob(nw, vec3(-0.34, -0.16, -0.92), 0.18));',
-    '  m = max(m, blob(nw, vec3( 0.66,  0.28, -0.70), 0.15));',
-    '  m = max(m, blob(nw, vec3(-0.20,  0.86, -0.46), 0.13));',
-    '  m = max(m, blob(nw, vec3( 0.88, -0.42,  0.20), 0.12));',
+    '  m = max(m, blob(nw, vec3( 0.58,  0.26,  0.77), 0.052));',
+    '  m = max(m, blob(nw, vec3(-0.40, -0.34,  0.85), 0.046));',
+    '  m = max(m, blob(nw, vec3( 0.14, -0.56,  0.82), 0.040));',
+    '  m = max(m, blob(nw, vec3(-0.66,  0.40,  0.64), 0.038));',
+    '  m = max(m, blob(nw, vec3( 0.30,  0.82,  0.49), 0.034));',
+    '  m = max(m, blob(nw, vec3(-0.18,  0.10,  0.98), 0.030));',
     '  return m;',
+    '}',
+    '/* 地貌：两频噪声叠加，主频给大陆轮廓，高频给海岸线的碎形 */',
+    'float landField(vec3 nw, float seed){',
+    '  float a = fbm(nw * 2.55 + vec3(seed, 0.0, seed * 0.7));',
+    '  float b = fbm(nw * 6.30 + vec3(seed * 1.9, 0.0, seed));',
+    '  return a * 0.74 + b * 0.26;',
     '}',
     'mat3 rotY(float a){',
     '  float c = cos(a), s = sin(a);',
@@ -21472,8 +21479,14 @@ canvas.sf-planet-canvas {
     '    vec3 n = vec3(p.x, p.y, sqrt(R2 - r2)) / R;',
     '    vec3 nw = rotX(uRotX) * rotY(uRotY) * n;',
     '',
-    '    float land = landMask(nw);',
-    '    vec3 albedo = mix(uBase, uLand, land);',
+    '    float v = landField(nw, uSeed);',
+    '    float shore = smoothstep(0.430, 0.468, v);',
+    '    float land  = smoothstep(0.468, 0.500, v);',
+    '    float high  = smoothstep(0.585, 0.655, v);',
+    '    vec3 albedo = uBase;',
+    '    albedo = mix(albedo, mix(uBase, uLand, 0.55), shore);',
+    '    albedo = mix(albedo, uLand, land);',
+    '    albedo = mix(albedo, uLand2, high * 0.85);',
     '',
     '    vec3 L = normalize(vec3(-0.88, 0.30, 0.36));',
     '    float l = dot(n, L);',
@@ -21487,8 +21500,24 @@ canvas.sf-planet-canvas {
     '    col = mix(col, uTint * 0.95, edgeLine * 0.70);',
     '    float halo = pow(1.0 - n.z, 7.0) * day;',
     '    col += uTint * halo * 0.14;',
+    '    /* 晨昏线亮带：球内侧靠近边缘一圈更亮，像真的被大气托住 */',
+    '    float limb = pow(1.0 - n.z, 2.2) * day * 0.22;',
+    '    col += uTint * limb;',
+    '    /* 柔和高光：只有一点点，让球面不是死板的纯色 */',
+    '    vec3 hN = normalize(vec3(-0.58, 0.40, 0.71) + vec3(0.0, 0.0, 1.0));',
+    '    float spec = pow(max(dot(n, hN), 0.0), 26.0) * 0.16 * day;',
+    '    col += uTint * spec;',
     '',
     '    alpha = 1.0;',
+    '  }',
+    '',
+    '  /* ---- 球外大气辉光：让边缘之外还有一层软光 ---- */',
+    '  {',
+    '    float dd = sqrt(r2);',
+    '    float outside = smoothstep(R - 0.004, R + 0.004, dd);',
+    '    float glow = exp(-(dd - R) * 13.0) * outside;',
+    '    col += uTint * glow * 0.38;',
+    '    alpha = max(alpha, glow * 0.38);',
     '  }',
     '',
     '  /* ---- front half of ring ---- */',
@@ -21568,7 +21597,7 @@ canvas.sf-planet-canvas {
     gl.enableVertexAttribArray(loc);
     gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
 
-    ['uRes', 'uTime', 'uTint', 'uBase', 'uLand', 'uRotX', 'uRotY', 'uSeed', 'uRing', 'uMoon']
+    ['uRes', 'uTime', 'uTint', 'uBase', 'uLand', 'uLand2', 'uRotX', 'uRotY', 'uSeed', 'uRing', 'uMoon']
       .forEach(function (k) { uni[k] = gl.getUniformLocation(prog, k); });
 
     gl.enable(gl.BLEND);
@@ -21618,8 +21647,9 @@ canvas.sf-planet-canvas {
       if (T[tier] && typeof T[tier].rank === 'number') rank = T[tier].rank;
 
       var base = hsl(hue, 0.38, 0.115);
-      var land = hsl(hue, 0.48, 0.470);
+      var land = hsl(hue, 0.46, 0.360);
       var tint = hsl(hue, 0.58, 0.60);
+      var land2 = hsl(hue, 0.52, 0.500);
 
       gl.viewport(0, 0, glCanvas.width, glCanvas.height);
       gl.clear(gl.COLOR_BUFFER_BIT);
@@ -21630,6 +21660,7 @@ canvas.sf-planet-canvas {
       gl.uniform3f(uni.uTint, tint[0], tint[1], tint[2]);
       gl.uniform3f(uni.uBase, base[0], base[1], base[2]);
       gl.uniform3f(uni.uLand, land[0], land[1], land[2]);
+      gl.uniform3f(uni.uLand2, land2[0], land2[1], land2[2]);
       gl.uniform1f(uni.uRotX, planet.rotX || 0);
       gl.uniform1f(uni.uRotY, planet.rotY || 0);
       gl.uniform1f(uni.uSeed, (hue % 97) * 0.137);
@@ -22145,7 +22176,7 @@ input.range-slider::-moz-range-thumb{
   border-radius:0 !important;
   background:none !important;
   box-shadow:none !important;
-  animation:none !important;
+  animation:sfRowIn .62s var(--ui-ease) both !important;
   position:relative !important;
 }
 .sf-hl-item:hover{
@@ -23110,6 +23141,69 @@ body:has(#photo-ui.active) .sf-touch-cluster{
   color:#fff !important;
   border-color:rgba(230,237,242,.55) !important;
 }
+</style>
+
+<style id="sf-ui-motion">
+/* ---------- 入场动效：全站统一的 stagger ---------- */
+@keyframes sfRowIn{
+  from{opacity:0;transform:translateY(10px)}
+  to{opacity:1;transform:none}
+}
+@keyframes sfPanelIn{
+  from{opacity:0;transform:translateY(12px)}
+  to{opacity:1;transform:none}
+}
+
+#sf-hatch-list .sf-hl-item:nth-child(1){animation-delay:0s}
+#sf-hatch-list .sf-hl-item:nth-child(2){animation-delay:.045s}
+#sf-hatch-list .sf-hl-item:nth-child(3){animation-delay:.09s}
+#sf-hatch-list .sf-hl-item:nth-child(4){animation-delay:.135s}
+#sf-hatch-list .sf-hl-item:nth-child(5){animation-delay:.18s}
+#sf-hatch-list .sf-hl-item:nth-child(6){animation-delay:.225s}
+#sf-hatch-list .sf-hl-item:nth-child(7){animation-delay:.27s}
+#sf-hatch-list .sf-hl-item:nth-child(8){animation-delay:.315s}
+#sf-hatch-list .sf-hl-item:nth-child(n+9){animation-delay:.34s}
+
+/* 面板本体：淡入 + 轻微上浮 */
+#codex-modal .codex-container,
+#hangar-modal .hangar-container{
+  animation:sfPanelIn .5s var(--ui-ease) both;
+}
+#codex-modal:not(.open) .codex-container,
+#hangar-modal:not(.open) .hangar-container{
+  animation:none;
+}
+
+/* 图鉴 / 折纸坞的卡片也要 stagger */
+#codex-modal .codex-card{
+  animation:sfRowIn .56s var(--ui-ease) both;
+}
+#codex-modal .codex-card:nth-child(1){animation-delay:0s}
+#codex-modal .codex-card:nth-child(2){animation-delay:.03s}
+#codex-modal .codex-card:nth-child(3){animation-delay:.06s}
+#codex-modal .codex-card:nth-child(4){animation-delay:.09s}
+#codex-modal .codex-card:nth-child(5){animation-delay:.12s}
+#codex-modal .codex-card:nth-child(6){animation-delay:.15s}
+#codex-modal .codex-card:nth-child(n+7){animation-delay:.18s}
+
+#hangar-modal .hangar-card{
+  animation:sfRowIn .56s var(--ui-ease) both;
+}
+#hangar-modal .hangar-card:nth-child(1){animation-delay:.02s}
+#hangar-modal .hangar-card:nth-child(2){animation-delay:.06s}
+#hangar-modal .hangar-card:nth-child(3){animation-delay:.10s}
+#hangar-modal .hangar-card:nth-child(4){animation-delay:.14s}
+#hangar-modal .hangar-card:nth-child(n+5){animation-delay:.17s}
+
+/* 设置抽屉的分节逐条浮入 */
+#settings-drawer.open .settings-section{
+  animation:sfRowIn .5s var(--ui-ease) both;
+}
+#settings-drawer.open .settings-section:nth-child(1){animation-delay:0s}
+#settings-drawer.open .settings-section:nth-child(2){animation-delay:.06s}
+#settings-drawer.open .settings-section:nth-child(3){animation-delay:.12s}
+#settings-drawer.open .settings-section:nth-child(4){animation-delay:.18s}
+#settings-drawer.open .settings-section:nth-child(n+5){animation-delay:.22s}
 </style>
 
 </body>

@@ -1,11 +1,11 @@
 {
   "version": "1.9.9.9.9",
-  "build": 155,
-  "updated_at": "2026-11-08T01:10:00+08:00",
+  "build": 156,
+  "updated_at": "2026-11-08T11:45:00+08:00",
   "min_native_version": "1.0.0",
   "is_beta": false,
-  "title": "全站内部界面重制：发丝线直角语言、WebGL 纯色星球与危险体系",
-  "changelog": "修复：手机端卡在起航页无法进入。上一版给财纸坞加了 opacity:1 !important，把关闭态的 opacity:0 也覆盖了，财纸坞从加载起就全屏盖在最上层（z-index:9999），起航页所有点击都落在它上面。同时把起航页压暗层从 ::after 移到 ::before，避免伪元素在 iOS Safari 上偶发阻挡触摸。",
+  "title": "星球地貌与全站动效升级：双频噪声四档地貌、大气辉光与分层入场",
+  "changelog": "1. 开卡星球改双频噪声地貌（海洋 / 浅滩 / 陆地 / 高地四档），岸线有碎形，不再是球冠圆斑；2. 加大气辉光与晨昏线亮带，自转提到 6 秒一圈；3. 天象馆列表 / 图鉴 / 折纸坞 / 设置抽屉补偿分层入场动效（上一版的 animation:none 把入场也压掉了）；4. 开卡页加载完成后自转不再像静止图。",
   "entry": "starfield.html",
   "download_url": "https://jackeyloveseven.github.io/starfield/starfield.html",
   "apk_release_url": "https://github.com/jackeyloveseven/starfield/releases/tag/v1.19.1-focus-apk"
