@@ -1,12 +1,12 @@
 {
-  "version": "1.19.1",
-  "build": 153,
-  "updated_at": "2026-11-04T21:15:00+08:00",
+  "version": "1.9.9.9.9",
+  "build": 159,
+  "updated_at": "2026-11-08T13:10:00+08:00",
   "min_native_version": "1.0.0",
   "is_beta": false,
-  "title": "纯净深空漫游与核心体验跃迁版上线：界面极致纯净、3D搜打撤与引力弹弓变轨",
-  "changelog": "1. 移除Beta实验室脱节的2D像素小游戏，纯化漫游核心；2. 彻底移除中下方遮挡主视野的冗余按钮，底栏视野极致纯净；3. 搜打撤深度融入3D深空世界：近距牵引光束自动搜刮废料核心与战术货舱；4. 引力弹弓深度融入3D真实轨道力学：实时引力弯曲预测弧线、+280%变轨加速、[P]发射探针鸟；5. 行星地表建模升级为7大文明巨构群；6. 新增第5编队形态【银翼天鹏】；7. 重构原生端与Web端多源镜像容灾机制，彻底解决推送丢失问题。",
+  "title": "修复设置里版本号显示错误",
+  "changelog": "修复：无原生桥时（浏览器 / PWA），设置里的客户端版本号一直显示 v1.19.1 (Build 153)。那是一个硬编码的兜底值，覆盖了 HTML 里的正确版本。",
   "entry": "starfield.html",
-  "download_url": "https://raw.githubusercontent.com/jackeyloveseven/starfield/master/starfield.html",
+  "download_url": "https://jackeyloveseven.github.io/starfield/starfield.html",
   "apk_release_url": "https://github.com/jackeyloveseven/starfield/releases/tag/v1.19.1-focus-apk"
 }

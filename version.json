@@ -1,11 +1,11 @@
 {
   "version": "1.9.9.9.9",
-  "build": 159,
-  "updated_at": "2026-11-08T13:10:00+08:00",
+  "build": 160,
+  "updated_at": "2026-11-08T13:40:00+08:00",
   "min_native_version": "1.0.0",
   "is_beta": false,
-  "title": "修复设置里版本号显示错误",
-  "changelog": "修复：无原生桥时（浏览器 / PWA），设置里的客户端版本号一直显示 v1.19.1 (Build 153)。那是一个硬编码的兜底值，覆盖了 HTML 里的正确版本。",
+  "title": "\\u661f\\u7403\\u6539 three.js \\u5efa\\u6a21\\uff0c\\u4e94\\u6863\\u54c1\\u9636\\u8d28\\u611f\\u62c9\\u5f00",
+  "changelog": "1. \\u5f00\\u5361\\u661f\\u7403\\u4ece\\u624b\\u5199 WebGL shader \\u6539\\u4e3a three.js \\u5efa\\u6a21\\uff0c\\u590d\\u7528 planet_studio.html \\u7684 LivingPlanet\\uff1a\\u9876\\u70b9\\u7740\\u8272\\u5730\\u5f62\\u3001\\u6d77\\u6d0b\\u58f3\\u3001\\u4e91\\u5c42\\u3001Fresnel \\u5927\\u6c14\\u3001\\u5b9e\\u4f8b\\u5316\\u690d\\u88ab\\u3001\\u5de8\\u6784\\u4e0e\\u98de\\u9e1f\\u9cb8\\u9c7c\\uff1b2. \\u4e94\\u6863\\u54c1\\u9636\\u5728\\u5730\\u8c8c\\u7ec4\\u5408\\u4e0a\\u62c9\\u5f00\\uff1a\\u666e\\u901a\\u9752\\u84dd\\u6d77\\u6d0b\\u3001\\u7a00\\u6709\\u91d1\\u6a59\\u6c99\\u4e18\\u3001\\u53f2\\u8bd7\\u7fe0\\u7eff\\u6797\\u6d77\\u3001\\u4f20\\u8bf4\\u53cc\\u73af\\u9057\\u8ff9\\u3001\\u795e\\u8bdd\\u7d2b\\u7c89\\u5f02\\u661f\\uff1b3. \\u5149\\u73af\\u6539\\u7ec6\\u4eae\\u7ebf\\uff08AdditiveBlending\\uff09\\uff0c\\u5361\\u724c\\u4e0a\\u4e0d\\u518d\\u662f\\u7070\\u76d8\\u3002",
   "entry": "starfield.html",
   "download_url": "https://jackeyloveseven.github.io/starfield/starfield.html",
   "apk_release_url": "https://github.com/jackeyloveseven/starfield/releases/tag/v1.19.1-focus-apk"

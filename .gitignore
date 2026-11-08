@@ -14,3 +14,9 @@ local.properties
 # 临时诊断脚本与截图
 tools/_*.py
 tools/_*.png
+
+# Android build output (never commit)
+android/build/
+android/app/build/
+android/.gradle/
+*.apk
