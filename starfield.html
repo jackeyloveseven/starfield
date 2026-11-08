@@ -1698,7 +1698,7 @@ img,canvas{-webkit-user-drag:none;user-drag:none}
     <div class="shortcut-list">
       <div class="shortcut-row">
         <span>客户端版本</span>
-        <span class="shortcut-key" id="sf-version-tag">v1.9.9.9.9 (Build 160)</span>
+        <span class="shortcut-key" id="sf-version-tag">v1.9.9.9.9 (Build 161)</span>
       </div>
       <div class="shortcut-row">
         <span>OTA 实时热更新</span>
@@ -13022,7 +13022,7 @@ window.addEventListener('resize', () => {
       })
       .then(data => {
         if (data && data.build) {
-          const localBuild = 160;
+          const localBuild = 161;
           if (data.build > localBuild) {
             showOtaNotification(data);
           } else if (manual && window.toast) {
@@ -21539,14 +21539,14 @@ const Presets = {
     faunaLevel: 1,
     cloudCoverage: 0.30,
     colors: {
-      deepOcean: '#1a1c29',
-      coastWater: '#4a6fa5',
-      sand: '#f4a261',
-      grass: '#b5838d',
-      forest: '#6d6875',
-      rock: '#e5989b',
-      snow: '#ffb4a2',
-      waterTrans: 0.75
+      deepOcean: '#0e1018',
+      coastWater: '#3a5478',
+      sand: '#c8a06a',
+      grass: '#8a7a5c',
+      forest: '#5c5346',
+      rock: '#7a6a55',
+      snow: '#cfc3a8',
+      waterTrans: 0.78
     }
   },
   alien: {
@@ -21594,6 +21594,8 @@ class LivingPlanet {
     this.cfg = cfg || { radius: 36, seed: 1, preset: 'archipelago',
       landRatio: 0.38, ruggedness: 1.2, treeCount: 800, monumentLevel: 1,
       faunaLevel: 1, cloudCoverage: 0.4, spinSpeed: 1, colors: Presets.archipelago.colors };
+    this.envMap = (cfg && cfg.envMap) || null;
+    if (this.envMap) this.cfg.envMap = this.envMap;
     this.scene = scene;
     this.group = new THREE.Group();
     this.scene.add(this.group);
@@ -21709,11 +21711,11 @@ class LivingPlanet {
 
         if (landElev < 0.08) {
           col.copy(cSand); // Beach
-        } else if (landElev < 0.35) {
+        } else if (landElev < 0.44) {
           col.copy(cGrass); // Lowland grass
-        } else if (landElev < 0.65) {
+        } else if (landElev < 0.74) {
           col.copy(cForest); // Upland forest
-        } else if (landElev < 0.88) {
+        } else if (landElev < 0.95) {
           col.copy(cRock); // High rocky mountain
         } else {
           col.copy(cSnow); // Snow peak
@@ -21739,11 +21741,15 @@ class LivingPlanet {
     geom.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
     geom.computeVertexNormals();
 
-    const mat = new THREE.MeshStandardMaterial({
+    const mat = new THREE.MeshPhysicalMaterial({
       vertexColors: true,
-      roughness: 0.88,
-      metalness: 0.08,
+      roughness: 0.86,
+      metalness: 0.05,
       flatShading: true,
+      clearcoat: this.cfg.clearcoat || 0,
+      clearcoatRoughness: 0.42,
+      envMapIntensity: this.cfg.envIntensity || 0.55,
+      envMap: this.cfg.envMap || null
     });
 
     this.terrainMesh = new THREE.Mesh(geom, mat);
@@ -21755,13 +21761,19 @@ class LivingPlanet {
   buildOcean(preset) {
     const R = this.cfg.radius;
     const geom = new THREE.IcosahedronGeometry(R - 1.1, 14);
-    const mat = new THREE.MeshStandardMaterial({
+    const mat = new THREE.MeshPhysicalMaterial({
       color: new THREE.Color(preset.colors.coastWater),
       transparent: true,
       opacity: preset.colors.waterTrans || 0.82,
-      roughness: 0.15,
-      metalness: 0.12,
+      roughness: 0.10,
+      metalness: 0.22,
       flatShading: true,
+      clearcoat: 1.0,
+      clearcoatRoughness: 0.06,
+      envMapIntensity: (this.cfg.envIntensity || 0.55) * 2.0,
+      iridescence: this.cfg.iridescence || 0,
+      iridescenceIOR: 1.35,
+      envMap: this.cfg.envMap || null
     });
 
     this.oceanMesh = new THREE.Mesh(geom, mat);
@@ -21787,7 +21799,7 @@ class LivingPlanet {
     const mat = new THREE.MeshStandardMaterial({
       color: 0xffffff,
       transparent: true,
-      opacity: this.cfg.cloudCoverage * 0.75,
+      opacity: this.cfg.cloudCoverage * 0.40,
       roughness: 0.9,
       depthWrite: false,
       flatShading: true
@@ -22052,11 +22064,11 @@ class LivingPlanet {
   /* Tier -> preset + presentation. This is what makes the rarities
    * read differently at a glance instead of only shifting hue. */
   var TIER_LOOK = {
-    common: { preset: 'archipelago',        trees: 620,  monuments: 1, fauna: 1, clouds: 0.34, spin: 1.0, scale: 0.86, rim: 0.55, ring: 0, moons: 0, tilt: 0.18, light: 1.05 },
-    rare:   { preset: 'desert_oasis',       trees: 720, monuments: 2, fauna: 1, clouds: 0.30, spin: 1.15, scale: 0.90, rim: 0.72, ring: 1, moons: 1, tilt: 0.22, light: 1.15 },
-    epic:   { preset: 'forest',             trees: 1150, monuments: 3, fauna: 2, clouds: 0.48, spin: 1.3, scale: 0.94, rim: 0.92, ring: 1, moons: 2, tilt: 0.26, light: 1.28 },
-    legend: { preset: 'monument',           trees: 480,  monuments: 4, fauna: 2, clouds: 0.36, spin: 1.5, scale: 0.98, rim: 1.15, ring: 2, moons: 3, tilt: 0.30, light: 1.42 },
-    myth:   { preset: 'alien',              trees: 900, monuments: 4, fauna: 3, clouds: 0.52, spin: 1.7, scale: 1.00, rim: 1.45, ring: 2, moons: 3, tilt: 0.34, light: 1.55 }
+    common: { preset: 'archipelago',        trees: 620,  monuments: 1, fauna: 1, clouds: 0.34, spin: 1.0, scale: 0.86, rim: 0.55, ring: 0, moons: 0, tilt: 0.18, light: 0.95 },
+    rare:   { preset: 'desert_oasis',       trees: 720, monuments: 2, fauna: 1, clouds: 0.30, spin: 1.15, scale: 0.90, rim: 0.72, ring: 1, moons: 1, tilt: 0.22, light: 1.0 },
+    epic:   { preset: 'forest',             trees: 1150, monuments: 3, fauna: 2, clouds: 0.48, spin: 1.3, scale: 0.94, rim: 0.92, ring: 1, moons: 2, tilt: 0.26, light: 1.06 },
+    legend: { preset: 'monument',           trees: 480,  monuments: 4, fauna: 2, clouds: 0.36, spin: 1.5, scale: 0.98, rim: 1.15, ring: 2, moons: 3, tilt: 0.30, light: 0.98 },
+    myth:   { preset: 'alien',              trees: 900, monuments: 4, fauna: 3, clouds: 0.52, spin: 1.7, scale: 1.00, rim: 1.45, ring: 2, moons: 3, tilt: 0.34, light: 0.94 }
   };
 
   function hexToHsl(hex) {
@@ -22103,7 +22115,8 @@ class LivingPlanet {
   }
 
   var host = null, renderer = null, scene = null, camera = null,
-      planet = null, sun = null, rimLight = null, amb = null,
+      planet = null, sun = null, rimLight = null, amb = null, envTarget = null,
+      outlineMesh = null,
       ok = false, failed = false, curKey = '', ringMeshes = [], moonMeshes = [],
       startT = 0, look = null;
 
@@ -22130,8 +22143,40 @@ class LivingPlanet {
     camera.position.set(0, 0, 178);
     camera.lookAt(0, 0, 0);
 
-    amb = new THREE.AmbientLight(0xffffff, 0.52);
+    amb = new THREE.AmbientLight(0xffffff, 0.34);
     scene.add(amb);
+
+    /* 程序化环境贴图：没有它就只剩三个平行光，物理材质会显得平。
+     * 用一个上下渐变的球体做源，PMREM 预滤波后给所有材质用。 */
+    try {
+      var envScene = new THREE.Scene();
+      var envGeo = new THREE.SphereGeometry(60, 32, 16);
+      var envCols = [];
+      var envPos = envGeo.attributes.position;
+      var top = new THREE.Color(0xdfe9ff);
+      var mid = new THREE.Color(0x8fa8c8);
+      var bot = new THREE.Color(0x1a2230);
+      var tmpC = new THREE.Color();
+      for (var vi = 0; vi < envPos.count; vi++) {
+        var yy = envPos.getY(vi) / 60;
+        if (yy >= 0) tmpC.copy(mid).lerp(top, yy);
+        else tmpC.copy(mid).lerp(bot, -yy);
+        envCols.push(tmpC.r, tmpC.g, tmpC.b);
+      }
+      envGeo.setAttribute('color', new THREE.Float32BufferAttribute(envCols, 3));
+      var envMat = new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.BackSide });
+      envScene.add(new THREE.Mesh(envGeo, envMat));
+
+      var pmrem = new THREE.PMREMGenerator(renderer);
+      pmrem.compileEquirectangularShader();
+      envTarget = pmrem.fromScene(envScene, 0.04);
+      scene.environment = envTarget.texture;
+      envMat.dispose();
+      envGeo.dispose();
+      pmrem.dispose();
+    } catch (e) {
+      scene.environment = null;
+    }
 
     sun = new THREE.DirectionalLight(0xfff6e2, 1.35);
     sun.position.set(-96, 58, 92);
@@ -22157,6 +22202,11 @@ class LivingPlanet {
     }
     scene.remove(planet.group);
     planet = null;
+    if (outlineMesh) {
+      if (outlineMesh.geometry) outlineMesh.geometry.dispose();
+      if (outlineMesh.material) outlineMesh.material.dispose();
+      outlineMesh = null;
+    }
     ringMeshes.forEach(function (m) { if (m.geometry) m.geometry.dispose(); if (m.material) m.material.dispose(); scene.remove(m); });
     ringMeshes = [];
     moonMeshes.forEach(function (m) { if (m.geometry) m.geometry.dispose(); if (m.material) m.material.dispose(); scene.remove(m); });
@@ -22184,19 +22234,51 @@ class LivingPlanet {
       faunaLevel: L.fauna,
       cloudCoverage: L.clouds,
       spinSpeed: L.spin,
-      colors: tintPreset(basePreset.colors, hue, satBoost, lightBoost)
+      colors: tintPreset(basePreset.colors, hue, satBoost, lightBoost),
+      envMap: scene.environment || null,
+      envIntensity: (0.16 + L.rim * 0.09) * (tier === 'myth' ? 0.55 : tier === 'legend' ? 0.58 : 1.0),
+      clearcoat: tier === 'myth' ? 0.62 : tier === 'legend' ? 0.34 : tier === 'epic' ? 0.20 : 0.08,
+      iridescence: tier === 'myth' ? 1.0 : 0
     };
 
     planet = new LivingPlanet(scene, cfg);
     planet.build();
 
+    /* 卡通描边：把地形网格复制一份，沿法线外扩，只渲染背面，
+     * 得到一圈等宽轮廓线（比后期边缘检测便宜且稳定）。 */
+    if (planet.terrainMesh && planet.terrainMesh.geometry) {
+      var og = planet.terrainMesh.geometry.clone();
+      var om = new THREE.ShaderMaterial({
+        vertexShader: [
+          'uniform float uWidth;',
+          'void main() {',
+          '  vec3 p = position + normalize(normal) * uWidth;',
+          '  gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0);',
+          '}'
+        ].join('\n'),
+        fragmentShader: [
+          'uniform vec3 uColor;',
+          'void main() { gl_FragColor = vec4(uColor, 1.0); }'
+        ].join('\n'),
+        uniforms: {
+          uWidth: { value: 0.55 + L.rim * 0.35 },
+          uColor: { value: new THREE.Color(hsl(hue, 0.45, 0.30)) }
+        },
+        side: THREE.BackSide,
+        depthWrite: false
+      });
+      outlineMesh = new THREE.Mesh(og, om);
+      outlineMesh.renderOrder = -1;
+      planet.group.add(outlineMesh);
+    }
+
     var s = L.scale;
     planet.group.scale.setScalar(s);
     planet.group.rotation.z = L.tilt;
 
-    sun.intensity = L.light * 0.92;
-    rimLight.intensity = 0.30 + L.rim * 0.42;
-    amb.intensity = 0.40 + L.rim * 0.10;
+    sun.intensity = L.light * 0.78;
+    rimLight.intensity = 0.18 + L.rim * 0.24;
+    amb.intensity = (0.26 + L.rim * 0.08) * (tier === 'myth' ? 0.72 : 1.0);
 
     /* Rings: legend gets two, myth gets a bright inner band too. */
     for (var r = 0; r < L.ring; r++) {
