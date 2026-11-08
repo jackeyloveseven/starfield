@@ -1698,7 +1698,7 @@ img,canvas{-webkit-user-drag:none;user-drag:none}
     <div class="shortcut-list">
       <div class="shortcut-row">
         <span>客户端版本</span>
-        <span class="shortcut-key" id="sf-version-tag">v1.9.9.9.9 (Build 157)</span>
+        <span class="shortcut-key" id="sf-version-tag">v1.9.9.9.9 (Build 158)</span>
       </div>
       <div class="shortcut-row">
         <span>OTA 实时热更新</span>
@@ -9532,12 +9532,12 @@ const StarfieldOrbitalMechanics = {
         if (first) { c.moveTo(q[0], q[1]); first = false; }
         else { c.lineTo(q[0], q[1]); }
       }
-      c.strokeStyle = 'rgba(56, 189, 248, 0.72)';
-      c.lineWidth = 2.2;
-      c.setLineDash([7, 4]);
-      c.lineDashOffset = -(performance.now() * 0.02) % 11;
-      c.shadowColor = '#38bdf8';
-      c.shadowBlur = 12;
+      c.strokeStyle = 'rgba(120, 200, 245, 0.34)';
+      c.lineWidth = 1.1;
+      c.setLineDash([5, 7]);
+      c.lineDashOffset = -(performance.now() * 0.02) % 12;
+      c.shadowColor = 'rgba(56, 189, 248, 0.35)';
+      c.shadowBlur = 5;
       c.stroke();
       c.restore();
 
@@ -9563,26 +9563,8 @@ const StarfieldOrbitalMechanics = {
       }
     }
 
-    // 2. Relativistic Space-Stretching Stream Glow FX (空间拉伸流光特效)
-    if (this.slingshotGlowTimer > 0) {
-      const alpha = Math.min(1.0, this.slingshotGlowTimer * 0.8);
-      c.save();
-      c.strokeStyle = `rgba(56, 189, 248, ${(alpha * 0.55).toFixed(2)})`;
-      c.lineWidth = 1.6;
-      const cx = (typeof W !== 'undefined' ? W : 400) * 0.5;
-      const cy = (typeof H !== 'undefined' ? H : 600) * 0.5;
-      const numLines = 18;
-      for (let k = 0; k < numLines; k++) {
-        const ang = (k / numLines) * TAU + (performance.now() * 0.001);
-        const r1 = 80 + Math.sin(ang * 4) * 30;
-        const r2 = 360 + Math.cos(ang * 3) * 60;
-        c.beginPath();
-        c.moveTo(cx + Math.cos(ang) * r1, cy + Math.sin(ang) * r1);
-        c.lineTo(cx + Math.cos(ang) * r2, cy + Math.sin(ang) * r2);
-        c.stroke();
-      }
-      c.restore();
-    }
+    // 2. 弹弓激活时不再画辐射流光（18 条线从屏幕中心向四面八方辐射，
+    //    遮挡视野且无信息量）。速度感改由星尘拖尾与粒子层承担。
 
     // Atmospheric Entry Plasma Compression Glow during Low-Orbit Skims
     const activeRad = this.activePlanet ? (this.activePlanet.r || this.activePlanet.rad || 300) : 300;
@@ -13039,7 +13021,7 @@ window.addEventListener('resize', () => {
       })
       .then(data => {
         if (data && data.build) {
-          const localBuild = 157;
+          const localBuild = 158;
           if (data.build > localBuild) {
             showOtaNotification(data);
           } else if (manual && window.toast) {

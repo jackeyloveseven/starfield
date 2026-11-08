@@ -1,11 +1,11 @@
 {
   "version": "1.9.9.9.9",
-  "build": 157,
-  "updated_at": "2026-11-08T12:20:00+08:00",
+  "build": 158,
+  "updated_at": "2026-11-08T12:45:00+08:00",
   "min_native_version": "1.0.0",
   "is_beta": false,
-  "title": "开卡演出重做：星尘收拢 → 光柱 → 爆闪 → 粒子四散 → 卡片弹出",
-  "changelog": "1. 开卡演出按抽卡节奏重做：260 颗星尘螺旋收拢、中心光柱撑起、白光爆闪、稀有度彩色火花四散、卡片过冲弹出；2. 粒子数量与颜色跟品阶走（普通 200 / 史诗 200 / 传说 260 / 神话 320）；3. 白光改独立层（原 #sf-hatch::after 被旧规则占用）。",
+  "title": "视野清理：移除弹弓辐射流光，预测弧线收敛",
+  "changelog": "1. 移除引力弹弓激活时从屏幕中心向四面八方辐射的 18 条青色流光（遮挡视野且无信息量，速度感改由星尘拖尾承担）；2. 弹弓预测弧线收敛：线宽 2.2 -> 1.1、透明度 0.72 -> 0.34、光晕 12 -> 5，不再抢视野。",
   "entry": "starfield.html",
   "download_url": "https://jackeyloveseven.github.io/starfield/starfield.html",
   "apk_release_url": "https://github.com/jackeyloveseven/starfield/releases/tag/v1.19.1-focus-apk"
