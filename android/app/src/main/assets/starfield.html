@@ -4620,7 +4620,7 @@ body:has(#photo-ui.active) .sf-touch-cluster{
     <div class="shortcut-list">
       <div class="shortcut-row">
         <span>客户端版本</span>
-        <span class="shortcut-key" id="sf-version-tag">v1.9.9.9.9 (Build 172)</span>
+        <span class="shortcut-key" id="sf-version-tag">v1.9.9.9.9 (Build 173)</span>
       </div>
       <div class="shortcut-row">
         <span>OTA 实时热更新</span>
@@ -15949,7 +15949,7 @@ window.addEventListener('resize', () => {
       })
       .then(data => {
         if (data && data.build) {
-          const localBuild = 172;
+          const localBuild = 173;
           if (data.build > localBuild) {
             showOtaNotification(data);
           } else if (manual && window.toast) {
@@ -20778,6 +20778,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const focusedMinutes = Math.round(this.targetDurationSec / 60);
       this.stats.totalFocusMinutes += focusedMinutes;
+    /* 桥接到独立 key：收藏与渲染都要读它来算"建设度" */
+    try { localStorage.setItem('sf_total_focus_v1', String(this.stats.totalFocusMinutes)); } catch (e) {}
       this.stats.completedVoyages++;
       this.stats.currentStreak++;
       if (this.stats.currentStreak > this.stats.bestStreak) {
@@ -21199,6 +21201,7 @@ document.addEventListener('DOMContentLoaded', () => {
       minutes: minutes,
       hue: hue,
       at: new Date().toISOString().slice(0, 10), ts: Date.now(),
+    focusAtBirth: (function(){ try { return parseInt(localStorage.getItem('sf_total_focus_v1')||'0',10)||0; } catch(e){ return 0; } })(),
       bound: bound,
       from: bound ? { kind: String(pending.kind || 'unknown'), name: String(pending.name) } : null
     };
@@ -21894,6 +21897,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (evoEl && window.SFEvolution) {
       evoEl.textContent = window.SFEvolution.elapsedText(item) + ' \u00b7 ' + window.SFEvolution.note(item);
+    }
+    if (evoEl && window.SFBuildup) {
+      var stg = window.SFBuildup.stage(item);
+      if (stg > 0) {
+        var left = window.SFBuildup.progress(item);
+        evoEl.textContent += ' \u00b7 \u8f68\u9053\u8bbe\u65bd ' + window.SFBuildup.stageLabel(item)
+          + (left !== null ? '\uff08\u8fd8\u5dee ' + left + ' \u5206\u949f\uff09' : '');
+      }
     }
     nameEl.textContent = item.name;
     metaEl.textContent = t.cn + ' · ' + (item.minutes || 15) + ' 分钟 · ' + (item.at || '');
@@ -24276,7 +24287,7 @@ function sfBuildManif(THREE, planet, manifId, hue, rng) {
 
   var host = null, renderer = null, scene = null, camera = null,
       planet = null, sun = null, rimLight = null, amb = null, envTarget = null,
-      outlineMesh = null, manifExtra = null,
+      outlineMesh = null, manifExtra = null, facilityGroup = null,
       ok = false, failed = false, curKey = '', ringMeshes = [], moonMeshes = [],
       startT = 0, look = null;
 
@@ -24481,8 +24492,15 @@ function sfBuildManif(THREE, planet, manifId, hue, rng) {
       moonMeshes.push(moon);
     }
 
+    /* 轨道设施：建设阶段也参与 curKey，阶段变了要重建 */
+    var buildupStage = window.SFBuildup ? window.SFBuildup.stage(item) : 0;
+    if (window.SFBuildup && buildupStage > 0) {
+      var fac = window.SFBuildup.build(THREE, scene, 36, buildupStage, hue);
+      if (fac) { scene.add(fac); facilityGroup = fac; }
+    }
+
     startT = performance.now();
-    curKey = tier + '|' + hue;
+    curKey = tier + '|' + hue + '|' + buildupStage;
   }
 
   function sizeTo(canvas2d) {
@@ -24529,6 +24547,7 @@ function sfBuildManif(THREE, planet, manifId, hue, rng) {
         mo.position.set(Math.cos(a) * ud.orbit, Math.sin(a * 0.6) * 9, Math.sin(a) * ud.orbit);
       }
 
+      if (facilityGroup) facilityGroup.rotation.y = t * 0.05;
       if (manifExtra && manifExtra.updaters) {
         for (var ui = 0; ui < manifExtra.updaters.length; ui++) manifExtra.updaters[ui](t);
       }
@@ -25144,9 +25163,9 @@ function sfBuildManif(THREE, planet, manifId, hue, rng) {
     /* 列表用的短形式 */
     shortText: function (item) {
       var h = hours(item);
-      if (h < 1) return Math.max(1, Math.round(h * 60)) + ' \u5206\u949f\u524d';
-      if (h < 48) return Math.round(h) + ' \u5c0f\u65f6\u524d';
-      return Math.floor(h / 24) + ' \u5929\u524d';
+      if (h < 1) return Math.max(1, Math.round(h * 60)) + ' 分钟前';
+      if (h < 48) return Math.round(h) + ' 小时前';
+      return Math.floor(h / 24) + ' 天前';
     },
 
     /* 植被随时间缓慢恢复/扩张，有上限 */
@@ -25296,6 +25315,109 @@ function sfBuildManif(THREE, planet, manifId, hue, rng) {
     start: start,
     stop: function () { curId = null; stopAll(); },
     current: function () { return curId; }
+  };
+})();
+
+</script>
+
+<script id="sf-buildup">
+/* ============================================================
+   渐进式建设：你专注的时间，真的在建造东西。
+   建设度 = 当前累计专注 - 收藏时的累计专注（focusAtBirth）。
+   阶段：太阳能板 -> 环带骨架 -> 闭合环 -> 戴森云。
+   ============================================================ */
+(function () {
+  if (window.SFBuildup) return;
+
+  function totalFocus() {
+    try { return parseInt(localStorage.getItem('sf_total_focus_v1') || '0', 10) || 0; }
+    catch (e) { return 0; }
+  }
+
+  var STAGES = [
+    { min: 0,   label: '未开工',   en: 'NOT STARTED' },
+    { min: 30,  label: '太阳能板阵列', en: 'SOLAR ARRAY' },
+    { min: 120, label: '环带骨架', en: 'RING FRAME' },
+    { min: 300, label: '闭合环带', en: 'CLOSED RING' },
+    { min: 600, label: '戴森云',     en: 'DYSON SWARM' }
+  ];
+
+  window.SFBuildup = {
+    minutes: function (item) {
+      if (!item || typeof item.focusAtBirth !== 'number') return 0;
+      return Math.max(0, totalFocus() - item.focusAtBirth);
+    },
+    stage: function (item) {
+      var m = this.minutes(item), s = 0;
+      for (var i = 0; i < STAGES.length; i++) if (m >= STAGES[i].min) s = i;
+      return s;
+    },
+    stageLabel: function (item) {
+      var s = this.stage(item);
+      return STAGES[s].label;
+    },
+    progress: function (item) {
+      /* 到下一阶段还差多少分钟 */
+      var m = this.minutes(item), s = this.stage(item);
+      if (s >= STAGES.length - 1) return null;
+      return Math.max(0, STAGES[s + 1].min - m);
+    },
+
+    /* 在星球周围搭建设施，挂到 group 上 */
+    build: function (THREE, group, R, stage, hue) {
+      if (stage <= 0) return null;
+      var g = new THREE.Group();
+      var mat = new THREE.MeshStandardMaterial({
+        color: new THREE.Color().setHSL(0.12, 0.55, 0.55),
+        roughness: 0.35, metalness: 0.75,
+        emissive: new THREE.Color().setHSL(0.12, 0.6, 0.12), flatShading: true
+      });
+      var glow = new THREE.MeshBasicMaterial({
+        color: new THREE.Color().setHSL(0.55, 0.85, 0.62),
+        transparent: true, opacity: 0.6, blending: THREE.AdditiveBlending, depthWrite: false
+      });
+      var orbit = R * 1.5;
+
+      if (stage === 1) {
+        /* 太阳能板：轨道上若干小方块 */
+        for (var i = 0; i < 6; i++) {
+          var a = i / 6 * Math.PI * 2;
+          var p = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.12, 1.2), mat);
+          p.position.set(Math.cos(a) * orbit, 0, Math.sin(a) * orbit);
+          g.add(p);
+        }
+      } else {
+        /* 环带：阶段 2 是断弧，阶段 3 是整环，阶段 4 加云 */
+        var frac = stage === 2 ? 0.55 : 1.0;
+        var ring = new THREE.Mesh(
+          new THREE.TorusGeometry(orbit, 0.28, 6, 96, Math.PI * 2 * frac), mat);
+        ring.rotation.x = Math.PI / 2 - 0.22;
+        g.add(ring);
+        var rim = new THREE.Mesh(
+          new THREE.TorusGeometry(orbit, 0.06, 4, 96, Math.PI * 2 * frac), glow);
+        rim.rotation.x = Math.PI / 2 - 0.22;
+        rim.position.y = 0.35;
+        g.add(rim);
+
+        if (stage >= 4) {
+          /* 戴森云：环外散布的收集器点 */
+          var pts = [];
+          for (var d = 0; d < 320; d++) {
+            var a2 = Math.random() * Math.PI * 2;
+            var rr = orbit * (1.05 + Math.random() * 0.35);
+            pts.push(Math.cos(a2) * rr, (Math.random() - 0.5) * 3.5, Math.sin(a2) * rr);
+          }
+          var cg = new THREE.BufferGeometry();
+          cg.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3));
+          g.add(new THREE.Points(cg, new THREE.PointsMaterial({
+            color: new THREE.Color().setHSL(0.55, 0.9, 0.7), size: 0.5,
+            transparent: true, opacity: 0.75, blending: THREE.AdditiveBlending, depthWrite: false
+          })));
+        }
+      }
+      g.rotation.x = 0.22;
+      return g;
+    }
   };
 })();
 

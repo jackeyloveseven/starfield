@@ -1,0 +1,39 @@
+
+# -*- coding: utf-8 -*-
+"""v304 - build 172 -> 173：渐进式建设。"""
+import json, sys
+from pathlib import Path
+BASE = Path(r'D:\items\code\projects\starfield\starfield-pub')
+HTML, SW, VER = BASE / 'starfield.html', BASE / 'service-worker.js', BASE / 'version.json'
+VER_STR, OLD_B, NEW_B = '1.9.9.9.9', 172, 173
+
+html = HTML.read_text(encoding='utf-8', newline='')
+for old, new in [
+    ('id="sf-version-tag">v%s (Build %d)</span>' % (VER_STR, OLD_B),
+     'id="sf-version-tag">v%s (Build %d)</span>' % (VER_STR, NEW_B)),
+    ('const localBuild = %d;' % OLD_B, 'const localBuild = %d;' % NEW_B),
+]:
+    assert html.count(old) == 1
+    html = html.replace(old, new)
+HTML.write_text(html, encoding='utf-8', newline='')
+
+sw = SW.read_text(encoding='utf-8', newline='')
+old = "const CACHE_VERSION = 'v%s-b%d';" % (VER_STR, OLD_B)
+assert sw.count(old) == 1
+sw = sw.replace(old, "const CACHE_VERSION = 'v%s-b%d';" % (VER_STR, NEW_B))
+SW.write_text(sw, encoding='utf-8', newline='')
+
+meta = json.loads(VER.read_text(encoding='utf-8'))
+meta['build'] = NEW_B
+meta['updated_at'] = '2026-11-09T10:20:00+08:00'
+meta['title'] = '\\u6e10\\u8fdb\\u5f0f\\u5efa\\u8bbe\\uff1a\\u4f60\\u4e13\\u6ce8\\u7684\\u65f6\\u95f4\\u5728\\u5efa\\u9020\\u4e1c\\u897f'
+meta['changelog'] = (
+    '\\u6536\\u85cf\\u65f6\\u8bb0\\u5f55\\u51fa\\u751f\\u70b9\\u7684\\u7d2f\\u8ba1\\u4e13\\u6ce8\\uff0c'
+    '\\u4e4b\\u540e\\u6bcf\\u6b21\\u4e13\\u6ce8\\u90fd\\u8ba9\\u8be5\\u661f\\u7684\\u8f68\\u9053\\u8bbe\\u65bd\\u9010\\u7ea7\\u6210\\u578b\\uff1a'
+    '\\u592a\\u9633\\u80fd\\u677f\\u9635\\u5217\\uff0830\\uff09\\u2192\\u73af\\u5e26\\u9aa8\\u67b6\\uff08120\\uff09'
+    '\\u2192\\u95ed\\u5408\\u73af\\u5e26\\uff08300\\uff09\\u2192\\u6234\\u68ee\\u4e91\\uff08600\\uff09\\u3002'
+    '\\u8bbe\\u65bd\\u771f\\u5b9e\\u6e32\\u67d3\\u5728\\u661f\\u7403\\u5468\\u56f4\\uff0c\\u5361\\u9762\\u663e\\u793a\\u5efa\\u8bbe\\u9636\\u6bb5\\u4e0e\\u4e0b\\u4e00\\u7ea7\\u6240\\u9700\\u5206\\u949f\\u6570\\u3002'
+)
+VER.write_text(json.dumps(meta, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+sys.stdout.reconfigure(encoding='utf-8')
+print('bumped to Build %d' % NEW_B)
