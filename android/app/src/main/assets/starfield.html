@@ -4620,7 +4620,7 @@ body:has(#photo-ui.active) .sf-touch-cluster{
     <div class="shortcut-list">
       <div class="shortcut-row">
         <span>客户端版本</span>
-        <span class="shortcut-key" id="sf-version-tag">v1.9.9.9.9 (Build 171)</span>
+        <span class="shortcut-key" id="sf-version-tag">v1.9.9.9.9 (Build 172)</span>
       </div>
       <div class="shortcut-row">
         <span>OTA 实时热更新</span>
@@ -6721,6 +6721,12 @@ const Codex = {
   },
 
   checkCelestialEncounter(m) {
+    /* 渐进式揭示：远处掠过不算发现，靠得足够近才录入。
+       用航线距离而不是屏幕半径——project 在主 IIFE 内，这里未必拿得到；
+       travel 是全局的，Codex.discover 里本来就在用。 */
+    var dz = m.z - travel;
+    var reach = (m.r || 300) * 16;
+    if (dz > reach || dz < -reach * 0.5) return;
     for (const item of this.database.celestial) {
       if (item.cond(m)) {
         this.discover(item.id, item.name);
@@ -15943,7 +15949,7 @@ window.addEventListener('resize', () => {
       })
       .then(data => {
         if (data && data.build) {
-          const localBuild = 171;
+          const localBuild = 172;
           if (data.build > localBuild) {
             showOtaNotification(data);
           } else if (manual && window.toast) {
