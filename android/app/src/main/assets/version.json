@@ -1,11 +1,11 @@
 {
   "version": "1.9.9.9.9",
-  "build": 175,
-  "updated_at": "2026-11-09T10:50:00+08:00",
+  "build": 176,
+  "updated_at": "2026-11-09T11:00:00+08:00",
   "min_native_version": "1.0.0",
   "is_beta": false,
-  "title": "\\u5f15\\u529b\\u900f\\u955c",
-  "changelog": "\\u9ed1\\u6d1e\\u5468\\u56f4\\u52a0\\u5165\\u5f15\\u529b\\u900f\\u955c\\u6548\\u679c\\uff1a\\u4e8b\\u4ef6\\u89c6\\u754c\\u7eaf\\u9ed1\\u3001\\u4e09\\u91cd\\u5149\\u5b50\\u73af\\u3001\\u88ab\\u5f15\\u529b\\u62d6\\u62fd\\u7684\\u87ba\\u65cb\\u661f\\u5149\\u3002\\u900f\\u660e\\u5ea6\\u538b\\u4f4e\\u4e0d\\u906e\\u6321\\u89c6\\u91ce\\u3002",
+  "title": "\\u63a5\\u5165 sand3d\\uff1a\\u771f\\u5b9e\\u6bcd\\u8230\\u6a21\\u578b",
+  "changelog": "\\u7528 sand3d\\uff08Blender\\uff09\\u5efa\\u9020\\u6bcd\\u8230\\u6a21\\u578b\\uff1a\\u68ad\\u5f62\\u8239\\u4f53 + \\u8230\\u6865 + \\u53cc\\u7ffc + \\u5c3e\\u7ffc + \\u53cc\\u5f15\\u64ce\\uff0c\\u5bfc\\u51fa GLB \\u540e base64 \\u5185\\u5d4c\\uff0cGLTFLoader.parse \\u52a0\\u8f7d\\u5230\\u6bcd\\u8230\\u8239\\u575e\\u5730\\u8868\\u3002",
   "entry": "starfield.html",
   "download_url": "https://jackeyloveseven.github.io/starfield/starfield.html",
   "apk_release_url": "https://github.com/jackeyloveseven/starfield/releases/tag/v1.19.1-focus-apk"
