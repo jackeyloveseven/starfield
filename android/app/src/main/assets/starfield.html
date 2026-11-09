@@ -4625,7 +4625,7 @@ body:has(#photo-ui.active) .sf-touch-cluster{
     <div class="shortcut-list">
       <div class="shortcut-row">
         <span>客户端版本</span>
-        <span class="shortcut-key" id="sf-version-tag">v1.9.9.9.9 (Build 179)</span>
+        <span class="shortcut-key" id="sf-version-tag">v1.9.9.9.9 (Build 180)</span>
       </div>
       <div class="shortcut-row">
         <span>OTA 实时热更新</span>
@@ -15952,7 +15952,7 @@ window.addEventListener('resize', () => {
       })
       .then(data => {
         if (data && data.build) {
-          const localBuild = 179;
+          const localBuild = 180;
           if (data.build > localBuild) {
             showOtaNotification(data);
           } else if (manual && window.toast) {
