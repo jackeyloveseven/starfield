@@ -4293,6 +4293,29 @@ body:has(#photo-ui.active) .sf-touch-cluster{
   #sf-hatch .sf-card-info{ bottom:calc(env(safe-area-inset-bottom,0px) + 126px) !important; }
 }
 </style>
+
+<style id="sf-ui-evolution">
+/* 演化注记：比规格行更淡，但是时间维度唯一的出口 */
+#sf-hatch .sf-card-evolution{
+  margin-top:9px;
+  font-family:var(--ui-mono,monospace);
+  font-size:8.5px;
+  letter-spacing:.22em;
+  line-height:1.6;
+  color:rgba(200,214,228,.42);
+  text-align:center;
+  opacity:0;
+  animation:sfGuideIn .8s var(--ui-ease,ease) .75s forwards;
+}
+#sf-hatch .sf-card-evolution::before{
+  content:"";
+  display:inline-block;
+  width:4px;height:4px;border-radius:50%;
+  background:rgba(200,214,228,.5);
+  margin-right:7px;
+  vertical-align:middle;
+}
+</style>
 </head>
 <body>
 <main id="world" aria-label="星空，一场由引力引航的无限航行">
@@ -4597,7 +4620,7 @@ body:has(#photo-ui.active) .sf-touch-cluster{
     <div class="shortcut-list">
       <div class="shortcut-row">
         <span>客户端版本</span>
-        <span class="shortcut-key" id="sf-version-tag">v1.9.9.9.9 (Build 168)</span>
+        <span class="shortcut-key" id="sf-version-tag">v1.9.9.9.9 (Build 169)</span>
       </div>
       <div class="shortcut-row">
         <span>OTA 实时热更新</span>
@@ -15920,7 +15943,7 @@ window.addEventListener('resize', () => {
       })
       .then(data => {
         if (data && data.build) {
-          const localBuild = 168;
+          const localBuild = 169;
           if (data.build > localBuild) {
             showOtaNotification(data);
           } else if (manual && window.toast) {
@@ -21169,7 +21192,7 @@ document.addEventListener('DOMContentLoaded', () => {
       name: name,
       minutes: minutes,
       hue: hue,
-      at: new Date().toISOString().slice(0, 10),
+      at: new Date().toISOString().slice(0, 10), ts: Date.now(),
       bound: bound,
       from: bound ? { kind: String(pending.kind || 'unknown'), name: String(pending.name) } : null
     };
@@ -21284,7 +21307,7 @@ document.addEventListener('DOMContentLoaded', () => {
   var TIERS = (window.StarfieldHatch && window.StarfieldHatch.tiers) || {};
   function el(tag, cls, txt){ var e=document.createElement(tag); if(cls)e.className=cls; if(txt)e.textContent=txt; return e; }
 
-  var root=null, card=null, orb=null, nameEl=null, metaEl=null, specsEl=null, serialEl=null, tierBadgeEl=null;
+  var root=null, card=null, orb=null, nameEl=null, metaEl=null, specsEl=null, serialEl=null, tierBadgeEl=null, evoEl=null;
   var ceremonyCanvas=null, igniterBox=null, shockwave=null, planetCanvas=null, escortBtn=null;
   var cur=null, planetRenderer=null, particleSystem=null;
 
@@ -21409,7 +21432,8 @@ document.addEventListener('DOMContentLoaded', () => {
   ProceduralPlanet.prototype.setItem = function(it) {
     this.item = it || { hue: 200, tier: 'epic' };
     this.rotX = 0.22;
-    this.rotY = (((this.item && this.item.hue) || 200) % 360) * Math.PI / 180;
+    this.rotY = (((this.item && this.item.hue) || 200) % 360) * Math.PI / 180
+        + (window.SFEvolution ? window.SFEvolution.spinPhase(this.item) : 0);
   };
 
   /* 扁平几何星球：纯色面 + 硬边昼夜 + 球面椭圆斑块 + 发丝赤道。
@@ -21732,6 +21756,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     orb = card.querySelector('.sf-hatch-orb');
     var infoBox = card.querySelector('.sf-card-info');
+    /* 演化注记：build() 先于 cur=item 执行，文本在 openFor 里填 */
+    if (infoBox) {
+      evoEl = el('div', 'sf-card-evolution');
+      infoBox.appendChild(evoEl);
+    }
     if (infoBox) {
       var guide = el('div', 'sf-card-guide');
       guide.innerHTML = '\u70b9\u51fb\u5361\u9762\u7ffb\u9762\u67e5\u770b\u5929\u6587\u6863\u6848 \u00b7 \u4e0b\u65b9\u6309\u94ae\u76f4\u63a5\u64cd\u4f5c';
@@ -21850,6 +21879,9 @@ document.addEventListener('DOMContentLoaded', () => {
     card.style.setProperty('--tier-accent', t.accent || t.color);
     card.style.setProperty('--tier-grad', t.grad || 'linear-gradient(150deg, rgba(20, 29, 46, 0.96) 0%, rgba(7, 12, 20, 0.98) 100%)');
 
+    if (evoEl && window.SFEvolution) {
+      evoEl.textContent = window.SFEvolution.elapsedText(item) + ' \u00b7 ' + window.SFEvolution.note(item);
+    }
     nameEl.textContent = item.name;
     metaEl.textContent = t.cn + ' · ' + (item.minutes || 15) + ' 分钟 · ' + (item.at || '');
     tierBadgeEl.textContent = t.cn + ' · ' + (item.tier ? item.tier.toUpperCase() : 'CELESTIAL');
@@ -24138,7 +24170,7 @@ function sfBuildManif(THREE, planet, manifId, hue, rng) {
     /* 城市光点 */
     var cityGeo = new THREE.BufferGeometry();
     var cp = [];
-    for (var ci = 0; ci < 900; ci++) {
+    for (var ci = 0; ci < (window.__sfCityCount || 900); ci++) {
       var cu = rng() * Math.PI * 2, cv = Math.acos(2 * rng() - 1);
       cp.push(Math.sin(cv) * Math.cos(cu) * (R + 7.2),
               Math.cos(cv) * (R + 7.2),
@@ -24335,6 +24367,8 @@ function sfBuildManif(THREE, planet, manifId, hue, rng) {
 
     /* 形态独立于品阶：manif 决定"这是什么星球"，tier 只管光效 */
     var manif = sfManifFor(item);
+    window.__sfOrbitPhase = window.SFEvolution ? window.SFEvolution.orbitPhase(item) : 0;
+    window.__sfCityCount = window.SFEvolution ? window.SFEvolution.cityGrowth(item, 900) : 900;
     var basePreset = Presets[manif.preset] || Presets[L.preset] || Presets.archipelago;
     var satBoost = tier === 'myth' ? 0.92 : tier === 'legend' ? 0.88 : tier === 'epic' ? 0.86 : 0.82;
     var lightBoost = tier === 'myth' ? 0.86 : tier === 'legend' ? 0.84 : 0.82;
@@ -24477,7 +24511,7 @@ function sfBuildManif(THREE, planet, manifId, hue, rng) {
 
       for (var i = 0; i < moonMeshes.length; i++) {
         var mo = moonMeshes[i], ud = mo.userData;
-        var a = t * ud.speed + ud.phase;
+        var a = t * ud.speed + ud.phase + (window.__sfOrbitPhase || 0);
         mo.position.set(Math.cos(a) * ud.orbit, Math.sin(a * 0.6) * 9, Math.sin(a) * ud.orbit);
       }
 
@@ -25041,6 +25075,65 @@ function sfBuildManif(THREE, planet, manifId, hue, rng) {
       window.SFSurface.enter({ manif: manif, hue: hue, name: name });
     }
   });
+})();
+
+</script>
+
+<script id="sf-evolution">
+/* ============================================================
+   星球演化：它在你离开时也一直在运转。
+   时间因子来自收藏时刻（item.ts，老数据退回 item.at），
+   所有变化都是时间的确定函数 —— 同一时刻打开，看到的就是同一副样子。
+   ============================================================ */
+(function () {
+  if (window.SFEvolution) return;
+
+  function hours(item) {
+    if (!item) return 0;
+    var t = item.ts;
+    if (typeof t !== 'number' || !isFinite(t)) {
+      t = item.at ? Date.parse(item.at + 'T00:00:00Z') : NaN;
+    }
+    if (!isFinite(t)) return 0;
+    return Math.max(0, (Date.now() - t) / 3600000);
+  }
+
+  window.SFEvolution = {
+    hours: hours,
+    days: function (item) { return hours(item) / 24; },
+
+    /* 自转相位：每小时转过一定角度，回来时已不是你离开时的那一面 */
+    spinPhase: function (item) { return hours(item) * 0.16; },
+
+    /* 卫星/彗星相位：比自转快，位置变化更明显 */
+    orbitPhase: function (item) { return hours(item) * 0.55; },
+
+    /* 文明成长：城市光点随天数增加，有上限，不会无限膨胀 */
+    cityGrowth: function (item, base) {
+      var d = this.days(item);
+      var extra = Math.floor(Math.min(d * 26, 900));
+      return base + extra;
+    },
+
+    /* 一句话说明隔了多久 */
+    elapsedText: function (item) {
+      var h = hours(item);
+      if (h < 1 / 60) return '刚刚点亮';
+      if (h < 1) return Math.max(1, Math.round(h * 60)) + ' 分钟前点亮';
+      if (h < 48) return Math.round(h) + ' 小时前点亮';
+      var d = Math.floor(h / 24);
+      return d + ' 天前点亮';
+    },
+
+    /* 演化注记：让「等你回来」被看见，而不是只变几个像素 */
+    note: function (item) {
+      var d = this.days(item);
+      if (d < 1 / 24) return '它仍在缓慢自转';
+      if (d < 2) return '卫星已移动到新的位置';
+      if (d < 7) return '夜面的光点比上次多了一些';
+      return '城市在你离开时仍继续生长';
+    }
+  };
 })();
 
 </script>

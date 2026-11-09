@@ -1,11 +1,11 @@
 {
   "version": "1.9.9.9.9",
-  "build": 168,
-  "updated_at": "2026-11-09T01:25:00+08:00",
+  "build": 169,
+  "updated_at": "2026-11-09T09:20:00+08:00",
   "min_native_version": "1.0.0",
   "is_beta": false,
-  "title": "\\u8fdb\\u5165\\u661f\\u7403\\u7684\\u5e73\\u6ed1\\u4e0b\\u964d\\u8fc7\\u6e21",
-  "changelog": "\\u8fdb\\u5165\\u5730\\u8868\\u65f6\\u76f8\\u673a\\u4ece\\u9ad8\\u7a7a 60 \\u7f13\\u964d\\u5230 9\\uff08ease-out 2.4 \\u79d2\\uff09\\uff0c\\u914d\\u5408 UI \\u6de1\\u5165\\uff0c\\u4e0d\\u518d\\u786c\\u5207\\uff1b\\u9000\\u51fa\\u6de1\\u51fa\\u3002",
+  "title": "\\u661f\\u7403\\u4f1a\\u7b49\\u4f60\\u56de\\u6765",
+  "changelog": "\\u6536\\u85cf\\u7684\\u661f\\u7403\\u968f\\u73b0\\u5b9e\\u65f6\\u95f4\\u7f13\\u6162\\u6f14\\u5316\\uff1a\\u81ea\\u8f6c\\u4e0e\\u536b\\u661f\\u76f8\\u4f4d\\u968f\\u5c0f\\u65f6\\u6570\\u504f\\u79fb\\u3001\\u57ce\\u5e02\\u5149\\u70b9\\u968f\\u5929\\u6570\\u589e\\u591a\\uff08\\u6709\\u4e0a\\u9650\\uff09\\uff1b\\u5361\\u9762\\u65b0\\u589e\\u6f14\\u5316\\u6ce8\\u8bb0\\uff0c\\u663e\\u793a\\u300cN \\u5929\\u524d\\u70b9\\u4eae\\u300d\\u4e0e\\u53d8\\u5316\\u3002\\u6240\\u6709\\u53d8\\u5316\\u90fd\\u662f\\u65f6\\u95f4\\u7684\\u786e\\u5b9a\\u51fd\\u6570\\uff0c\\u540c\\u4e00\\u65f6\\u523b\\u6253\\u5f00\\u5c31\\u662f\\u540c\\u4e00\\u526f\\u6837\\u5b50\\u3002",
   "entry": "starfield.html",
   "download_url": "https://jackeyloveseven.github.io/starfield/starfield.html",
   "apk_release_url": "https://github.com/jackeyloveseven/starfield/releases/tag/v1.19.1-focus-apk"
