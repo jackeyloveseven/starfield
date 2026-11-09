@@ -1,11 +1,11 @@
 {
   "version": "1.9.9.9.9",
-  "build": 177,
-  "updated_at": "2026-11-09T11:10:00+08:00",
+  "build": 178,
+  "updated_at": "2026-11-09T11:20:00+08:00",
   "min_native_version": "1.0.0",
   "is_beta": false,
-  "title": "sand3d \\u661f\\u7075\\u6c34\\u6676\\u7c07",
-  "changelog": "\\u7528 sand3d \\u5efa\\u661f\\u7075\\u6298\\u5149\\u6c34\\u6676\\u7c07\\uff1a\\u4e09\\u6839\\u516d\\u68f1\\u6676\\u4f53\\uff08\\u9876\\u90e8\\u6536\\u7a84\\u6210\\u6676\\u5c16\\uff09\\uff0c\\u9752\\u84dd\\u6298\\u5149\\u534a\\u900f\\u660e\\u81ea\\u53d1\\u5149\\uff0c\\u4f5c\\u4e3a\\u672a\\u6765\\u79d1\\u6280\\u661f\\u7403\\u7684\\u5730\\u6807\\u3002",
+  "title": "sand3d \\u65ad\\u88c2\\u7eaa\\u5ff5\\u7891\\u9057\\u8ff9",
+  "changelog": "\\u7528 sand3d \\u5efa\\u65ad\\u88c2\\u65b9\\u5c16\\u7891\\uff1a\\u5bbd\\u5927\\u57fa\\u5ea7 + \\u4e0b\\u67f1 + \\u6298\\u65ad\\u9519\\u5f00\\u7684\\u4e0a\\u67f1 + \\u65ad\\u53e3\\u788e\\u5757 + \\u5468\\u56f4\\u788e\\u77f3\\uff0c\\u4f5c\\u4e3a\\u707e\\u53d8\\u5e9f\\u589f\\u7684\\u9057\\u8ff9\\u5730\\u6807\\u3002",
   "entry": "starfield.html",
   "download_url": "https://jackeyloveseven.github.io/starfield/starfield.html",
   "apk_release_url": "https://github.com/jackeyloveseven/starfield/releases/tag/v1.19.1-focus-apk"
