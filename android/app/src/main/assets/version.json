@@ -4,8 +4,8 @@
   "updated_at": "2026-11-09T11:55:00+08:00",
   "min_native_version": "1.0.0",
   "is_beta": false,
-  "title": "\\u661f\\u7075\\u60ac\\u6d6e\\u6c34\\u6676\\u4e0e\\u80fd\\u91cf\\u8fde\\u63a5",
-  "changelog": "\\u661f\\u7075\\u6c34\\u6676\\u7c07\\u6539\\u4e3a\\u60ac\\u6d6e\\uff08\\u6b63\\u5f26\\u4e0a\\u4e0b\\u6d6e\\u52a8\\uff09\\uff0c\\u4e3b\\u6676\\u4e0e\\u5468\\u56f4\\u4e09\\u4e2a\\u60ac\\u6d6e\\u8282\\u70b9\\u4e4b\\u95f4\\u62c9\\u9752\\u8272\\u80fd\\u91cf\\u5149\\u675f\\uff0c\\u5149\\u675f\\u968f\\u547c\\u5438\\u660e\\u6697\\u3002\\u6bd4\\u7acb\\u5728\\u5730\\u4e0a\\u66f4\\u50cf\\u661f\\u7075\\u3002",
+  "title": "母舰与城市集群：沙盘模型重做",
+  "changelog": "修好了 3D 模型发黑：色彩空间回正、金属度钳位、自发光不再二次提亮。母舰改为地表悬停、舰艏迎向镜头；城市集群重建为退台主塔 + 八栋副塔 + 空中连廊 + 楼层光带。",
   "entry": "starfield.html",
   "download_url": "https://jackeyloveseven.github.io/starfield/starfield.html",
   "apk_release_url": "https://github.com/jackeyloveseven/starfield/releases/tag/v1.19.1-focus-apk"
