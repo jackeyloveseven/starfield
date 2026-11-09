@@ -4624,7 +4624,7 @@ body:has(#photo-ui.active) .sf-touch-cluster{
     <div class="shortcut-list">
       <div class="shortcut-row">
         <span>客户端版本</span>
-        <span class="shortcut-key" id="sf-version-tag">v1.9.9.9.9 (Build 178)</span>
+        <span class="shortcut-key" id="sf-version-tag">v1.9.9.9.9 (Build 179)</span>
       </div>
       <div class="shortcut-row">
         <span>OTA 实时热更新</span>
@@ -15951,7 +15951,7 @@ window.addEventListener('resize', () => {
       })
       .then(data => {
         if (data && data.build) {
-          const localBuild = 178;
+          const localBuild = 179;
           if (data.build > localBuild) {
             showOtaNotification(data);
           } else if (manual && window.toast) {
@@ -24792,6 +24792,7 @@ function sfBuildManif(THREE, planet, manifId, hue, rng) {
   var DEFAULT_ENV = { label: '原始生态', preset: 'archipelago', trees: 1600, buildings: 0, kind: 'rock', sky: 0x0e1a24, fog: 0x1c2c38 };
 
   var oceanMesh = null, oceanBase = null, dockGroup = null;
+  var crystalGroup = null, crystalBase = null, crystalNodes = [], crystalBeams = [];
   var active = false, renderer = null, scene = null, camera = null,
       planet = null, cityGroup = null, raf = 0, t0 = 0,
       container = null, titleEl = null, curEnv = null;
@@ -24955,6 +24956,17 @@ function sfBuildManif(THREE, planet, manifId, hue, rng) {
       }
       op.needsUpdate = true;
     }
+    /* 星灵：水晶悬浮浮动，能量光束呼吸 */
+    if (crystalGroup && crystalBase) {
+      crystalGroup.position.y = crystalBase.y + Math.sin(t * 1.1) * 1.2;
+      for (var ni = 0; ni < crystalNodes.length; ni++) {
+        crystalNodes[ni].position.y = crystalBase.y + 3 + ni + Math.sin(t * 1.1 + ni) * 1.2;
+        crystalNodes[ni].rotation.y = t * 0.8 + ni;
+      }
+      for (var li = 0; li < crystalBeams.length; li++) {
+        crystalBeams[li].material.opacity = 0.35 + 0.25 * Math.sin(t * 2.2 + li * 1.3);
+      }
+    }
     if (dockGroup) dockGroup.rotation.y = t * 0.03;
 
     if (planet) planet.update(t, 1 / 60);
@@ -25056,10 +25068,34 @@ function sfBuildManif(THREE, planet, manifId, hue, rng) {
         new THREE.GLTFLoader().parse(cbytes.buffer, '', function (gltf) {
           var c = gltf.scene;
           c.scale.setScalar(100);
-          var cp = sph(0.16, 1.12, 36 + 3);
+          /* 星灵的建筑是浮空的，不是立在地上 */
+          var cp = sph(0.16, 1.12, 36 + 9);
           c.position.copy(cp);
           c.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), cp.clone().normalize());
           scene.add(c);
+          crystalGroup = c;
+          crystalBase = cp.clone();
+
+          /* 能量连接：主晶到周围三个悬浮点，青色光束 */
+          var beamMat = new THREE.LineBasicMaterial({
+            color: 0x66e0ff, transparent: true, opacity: 0.55,
+            blending: THREE.AdditiveBlending, depthWrite: false
+          });
+          for (var bi = 0; bi < 3; bi++) {
+            var ang = bi / 3 * Math.PI * 2;
+            var top = cp.clone().add(new THREE.Vector3(Math.cos(ang) * 6, 3 + bi, Math.sin(ang) * 6));
+            var node = new THREE.Mesh(
+              new THREE.OctahedronGeometry(0.8, 0),
+              new THREE.MeshBasicMaterial({ color: 0x9beeff })
+            );
+            node.position.copy(top);
+            scene.add(node);
+            crystalNodes.push(node);
+            var lg = new THREE.BufferGeometry().setFromPoints([cp, top]);
+            var line = new THREE.Line(lg, beamMat);
+            scene.add(line);
+            crystalBeams.push(line);
+          }
         });
       }
 
@@ -25159,6 +25195,7 @@ function sfBuildManif(THREE, planet, manifId, hue, rng) {
       }
       boundCv = null; handlers = null;
       oceanMesh = null; oceanBase = null; dockGroup = null;
+      crystalGroup = null; crystalBase = null; crystalNodes = []; crystalBeams = [];
       renderer = null; scene = null; camera = null; planet = null; cityGroup = null;
       removeUI();
       if (typeof currentMode !== 'undefined') { try { currentMode = 'cruise'; } catch (e) {} }
