@@ -4620,7 +4620,7 @@ body:has(#photo-ui.active) .sf-touch-cluster{
     <div class="shortcut-list">
       <div class="shortcut-row">
         <span>客户端版本</span>
-        <span class="shortcut-key" id="sf-version-tag">v1.9.9.9.9 (Build 173)</span>
+        <span class="shortcut-key" id="sf-version-tag">v1.9.9.9.9 (Build 174)</span>
       </div>
       <div class="shortcut-row">
         <span>OTA 实时热更新</span>
@@ -15949,7 +15949,7 @@ window.addEventListener('resize', () => {
       })
       .then(data => {
         if (data && data.build) {
-          const localBuild = 173;
+          const localBuild = 174;
           if (data.build > localBuild) {
             showOtaNotification(data);
           } else if (manual && window.toast) {
@@ -21791,7 +21791,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!manifId && typeof sfManifFor === 'function') {
           try { manifId = sfManifFor(cur).id; } catch (err) { manifId = null; }
         }
-        var opts = { manif: manifId || 'earth_egg', hue: cur.hue || 200, name: cur.name || '未命名星体' };
+        var opts = { manif: manifId || 'earth_egg', hue: cur.hue || 200, name: cur.name || '未命名星体', ts: cur.ts, at: cur.at, focusAtBirth: cur.focusAtBirth };
         hide();
         window.SFSurface.enter(opts);
       });
@@ -24970,6 +24970,19 @@ function sfBuildManif(THREE, planet, manifId, hue, rng) {
 
       var manif = opts.manif || 'earth_egg';
       var env = ENVS[manif] || DEFAULT_ENV;
+
+      /* 地表也随时间生长：老星球更茂密，高建设度的星球更繁华。
+         这条把「演化」和「建设」从卡片延伸到实景。 */
+      env = Object.assign({}, env);
+      if (opts.ts && window.SFEvolution) {
+        var days = window.SFEvolution.days(opts);
+        env.trees = Math.round(env.trees * (1 + Math.min(days * 0.04, 0.6)));
+      }
+      if (opts.focusAtBirth !== undefined && window.SFBuildup) {
+        var stg = window.SFBuildup.stage(opts);
+        env.buildings = Math.round(env.buildings + stg * 22);
+        env.__buildStage = stg;
+      }
       curEnv = env;
       var hue = opts.hue || 200;
 
@@ -25051,7 +25064,11 @@ function sfBuildManif(THREE, planet, manifId, hue, rng) {
       }
 
       titleEl.textContent = (opts.name || '未命名星体');
-      container.querySelector('#sf-surface-env').textContent = env.label + ' · SURFACE FLIGHT';
+      var envLine = env.label + ' · SURFACE FLIGHT';
+      if (env.__buildStage > 0 && window.SFBuildup) {
+        envLine += ' · ' + window.SFBuildup.stageLabel(opts);
+      }
+      container.querySelector('#sf-surface-env').textContent = envLine;
 
       container.style.opacity = '0';
       container.style.transition = 'opacity 1.1s ease';
