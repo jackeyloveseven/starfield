@@ -4620,7 +4620,7 @@ body:has(#photo-ui.active) .sf-touch-cluster{
     <div class="shortcut-list">
       <div class="shortcut-row">
         <span>客户端版本</span>
-        <span class="shortcut-key" id="sf-version-tag">v1.9.9.9.9 (Build 169)</span>
+        <span class="shortcut-key" id="sf-version-tag">v1.9.9.9.9 (Build 170)</span>
       </div>
       <div class="shortcut-row">
         <span>OTA 实时热更新</span>
@@ -15943,7 +15943,7 @@ window.addEventListener('resize', () => {
       })
       .then(data => {
         if (data && data.build) {
-          const localBuild = 169;
+          const localBuild = 170;
           if (data.build > localBuild) {
             showOtaNotification(data);
           } else if (manual && window.toast) {
@@ -22119,7 +22119,7 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
         <div class="sf-hl-meta-wrap">
           <div class="sf-hl-name">${it.name}</div>
-          <div class="sf-hl-date">${it.at || ''}</div>
+          <div class="sf-hl-date">${window.SFEvolution ? window.SFEvolution.shortText(it) : (it.at || '')}</div>
         </div>
       `;
       var cvs = d.querySelector('.sf-hl-canvas');
@@ -24379,7 +24379,7 @@ function sfBuildManif(THREE, planet, manifId, hue, rng) {
       preset: manif.preset,
       landRatio: basePreset.landRatio,
       ruggedness: basePreset.ruggedness * (tier === 'myth' ? 1.1 : tier === 'legend' ? 1.05 : 0.9),
-      treeCount: L.trees,
+      treeCount: (window.SFEvolution ? window.SFEvolution.treeGrowth(item, L.trees) : L.trees),
       monumentLevel: L.monuments,
       faunaLevel: L.fauna,
       cloudCoverage: L.clouds,
@@ -25123,6 +25123,20 @@ function sfBuildManif(THREE, planet, manifId, hue, rng) {
       if (h < 48) return Math.round(h) + ' 小时前点亮';
       var d = Math.floor(h / 24);
       return d + ' 天前点亮';
+    },
+
+    /* 列表用的短形式 */
+    shortText: function (item) {
+      var h = hours(item);
+      if (h < 1) return Math.max(1, Math.round(h * 60)) + ' \u5206\u949f\u524d';
+      if (h < 48) return Math.round(h) + ' \u5c0f\u65f6\u524d';
+      return Math.floor(h / 24) + ' \u5929\u524d';
+    },
+
+    /* 植被随时间缓慢恢复/扩张，有上限 */
+    treeGrowth: function (item, base) {
+      var d = this.days(item);
+      return Math.round(base + Math.min(d * 12, base * 0.6));
     },
 
     /* 演化注记：让「等你回来」被看见，而不是只变几个像素 */
