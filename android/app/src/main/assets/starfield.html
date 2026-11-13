@@ -6932,51 +6932,60 @@ const FleetFormations = {
   },
 
   getSlot(i, lead, time, b) {
-    const side = (i % 2 === 1) ? -1 : 1;
-    const row = Math.floor((i + 1) / 2);
+    if (!lead) return [0, 0, 0];
+    const k = (i > LEAD) ? (i - 1) : i;
 
     // 0: Delta V-Formation (Classic)
     if (this.current === 0) {
+      const side = (k % 2 === 0) ? -1 : 1;
+      const row = Math.floor(k / 2) + 1;
       return [
-        lead.x + side * (row * 36 + Math.sin(time * 0.5 + b.phase) * 10),
-        lead.y + ((i % 3) - 1.0) * 14 + Math.sin(time * 0.7 + b.phase) * 6,
-        lead.z - row * 44 + Math.cos(time * 0.4 + b.phase) * 12
+        lead.x + side * (row * 36 + Math.sin(time * 0.5 + b.phase) * 8),
+        lead.y + ((k % 3) - 1.0) * 12 + Math.sin(time * 0.7 + b.phase) * 6,
+        lead.z - row * 44 + Math.cos(time * 0.4 + b.phase) * 10
       ];
     }
     // 1: Echelon Wing (Wide Panoramic Sweep)
     else if (this.current === 1) {
+      const span = (k < 6) ? (k - 6) : (k - 5);
       return [
-        lead.x + (i - 7) * 48 + Math.sin(time * 0.6 + b.phase) * 12,
-        lead.y + Math.sin(i * 0.5 + time) * 18,
-        lead.z - Math.abs(i - 7) * 22 + Math.cos(time * 0.5 + b.phase) * 8
+        lead.x + span * 48 + Math.sin(time * 0.6 + b.phase) * 10,
+        lead.y + Math.sin(k * 0.5 + time) * 16,
+        lead.z - Math.abs(span) * 22 + Math.cos(time * 0.5 + b.phase) * 8
       ];
     }
-    // 2: Orbital Ring (Halo Escort - Interleaved Dual Concentric Rings)
+    // 2: Orbital Ring (Halo Escort - Staggered Dual Concentric Rings)
     else if (this.current === 2) {
-      const isOuter = (i % 2 === 1);
-      const ringRadius = isOuter ? 230 : 160;
-      const ringSpeed = isOuter ? 0.20 : 0.28;
-      const ringOffset = isOuter ? Math.PI : 0;
-      const ringIdx = Math.floor(i / 2);
-      const ringTotal = Math.max(1, Math.ceil(FLEET_COUNT * 0.5));
-      const angle = (ringIdx / ringTotal) * Math.PI * 2 + time * ringSpeed + ringOffset;
+      const isOuter = (k >= 7);
+      let angle, radius, yOff, zBase;
+      if (!isOuter) {
+        angle = (k / 7.0) * Math.PI * 2 + time * 0.24;
+        radius = 160.0;
+        yOff = -12.0;
+        zBase = -35.0;
+      } else {
+        angle = ((k - 7) / 6.0) * Math.PI * 2 + time * 0.18;
+        radius = 240.0;
+        yOff = 16.0;
+        zBase = -105.0;
+      }
       return [
-        lead.x + Math.cos(angle) * ringRadius,
-        lead.y + Math.sin(angle) * (ringRadius * 0.35) + (isOuter ? 16 : -16),
-        lead.z - 35 + Math.sin(angle * 2) * 24
+        lead.x + Math.cos(angle) * radius,
+        lead.y + Math.sin(angle) * (radius * 0.45) + yOff,
+        lead.z + zBase + Math.sin(angle * 2) * 12.0
       ];
     }
     // 3: Tandem Needle (Single file aerodynamic column)
     else if (this.current === 3) {
       return [
-        lead.x + Math.sin(time * 1.2 + i * 0.3) * 8,
-        lead.y + Math.cos(time * 0.9 + i * 0.3) * 6,
-        lead.z - i * 38
+        lead.x + Math.sin(time * 1.2 + k * 0.3) * 8,
+        lead.y + Math.cos(time * 0.9 + k * 0.3) * 6,
+        lead.z - (k + 1) * 60
       ];
     }
     // 4: Phoenix Wing (Majestic wide sweep with counter-phase flapping)
     else {
-      const span = (i - 7);
+      const span = (k < 6) ? (k - 6) : (k - 5);
       const curve = Math.abs(span) * 0.12;
       return [
         lead.x + span * 56,
@@ -7470,9 +7479,11 @@ function line(points,c,alpha=1,width=1){
    p0 = project(points[0]); p1 = project(points[1]);
   } else {
    const t = (18 - va[2]) / (vb[2] - va[2]);
-   const clipPt = [mix(points[0][0], points[1][0], t), mix(points[0][1], points[1][1], t), mix(points[0][2], points[1][2], t)];
-   p0 = aIn ? project(points[0]) : project(clipPt);
-   p1 = bIn ? project(points[1]) : project(clipPt);
+   const cv = [mix(va[0], vb[0], t), mix(va[1], vb[1], t), 18];
+   const k = camera.focal / 18;
+   const cp = [camera.cx + cv[0] * k, camera.cy - cv[1] * k, 18, k];
+   p0 = aIn ? project(points[0]) : cp;
+   p1 = bIn ? project(points[1]) : cp;
   }
   if(!p0 || !p1) return;
   if((p0[0]<-10&&p1[0]<-10)||(p0[0]>W+10&&p1[0]>W+10)||(p0[1]<-10&&p1[1]<-10)||(p0[1]>H+10&&p1[1]>H+10)) return;
@@ -11141,7 +11152,7 @@ const StarfieldSonar = {
     this._inited = true;
     window.addEventListener('keydown', (e) => {
       if ((typeof currentMode !== 'undefined' && currentMode !== 'cruise') || (typeof window !== 'undefined' && window.currentMode && window.currentMode !== 'cruise')) return;
-      if ((e.key.toLowerCase() === 'f' || e.code === 'KeyF') && !e.repeat) {
+      if ((e.key.toLowerCase() === 'x' || e.code === 'KeyX') && !e.repeat) {
         this.triggerScan();
       }
     });
@@ -12174,7 +12185,7 @@ const StarfieldOrbitalMechanics = {
     window.addEventListener('keydown', (e) => {
       if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable)) return;
       if ((typeof currentMode !== 'undefined' && currentMode !== 'cruise') || (typeof window !== 'undefined' && window.currentMode && window.currentMode !== 'cruise')) return;
-      if ((e.key.toLowerCase() === 'p' || e.code === 'KeyP') && !e.repeat) {
+      if ((e.key.toLowerCase() === 'q' || e.code === 'KeyQ') && !e.repeat) {
         this.launchProbe();
       }
     });
