@@ -7369,7 +7369,21 @@ function updateDirector(dt){
  // v132: the region moves the camera, not just its ink. Pitch and roll are
  // the differences that survive a frame with no palette-bearing object in
  // it. Auto only: a hand-driven camera keeps the pose the viewer chose.
- if(autoCamera && started){const _rg=regionGeom(currentPalette);goal.pitch=clamp(goal.pitch+_rg.pitch,-.20,1.45);goal.roll+=_rg.roll;}
+ if(autoCamera && started){
+  const _rg=regionGeom(currentPalette);
+  goal.pitch=clamp(goal.pitch+_rg.pitch,-.20,1.45);
+  goal.roll=(goal.roll||0)+_rg.roll;
+  // Cinematic dynamic flight banking into turns
+  const turnTendency = laneD(travel) * 0.68;
+  const turnRoll = -clamp(turnTendency * 0.16, -0.065, 0.065);
+  const bankFactor = (captureCamPose ? (1 - captureCamPose.blend) : 1) * (skimRes ? (1 - skimRes.sw * 0.75) : 1);
+  goal.roll += turnRoll * bankFactor;
+  // Dynamic warp distance dilation
+  const effWarpCam = Math.max(warp, WarpDrive.currentWarp);
+  const wScale = 1.0 + clamp(effWarpCam / 28, 0, 1.2) * 0.22;
+  const wDilation = captureCamPose ? mix(wScale, 1.0, captureCamPose.blend) : wScale;
+  goal.distance *= wDilation;
+ }
 
  // 6. Damped Camera Integration
  const isSkimmingActive = skimRes && skimRes.active;
@@ -7415,7 +7429,11 @@ function updateDirector(dt){
  let f = lookTarget.map((v,i) => v - eye[i]), flen = Math.hypot(...f);
  f = flen < 1e-5 ? [0,0,1] : f.map(v => v / flen);
  let r = [f[2], 0, -f[0]], rlen = Math.hypot(...r);
- r = rlen < 1e-5 ? [1,0,0] : r.map(v => v / rlen);
+ if (rlen < 1e-4) {
+  r = [Math.cos(camera.yaw), 0, Math.sin(camera.yaw)];
+ } else {
+  r = r.map(v => v / rlen);
+ }
  let u = [f[1]*r[2], f[2]*r[0] - f[0]*r[2], -f[1]*r[0]];
  if(camera.roll){const co = Math.cos(camera.roll), si = Math.sin(camera.roll), rr = r.map((v,i) => v*co + u[i]*si); u = u.map((v,i) => v*co - r[i]*si); r = rr;}
  camera.forward = f; camera.right = r; camera.up = u;
@@ -7454,15 +7472,61 @@ function updateDirector(dt){
 /* A compact painter's renderer, with near-plane clipping and distance haze. */
 let queue=[],drawCalls=0,fillPx=0;
 function view(p){const x=p[0]-camera.eye[0],y=p[1]-camera.eye[1],z=p[2]-camera.eye[2];return [x*camera.right[0]+y*camera.right[1]+z*camera.right[2],x*camera.up[0]+y*camera.up[1]+z*camera.up[2],x*camera.forward[0]+y*camera.forward[1]+z*camera.forward[2]];}
-function project(p){const v=view(p);if(v[2]<18)return null;const k=camera.focal/v[2];return [camera.cx+v[0]*k,camera.cy-v[1]*k,v[2],k];}
+function project(p){
+ const px = p.x !== undefined ? p.x : p[0];
+ const py = p.y !== undefined ? p.y : p[1];
+ const pz = p.z !== undefined ? p.z : p[2];
+ const x = px - camera.eye[0], y = py - camera.eye[1], z = pz - camera.eye[2];
+ const vz = x * camera.forward[0] + y * camera.forward[1] + z * camera.forward[2];
+ if(vz < 18) return null;
+ const k = camera.focal / vz;
+ return [camera.cx + (x * camera.right[0] + y * camera.right[1] + z * camera.right[2]) * k, camera.cy - (x * camera.up[0] + y * camera.up[1] + z * camera.up[2]) * k, vz, k];
+}
 function clipped(points){
- let v=points.map(view),out=[];
- for(let i=0;i<v.length;i++){const a=v[i],b=v[(i+1)%v.length],ia=a[2]>=18,ib=b[2]>=18;if(ia)out.push(a);if(ia!==ib){const t=(18-a[2])/(b[2]-a[2]);out.push([mix(a[0],b[0],t),mix(a[1],b[1],t),18]);}}
- if(out.length<3)return null;
- let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity,d=0;
- const p=out.map(a=>{const k=camera.focal/a[2],x=camera.cx+a[0]*k,y=camera.cy-a[1]*k;minX=Math.min(minX,x);maxX=Math.max(maxX,x);minY=Math.min(minY,y);maxY=Math.max(maxY,y);d+=a[2];return [x,y];});
- if(maxX<-15||minX>W+15||maxY<-15||minY>H+15)return null;
- return {p,d:d/out.length};
+ const n = points.length;
+ if(n < 3) return null;
+ let allIn = true, anyIn = false;
+ const v = new Array(n);
+ for(let i = 0; i < n; i++){
+  const pt = points[i];
+  const px = pt.x !== undefined ? pt.x : pt[0];
+  const py = pt.y !== undefined ? pt.y : pt[1];
+  const pz = pt.z !== undefined ? pt.z : pt[2];
+  const x = px - camera.eye[0], y = py - camera.eye[1], z = pz - camera.eye[2];
+  const vx = x * camera.right[0] + y * camera.right[1] + z * camera.right[2];
+  const vy = x * camera.up[0] + y * camera.up[1] + z * camera.up[2];
+  const vz = x * camera.forward[0] + y * camera.forward[1] + z * camera.forward[2];
+  v[i] = [vx, vy, vz];
+  if(vz >= 18){ anyIn = true; } else { allIn = false; }
+ }
+ if(!anyIn) return null;
+ const out = allIn ? v : [];
+ if(!allIn){
+  for(let i = 0; i < n; i++){
+   const a = v[i], b = v[(i + 1) % n], ia = a[2] >= 18, ib = b[2] >= 18;
+   if(ia) out.push(a);
+   if(ia !== ib){
+    const t = (18 - a[2]) / (b[2] - a[2]);
+    out.push([mix(a[0], b[0], t), mix(a[1], b[1], t), 18]);
+   }
+  }
+  if(out.length < 3) return null;
+ }
+ let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity, d = 0;
+ const outLen = out.length;
+ const p = new Array(outLen);
+ for(let i = 0; i < outLen; i++){
+  const a = out[i];
+  const k = camera.focal / a[2];
+  const x = camera.cx + a[0] * k;
+  const y = camera.cy - a[1] * k;
+  minX = Math.min(minX, x); maxX = Math.max(maxX, x);
+  minY = Math.min(minY, y); maxY = Math.max(maxY, y);
+  d += a[2];
+  p[i] = [x, y];
+ }
+ if(maxX < -15 || minX > W + 15 || maxY < -15 || minY > H + 15) return null;
+ return {p, d: d / outLen};
 }
 function haze(c,d,p=currentPalette){const h=smooth((d-2000)/(p.wash>0?9000:15000))*(.70+p.wash*.24);return blend(c,p.fog,h);}
 function poly(points,c,options={}){
@@ -7501,7 +7565,7 @@ function line(points,c,alpha=1,width=1){
 function glow(world,size,c,alpha=1,spread=3){const p=project(world);if(!p)return;const s=clamp(size*p[3],1,Math.max(W,H)*.7);const r=s*spread;if(p[0]+r<-20||p[0]-r>W+20||p[1]+r<-20||p[1]-r>H+20)return;queue.push({type:3,p,d:p[2],s,c,alpha,spread});}
 function sprite(world,size,c,kind,alpha=1,rotation=0){const p=project(world);if(!p||p[0]<-40||p[0]>W+40||p[1]<-40||p[1]>H+40)return;queue.push({type:2,p,d:p[2],s:clamp(size*p[3],.4,60),c:css(haze(c,p[2])),alpha,kind,rotation});}
 function flush(){
- queue.sort((a,b)=>b.d-a.d);
+ queue.sort((a,b)=>(b.d||0)-(a.d||0));
  for(const o of queue){
   ctx.globalAlpha=o.alpha;
   if(o.type===0){ctx.beginPath();ctx.moveTo(o.p[0][0],o.p[0][1]);for(let i=1;i<o.p.length;i++)ctx.lineTo(o.p[i][0],o.p[i][1]);ctx.closePath();ctx.fillStyle=o.c;ctx.fill();if(o.stroke){ctx.strokeStyle=o.stroke;ctx.lineWidth=o.width;ctx.stroke();}}
@@ -8875,6 +8939,26 @@ function chunk(k){
  // Deal random space events along the flight lane
  if(!horizon && !hasEncounter && k > 1 && (k % 4 === 2 || k % 4 === 0)){
   events.push(SpaceEventEngine.createEvent(k, z0, r, laneX(zc), courseY(zc)));
+ }
+ // Procedural Deep Space Distant Galaxies & Stellar Clusters
+ if(k > 0 && !horizon){
+  const rg = rng((hash(k, 8831) * 4294967295) >>> 0);
+  const isCluster = rg() >= 0.65;
+  const gZ = z0 + CHUNK * (0.15 + rg() * 0.70);
+  const gSide = rg() < 0.5 ? -1 : 1;
+  const gDist = isCluster ? (7000 + rg() * 9000) : (8000 + rg() * 12000);
+  const gX = baseRouteX(gZ) + gSide * gDist;
+  const gY = courseY(gZ) + (rg() - 0.5) * (isCluster ? 4200 : 5200);
+  const gRad = isCluster ? (1200 + rg() * 1400) : (2600 + rg() * 2400);
+  galaxies.push({
+   x: gX, y: gY, z: gZ,
+   rad: gRad,
+   isCluster,
+   arms: 2 + Math.floor(rg() * 3),
+   ang: rg() * TAU,
+   tilt: 0.28 + rg() * 0.52,
+   tone: rg()
+  });
  }
  const c={masses,shards,plates,galaxies,ships,gates,events,battles,k};chunks.set(k,c);return c;
 }
@@ -10410,62 +10494,17 @@ function drawMass(m, p, t){
  * occlude - a narrow near-opaque band over a wide faint shoulder, the recipe the
  * nebulae already use. Flat tones and hard edges; the only soft thing on the
  * object is the core bloom. */
-function drawGalaxy(g,p,t){
- const q=project([g.x,g.y,g.z]);if(!q)return;
- const R=g.rad*q[3];if(R<10)return;
+function initGalaxyCache(g){
+ if(g._cached) return;
  const u=[Math.cos(g.ang),0,Math.sin(g.ang)],ct=Math.cos(g.tilt),st=Math.sin(g.tilt);
  const v=[-Math.sin(g.ang)*ct,st,Math.cos(g.ang)*ct];
  const at=(a,b)=>[g.x+u[0]*a+v[0]*b,g.y+u[1]*a+v[1]*b,g.z+u[2]*a+v[2]*b];
- // Where the camera lies, in the disc's own coordinates. The dust lanes have to
- // be built on the near half of the plate, or the depth sort can put them behind
- // the arms they are meant to hide.
- const dx=camera.eye[0]-g.x,dy=camera.eye[1]-g.y,dz=camera.eye[2]-g.z;
- const ca=dx*u[0]+dy*u[1]+dz*u[2],cb=dx*v[0]+dy*v[1]+dz*v[2];
- const cl=Math.hypot(ca,cb)||1,near=Math.atan2(cb/cl,ca/cl);
- // The region's nebula pair tints the plate - a warm rim outside a cool core,
- // the way the reference photographs run - but mixed most of the way back to
- // the region's own ink, because this universe is still printed on navy paper.
- const pal=NEB_PAL[p.index]||NEB_PAL[0];
- const rim=blend(p.ink,pal[0],.30),inner=blend(p.ink,pal[1],.42);
- const plate=blend(p.tree,p.paper,.34),dust=blend(p.paper,p.treeDark,.28);
- const white=blend(p.craft,[255,255,255],.30);
- // The plate is not a circle. A wobble, seeded per galaxy, tears the boundary
- // into lobes instead of closing it into a perfect ellipse; the arms get a much
- // gentler one, or the wobble reads as a kink in the ribbon.
  const lobeD=a=>1+.11*Math.sin(a*4.3+g.tone*TAU*3)+.05*Math.sin(a*7.1+g.tone*TAU*5);
  const lobeA=(a,k)=>1+.045*Math.sin(a*3.1+k*1.7+g.tone*TAU*2);
- // A path in disc coordinates, drawn as a flat ribbon with the width tapering to
- // a point at each end - the difference between an arm and a wire. `off` slides
- // the ribbon sideways, so a bright band can sit on the arm's inner edge instead
- // of down its middle, which is what stops the arm reading as a tube.
- const ribbon=(mid,w0,alpha,c,off=0)=>{
-  const N=mid.length-1,A=[],B=[];
-  for(let i=0;i<=N;i++){
-   const j=Math.min(N,i+1),h=Math.max(0,i-1);
-   let tx=mid[j][0]-mid[h][0],ty=mid[j][1]-mid[h][1];const L=Math.hypot(tx,ty)||1;tx/=L;ty/=L;
-   const f=i/N,w=w0*Math.pow(Math.sin(Math.PI*Math.min(1,f*.94+.03)),.62);
-   A.push(at(mid[i][0]-ty*(off-w),mid[i][1]+tx*(off-w)));
-   B.push(at(mid[i][0]-ty*(off+w),mid[i][1]+tx*(off+w)));
-  }
-  poly(A.concat(B.reverse()),c,{alpha});
- };
- // The disc the arms are printed on: one flat tone and a hard edge, closed by a
- // crisp rim line. It hides the stars behind it, which is what makes the plate
- // read as an object rather than as a glow.
- // The rim and the arm centre lines are the last things to survive at
- // distance, because a 0.6 px line does not fade with the plate it sits on.
- const vis=clamp((R-40)/120);
  const disc=[];
  for(let i=0;i<=72;i++){const a=i/72*TAU,r=g.rad*.94*lobeD(a);disc.push(at(Math.cos(a)*r,Math.sin(a)*r*.985));}
- poly(disc,plate,{alpha:.52});
- if(vis>.02)line(disc,blend(plate,p.ink,.34),.24*vis,.6);
- // Arms as ribbons: a wide band in the warm tone, a narrow band in the cool one,
- // then a crisp centre line. Three tones, hard edges, and a band that tapers to
- // a point at the tip the way an arm does. Each arm gets its own span, start
- // radius and width, or four identical arms read as a pinwheel logo.
- // Procedural Logarithmic Spiral Arms with Young Blue OB Associations & H-II Knots
- const h2Pink = [255, 68, 148];
- const obBlue = [155, 210, 255];
+ g._disc = disc;
+ const arms=[];
  for(let k=0;k<g.arms;k++){
   const off0=k/g.arms*TAU+g.tone*2,N=38,mid=[];
   const span=2.95+.45*Math.sin(k*2.3+g.tone*TAU*2),r0=.08+.05*Math.abs(Math.sin(k*1.7+g.tone*TAU));
@@ -10474,45 +10513,104 @@ function drawGalaxy(g,p,t){
    const f=i/N,th=off0+f*span,rr=g.rad*(r0+(.92-r0)*f)*lobeA(th,k);
    mid.push([Math.cos(th)*rr,Math.sin(th)*rr]);
   }
-  // Main diffuse emission arm
-  ribbon(mid,g.rad*.068*wv,.32,rim);
-  // Blue OB young stellar population along outer trailing edge
-  ribbon(mid,g.rad*.028*wv,.48,blend(inner,obBlue,.45),-g.rad*.025);
-  if(vis>.02)line(mid.map(m=>at(m[0],m[1])),white,.60*vis,.9);
-
-  // Luminous H-II star-forming clusters (Hubble/JWST style pink ionization knots)
-  if(vis > 0.12){
-    for(let j=6; j<N-3; j+=4){
-      const pt = mid[j];
-      const knotPos = at(pt[0] * 1.02, pt[1] * 1.02);
-      glow(knotPos, g.rad * 0.022, h2Pink, 0.45 * vis, 1.8);
-    }
+  const midWorld = mid.map(m=>at(m[0],m[1]));
+  const buildRibbon = (w0, off=0) => {
+   const A=[], B=[];
+   for(let i=0;i<=N;i++){
+    const j=Math.min(N,i+1),h=Math.max(0,i-1);
+    let tx=mid[j][0]-mid[h][0],ty=mid[j][1]-mid[h][1];const L=Math.hypot(tx,ty)||1;tx/=L;ty/=L;
+    const f=i/N,w=w0*Math.pow(Math.sin(Math.PI*Math.min(1,f*.94+.03)),.62);
+    A.push(at(mid[i][0]-ty*(off-w),mid[i][1]+tx*(off-w)));
+    B.push(at(mid[i][0]-ty*(off+w),mid[i][1]+tx*(off+w)));
+   }
+   return A.concat(B.reverse());
+  };
+  const ribbonA = buildRibbon(g.rad*.068*wv, 0);
+  const ribbonB = buildRibbon(g.rad*.028*wv, -g.rad*.025);
+  const knots = [];
+  for(let j=6; j<N-3; j+=4){
+   const pt = mid[j];
+   knots.push(at(pt[0] * 1.02, pt[1] * 1.02));
   }
+  arms.push({ midWorld, ribbonA, ribbonB, knots });
  }
- // The core: Radiant Galactic Bulge with Planckian thermal gradient
+ g._arms = arms;
  const cr=g.rad*.085,core=[];
  for(let i=0;i<=28;i++){const a=i/28*TAU;core.push(at(Math.cos(a)*cr*1.4,Math.sin(a)*cr*.9));}
- poly(core,blend(inner,[255,255,255],.62),{alpha:.88});
- glow([g.x,g.y,g.z],g.rad*.110,blend(inner,[255,245,210],.75),.68,2.4);
- glow([g.x,g.y,g.z],g.rad*.045,[255,255,255],.92,1.8);
- // Dust lanes. Two tapered ribbons on the NEAR half, running along the inside of
- // an arm the way a real lane does, over a wider faint shoulder. The lane is
- // paper colour at .80 and the arms run .24-.34: that gap is the whole point - a
- // lane that cannot out-dark the thing it covers is not a lane. Built on the
- // near half so the depth sort really puts it in front.
- for(let i=0;i<2;i++){
-  const off0=near+(i?1.75:-1.75)+g.tone*.9,N=16,mid=[];
-  for(let j=0;j<=N;j++){
-   const f=j/N,th=off0+f*1.65,rr=g.rad*(.36+.48*f)*lobeA(th,i+1);
-   mid.push([Math.cos(th)*rr,Math.sin(th)*rr]);
-  }
-  ribbon(mid,g.rad*.072,.22,dust);
-  ribbon(mid,g.rad*.030,.82,dust);
+ g._core = core;
+ g._u = u;
+ g._v = v;
+ g._cached = true;
+}
+function drawGalaxy(g,p,t,pj){
+ const q=pj||project(g);if(!q)return;
+ const R=g.rad*q[3];if(R<6)return;
+ const mv=(typeof massVis==='number')?massVis:1;
+ if(mv<=0.001)return;
+ const pal=NEB_PAL[p.index]||NEB_PAL[0];
+ if(g.isCluster){
+  const inner=blend(p.ink,pal[1],.42);
+  const coreCol=blend(inner,[255,250,230],.75);
+  glow(g,g.rad*.85,inner,.28*mv,2.6);
+  glow(g,g.rad*.42,coreCol,.65*mv,2.2);
+  glow(g,g.rad*.15,[255,255,255],.95*mv,1.8);
+  return;
  }
- // One branch stub, a short tongue hanging off a lane.
- const bs=near+1.9+g.tone*1.3,bsm=[];
- for(let j=0;j<=8;j++){const f=j/8,th=bs+f*.42,rr=g.rad*(.42+.46*f);bsm.push([Math.cos(th)*rr,Math.sin(th)*rr]);}
- ribbon(bsm,g.rad*.020,.62,dust);
+ initGalaxyCache(g);
+ const rim=blend(p.ink,pal[0],.30),inner=blend(p.ink,pal[1],.42);
+ const plate=blend(p.tree,p.paper,.34),dust=blend(p.paper,p.treeDark,.28);
+ const white=blend(p.craft,[255,255,255],.30);
+ const vis=clamp((R-40)/120);
+
+ poly(g._disc,plate,{alpha:.52*mv});
+ if(vis>.02)line(g._disc,blend(plate,p.ink,.34),.24*vis*mv,.6);
+
+ const h2Pink = [255, 68, 148];
+ const obBlue = [155, 210, 255];
+ for(let k=0;k<g._arms.length;k++){
+  const arm = g._arms[k];
+  poly(arm.ribbonA,rim,{alpha:.32*mv});
+  poly(arm.ribbonB,blend(inner,obBlue,.45),{alpha:.48*mv});
+  if(vis>.02)line(arm.midWorld,white,.60*vis*mv,.9);
+  if(vis>0.12){
+   for(let j=0;j<arm.knots.length;j++){
+    glow(arm.knots[j],g.rad*0.022,h2Pink,0.45*vis*mv,1.8);
+   }
+  }
+ }
+
+ poly(g._core,blend(inner,[255,255,255],.62),{alpha:.88*mv});
+ glow(g,g.rad*.110,blend(inner,[255,245,210],.75),.68*mv,2.4);
+ glow(g,g.rad*.045,[255,255,255],.92*mv,1.8);
+
+ if(R >= 35 && vis > 0.08){
+  const u = g._u, v = g._v;
+  const at=(a,b)=>[g.x+u[0]*a+v[0]*b,g.y+u[1]*a+v[1]*b,g.z+u[2]*a+v[2]*b];
+  const dx=camera.eye[0]-g.x,dy=camera.eye[1]-g.y,dz=camera.eye[2]-g.z;
+  const ca=dx*u[0]+dy*u[1]+dz*u[2],cb=dx*v[0]+dy*v[1]+dz*v[2];
+  const cl=Math.hypot(ca,cb)||1,near=Math.atan2(cb/cl,ca/cl);
+  const lobeA=(a,k)=>1+.045*Math.sin(a*3.1+k*1.7+g.tone*TAU*2);
+  const ribbon=(mid,w0,alpha,c,off=0)=>{
+   const N=mid.length-1,A=[],B=[];
+   for(let i=0;i<=N;i++){
+    const j=Math.min(N,i+1),h=Math.max(0,i-1);
+    let tx=mid[j][0]-mid[h][0],ty=mid[j][1]-mid[h][1];const L=Math.hypot(tx,ty)||1;tx/=L;ty/=L;
+    const f=i/N,w=w0*Math.pow(Math.sin(Math.PI*Math.min(1,f*.94+.03)),.62);
+    A.push(at(mid[i][0]-ty*(off-w),mid[i][1]+tx*(off-w)));
+    B.push(at(mid[i][0]-ty*(off+w),mid[i][1]+tx*(off+w)));
+   }
+   poly(A.concat(B.reverse()),c,{alpha:alpha*mv});
+  };
+  for(let i=0;i<2;i++){
+   const off0=near+(i?1.75:-1.75)+g.tone*.9,N=14,mid=[];
+   for(let j=0;j<=N;j++){
+    const f=j/N,th=off0+f*1.65,rr=g.rad*(.36+.48*f)*lobeA(th,i+1);
+    mid.push([Math.cos(th)*rr,Math.sin(th)*rr]);
+   }
+   ribbon(mid,g.rad*.072,.22,dust);
+   ribbon(mid,g.rad*.030,.82,dust);
+  }
+ }
 }
 function bodies(){
  activeShips.length=0;
@@ -10530,13 +10628,13 @@ function bodies(){
  for(let k=k0-backRadius;k<=k0+fwdRadius;k++)active.push(chunk(k));
  for(const [k] of chunks)if(k < k0 - 12 || k > k0 + fwdRadius + 6)chunks.delete(k);
  for(const c of active){
-  // Frustum-culled distance fade for galaxies
+  // Frustum-culled distance fade for galaxies & clusters
   for(const g of c.galaxies){
-   const pj=project([g.x,g.y,g.z]);if(!pj||pj[2]>34000)continue;
-   const R=g.rad*pj[3];if(R<10)continue;
-   if(pj[0]+R<-50||pj[0]-R>W+50||pj[1]+R<-50||pj[1]-R>H+50)continue;
-   massVis=clamp((34000-pj[2])/8000);if(massVis<=0)continue;
-   drawGalaxy(g,region(g.x,g.z),time);massVis=1;
+   const pj=project(g);if(!pj||pj[2]>65000)continue;
+   const R=g.rad*pj[3];if(R<6)continue;
+   if(pj[0]+R<-60||pj[0]-R>W+60||pj[1]+R<-60||pj[1]-R>H+60)continue;
+   massVis=clamp((65000-pj[2])/26000);if(massVis<=0)continue;
+   drawGalaxy(g,region(g.x,g.z),time,pj);massVis=1;
   }
   // Render procedural space events (frustum-culled)
   for(const ev of (c.events||[])){SpaceEventEngine.drawEvent(ev,time);}
@@ -12647,22 +12745,47 @@ const particles=[],MAX_PARTICLES=coarse?168:240;
 let particleSerial=0;
 function resetParticle(p,first=false){
  const r=rng((hash(++particleSerial,102)*4294967295)>>>0);
- p.z=travel+(r()-.43)*5000;p.x=routeX(p.z)+(r()-.5)*3500;p.y=45+r()*950;p.life=first?r()*26:0;p.ttl=32+r()*20;p.size=1.4+r()*3.3;p.phase=r()*TAU;p.drift=(r()-.5)*12;
+ p.isCosmic=(r()<0.45);
+ p.z=travel+(r()-.43)*5500;
+ p.life=first?r()*26:0;
+ p.ttl=32+r()*20;
+ p.phase=r()*TAU;
+ p.drift=(r()-.5)*12;
+ if(p.isCosmic){
+  p.x=routeX(p.z)+(r()-.5)*2600;
+  p.y=courseY(p.z)+(r()-.5)*1500;
+  p.size=0.8+r()*2.2;
+ }else{
+  p.x=routeX(p.z)+(r()-.5)*3500;
+  p.y=45+r()*950;
+  p.size=1.4+r()*3.3;
+ }
 }
 for(let i=0;i<MAX_PARTICLES;i++){const p={};resetParticle(p,true);particles.push(p);}
 function updateParticles(dt){
- for(const p of particles){p.life+=dt;if(p.life>p.ttl||Math.abs(p.z-travel)>5700||p.y<2)resetParticle(p);const pal=region(p.x,p.z);p.x+=(p.drift+wind.x*29+Math.sin(time*.4+p.phase)*5)*dt;p.z+=Math.cos(p.phase)*7*dt;p.y-=(3+pal.wash*15+pal.shimmer*9-pal.void*1.5)*dt;}
+ for(const p of particles){
+  p.life+=dt;
+  if(p.life>p.ttl||Math.abs(p.z-travel)>5700||(!p.isCosmic&&p.y<2))resetParticle(p);
+  const pal=region(p.x,p.z);
+  p.x+=(p.drift+wind.x*29+Math.sin(time*.4+p.phase)*5)*dt;
+  p.z+=Math.cos(p.phase)*7*dt;
+  if(!p.isCosmic)p.y-=(3+pal.wash*15+pal.shimmer*9-pal.void*1.5)*dt;
+  else p.y+=Math.sin(time*.5+p.phase)*4*dt;
+ }
 }
 function drawParticles(){
  for(const p of particles){
-  const pal=region(p.x,p.z),alpha=smooth(p.life/3)*smooth((p.ttl-p.life)/5),q=[p.x+Math.sin(time*.8+p.phase)*6,p.y*(1-pal.void*.68),p.z];
-  const cr=pal.core,sh=pal.shimmer,vd=pal.void,dust=clamp(1-cr-sh,.02,1);
-  // pal.paper is the dark one by definition; a dark dust mote on a dark sky
-  // is nothing. Light comes from ink, tinted toward the region's sun.
-  if(dust>.02)sprite(q,p.size*.54,blend(pal.ink,pal.sun,.45),'dust',alpha*dust*.60);
-  if(cr>.02)sprite(q,p.size*1.05,pal.ink,'snow',alpha*cr*.82,time*.35+p.phase);
-  if(sh>.02)sprite(q,p.size*.86,blend([226,238,248],pal.paper,.30),'petal',alpha*sh*.66,time*.6+p.phase);
-  if(vd>.02)sprite(q,p.size*.48,[214,226,240],'firefly',alpha*vd*(.38+.48*Math.sin(time*1.6+p.phase)**2));
+  const pal=region(p.x,p.z),alpha=smooth(p.life/3)*smooth((p.ttl-p.life)/5);
+  const q=[p.x+Math.sin(time*.8+p.phase)*6,p.isCosmic?p.y:p.y*(1-pal.void*.68),p.z];
+  if(p.isCosmic){
+   sprite(q,p.size*0.65,blend(pal.sun,[230,245,255],0.70),'dust',alpha*0.65);
+  }else{
+   const cr=pal.core,sh=pal.shimmer,vd=pal.void,dust=clamp(1-cr-sh,.02,1);
+   if(dust>.02)sprite(q,p.size*.54,blend(pal.ink,pal.sun,.45),'dust',alpha*dust*.60);
+   if(cr>.02)sprite(q,p.size*1.05,pal.ink,'snow',alpha*cr*.82,time*.35+p.phase);
+   if(sh>.02)sprite(q,p.size*.86,blend([226,238,248],pal.paper,.30),'petal',alpha*sh*.66,time*.6+p.phase);
+   if(vd>.02)sprite(q,p.size*.48,[214,226,240],'firefly',alpha*vd*(.38+.48*Math.sin(time*1.6+p.phase)**2));
+  }
  }
 }
 
@@ -13099,11 +13222,14 @@ function nebulaTex(seed,idx){
  nebCache.set(key,c);nebGens++;return c;
 }
 function skyPoint(v){
- const d=v[0]*camera.forward[0]+v[1]*camera.forward[1]+v[2]*camera.forward[2];
- if(d<=.02)return null;
- const xx=v[0]*camera.right[0]+v[1]*camera.right[1]+v[2]*camera.right[2];
- const yy=v[0]*camera.up[0]+v[1]*camera.up[1]+v[2]*camera.up[2];
- return [camera.cx+xx/d*camera.focal,camera.cy-yy/d*camera.focal,d];
+ const vx = v.x !== undefined ? v.x : v[0];
+ const vy = v.y !== undefined ? v.y : v[1];
+ const vz = v.z !== undefined ? v.z : v[2];
+ const d = vx*camera.forward[0] + vy*camera.forward[1] + vz*camera.forward[2];
+ if(d <= .02) return null;
+ const xx = vx*camera.right[0] + vy*camera.right[1] + vz*camera.right[2];
+ const yy = vx*camera.up[0] + vy*camera.up[1] + vz*camera.up[2];
+ return [camera.cx + xx/d*camera.focal, camera.cy - yy/d*camera.focal, d];
 }
 let lensSources=[];
 function updateLens(){
@@ -13284,10 +13410,9 @@ function drawSky(){
  // Ink washes first: they are the deep field, everything else prints on top.
  const wash=.30+p.wash*1.35+p.core*.65;
  nebulaUpdate();
- if(wash>.06){
-  // The abyss has no clouds at all: nebulae were the one layer identical in
-  // every region, which is most of why the five read as the same place.
-  if((p.void||0) > 0.45) return;
+ if(wash>.06 && (p.void||0) <= 0.88){
+  // The abyss attenuates clouds, but NEVER aborts the sky function so stars remain visible!
+  const voidAtten = clamp(1.0 - (p.void || 0) * 0.72, 0.22, 1.0);
   const list = lowQuality ? nebulae.slice(0, 8) : nebulae;
   const pal0 = NEB_PAL[p.index] || NEB_PAL[0];
   const aT = p.t, a0 = p.a, b0 = p.b, tw = p.t < 1, roll = camera.roll || 0;
@@ -13306,7 +13431,7 @@ function drawSky(){
    // The same rule the worlds get: a billboard that covers the plate stops
    // being a cloud. Measured against the frame, so it holds at every FOV.
    const cap = Math.min(W, H), big = clamp((cap * .62 - rad) / (cap * .22), 0, 1);
-   const ng = novaGas(n, nova), al = clamp(n.alpha * wash * 2.9 * ng * near * far * big, 0, 0.94);
+   const ng = novaGas(n, nova), al = clamp(n.alpha * wash * 2.9 * ng * near * far * big * voidAtten, 0, 0.94);
    if (al < .004) continue;
    const qx = q[0], qy = q[1], rr = rad, aa = al, nn = n;
    // Enqueued behind every solid. A world in front of a cloud still hides it;
@@ -13366,8 +13491,8 @@ function drawSky(){
  const hd=laneD(travel)*.68,hl=Math.hypot(hd,1),ux=hd/hl,uz=1/hl;
  // Bright stars: a bloom and a cross each, so the eye has somewhere to land.
  for(const st of brightStars){
-  const q=skyPoint([st.x,st.y,st.z]);if(!q)continue;
-  const w=lensWarp(q[0],q[1]),x=w[0],y=w[1];
+  const q=skyPoint(st);if(!q)continue;
+  const w=lensSources.length?lensWarp(q[0],q[1]):q,x=w[0],y=w[1];
   if(x<-40||x>W+40||y<-40||y>H+40)continue;
   const tw=.42+.58*Math.sin(time*.5+st.phase)**2,r=st.size*(1+.35*tw);
   const _skye=skyEventStarDim(st);
@@ -13391,22 +13516,25 @@ function drawSky(){
  // sky is still, and (x,y,tipX,tipY,size) while it is being dragged - the tip
  // is the star's own direction pushed away from the travel pole and projected,
  // so it is a real arc of the sphere, not a 2D offset.
- const buckets=[[],[],[],[]];
+ if(!window._sfStarBuckets) window._sfStarBuckets=[[],[],[],[]];
+ const buckets=window._sfStarBuckets;
+ for(let bi=0;bi<4;bi++) buckets[bi].length=0;
  // star COUNT per region: a dim sky with all its stars is still the same sky.
  const _pm=(typeof p!=='undefined')?p:{core:.2,shimmer:.2,void:.2};
  const _rc=clamp(.55+(_pm.core||0)*.95+(_pm.shimmer||0)*.25-(_pm.void||0)*.5,.12,1.4);
  const limit=Math.min(stars.length, Math.floor((lowQuality?stars.length*.26:stars.length)*_rc));
+ const hasLens=lensSources.length>0;
  for(let i=0;i<limit;i++){
   const st=stars[i];if(!st)continue;
-  const q=skyPoint([st.x,st.y,st.z]);if(!q)continue;
-  const w=lensWarp(q[0],q[1]),x=w[0],y=w[1];
+  const q=skyPoint(st);if(!q)continue;
+  const w=hasLens?lensWarp(q[0],q[1]):q,x=w[0],y=w[1];
   if(x<-6||x>W+6||y<-6||y>H+6)continue;
   const tier=st.mag>.70?3:st.mag>.40?2:st.mag>.16?1:0;
   if(eps>0){
    const du=st.x*ux+st.z*uz;
    const ex=st.x+eps*(st.x-du*ux),ey=st.y+eps*st.y,ez=st.z+eps*(st.z-du*uz);
    const el=Math.hypot(ex,ey,ez)||1,q2=skyPoint([ex/el,ey/el,ez/el]);
-   if(q2){const w2=lensWarp(q2[0],q2[1]);buckets[tier].push(x,y,w2[0],w2[1],st.size);}
+   if(q2){const w2=hasLens?lensWarp(q2[0],q2[1]):q2;buckets[tier].push(x,y,w2[0],w2[1],st.size);}
    else buckets[tier].push(x,y,x,y,st.size);
   }else{
    const ph = Math.floor(((Math.sin(time * 0.45 + st.phase) + 1) * 0.5) * 3.99);
@@ -13452,7 +13580,7 @@ function drawSky(){
   for(let i=0;i<=260;i++){
    const a2=i/260*TAU,d=bdir(Math.cos(a2),Math.sin(a2),_rg.bandG),q=skyPoint(d);
    if(!q){cur=null;continue;}
-   const w=lensWarp(q[0],q[1]);
+   const w=hasLens?lensWarp(q[0],q[1]):q;
    if(!cur){cur=[];segs.push(cur);}
    cur.push(w[0],w[1]);
   }
@@ -13491,7 +13619,7 @@ function drawSky(){
     const d1=bdir(Math.cos(a2),Math.sin(a2),_rg.bandG),d2=bdir(Math.cos(a2+sp),Math.sin(a2+sp),_rg.bandG);
     const q1=skyPoint(d1),q2=skyPoint(d2);
     if(!q1||!q2)continue;
-    const w1=lensWarp(q1[0],q1[1]),w2=lensWarp(q2[0],q2[1]);
+    const w1=hasLens?lensWarp(q1[0],q1[1]):q1,w2=hasLens?lensWarp(q2[0],q2[1]):q2;
     // A dash that crosses a seam is a scratch, not a glint.
     if(Math.hypot(w2[0]-w1[0],w2[1]-w1[1])>70)continue;
     ctx.globalAlpha=clamp((.16+.26*bw)*(.55+.45*Math.sin(time*.63+i*1.7)),0,.55);
@@ -13501,16 +13629,18 @@ function drawSky(){
   }
   const bink=css(blend(p.craft,[255,255,255],.34));
   if(eps>0){
-   const bb=[];
+   if(!window._sfBandEps) window._sfBandEps=[];
+   const bb=window._sfBandEps;
+   bb.length=0;
    for(const st of bandStars){
     const d=bdir(st.ca,st.sa,st.g+_rg.bandG),q=skyPoint(d);if(!q)continue;
-    const w=lensWarp(q[0],q[1]),x=w[0],y=w[1];
+    const w=hasLens?lensWarp(q[0],q[1]):q,x=w[0],y=w[1];
     if(x<-6||x>W+6||y<-6||y>H+6)continue;
     const du=d[0]*ux+d[2]*uz;
     const ex=d[0]+eps*(d[0]-du*ux),ey=d[1]+eps*d[1],ez=d[2]+eps*(d[2]-du*uz);
     const el=Math.hypot(ex,ey,ez)||1,q2=skyPoint([ex/el,ey/el,ez/el]);
     if(!q2)continue;
-    const w2=lensWarp(q2[0],q2[1]);bb.push(x,y,w2[0],w2[1]);
+    const w2=hasLens?lensWarp(q2[0],q2[1]):q2;bb.push(x,y,w2[0],w2[1]);
    }
    if(bb.length){
     const a0=clamp(.42*bw,0,.80);
@@ -13521,10 +13651,13 @@ function drawSky(){
     ctx.beginPath();for(let j=0;j<bb.length;j+=4){const x=bb[j],y=bb[j+1];ctx.moveTo(x,y);ctx.lineTo(x+(bb[j+2]-x)*.34,y+(bb[j+3]-y)*.34);}ctx.stroke();
    }
   }else{
-   const bb=[[],[],[],[]];
+   if(!window._sfBandBuckets) window._sfBandBuckets=[[],[],[],[]];
+   const bb=window._sfBandBuckets;
+   for(let bi=0;bi<4;bi++) bb[bi].length=0;
+   const hasLensBand=lensSources.length>0;
    for(const st of bandStars){
     const q=skyPoint(bdir(st.ca,st.sa,st.g+_rg.bandG));if(!q)continue;
-    const w=lensWarp(q[0],q[1]),x=w[0],y=w[1];
+    const w=hasLensBand?lensWarp(q[0],q[1]):q,x=w[0],y=w[1];
     if(x<-6||x>W+6||y<-6||y>H+6)continue;
     const ph = Math.floor(((Math.sin(time * 0.42 + st.phase) + 1) * 0.5) * 3.99);
     bb[ph].push(x,y,st.size);
@@ -16076,7 +16209,7 @@ function frame(now){
  if(dt){updateWind(dt);updateGravity();updateBirds(dt);updateGate(dt);updateCapture(dt);updateSling(dt);updateParticles(dt);updatePoem(dt);Narrator.update(dt);if(typeof StarfieldSonar!=='undefined')StarfieldSonar.update(dt);if(typeof StarfieldInFlightExtraction!=='undefined')StarfieldInFlightExtraction.update(dt);if(typeof StarfieldOrbitalMechanics!=='undefined')StarfieldOrbitalMechanics.update(dt);}
  ctx.setTransform(DPR,0,0,DPR,0,0);drawCalls=0;queue.length=0;holeDraws=0;
  updateSkyEvents(realDt);
- drawSky();deepfield();drawCraftShadows();bodies();drawFleet();if(typeof drawEscortOrbits==='function')drawEscortOrbits();drawParticles();flush();if(typeof StarfieldSonar!=='undefined')StarfieldSonar.draw(ctx);if(typeof StarfieldOrbitalMechanics!=='undefined')StarfieldOrbitalMechanics.draw(ctx);if(typeof StarfieldInFlightExtraction!=='undefined')StarfieldInFlightExtraction.draw(ctx);if(window.SFHazard&&window.SFHazard.draw)window.SFHazard.draw(ctx);if(window.SFLensing) window.SFLensing.draw({ctx:ctx, project:project, time:time, W:W, H:H}); drawSkyEvents(); if(window.SFPassersby) window.SFPassersby.draw({ctx:ctx, project:project, routeX:routeX, courseY:courseY, W:W, H:H, travel:travel, CHUNK:CHUNK, hash:hash, started:started});
+ drawSky();deepfield();if(window.SFPassersby) window.SFPassersby.draw({ctx:ctx, project:project, routeX:routeX, courseY:courseY, W:W, H:H, travel:travel, CHUNK:CHUNK, hash:hash, started:started});drawCraftShadows();bodies();drawFleet();if(typeof drawEscortOrbits==='function')drawEscortOrbits();drawParticles();flush();if(typeof StarfieldSonar!=='undefined')StarfieldSonar.draw(ctx);if(typeof StarfieldOrbitalMechanics!=='undefined')StarfieldOrbitalMechanics.draw(ctx);if(typeof StarfieldInFlightExtraction!=='undefined')StarfieldInFlightExtraction.draw(ctx);if(window.SFHazard&&window.SFHazard.draw)window.SFHazard.draw(ctx);if(window.SFLensing) window.SFLensing.draw({ctx:ctx, project:project, time:time, W:W, H:H}); drawSkyEvents();
  // The throat: a bell around the two seconds either side of the step.
  if(gateT>0){const b=gateT<3.0?clamp((gateT-.7)/2.3,0,1):clamp((6.2-gateT)/2.6,0,1);
   drawTunnel(b);}
@@ -24666,13 +24799,13 @@ function sfBuildManif(THREE, planet, manifId, hue, rng) {
 
   var E = null;   /* 由 frame() 注入的游戏内作用域 */
 
-  function fadeAtCenter(sx) {
-    var W = E.W;
-    /* 中央 30% 完全不画，30%-48% 之间渐显 */
+  function fadeAtCenter(sx, dist) {
+    if (typeof dist === 'number' && dist > 2400) return 1.0;
+    var W = (E && E.W) ? E.W : 1920;
+    /* 中央仅在极近距离避免遮挡母舰：远景深空全透射，近处平滑避让 */
     var c = Math.abs(sx - W * 0.5) / (W * 0.5);
-    if (c < 0.30) return 0;
-    if (c > 0.48) return 1;
-    return (c - 0.30) / 0.18;
+    if (c < 0.20) return typeof dist === 'number' ? Math.max(0, Math.min(1, (dist - 1000) / 1400)) : 0;
+    return 1;
   }
 
   function comet(x, y, z, side, seed, fade) {
@@ -24786,7 +24919,7 @@ function sfBuildManif(THREE, planet, manifId, hue, rng) {
       var k0 = Math.floor(travel / CHUNK);
       for (var k = Math.max(1, k0 - 1); k <= k0 + 9; k++) {
         var h = hash(k, 9001);
-        if (h > 0.55) continue;
+        if (h > 0.68) continue;
         D.cand++;                 /* 约每 2 个 chunk 一处 */
         var type = Math.floor(hash(k, 9002) * 3);
         var z = k * CHUNK + CHUNK * (0.2 + hash(k, 9003) * 0.6);
@@ -24796,7 +24929,7 @@ function sfBuildManif(THREE, planet, manifId, hue, rng) {
         var y = courseY(z) + (hash(k, 9006) - 0.5) * 1500;
         var q = project([x, y, z]);
         if (!q) { D.noQ++; continue; }
-        var fade = fadeAtCenter(q[0]);
+        var fade = fadeAtCenter(q[0], q[2]);
         if (fade <= 0) { D.faded++; continue; }
         /* 不做 y 方向预过滤：canvas 自行裁剪屏外内容。
            之前 2046 个候选全被这一条拦掉，导致一个景观都没画出来。 */
