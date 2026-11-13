@@ -6951,14 +6951,19 @@ const FleetFormations = {
         lead.z - Math.abs(i - 7) * 22 + Math.cos(time * 0.5 + b.phase) * 8
       ];
     }
-    // 2: Orbital Ring (Halo Escort)
+    // 2: Orbital Ring (Halo Escort - Interleaved Dual Concentric Rings)
     else if (this.current === 2) {
-      const angle = (i / FLEET_COUNT) * Math.PI * 2 + time * 0.4;
-      const radius = 120;
+      const isOuter = (i % 2 === 1);
+      const ringRadius = isOuter ? 230 : 160;
+      const ringSpeed = isOuter ? 0.20 : 0.28;
+      const ringOffset = isOuter ? Math.PI : 0;
+      const ringIdx = Math.floor(i / 2);
+      const ringTotal = Math.max(1, Math.ceil(FLEET_COUNT * 0.5));
+      const angle = (ringIdx / ringTotal) * Math.PI * 2 + time * ringSpeed + ringOffset;
       return [
-        lead.x + Math.cos(angle) * radius,
-        lead.y + Math.sin(angle) * (radius * 0.4),
-        lead.z - 30 + Math.sin(angle * 2) * 20
+        lead.x + Math.cos(angle) * ringRadius,
+        lead.y + Math.sin(angle) * (ringRadius * 0.35) + (isOuter ? 16 : -16),
+        lead.z - 35 + Math.sin(angle * 2) * 24
       ];
     }
     // 3: Tandem Needle (Single file aerodynamic column)
@@ -7456,6 +7461,25 @@ function poly(points,c,options={}){
  queue.push({type:0,...p,c:css(options.noFog?c:haze(c,p.d,options.palette||currentPalette)),alpha:options.alpha??1,stroke:options.stroke,width:options.width||.45});
 }
 function line(points,c,alpha=1,width=1){
+ if(points.length===2){
+  const va=view(points[0]), vb=view(points[1]);
+  const aIn=va[2]>=18, bIn=vb[2]>=18;
+  if(!aIn && !bIn) return;
+  let p0, p1;
+  if(aIn && bIn){
+   p0 = project(points[0]); p1 = project(points[1]);
+  } else {
+   const t = (18 - va[2]) / (vb[2] - va[2]);
+   const clipPt = [mix(points[0][0], points[1][0], t), mix(points[0][1], points[1][1], t), mix(points[0][2], points[1][2], t)];
+   p0 = aIn ? project(points[0]) : project(clipPt);
+   p1 = bIn ? project(points[1]) : project(clipPt);
+  }
+  if(!p0 || !p1) return;
+  if((p0[0]<-10&&p1[0]<-10)||(p0[0]>W+10&&p1[0]>W+10)||(p0[1]<-10&&p1[1]<-10)||(p0[1]>H+10&&p1[1]>H+10)) return;
+  const d=(p0[2]+p1[2])*0.5;
+  queue.push({type:1,p:[p0,p1],d,c:css(haze(c,d)),alpha,width});
+  return;
+ }
  const p=points.map(project);if(p.some(v=>!v))return;
  if(p.every(v=>v[0]<-10)||p.every(v=>v[0]>W+10)||p.every(v=>v[1]<-10)||p.every(v=>v[1]>H+10))return;
  const d=p.reduce((s,v)=>s+v[2],0)/p.length;
@@ -7495,7 +7519,7 @@ function deepfield(){
  const light=currentPalette.front*.15+currentPalette.shimmer*.075;
  if(light>.005){
   const center=project([laneX(travel+1500)+750,1,travel+1500]);
-  if(center){const pts=[];for(let i=0;i<28;i++){const a=i/28*TAU;pts.push([laneX(travel+1500)+750+Math.cos(a)*1200,1,travel+1500+Math.sin(a)*1200]);}const mask=clipped(pts);if(mask){ctx.save();ctx.beginPath();mask.p.forEach((v,i)=>i?ctx.lineTo(...v):ctx.moveTo(...v));ctx.closePath();ctx.clip();const r=clamp(1100*center[3],40,W),g=ctx.createRadialGradient(center[0],center[1],0,center[0],center[1],r);g.addColorStop(0,css(currentPalette.sun,light));g.addColorStop(1,css(currentPalette.sun,0));ctx.fillStyle=g;ctx.fillRect(0,0,W,H);ctx.restore();}}
+  if(center && center[2] > 20){const pts=[];for(let i=0;i<28;i++){const a=i/28*TAU;pts.push([laneX(travel+1500)+750+Math.cos(a)*1200,1,travel+1500+Math.sin(a)*1200]);}const mask=clipped(pts);if(mask && mask.p && mask.p.length >= 3){ctx.save();ctx.beginPath();mask.p.forEach((v,i)=>i?ctx.lineTo(...v):ctx.moveTo(...v));ctx.closePath();ctx.clip();const r=clamp(1100*center[3],40,W),g=ctx.createRadialGradient(center[0],center[1],0,center[0],center[1],r);g.addColorStop(0,css(currentPalette.sun,light));g.addColorStop(1,css(currentPalette.sun,0));ctx.fillStyle=g;ctx.fillRect(0,0,W,H);ctx.restore();}}
  }
 }
 const chunks=new Map(),CHUNK=3200;
@@ -10862,10 +10886,10 @@ function updateBirds(dt){
     const dx = b.x - o.x, dy = (b.y - o.y) * 1.25, dz = b.z - o.z;
     const d2 = dx * dx + dy * dy + dz * dz;
 
-    // Separation (d < 58)
+    // Separation (d < 58) with strict force capping to prevent slingshot explosion
     if (d2 < 3364 && d2 > 0.001) {
      const dist = Math.sqrt(d2);
-     const push = (58 - dist) / dist * 32.0;
+     const push = Math.min(18.0, (58 - dist) / Math.max(10, dist) * 20.0);
      sepX += dx * push; sepY += dy * push * 0.7; sepZ += dz * push;
     }
 
@@ -10908,13 +10932,13 @@ function updateBirds(dt){
     b.ax -= f * gx; b.ay -= f * gy; b.az -= f * gz;
    }
 
-   // Soft boundary restraint
+   // Soft boundary restraint: widen boundaries for chase camera & ignore during halo orbital escort
    const p = project(wp);
-   if (p) {
-    const lo = W * 0.04, hi = W * 0.58;
+   if (p && FleetFormations.current !== 2) {
+    const lo = W * 0.03, hi = W * 0.95;
     const excess = p[0] > hi ? p[0] - hi : p[0] < lo ? p[0] - lo : 0;
     if (excess) {
-     const push = clamp(excess / Math.max(0.08, p[3]) * 0.62, -120, 120);
+     const push = clamp(excess / Math.max(0.08, p[3]) * 0.45, -80, 80);
      b.ax -= camera.right[0] * push;
      b.az -= camera.right[2] * push;
     }
@@ -10927,6 +10951,12 @@ function updateBirds(dt){
    b.vx = (b.vx + b.ax * step) * drag;
    b.vy = (b.vy + b.ay * step) * drag;
    b.vz = (b.vz + b.az * step) * drag;
+   const maxRelV = 320;
+   const relV = Math.hypot(b.vx, b.vy, b.vz);
+   if (relV > maxRelV) {
+    const scale = maxRelV / relV;
+    b.vx *= scale; b.vy *= scale; b.vz *= scale;
+   }
 
    b.x += b.vx * step;
    b.y += b.vy * step;
@@ -11042,49 +11072,53 @@ function drawEscortOrbits() {
     const tier = TIERS[item.tier] || { color: '#8ea9c4' };
     const hue = item.hue || 200;
 
-    const orbitSpeed = 0.55 + idx * 0.22;
-    const orbitRadius = 28 + idx * 16;
+    // 优雅舒缓的深空护航轨道公转：外延半径 140~230，避免穿插机身；速度收敛至 0.22~0.38 rad/s
+    const orbitSpeed = 0.22 + idx * 0.08;
+    const orbitRadius = 140 + idx * 45;
     const angle = time * orbitSpeed + idx * (TAU / 3);
 
     const ox = leadPos[0] + Math.cos(angle) * orbitRadius;
-    const oy = leadPos[1] + Math.sin(angle) * (orbitRadius * 0.42);
-    const oz = leadPos[2] + Math.sin(angle) * (orbitRadius * 0.75);
+    const oy = leadPos[1] + Math.sin(angle) * (orbitRadius * 0.32);
+    const oz = leadPos[2] - 20 + Math.sin(angle * 1.5) * (orbitRadius * 0.45);
 
     const q = project([ox, oy, oz]);
-    if (!q || q[2] <= 0) continue;
+    if (!q || q[2] <= 24) continue;
 
     const sx = q[0], sy = q[1], depth = q[2];
-    const baseR = Math.max(3.5, Math.min(11, 380 / Math.max(depth, 30)));
+    const nearFade = clamp((depth - 24) / 60, 0, 1);
+    if (nearFade <= 0.01) continue;
+
+    const baseR = Math.max(3.0, Math.min(10.0, 360 / Math.max(depth, 40)));
 
     queue.push({
-      type: 4, d: depth, alpha: 1, fn: () => {
+      type: 4, d: depth, alpha: nearFade, fn: () => {
         ctx.save();
-        // Atmospheric glow
-        const grad = ctx.createRadialGradient(sx, sy, baseR * 0.4, sx, sy, baseR * 2.8);
-        grad.addColorStop(0, tier.color || '#fff');
-        grad.addColorStop(0.35, `hsla(${hue}, 80%, 70%, 0.45)`);
+        // Atmospheric glow: 柔和星芒光晕，杜绝纯白爆闪
+        const grad = ctx.createRadialGradient(sx, sy, baseR * 0.3, sx, sy, baseR * 2.2);
+        grad.addColorStop(0, `hsla(${hue}, 85%, 80%, ${(0.7 * nearFade).toFixed(2)})`);
+        grad.addColorStop(0.4, `hsla(${hue}, 75%, 65%, ${(0.35 * nearFade).toFixed(2)})`);
         grad.addColorStop(1, 'rgba(0,0,0,0)');
         ctx.beginPath();
-        ctx.arc(sx, sy, baseR * 2.8, 0, TAU);
+        ctx.arc(sx, sy, baseR * 2.2, 0, TAU);
         ctx.fillStyle = grad;
         ctx.fill();
 
-        // Planet sphere body
-        const bodyGrad = ctx.createRadialGradient(sx - baseR * 0.35, sy - baseR * 0.35, baseR * 0.1, sx, sy, baseR);
-        bodyGrad.addColorStop(0, '#ffffff');
-        bodyGrad.addColorStop(0.35, `hsl(${hue}, 75%, 65%)`);
-        bodyGrad.addColorStop(0.85, `hsl(${hue}, 85%, 25%)`);
-        bodyGrad.addColorStop(1, '#050a12');
+        // Planet sphere body: 去除刺眼纯白高光，采用温润的星核色系
+        const bodyGrad = ctx.createRadialGradient(sx - baseR * 0.25, sy - baseR * 0.25, baseR * 0.08, sx, sy, baseR);
+        bodyGrad.addColorStop(0, `hsl(${hue}, 85%, 85%)`);
+        bodyGrad.addColorStop(0.4, `hsl(${hue}, 70%, 55%)`);
+        bodyGrad.addColorStop(0.85, `hsl(${hue}, 80%, 25%)`);
+        bodyGrad.addColorStop(1, '#060d18');
         ctx.beginPath();
         ctx.arc(sx, sy, baseR, 0, TAU);
         ctx.fillStyle = bodyGrad;
         ctx.fill();
 
         // Orbital resonance hint
-        ctx.strokeStyle = `hsla(${hue}, 80%, 75%, 0.28)`;
+        ctx.strokeStyle = `hsla(${hue}, 80%, 75%, ${(0.24 * nearFade).toFixed(2)})`;
         ctx.lineWidth = 1;
         ctx.beginPath();
-        ctx.arc(sx, sy, baseR * 1.45, 0, TAU);
+        ctx.arc(sx, sy, baseR * 1.35, 0, TAU);
         ctx.stroke();
         ctx.restore();
       }
@@ -16429,6 +16463,7 @@ window.Starfield=Object.freeze({
  triggerCrash:()=>{if(typeof WarpDrive!=='undefined'){WarpDrive.shake=6;WarpDrive.brakeKick=200;WarpDrive.currentWarp=0;}capturePhase=2;},
  getWarpDrive:()=>WarpDrive,
  getFleetFormations:()=>FleetFormations,
+ getFleet:()=>fleet,
  getCodex:()=>Codex,
  getPhotoStudio:()=>PhotoStudio,
  getGameSettings:()=>GameSettings,
@@ -20308,7 +20343,7 @@ requestAnimationFrame(frame);
       }
 
       const now = performance.now() * 0.001;
-      const dt = Math.min(0.05, now - this.lastTime);
+      const dt = Math.min(0.05, Math.max(0, now - (this.lastTime || now)));
       this.lastTime = now;
 
       // Fast visibility switch with zero scene graph mutations:

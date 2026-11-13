@@ -8,7 +8,7 @@ import sys
 from playwright.sync_api import sync_playwright
 
 def verify_mobile_clean_hud():
-    pub_dir = r"d:\items\code\starfield-pub"
+    pub_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     html_file = os.path.join(pub_dir, "starfield.html")
     artifact_dir = r"C:\Users\machine\.gemini\antigravity\brain\72ea3f45-0738-459a-8560-5853a3c36367"
     file_url = f"file:///{html_file.replace(os.sep, '/')}"
