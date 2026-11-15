@@ -22,7 +22,8 @@ async def main():
     root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     starfield_html = os.path.join(root_dir, 'starfield.html')
     android_html = os.path.join(root_dir, 'android', 'app', 'src', 'main', 'assets', 'starfield.html')
-    artifact_dir = r"C:\Users\machine\.gemini\antigravity\brain\72ea3f45-0738-459a-8560-5853a3c36367"
+    artifact_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'artifacts')
+    os.makedirs(artifact_dir, exist_ok=True)
 
     print("=================================================================")
     print(" VERIFYING CODE REVIEW REFINEMENTS & COMPREHENSIVE BUG EXCLUSION")
@@ -48,7 +49,9 @@ async def main():
     assert "const cv = [mix(va[0], vb[0], t), mix(va[1], vb[1], t), 18];" in src, "Direct view-space clipping missing in line()"
     assert "const k = (i > LEAD) ? (i - 1) : i;" in src, "k follower index mapping missing in getSlot()"
     assert "e.code === 'KeyQ'" in src, "KeyQ probe mapping missing"
-    assert "e.code === 'KeyX'" in src, "KeyX sonar mapping missing"
+    assert "KeyV" in src and "FleetFormations.cycle()" in src, "KeyV formation mapping missing"
+    assert "KeyF" in src and "StarfieldSonar" in src, "KeyF sonar mapping missing"
+    assert "KeyX" in src, "KeyX legacy sonar mapping missing"
     print("[PASS] Source code contains all near-clip, formation geometry, and non-conflicting hotkeys.")
 
     # 3. Headless Browser Runtime Verification
@@ -58,8 +61,7 @@ async def main():
     async with async_playwright() as p:
         browser = await p.chromium.launch(
             channel="chrome",
-            headless=True,
-            args=["--use-gl=angle", "--use-angle=swiftshader", "--disable-gpu-watchdog"]
+            headless=True
         )
         page = await browser.new_page(viewport={"width": 1440, "height": 900})
 
@@ -163,25 +165,25 @@ async def main():
             const probeCountAfter = (window.StarfieldOrbitalMechanics && window.StarfieldOrbitalMechanics.probes) ? window.StarfieldOrbitalMechanics.probes.length : 0;
             results.probeLaunched = (probeCountAfter >= probeCountBefore);
 
-            // 2. Dispatch KeyF (Fleet Formations cycle)
+            // 2. Dispatch KeyV (Vector Fleet Formations cycle)
             const S = window.Starfield;
             const FF = S ? S.getFleetFormations() : null;
             const formBefore = FF ? FF.current : 0;
-            window.dispatchEvent(new KeyboardEvent('keydown', { key: 'f', code: 'KeyF', bubbles: true }));
+            window.dispatchEvent(new KeyboardEvent('keydown', { key: 'v', code: 'KeyV', bubbles: true }));
             const formAfter = FF ? FF.current : 0;
             results.formationCycled = (formAfter !== formBefore);
 
-            // 3. Dispatch KeyX (Sonar Scan)
-            const scanTimeBefore = window.StarfieldSonar ? window.StarfieldSonar.lastScanTime : 0;
+            // 3. Dispatch KeyF (Sonar Scan Focus/Find) & KeyX (Legacy alias)
+            window.dispatchEvent(new KeyboardEvent('keydown', { key: 'f', code: 'KeyF', bubbles: true }));
             window.dispatchEvent(new KeyboardEvent('keydown', { key: 'x', code: 'KeyX', bubbles: true }));
             results.sonarHandled = true;
 
             return results;
         }""")
         print("Hotkey test results:", hotkey_test)
-        assert hotkey_test['formationCycled'], "KeyF failed to cycle formation!"
+        assert hotkey_test['formationCycled'], "KeyV failed to cycle formation!"
         assert hotkey_test['probeLaunched'], "KeyQ failed to trigger probe launch!"
-        print("[PASS] Non-conflicting hotkeys (Q, F, X) confirmed operational.")
+        print("[PASS] Non-conflicting hotkeys (Q, V, F/X) confirmed operational.")
 
         # 5. Escort Orbit Live Rendering Test
         print("\n--- 5. Celestial Escort Orbits Live Rendering ---")

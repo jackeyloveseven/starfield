@@ -1,6 +1,6 @@
 // Bump CACHE_VERSION together with version.json on every web release.
 const CACHE_PREFIX = 'starfield-focus-';
-const CACHE_VERSION = 'v1.9.9.9.9-b183';
+const CACHE_VERSION = 'v1.9.9.9.9-b184';
 const CACHE_NAME = CACHE_PREFIX + CACHE_VERSION;
 const SHELL = './starfield.html';
 const PRECACHE = [
@@ -10,7 +10,8 @@ const PRECACHE = [
   './icon-512.png',
   './libs/three.min.js',
   './libs/OrbitControls.js',
-  './libs/tween.umd.js'
+  './libs/tween.umd.js',
+  './libs/GLTFLoader.js'
 ];
 
 self.addEventListener('install', (event) => {

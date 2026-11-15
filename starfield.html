@@ -1389,6 +1389,18 @@ body.modal-open #sf-perf-hud {
   transform: translateX(-50%) scale(1);
 }
 
+/* Build 184 Polish: Descent Corridor & Stardust Glow & Situation Capsule */
+.sf-descent-corridor-btn{position:fixed;right:var(--pad,40px);bottom:calc(var(--pad,40px) + 72px);z-index:810;padding:8px 18px;border:1px solid rgba(244,208,111,.65);background:rgba(11,17,24,.82);color:#f4d06f;font-family:"Songti SC","Noto Serif SC",serif;font-size:12px;letter-spacing:.18em;cursor:pointer;opacity:0;pointer-events:none;transform:translateY(8px);transition:opacity .45s ease,transform .45s ease;text-shadow:0 0 12px rgba(244,208,111,.4);box-shadow:0 4px 20px rgba(0,0,0,.6);border-radius:2px;}
+.sf-descent-corridor-btn.show{opacity:1;pointer-events:auto;transform:none;}
+.sf-descent-corridor-btn:hover{background:rgba(244,208,111,.15);border-color:#f4d06f;}
+@media (max-width:600px){.sf-descent-corridor-btn{right:14px;bottom:96px;padding:6px 14px;font-size:11px;}}
+
+.sf-stardust-pill{display:inline-flex;align-items:center;gap:5px;font-family:ui-monospace,monospace;font-size:10px;letter-spacing:.14em;color:rgba(244,208,111,.92);text-shadow:0 0 10px rgba(244,208,111,.35);padding:3px 10px;border:1px solid rgba(244,208,111,.22);background:rgba(11,17,24,.65);border-radius:2px;pointer-events:none;margin-top:6px;}
+
+.sf-sonar-capsule{position:fixed;top:calc(var(--pad,40px) + 82px);left:50%;transform:translateX(-50%) translateY(-6px);z-index:810;padding:6px 16px;border:1px solid rgba(56,189,248,.65);background:rgba(11,17,24,.82);color:#38bdf8;font-family:"Songti SC","Noto Serif SC",serif;font-size:11px;letter-spacing:.16em;cursor:pointer;opacity:0;pointer-events:none;transition:opacity .35s ease,transform .35s ease;text-shadow:0 0 10px rgba(56,189,248,.45);border-radius:2px;}
+.sf-sonar-capsule.show{opacity:1;pointer-events:auto;transform:translateX(-50%) translateY(0);}
+.sf-sonar-capsule:hover{background:rgba(56,189,248,.18);border-color:#38bdf8;}
+
 </style>
 <style id="sf-touch-guard">
 /* A long press on the artwork popped the browser's image search / context menu. */
@@ -4625,7 +4637,7 @@ body:has(#photo-ui.active) .sf-touch-cluster{
     <div class="shortcut-list">
       <div class="shortcut-row">
         <span>客户端版本</span>
-        <span class="shortcut-key" id="sf-version-tag">v1.9.9.9.9 (Build 183)</span>
+        <span class="shortcut-key" id="sf-version-tag">v1.9.9.9.9 (Build 184)</span>
       </div>
       <div class="shortcut-row">
         <span>OTA 实时热更新</span>
@@ -6185,7 +6197,7 @@ body:has(#photo-ui.active) .sf-touch-cluster{
         const edge = isLead ? blend([255, 215, 0], base, 0.25) : (p.craftShade ? blend(base, p.craftShade, 0.82) : [160, 172, 186]);
         const darkShade = shade ? shade(base, 0.86) : [170, 180, 192];
 
-        // Draw mesh faces
+        // Draw mesh faces with 3D normal directional lighting & washi translucency
         for (const face of hull.faces) {
           const p1 = world[face.pts[0]];
           const p2 = world[face.pts[1]];
@@ -6197,7 +6209,27 @@ body:has(#photo-ui.active) .sf-touch-cluster{
           else if (face.type === 'edge') col = edge;
           else if (face.type === 'shade') col = darkShade;
 
-          poly([p1, p2, p3], col, { alpha: nearCraft });
+          // 3D Surface normal vector
+          const u0 = p2[0] - p1[0], u1 = p2[1] - p1[1], u2 = p2[2] - p1[2];
+          const v0 = p3[0] - p1[0], v1 = p3[1] - p1[1], v2 = p3[2] - p1[2];
+          let nx = u1 * v2 - u2 * v1;
+          let ny = u2 * v0 - u0 * v2;
+          let nz = u0 * v1 - u1 * v0;
+          const nl = Math.hypot(nx, ny, nz);
+          if (nl > 1e-5) { nx /= nl; ny /= nl; nz /= nl; }
+
+          // Directional starlight & normal dot product
+          const lx = 0.35, ly = 0.82, lz = -0.45;
+          const dot = nx * lx + ny * ly + nz * lz;
+          const diffuse = Math.max(0.42, Math.min(1.18, dot * 0.38 + 0.72));
+          const translucency = Math.max(0, Math.min(0.38, -dot * 0.32 + 0.14)) * (isLead ? 1.15 : 0.75);
+
+          let finalCol = shade ? shade(col, diffuse) : col;
+          if (translucency > 0.02) {
+            finalCol = blend(finalCol, [255, 238, 204], translucency);
+          }
+
+          poly([p1, p2, p3], finalCol, { alpha: nearCraft });
         }
 
         // Draw crease lines
@@ -6237,35 +6269,42 @@ body:has(#photo-ui.active) .sf-touch-cluster{
       const emitterPt = world.tail || world.centerNozzle || world.tailChevron || world.tailStinger || world.nose;
       if (!emitterPt) return;
 
-      // Manage history buffer for this craft
-      let hist = this.trailHistory.get(b);
-      if (!hist) {
-        hist = [];
-        this.trailHistory.set(b, hist);
+      // Manage history Ring Buffer for this craft (Zero GC churn)
+      const MAX_TRAIL_PTS = 64;
+      let ring = this.trailHistory.get(b);
+      if (!ring || !ring.slots) {
+        ring = {
+          slots: new Array(MAX_TRAIL_PTS),
+          head: 0,
+          count: 0
+        };
+        for (let s = 0; s < MAX_TRAIL_PTS; s++) {
+          ring.slots[s] = { x: 0, y: 0, z: 0, time: 0 };
+        }
+        this.trailHistory.set(b, ring);
       }
 
-      // Push current position to history
-      hist.unshift({
-        x: emitterPt[0],
-        y: emitterPt[1],
-        z: emitterPt[2],
-        time: time
-      });
+      const maxPts = Math.min(MAX_TRAIL_PTS, Math.round(14 * warpStretch));
+      const curSlot = ring.slots[ring.head];
+      curSlot.x = emitterPt[0];
+      curSlot.y = emitterPt[1];
+      curSlot.z = emitterPt[2];
+      curSlot.time = time;
+      ring.head = (ring.head + 1) % MAX_TRAIL_PTS;
+      ring.count = Math.min(maxPts, ring.count + 1);
 
-      // Max history length based on warp speed
-      const maxPts = Math.min(48, Math.round(14 * warpStretch));
-      while (hist.length > maxPts) hist.pop();
-
-      if (hist.length < 2) return;
+      if (ring.count < 2) return;
 
       // Draw Ribbon Trail Segments
       const colMain = trail.colors.main;
       const colCore = trail.colors.core;
 
-      for (let j = 0; j < hist.length - 1; j++) {
-        const pt1 = hist[j];
-        const pt2 = hist[j + 1];
-        const frac = j / hist.length;
+      for (let j = 0; j < ring.count - 1; j++) {
+        const idx1 = (ring.head - 1 - j + MAX_TRAIL_PTS) % MAX_TRAIL_PTS;
+        const idx2 = (ring.head - 2 - j + MAX_TRAIL_PTS) % MAX_TRAIL_PTS;
+        const pt1 = ring.slots[idx1];
+        const pt2 = ring.slots[idx2];
+        const frac = j / ring.count;
         const segAlpha = Math.max(0, (1 - frac) * 0.75 * alphaMul);
 
         // Trail width & oscillation
@@ -6283,7 +6322,8 @@ body:has(#photo-ui.active) .sf-touch-cluster{
 
       // Spawn drifting warp spark particles at high speeds
       if (warpStretch > 1.4 && sprite && Math.random() < 0.35) {
-        const pt = hist[Math.floor(Math.random() * Math.min(hist.length, 6))];
+        const sparkIdx = (ring.head - 1 - Math.floor(Math.random() * Math.min(ring.count, 6)) + MAX_TRAIL_PTS) % MAX_TRAIL_PTS;
+        const pt = ring.slots[sparkIdx];
         const spreadX = (Math.random() - 0.5) * 8 * warpStretch;
         const spreadY = (Math.random() - 0.5) * 6;
         sprite([pt.x + spreadX, pt.y + spreadY, pt.z], 1.8 * warpStretch, colMain, 'dust', 0.65 * alphaMul);
@@ -6898,10 +6938,25 @@ const PhotoStudio = {
     expCtx.fillText(`ALTITUDE ${(travel / 1000).toFixed(1)} KLY  ·  FIELD ${SEED.toString(16).toUpperCase().slice(0, 6)}  ·  INDIE MASTER EDITION`, 36 * DPR, expCanvas.height - 28 * DPR);
     expCtx.restore();
 
-    // Trigger download
+    // Trigger export (Native Android Gallery if available, fallback to browser download)
     const dataUrl = expCanvas.toDataURL('image/png');
+    const filename = `Starfield_Voyage_${Math.round(travel)}KLY_${Date.now()}.png`;
+
+    if (window.StarfieldNative && typeof window.StarfieldNative.saveImageToGallery === 'function') {
+      try {
+        const saved = window.StarfieldNative.saveImageToGallery(dataUrl, filename);
+        if (saved) {
+          toast('✦ 壁纸已保存至系统相册 · WALLPAPER SAVED ✦', 2.8);
+          if (typeof sound !== 'undefined' && sound.playChime) sound.playChime(880);
+          return;
+        }
+      } catch(e) {
+        console.warn('[ExportWallpaper] Native gallery save failed:', e);
+      }
+    }
+
     const a = document.createElement('a');
-    a.download = `Starfield_Voyage_${Math.round(travel)}KLY_${Date.now()}.png`;
+    a.download = filename;
     a.href = dataUrl;
     a.click();
 
@@ -7020,6 +7075,73 @@ function updateSlingshotMechanic(dt) {
 }
 
 // ============================================================================
+// GLOBAL AUDIO SINGLETON & THREE-TIER AUDIO BUS (WebAudio 三级音频总线单例)
+// MasterBus -> [MusicBus, SFXBus, AmbienceBus] -> DynamicsCompressor -> Destination
+// ============================================================================
+window.StarfieldAudio = {
+  ctx: null,
+  masterBus: null,
+  musicBus: null,
+  sfxBus: null,
+  ambienceBus: null,
+  _resuming: false,
+
+  init() {
+    if (this.ctx && this.ctx.state !== 'closed') return this.ctx;
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (!AudioCtx) return null;
+    try {
+      this.ctx = new AudioCtx();
+      const ac = this.ctx;
+
+      this.masterBus = ac.createGain();
+      this.masterBus.gain.value = 0.85;
+
+      const comp = ac.createDynamicsCompressor();
+      comp.threshold.value = -15;
+      comp.knee.value = 20;
+      comp.ratio.value = 3;
+      this.masterBus.connect(comp);
+      comp.connect(ac.destination);
+
+      this.musicBus = ac.createGain();
+      this.musicBus.gain.value = 0.68;
+      this.musicBus.connect(this.masterBus);
+
+      this.sfxBus = ac.createGain();
+      this.sfxBus.gain.value = 0.85;
+      this.sfxBus.connect(this.masterBus);
+
+      this.ambienceBus = ac.createGain();
+      this.ambienceBus.gain.value = 0.80;
+      this.ambienceBus.connect(this.masterBus);
+    } catch (e) {
+      console.warn('[StarfieldAudio] init failed:', e);
+    }
+    return this.ctx;
+  },
+
+  resume() {
+    if (this.ctx && this.ctx.state === 'suspended' && !this._resuming) {
+      this._resuming = true;
+      return this.ctx.resume().then(() => {
+        this._resuming = false;
+      }).catch(() => {
+        this._resuming = false;
+      });
+    }
+    return Promise.resolve();
+  },
+
+  getContext() {
+    if (!this.ctx || this.ctx.state === 'closed') {
+      this.init();
+    }
+    return this.ctx;
+  }
+};
+
+// ============================================================================
 // 4. GAME SETTINGS & AUDIO MIXER DRAWER (系统设置与调音台)
 // ============================================================================
 const GameSettings = {
@@ -7048,6 +7170,9 @@ const GameSettings = {
     sMusic.addEventListener('input', e => {
       this.musicVol = e.target.value / 100;
       $('vol-val-music').textContent = `${e.target.value}%`;
+      if (window.StarfieldAudio && window.StarfieldAudio.musicBus) {
+        window.StarfieldAudio.musicBus.gain.value = 0.68 * this.musicVol;
+      }
       if (typeof sound !== 'undefined' && sound.musicGain) {
         sound.musicGain.gain.value = 0.68 * this.musicVol;
       }
@@ -7056,8 +7181,8 @@ const GameSettings = {
     sSfx.addEventListener('input', e => {
       this.sfxVol = e.target.value / 100;
       $('vol-val-sfx').textContent = `${e.target.value}%`;
-      if (typeof sound !== 'undefined' && sound.master) {
-        sound.master.gain.value = 0.78 * this.sfxVol;
+      if (window.StarfieldAudio && window.StarfieldAudio.sfxBus) {
+        window.StarfieldAudio.sfxBus.gain.value = 0.85 * this.sfxVol;
       }
     });
 
@@ -10626,6 +10751,80 @@ function drawGalaxy(g,p,t,pj){
   return;
  }
 
+  // Pre-baked offscreen watercolor ink stamp
+  if (!g._stampCanvas && g._arms) {
+    const sSize = 512;
+    const sCv = document.createElement('canvas');
+    sCv.width = sSize; sCv.height = sSize;
+    const sCtx = sCv.getContext('2d');
+    const sMid = sSize / 2;
+    const sR = (sSize * 0.48) / g.rad;
+
+    const starlightWhite = blend(inner, [255, 252, 248], 0.85);
+    const starlightMist = blend(inner, pal[1], 0.60);
+    const dustContrast = blend(p.ink, rim, 0.35);
+    const h2Pink = blend(pal[0], [255, 140, 185], 0.75);
+    const obBlue = blend(pal[1], [165, 225, 255], 0.75);
+
+    sCtx.translate(sMid, sMid);
+    for (let k = 0; k < g._arms.length; k++) {
+      const arm = g._arms[k];
+      const spine = arm.spine;
+      if (!spine || spine.length < 3) continue;
+      for (let i = 0; i < spine.length - 1; i++) {
+        const pA = spine[i], pB = spine[i + 1];
+        const f = pA.f;
+        const taper = Math.sin(Math.PI * Math.min(1, f * 0.90 + 0.08));
+        const fade = (1 - f * 0.60);
+
+        sCtx.strokeStyle = css(starlightMist, 0.22 * fade);
+        sCtx.lineWidth = Math.max(2.0, sSize * 0.048 * taper);
+        sCtx.lineCap = 'round';
+        sCtx.beginPath();
+        sCtx.moveTo(pA.x * sR, pA.y * sR);
+        sCtx.lineTo(pB.x * sR, pB.y * sR);
+        sCtx.stroke();
+
+        sCtx.strokeStyle = css(starlightWhite, 0.45 * fade);
+        sCtx.lineWidth = Math.max(1.0, sSize * 0.014 * taper);
+        sCtx.beginPath();
+        sCtx.moveTo(pA.x * sR, pA.y * sR);
+        sCtx.lineTo(pB.x * sR, pB.y * sR);
+        sCtx.stroke();
+      }
+      if (arm.dustSpine && arm.dustSpine.length > 2) {
+        for (let i = 0; i < arm.dustSpine.length - 1; i++) {
+          const dA = arm.dustSpine[i], dB = arm.dustSpine[i + 1];
+          const f = dA.f;
+          const taper = Math.sin(Math.PI * Math.min(1, f * 0.88 + 0.10));
+          sCtx.strokeStyle = css(dustContrast, 0.15 * (1 - f * 0.5));
+          sCtx.lineWidth = Math.max(1.0, sSize * 0.018 * taper);
+          sCtx.beginPath();
+          sCtx.moveTo(dA.x * sR, dA.y * sR);
+          sCtx.lineTo(dB.x * sR, dB.y * sR);
+          sCtx.stroke();
+        }
+      }
+      if (arm.knots) {
+        for (let j = 0; j < arm.knots.length; j++) {
+          const kn = arm.knots[j];
+          const kx = kn.px * sR, ky = kn.py * sR;
+          const kr = Math.max(1.5, kn.rad * sR * 1.3);
+          const kColor = kn.isH2 ? h2Pink : obBlue;
+          const kg = sCtx.createRadialGradient(kx, ky, 0, kx, ky, kr);
+          kg.addColorStop(0.00, css(kColor, 0.65));
+          kg.addColorStop(0.40, css(kColor, 0.22));
+          kg.addColorStop(1.00, css(kColor, 0.0));
+          sCtx.fillStyle = kg;
+          sCtx.beginPath();
+          sCtx.arc(kx, ky, kr, 0, TAU);
+          sCtx.fill();
+        }
+      }
+    }
+    g._stampCanvas = sCv;
+  }
+
  // Grand-Design Spiral Galaxy: Watercolor celestial starlight disc & density waves
  const p0 = q;
  const pU = project([g.x + g._u[0] * g.rad, g.y + g._u[1] * g.rad, g.z + g._u[2] * g.rad]);
@@ -10663,91 +10862,10 @@ function drawGalaxy(g,p,t,pj){
    ctx.arc(0, 0, lenU * 0.98, 0, TAU);
    ctx.fill();
 
-   // 2. Luminous Stellar Density Waves & Spiral Streamers
-   if(g._arms){
-    const starlightWhite = blend(inner, [255, 252, 248], 0.85);
-    const starlightMist = blend(inner, pal[1], 0.60);
-    const dustContrast = blend(p.ink, rim, 0.35);
-    const h2Pink = blend(pal[0], [255, 140, 185], 0.75);
-    const obBlue = blend(pal[1], [165, 225, 255], 0.75);
-
-    for(let k=0; k<g._arms.length; k++){
-     const arm = g._arms[k];
-     const spine = arm.spine;
-     if(!spine || spine.length < 3) continue;
-
-     if(vis > 0.02){
-      // Segmented watercolor wash with smooth tapering
-      for(let i=0; i<spine.length - 1; i++){
-       const pA = spine[i], pB = spine[i + 1];
-       const f = pA.f;
-       const taper = Math.sin(Math.PI * Math.min(1, f * 0.90 + 0.08));
-       const fade = (1 - f * 0.60) * vis * mv;
-
-       // 2a. Soft diffuse watercolor starlight haze
-       ctx.strokeStyle = css(starlightMist, 0.15 * fade);
-       ctx.lineWidth = Math.max(1.8, lenU * 0.048 * taper);
-       ctx.lineCap = 'round';
-       ctx.beginPath();
-       ctx.moveTo(pA.x * scaleR, pA.y * scaleR);
-       ctx.lineTo(pB.x * scaleR, pB.y * scaleR);
-       ctx.stroke();
-
-       // 2b. Delicate starlight density spine
-       ctx.strokeStyle = css(starlightWhite, 0.40 * fade);
-       ctx.lineWidth = Math.max(0.8, lenU * 0.014 * taper);
-       ctx.beginPath();
-       ctx.moveTo(pA.x * scaleR, pA.y * scaleR);
-       ctx.lineTo(pB.x * scaleR, pB.y * scaleR);
-       ctx.stroke();
-      }
-
-      // 2c. Inner dust contrast streamer
-      if(arm.dustSpine && arm.dustSpine.length > 2){
-       for(let i=0; i<arm.dustSpine.length - 1; i++){
-        const dA = arm.dustSpine[i], dB = arm.dustSpine[i + 1];
-        const f = dA.f;
-        const taper = Math.sin(Math.PI * Math.min(1, f * 0.88 + 0.10));
-        ctx.strokeStyle = css(dustContrast, 0.10 * (1 - f * 0.5) * vis * mv);
-        ctx.lineWidth = Math.max(0.8, lenU * 0.018 * taper);
-        ctx.beginPath();
-        ctx.moveTo(dA.x * scaleR, dA.y * scaleR);
-        ctx.lineTo(dB.x * scaleR, dB.y * scaleR);
-        ctx.stroke();
-       }
-      }
-     }
-
-     // 2d. Stellar nurseries & H-II ionization knots
-     if(vis > 0.06 && arm.knots){
-      for(let j=0; j<arm.knots.length; j++){
-       const kn = arm.knots[j];
-       const kx = kn.px * scaleR, ky = kn.py * scaleR;
-       const kr = Math.max(1.2, kn.rad * scaleR * 1.3);
-       const kColor = kn.isH2 ? h2Pink : obBlue;
-       const kg = ctx.createRadialGradient(kx, ky, 0, kx, ky, kr);
-       kg.addColorStop(0.00, css(kColor, 0.55 * vis * mv));
-       kg.addColorStop(0.40, css(kColor, 0.18 * vis * mv));
-       kg.addColorStop(1.00, css(kColor, 0.0));
-       ctx.fillStyle = kg;
-       ctx.beginPath();
-       ctx.arc(kx, ky, kr, 0, TAU);
-       ctx.fill();
-      }
-     }
-
-     // 2e. Twinkling micro stardust points along density waves
-     if(vis > 0.08 && arm.stars){
-      const stColor = 'rgba(255, 252, 248, ';
-      for(let j=0; j<arm.stars.length; j++){
-       const st = arm.stars[j];
-       ctx.fillStyle = stColor + (st.a * vis * mv).toFixed(2) + ')';
-       ctx.beginPath();
-       ctx.arc(st.px * scaleR, st.py * scaleR, Math.max(0.5, st.sz), 0, TAU);
-       ctx.fill();
-      }
-     }
-    }
+   // 2. Pre-baked Ink Stamp Density Waves & Streamers
+   if (g._stampCanvas) {
+     ctx.globalAlpha = Math.max(0, Math.min(1, vis * mv * 1.15));
+     ctx.drawImage(g._stampCanvas, -lenU, -lenU, lenU * 2, lenU * 2);
    }
 
    // 3. Compact Elliptical Stellar Bulge & Warm Golden Core
@@ -11320,10 +11438,14 @@ function drawEscortOrbits() {
   const collection = (typeof StarfieldHatch.list === 'function')
     ? StarfieldHatch.list()
     : [];
-  const map = new Map();
-  for (let i = 0; i < collection.length; i++) {
-    if (collection[i] && collection[i].id) map.set(collection[i].id, collection[i]);
+  if (!drawEscortOrbits._mapCache || drawEscortOrbits._lastCollection !== collection) {
+    drawEscortOrbits._mapCache = new Map();
+    for (let i = 0; i < collection.length; i++) {
+      if (collection[i] && collection[i].id) drawEscortOrbits._mapCache.set(collection[i].id, collection[i]);
+    }
+    drawEscortOrbits._lastCollection = collection;
   }
+  const map = drawEscortOrbits._mapCache;
 
   const leadPos = craftWorld(fleet[LEAD]);
   const TIERS = StarfieldHatch.tiers || {};
@@ -11376,12 +11498,28 @@ function drawEscortOrbits() {
         ctx.fillStyle = bodyGrad;
         ctx.fill();
 
-        // Orbital resonance hint
+        // Orbital resonance hint & Celestial Construction Wonder
         ctx.strokeStyle = `hsla(${hue}, 80%, 75%, ${(0.24 * nearFade).toFixed(2)})`;
         ctx.lineWidth = 1;
         ctx.beginPath();
         ctx.arc(sx, sy, baseR * 1.35, 0, TAU);
         ctx.stroke();
+
+        const bStage = (window.SFBuildup ? window.SFBuildup.stage(item) : 0);
+        if (bStage >= 1) {
+          ctx.beginPath();
+          ctx.ellipse(sx, sy, baseR * 1.8, baseR * 0.45, angle * 0.5, 0, TAU);
+          ctx.strokeStyle = bStage >= 3 ? 'rgba(244, 208, 111, 0.72)' : 'rgba(56, 189, 248, 0.58)';
+          ctx.lineWidth = bStage >= 2 ? 1.4 : 0.8;
+          ctx.stroke();
+          if (bStage >= 4) {
+            for (let d = 0; d < 5; d++) {
+              const da = time * 0.9 + d * (TAU / 5);
+              ctx.fillStyle = '#fef08a';
+              ctx.fillRect(sx + Math.cos(da) * baseR * 2.1, sy + Math.sin(da) * baseR * 0.6, 1.5, 1.5);
+            }
+          }
+        }
         ctx.restore();
       }
     });
@@ -11402,8 +11540,9 @@ const StarfieldSonar = {
     if (this._inited) return;
     this._inited = true;
     window.addEventListener('keydown', (e) => {
+      if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable)) return;
       if ((typeof currentMode !== 'undefined' && currentMode !== 'cruise') || (typeof window !== 'undefined' && window.currentMode && window.currentMode !== 'cruise')) return;
-      if ((e.key.toLowerCase() === 'x' || e.code === 'KeyX') && !e.repeat) {
+      if ((e.key.toLowerCase() === 'f' || e.code === 'KeyF' || e.key.toLowerCase() === 'x' || e.code === 'KeyX') && !e.repeat) {
         this.triggerScan();
       }
     });
@@ -11431,9 +11570,9 @@ const StarfieldSonar = {
     }
 
     this.currentTarget = candidate;
-    // Completely remove bottom-center HUD button to keep screen pure & unobstructed
     const oldBtn = document.getElementById('sf-sonar-lock-btn');
     if (oldBtn) oldBtn.remove();
+    this.updateSituationCapsule(candidate);
 
     for (let i = this.activeSonarRings.length - 1; i >= 0; i--) {
       const ring = this.activeSonarRings[i];
@@ -11446,9 +11585,69 @@ const StarfieldSonar = {
   },
 
   updateHUDButton(target) {
-    // Non-obstructive: No bottom button created. Press [F] or tap celestial body to scan.
     const btn = document.getElementById('sf-sonar-lock-btn');
     if (btn) btn.remove();
+  },
+
+  updateSituationCapsule(target) {
+    let capsule = document.getElementById('sf-sonar-capsule');
+    if (!capsule) {
+      capsule = document.createElement('div');
+      capsule.id = 'sf-sonar-capsule';
+      capsule.className = 'sf-sonar-capsule';
+      document.body.appendChild(capsule);
+      capsule.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.triggerScan();
+      });
+      capsule.addEventListener('pointerdown', (e) => e.stopPropagation());
+    }
+    const flightActive = (typeof started !== 'undefined' && started) || (window.Starfield && window.Starfield.getState && window.Starfield.getState().started);
+    if (target && flightActive && (!window.currentMode || window.currentMode === 'cruise')) {
+      const name = target.name || (target.w && target.w.name) || '天体信号';
+      capsule.innerHTML = `✦ 态势锁定 · ${name} [轻触/按F测绘] ✦`;
+      capsule.classList.add('show');
+    } else {
+      capsule.classList.remove('show');
+    }
+  },
+
+  getTargetScreenPos() {
+    if (!this.currentTarget) return null;
+    const m = this.currentTarget;
+    if (!Number.isFinite(m.x) || !Number.isFinite(m.y) || !Number.isFinite(m.z)) return null;
+    return (typeof project === 'function') ? project([m.x, m.y, m.z]) : null;
+  },
+
+  checkTapHit(clientX, clientY) {
+    const q = this.getTargetScreenPos();
+    if (!q || q[2] <= 0) return false;
+    const hitRadius = Math.max(54, Math.min(220, (400 / q[2]) * 95));
+    const dist = Math.hypot(clientX - q[0], clientY - q[1]);
+    if (dist <= hitRadius) {
+      this.triggerScan();
+      return true;
+    }
+    return false;
+  },
+
+  getTargetScreenPos() {
+    if (!this.currentTarget) return null;
+    const m = this.currentTarget;
+    if (!Number.isFinite(m.x) || !Number.isFinite(m.y) || !Number.isFinite(m.z)) return null;
+    return (typeof project === 'function') ? project([m.x, m.y, m.z]) : null;
+  },
+
+  checkTapHit(clientX, clientY) {
+    const q = this.getTargetScreenPos();
+    if (!q || q[2] <= 0) return false;
+    const hitRadius = Math.max(54, Math.min(220, (400 / q[2]) * 95));
+    const dist = Math.hypot(clientX - q[0], clientY - q[1]);
+    if (dist <= hitRadius) {
+      this.triggerScan();
+      return true;
+    }
+    return false;
   },
 
   triggerScan() {
@@ -11475,14 +11674,10 @@ const StarfieldSonar = {
     });
 
     try {
-      const AudioCtx = window.AudioContext || window.webkitAudioContext;
-      if (AudioCtx) {
-        if (!this.audioCtx || this.audioCtx.state === 'closed') {
-          this.audioCtx = new AudioCtx();
-        } else if (this.audioCtx.state === 'suspended') {
-          this.audioCtx.resume();
-        }
-        const ctx = this.audioCtx;
+      const ctx = window.StarfieldAudio ? window.StarfieldAudio.getContext() : (window.AudioContext ? new window.AudioContext() : null);
+      if (ctx) {
+        if (ctx.state === 'suspended') ctx.resume().catch(() => {});
+        this.audioCtx = ctx;
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
         osc.type = 'sine';
@@ -11491,7 +11686,8 @@ const StarfieldSonar = {
         gain.gain.setValueAtTime(0.18, ctx.currentTime);
         gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.9);
         osc.connect(gain);
-        gain.connect(ctx.destination);
+        const sfxDest = (window.StarfieldAudio && window.StarfieldAudio.sfxBus) ? window.StarfieldAudio.sfxBus : ctx.destination;
+        gain.connect(sfxDest);
         osc.onended = () => {
           try { osc.disconnect(); gain.disconnect(); } catch(e) {}
         };
@@ -11559,7 +11755,10 @@ const StarfieldInFlightExtraction = {
   evacGate: null,
   cargo: [],
   maxCargo: 6,
-  securedCredits: 0,
+  securedCredits: (function() {
+    try { return parseInt(localStorage.getItem('sf_secured_credits_v1') || '0', 10) || 0; }
+    catch(e) { return 0; }
+  })(),
   salvageTarget: null,
   salvageProgress: 0,
   lastSpawnTravel: 0,
@@ -11571,9 +11770,41 @@ const StarfieldInFlightExtraction = {
   fleetShieldFlare: 0,
   escortLaserTimer: 0,
 
+  saveSecuredCredits() {
+    try { localStorage.setItem('sf_secured_credits_v1', String(this.securedCredits)); } catch(e) {}
+    this.updateStardustHUD();
+  },
+  addSecuredCredits(amount) {
+    if (typeof amount !== 'number' || isNaN(amount)) return;
+    this.securedCredits = Math.max(0, this.securedCredits + amount);
+    this.saveSecuredCredits();
+  },
+  spendSecuredCredits(amount) {
+    if (this.securedCredits >= amount) {
+      this.securedCredits -= amount;
+      this.saveSecuredCredits();
+      return true;
+    }
+    return false;
+  },
+  updateStardustHUD() {
+    let el = document.getElementById('sf-hud-stardust');
+    if (!el && typeof document !== 'undefined') {
+      el = document.createElement('div');
+      el.id = 'sf-hud-stardust';
+      el.className = 'sf-stardust-pill';
+      const anchor = document.getElementById('camera-hud') || document.body;
+      anchor.appendChild(el);
+    }
+    if (el) {
+      el.innerHTML = `✦ ${this.securedCredits.toLocaleString()} ST`;
+    }
+  },
+
   init() {
     if (this._inited) return;
     this._inited = true;
+    this.updateStardustHUD();
     window.addEventListener('keydown', (e) => {
       if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable)) return;
       if ((typeof currentMode !== 'undefined' && currentMode !== 'cruise') || (typeof window !== 'undefined' && window.currentMode && window.currentMode !== 'cruise')) return;
@@ -11586,13 +11817,10 @@ const StarfieldInFlightExtraction = {
 
   playChirp(type) {
     try {
-      const AudioCtx = window.AudioContext || window.webkitAudioContext;
-      if (!AudioCtx) return;
-      if (!this.audioCtx) this.audioCtx = new AudioCtx();
-      if (this.audioCtx.state === 'suspended') {
-        this.audioCtx.resume().catch(() => {});
-      }
-      const ctx = this.audioCtx;
+      const ctx = window.StarfieldAudio ? window.StarfieldAudio.getContext() : (window.AudioContext ? new window.AudioContext() : null);
+      if (!ctx) return;
+      if (ctx.state === 'suspended') ctx.resume().catch(() => {});
+      this.audioCtx = ctx;
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       if (type === 'tractor') {
@@ -11622,7 +11850,8 @@ const StarfieldInFlightExtraction = {
         gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.12);
       }
       osc.connect(gain);
-      gain.connect(ctx.destination);
+      const sfxDest = (window.StarfieldAudio && window.StarfieldAudio.sfxBus) ? window.StarfieldAudio.sfxBus : ctx.destination;
+      gain.connect(sfxDest);
       osc.onended = () => {
         try { osc.disconnect(); gain.disconnect(); } catch(e) {}
       };
@@ -12040,7 +12269,7 @@ const StarfieldInFlightExtraction = {
     if (count > 0) {
       const bonus = 600;
       const grandTotal = totalLoot + bonus;
-      this.securedCredits += grandTotal;
+      this.addSecuredCredits(grandTotal);
 
       let coresGained = 0;
       if (window.StarfieldHatch && typeof window.StarfieldHatch.addCores === 'function') {
@@ -12059,291 +12288,374 @@ const StarfieldInFlightExtraction = {
     }
   },
 
-  draw(c) {
-    // 起航前（标题 / 选起航点）不画任何飞行仪表，否则会压在标题文字上。
+  queue3D() {
     if (window.Starfield && window.Starfield.getState && !window.Starfield.getState().started) return;
     if (!fleet || !fleet[LEAD]) return;
     const leadPos = craftWorld(fleet[LEAD]);
     const leadQ = project(leadPos);
 
-    // 1. Draw 3D Derelict & Ruins with Distinctive Geometry & Tractor Beam
+    // 1. Queue 3D Derelicts into depth sort
     for (const d of this.derelicts) {
       if (d.salvaged) continue;
       const q = project([d.x, d.y, d.z]);
       if (!q || q[2] <= 0 || q[2] > 45000) continue;
-
-      const sz = Math.max(16, Math.min(105, (400 / q[2]) * 65));
-      c.save();
-      c.translate(q[0], q[1]);
-      c.rotate(d.roll || 0);
-
-      if (d.type === 'debris') {
-        // Battle Debris: multi-fragment scattered scrap metal & armor chunks
-        c.fillStyle = '#334155';
-        c.strokeStyle = '#94a3b8';
-        c.lineWidth = 1.2;
-        // Scrap plate A
-        c.beginPath();
-        c.moveTo(-sz * 0.8, -sz * 0.4);
-        c.lineTo(-sz * 0.2, -sz * 0.7);
-        c.lineTo(sz * 0.1, -sz * 0.3);
-        c.lineTo(-sz * 0.5, -sz * 0.1);
-        c.closePath();
-        c.fill(); c.stroke();
-        // Scrap plate B
-        c.beginPath();
-        c.moveTo(sz * 0.2, sz * 0.1);
-        c.lineTo(sz * 0.8, sz * 0.3);
-        c.lineTo(sz * 0.6, sz * 0.7);
-        c.lineTo(sz * 0.0, sz * 0.5);
-        c.closePath();
-        c.fill(); c.stroke();
-        // Twisting girder
-        c.strokeStyle = '#fbbf24';
-        c.lineWidth = 1.5;
-        c.beginPath();
-        c.moveTo(-sz * 0.3, sz * 0.2);
-        c.lineTo(sz * 0.4, -sz * 0.2);
-        c.stroke();
-      } else if (d.type === 'outpost') {
-        // Forerunner Outpost: Glowing geometric crystalline core with rotating pylons
-        const pRot = performance.now() * 0.001;
-        c.rotate(pRot * 0.5);
-        // Outer hexagonal ring
-        c.strokeStyle = '#38bdf8';
-        c.lineWidth = 1.8;
-        c.beginPath();
-        for (let a = 0; a < 6; a++) {
-          const ang = a * (Math.PI / 3);
-          const px = Math.cos(ang) * sz * 0.75;
-          const py = Math.sin(ang) * sz * 0.75;
-          if (a === 0) c.moveTo(px, py); else c.lineTo(px, py);
+      queue.push({
+        type: 4, d: q[2], alpha: 1, fn: () => {
+          this.renderDerelict(ctx, d, q, leadQ);
         }
-        c.closePath();
-        c.stroke();
-        // Crystalline Core
-        c.fillStyle = '#a855f7';
-        c.shadowColor = '#c084fc';
-        c.shadowBlur = 14;
-        c.beginPath();
-        c.arc(0, 0, sz * 0.28, 0, TAU);
-        c.fill();
-        c.shadowBlur = 0;
-      } else if (d.type === 'distress') {
-        // Distress Beacon Capsule
-        c.fillStyle = '#ef4444';
-        c.strokeStyle = '#fca5a5';
-        c.lineWidth = 1.4;
-        c.beginPath();
-        c.arc(0, 0, sz * 0.32, 0, TAU);
-        c.fill(); c.stroke();
-        // Concentric SOS radar pulses expanding into space
-        const pulse = (performance.now() * 0.002) % 1.0;
-        c.strokeStyle = `rgba(239, 68, 68, ${(1 - pulse).toFixed(2)})`;
-        c.lineWidth = 2.0;
-        c.beginPath();
-        c.arc(0, 0, sz * (0.4 + pulse * 1.2), 0, TAU);
-        c.stroke();
-      } else {
-        // Starship Wreckage: Fragmented hull geometry
-        c.fillStyle = '#1e293b';
-        c.strokeStyle = '#64748b';
-        c.lineWidth = 1.4;
-        c.beginPath();
-        c.moveTo(-sz * 0.9, -sz * 0.25);
-        c.lineTo(sz * 0.5, -sz * 0.45);
-        c.lineTo(sz * 0.85, 0);
-        c.lineTo(sz * 0.35, sz * 0.4);
-        c.lineTo(-sz * 0.8, sz * 0.3);
-        c.closePath();
-        c.fill(); c.stroke();
-
-        // Armor hazard plating
-        c.fillStyle = '#fbbf24';
-        c.beginPath();
-        c.moveTo(-sz * 0.3, -sz * 0.3);
-        c.lineTo(-sz * 0.1, -sz * 0.33);
-        c.lineTo(-sz * 0.25, -sz * 0.1);
-        c.closePath();
-        c.fill();
-
-        // Fractured solar wing
-        c.fillStyle = '#1e3a8a';
-        c.strokeStyle = '#38bdf8';
-        c.lineWidth = 1.0;
-        c.beginPath();
-        c.rect(-sz * 0.7, -sz * 0.75, sz * 0.55, sz * 0.28);
-        c.fill(); c.stroke();
-
-        // Pulsing reactor core
-        const pulse = 0.85 + Math.sin(performance.now() * 0.006) * 0.25;
-        c.beginPath();
-        c.arc(0, 0, sz * 0.22 * pulse, 0, TAU);
-        c.fillStyle = '#38bdf8';
-        c.shadowColor = '#38bdf8';
-        c.shadowBlur = 14;
-        c.fill();
-        c.shadowBlur = 0;
-      }
-      c.restore();
-
-      // Subtle Sci-Fi Beacon & Clean Telemetry
-      c.save();
-      c.translate(q[0], q[1]);
-      const distM = Math.round(q[2]);
-      // bSz 原本声明在下面的 if 块里，但回收进度条（同函数后半段）也要用它，
-      // 一旦残骸显示距离 >= 5000 就会每帧抛 ReferenceError 并吞掉进度条。
-      const bSz = sz * 0.85;
-      if (distM < 5000) {
-        c.strokeStyle = 'rgba(56, 189, 248, 0.45)';
-        c.lineWidth = 1.2;
-        c.beginPath();
-        c.moveTo(-bSz, -bSz + 5); c.lineTo(-bSz, -bSz); c.lineTo(-bSz + 5, -bSz);
-        c.moveTo(bSz - 5, -bSz); c.lineTo(bSz, -bSz); c.lineTo(bSz, -bSz + 5);
-        c.moveTo(-bSz, bSz - 5); c.lineTo(-bSz, bSz); c.lineTo(-bSz + 5, bSz);
-        c.moveTo(bSz - 5, bSz); c.lineTo(bSz, bSz); c.lineTo(bSz, bSz - 5);
-        c.stroke();
-        c.font = '9.5px "SFMono-Regular", Consolas, monospace';
-        c.fillStyle = 'rgba(56, 189, 248, 0.85)';
-        c.textAlign = 'center';
-        c.fillText(`${d.name}`, 0, -bSz - 6);
-      }
-      c.restore();
-
-      // 3D Automated Tractor Beam & Recovery Progress Bar
-      if (this.salvageTarget === d) {
-        c.save();
-        const originQ = leadQ || [camera.cx || ((typeof W !== 'undefined' ? W : 400) * 0.5), (typeof H !== 'undefined' ? H : 600) * 0.92];
-        // Dual braided luminous tractor beam
-        const tOffset = Math.sin(performance.now() * 0.01) * 6;
-        c.beginPath();
-        c.moveTo(originQ[0], originQ[1]);
-        c.quadraticCurveTo((originQ[0] + q[0]) * 0.5 + tOffset, (originQ[1] + q[1]) * 0.5 - tOffset, q[0], q[1]);
-        c.strokeStyle = 'rgba(56, 189, 248, 0.88)';
-        c.lineWidth = 2.4;
-        c.setLineDash([8, 4]);
-        c.shadowColor = '#38bdf8';
-        c.shadowBlur = 14;
-        c.stroke();
-
-        c.beginPath();
-        c.moveTo(originQ[0], originQ[1]);
-        c.quadraticCurveTo((originQ[0] + q[0]) * 0.5 - tOffset, (originQ[1] + q[1]) * 0.5 + tOffset, q[0], q[1]);
-        c.strokeStyle = 'rgba(251, 191, 36, 0.75)';
-        c.lineWidth = 1.4;
-        c.stroke();
-        c.restore();
-
-        // 3D Progress Bar
-        c.save();
-        c.translate(q[0], q[1] + bSz + 14);
-        c.fillStyle = 'rgba(15, 23, 42, 0.85)';
-        c.fillRect(-50, 0, 100, 6);
-        c.fillStyle = '#38bdf8';
-        c.fillRect(-50, 0, 100 * this.salvageProgress, 6);
-        c.strokeStyle = 'rgba(56, 189, 248, 0.6)';
-        c.strokeRect(-50, 0, 100, 6);
-        c.font = '9.5px ui-monospace, sans-serif';
-        c.fillStyle = '#e0f2fe';
-        c.textAlign = 'center';
-        c.fillText(`牵引回收中 ${Math.round(this.salvageProgress * 100)}% [E]`, 0, 16);
-        c.restore();
-      }
+      });
     }
 
-    // 2. Draw Hostile Pirate Interceptors & Tactical Dogfight Fire
+    // 2. Queue Pirate Interceptors
     for (const p of this.pirates) {
       const pq = project([p.x, p.y, p.z]);
       if (!pq || pq[2] <= 0 || pq[2] > 42000) continue;
-
-      const psz = Math.max(14, Math.min(90, (400 / pq[2]) * 55));
-      c.save();
-      c.translate(pq[0], pq[1]);
-
-      // Tactical Red Diamond Bracket
-      c.strokeStyle = 'rgba(244, 63, 94, 0.88)';
-      c.lineWidth = 1.6;
-      c.beginPath();
-      c.moveTo(0, -psz * 0.95);
-      c.lineTo(psz * 0.95, 0);
-      c.lineTo(0, psz * 0.95);
-      c.lineTo(-psz * 0.95, 0);
-      c.closePath();
-      c.stroke();
-
-      // Pirate Raider Fighter Silhouette
-      c.fillStyle = '#0f172a';
-      c.strokeStyle = '#f43f5e';
-      c.lineWidth = 1.5;
-      c.beginPath();
-      c.moveTo(0, -psz * 0.65);
-      c.lineTo(psz * 0.55, psz * 0.45);
-      c.lineTo(0, psz * 0.2);
-      c.lineTo(-psz * 0.55, psz * 0.45);
-      c.closePath();
-      c.fill(); c.stroke();
-
-      // Twin red glowing engine thrusters
-      c.beginPath();
-      c.arc(-psz * 0.22, psz * 0.45, 3.5, 0, TAU);
-      c.arc(psz * 0.22, psz * 0.45, 3.5, 0, TAU);
-      c.fillStyle = '#f43f5e';
-      c.shadowColor = '#f43f5e';
-      c.shadowBlur = 10;
-      c.fill();
-      c.shadowBlur = 0;
-
-      c.font = '10px ui-monospace, sans-serif';
-      c.fillStyle = '#f87171';
-      c.textAlign = 'center';
-      c.fillText(`⚠ 虚空拦截机 · ${Math.round(pq[2])}m`, 0, -psz * 0.95 - 6);
-      c.restore();
+      queue.push({
+        type: 4, d: pq[2], alpha: 1, fn: () => {
+          this.renderPirate(ctx, p, pq);
+        }
+      });
     }
 
-    // 3. Draw Active 3D Combat Lasers
+    // 3. Queue Combat Lasers
     for (const l of this.lasers) {
       const A = project([l.x0, l.y0, l.z0]);
       const B = project([l.x1, l.y1, l.z1]);
       if (!A || !B || A[2] <= 0 || B[2] <= 0) continue;
-      const alpha = Math.max(0, l.life / (l.maxLife || 0.28));
-      c.save();
-      c.beginPath();
-      c.moveTo(A[0], A[1]);
-      c.lineTo(B[0], B[1]);
-      c.strokeStyle = l.color;
-      c.globalAlpha = alpha;
-      c.lineWidth = 2.4;
-      c.shadowColor = l.color;
-      c.shadowBlur = 12;
-      c.stroke();
-
-      c.beginPath();
-      c.moveTo(A[0], A[1]);
-      c.lineTo(B[0], B[1]);
-      c.strokeStyle = '#ffffff';
-      c.globalAlpha = alpha * 0.9;
-      c.lineWidth = 1.0;
-      c.stroke();
-      c.restore();
+      const dVal = (A[2] + B[2]) * 0.5;
+      queue.push({
+        type: 4, d: dVal, alpha: 1, fn: () => {
+          this.renderLaser(ctx, l, A, B);
+        }
+      });
     }
 
-    // 4. Draw Active 3D Explosion Bursts
+    // 4. Queue Explosion Bursts & Sparks
     for (const b of this.bursts) {
-      const q = project([b.x, b.y, b.z]);
-      if (!q || q[2] <= 0) continue;
-      const prog = 1 - (b.life / (b.maxLife || 0.45));
-      const r = (b.size * (0.3 + prog * 1.2)) * q[3];
-      const alpha = Math.max(0, (1 - prog) * 0.85);
-      c.save();
+      const bq = project([b.x, b.y, b.z]);
+      if (!bq || bq[2] <= 0) continue;
+      queue.push({
+        type: 4, d: bq[2], alpha: 1, fn: () => {
+          this.renderBurst(ctx, b, bq);
+        }
+      });
+    }
+    for (const sp of this.sparks) {
+      const sq = project([sp.x, sp.y, sp.z]);
+      if (sq && sq[2] > 0) {
+        queue.push({
+          type: 4, d: sq[2], alpha: 1, fn: () => {
+            ctx.fillStyle = '#fbbf24';
+            ctx.fillRect(sq[0], sq[1], 2, 2);
+          }
+        });
+      }
+    }
+
+    // 5. Queue Singularity Gate
+    if (this.evacGate) {
+      const g = this.evacGate;
+      const q = project([g.x, g.y, g.z]);
+      if (q && q[2] > 0 && q[2] < 55000) {
+        queue.push({
+          type: 4, d: q[2], alpha: 1, fn: () => {
+            this.renderEvacGate(ctx, g, q);
+          }
+        });
+      }
+    }
+  },
+
+  renderDerelict(c, d, q, leadQ) {
+    if (d.salvaged) return;
+    const sz = Math.max(16, Math.min(105, (400 / q[2]) * 65));
+    c.save();
+    c.translate(q[0], q[1]);
+    c.rotate(d.roll || 0);
+
+    if (d.type === 'debris') {
+      c.fillStyle = '#334155';
+      c.strokeStyle = '#94a3b8';
+      c.lineWidth = 1.2;
       c.beginPath();
-      c.arc(q[0], q[1], r, 0, TAU);
-      c.strokeStyle = `rgba(251, 146, 60, ${alpha.toFixed(2)})`;
-      c.lineWidth = 2.5;
-      c.shadowColor = '#fb923c';
+      c.moveTo(-sz * 0.8, -sz * 0.4);
+      c.lineTo(-sz * 0.2, -sz * 0.7);
+      c.lineTo(sz * 0.1, -sz * 0.3);
+      c.lineTo(-sz * 0.5, -sz * 0.1);
+      c.closePath();
+      c.fill(); c.stroke();
+      c.beginPath();
+      c.moveTo(sz * 0.2, sz * 0.1);
+      c.lineTo(sz * 0.8, sz * 0.3);
+      c.lineTo(sz * 0.6, sz * 0.7);
+      c.lineTo(sz * 0.0, sz * 0.5);
+      c.closePath();
+      c.fill(); c.stroke();
+      c.strokeStyle = '#fbbf24';
+      c.lineWidth = 1.5;
+      c.beginPath();
+      c.moveTo(-sz * 0.3, sz * 0.2);
+      c.lineTo(sz * 0.4, -sz * 0.2);
+      c.stroke();
+    } else if (d.type === 'outpost') {
+      const pRot = performance.now() * 0.001;
+      c.rotate(pRot * 0.5);
+      c.strokeStyle = '#38bdf8';
+      c.lineWidth = 1.8;
+      c.beginPath();
+      for (let a = 0; a < 6; a++) {
+        const ang = a * (Math.PI / 3);
+        const px = Math.cos(ang) * sz * 0.75;
+        const py = Math.sin(ang) * sz * 0.75;
+        if (a === 0) c.moveTo(px, py); else c.lineTo(px, py);
+      }
+      c.closePath();
+      c.stroke();
+      c.fillStyle = '#a855f7';
+      c.shadowColor = '#c084fc';
+      c.shadowBlur = 14;
+      c.beginPath();
+      c.arc(0, 0, sz * 0.28, 0, TAU);
+      c.fill();
+      c.shadowBlur = 0;
+    } else if (d.type === 'distress') {
+      c.fillStyle = '#ef4444';
+      c.strokeStyle = '#fca5a5';
+      c.lineWidth = 1.4;
+      c.beginPath();
+      c.arc(0, 0, sz * 0.32, 0, TAU);
+      c.fill(); c.stroke();
+      const pulse = (performance.now() * 0.002) % 1.0;
+      c.strokeStyle = `rgba(239, 68, 68, ${(1 - pulse).toFixed(2)})`;
+      c.lineWidth = 2.0;
+      c.beginPath();
+      c.arc(0, 0, sz * (0.4 + pulse * 1.2), 0, TAU);
+      c.stroke();
+    } else {
+      c.fillStyle = '#1e293b';
+      c.strokeStyle = '#64748b';
+      c.lineWidth = 1.4;
+      c.beginPath();
+      c.moveTo(-sz * 0.9, -sz * 0.25);
+      c.lineTo(sz * 0.5, -sz * 0.45);
+      c.lineTo(sz * 0.85, 0);
+      c.lineTo(sz * 0.35, sz * 0.4);
+      c.lineTo(-sz * 0.8, sz * 0.3);
+      c.closePath();
+      c.fill(); c.stroke();
+      c.fillStyle = '#fbbf24';
+      c.beginPath();
+      c.moveTo(-sz * 0.3, -sz * 0.3);
+      c.lineTo(-sz * 0.1, -sz * 0.33);
+      c.lineTo(-sz * 0.25, -sz * 0.1);
+      c.closePath();
+      c.fill();
+      c.fillStyle = '#1e3a8a';
+      c.strokeStyle = '#38bdf8';
+      c.lineWidth = 1.0;
+      c.beginPath();
+      c.rect(-sz * 0.7, -sz * 0.75, sz * 0.55, sz * 0.28);
+      c.fill(); c.stroke();
+      const pulse = 0.85 + Math.sin(performance.now() * 0.006) * 0.25;
+      c.beginPath();
+      c.arc(0, 0, sz * 0.22 * pulse, 0, TAU);
+      c.fillStyle = '#38bdf8';
+      c.shadowColor = '#38bdf8';
+      c.shadowBlur = 14;
+      c.fill();
+      c.shadowBlur = 0;
+    }
+    c.restore();
+
+    // Subtle Sci-Fi Beacon & Clean Telemetry
+    c.save();
+    c.translate(q[0], q[1]);
+    const distM = Math.round(q[2]);
+    const bSz = sz * 0.85;
+    if (distM < 5000) {
+      c.strokeStyle = 'rgba(56, 189, 248, 0.45)';
+      c.lineWidth = 1.2;
+      c.beginPath();
+      c.moveTo(-bSz, -bSz + 5); c.lineTo(-bSz, -bSz); c.lineTo(-bSz + 5, -bSz);
+      c.moveTo(bSz - 5, -bSz); c.lineTo(bSz, -bSz); c.lineTo(bSz, -bSz + 5);
+      c.moveTo(-bSz, bSz - 5); c.lineTo(-bSz, bSz); c.lineTo(-bSz + 5, bSz);
+      c.moveTo(bSz - 5, bSz); c.lineTo(bSz, bSz); c.lineTo(bSz, bSz - 5);
+      c.stroke();
+      c.font = '9.5px "SFMono-Regular", Consolas, monospace';
+      c.fillStyle = 'rgba(56, 189, 248, 0.85)';
+      c.textAlign = 'center';
+      c.fillText(`${d.name}`, 0, -bSz - 6);
+    }
+    c.restore();
+
+    // 3D Automated Tractor Beam & Recovery Progress Bar
+    if (this.salvageTarget === d) {
+      c.save();
+      const originQ = leadQ || [camera.cx || ((typeof W !== 'undefined' ? W : 400) * 0.5), (typeof H !== 'undefined' ? H : 600) * 0.92];
+      const tOffset = Math.sin(performance.now() * 0.01) * 6;
+      c.beginPath();
+      c.moveTo(originQ[0], originQ[1]);
+      c.quadraticCurveTo((originQ[0] + q[0]) * 0.5 + tOffset, (originQ[1] + q[1]) * 0.5 - tOffset, q[0], q[1]);
+      c.strokeStyle = 'rgba(56, 189, 248, 0.88)';
+      c.lineWidth = 2.4;
+      c.setLineDash([8, 4]);
+      c.shadowColor = '#38bdf8';
       c.shadowBlur = 14;
       c.stroke();
+
+      c.beginPath();
+      c.moveTo(originQ[0], originQ[1]);
+      c.quadraticCurveTo((originQ[0] + q[0]) * 0.5 - tOffset, (originQ[1] + q[1]) * 0.5 + tOffset, q[0], q[1]);
+      c.strokeStyle = 'rgba(251, 191, 36, 0.75)';
+      c.lineWidth = 1.4;
+      c.stroke();
+      c.restore();
+
+      c.save();
+      c.translate(q[0], q[1] + bSz + 14);
+      c.fillStyle = 'rgba(15, 23, 42, 0.85)';
+      c.fillRect(-50, 0, 100, 6);
+      c.fillStyle = '#38bdf8';
+      c.fillRect(-50, 0, 100 * this.salvageProgress, 6);
+      c.strokeStyle = 'rgba(56, 189, 248, 0.6)';
+      c.strokeRect(-50, 0, 100, 6);
+      c.font = '9.5px ui-monospace, sans-serif';
+      c.fillStyle = '#e0f2fe';
+      c.textAlign = 'center';
+      c.fillText(`牵引回收中 ${Math.round(this.salvageProgress * 100)}% [E]`, 0, 16);
       c.restore();
     }
+  },
+
+  renderPirate(c, p, pq) {
+    const psz = Math.max(14, Math.min(90, (400 / pq[2]) * 55));
+    c.save();
+    c.translate(pq[0], pq[1]);
+
+    // Tactical Red Diamond Bracket
+    c.strokeStyle = 'rgba(244, 63, 94, 0.88)';
+    c.lineWidth = 1.6;
+    c.beginPath();
+    c.moveTo(0, -psz * 0.95);
+    c.lineTo(psz * 0.95, 0);
+    c.lineTo(0, psz * 0.95);
+    c.lineTo(-psz * 0.95, 0);
+    c.closePath();
+    c.stroke();
+
+    // Pirate Raider Fighter Silhouette
+    c.fillStyle = '#0f172a';
+    c.strokeStyle = '#f43f5e';
+    c.lineWidth = 1.5;
+    c.beginPath();
+    c.moveTo(0, -psz * 0.65);
+    c.lineTo(psz * 0.55, psz * 0.45);
+    c.lineTo(0, psz * 0.2);
+    c.lineTo(-psz * 0.55, psz * 0.45);
+    c.closePath();
+    c.fill(); c.stroke();
+
+    // Twin red glowing engine thrusters
+    c.beginPath();
+    c.arc(-psz * 0.22, psz * 0.45, 3.5, 0, TAU);
+    c.arc(psz * 0.22, psz * 0.45, 3.5, 0, TAU);
+    c.fillStyle = '#f43f5e';
+    c.shadowColor = '#f43f5e';
+    c.shadowBlur = 10;
+    c.fill();
+    c.shadowBlur = 0;
+
+    c.font = '10px ui-monospace, sans-serif';
+    c.fillStyle = '#f87171';
+    c.textAlign = 'center';
+    c.fillText(`⚠ 虚空拦截机 · ${Math.round(pq[2])}m`, 0, -psz * 0.95 - 6);
+    c.restore();
+  },
+
+  renderLaser(c, l, A, B) {
+    const alpha = Math.max(0, l.life / (l.maxLife || 0.28));
+    c.save();
+    c.beginPath();
+    c.moveTo(A[0], A[1]);
+    c.lineTo(B[0], B[1]);
+    c.strokeStyle = l.color;
+    c.globalAlpha = alpha;
+    c.lineWidth = 2.4;
+    c.shadowColor = l.color;
+    c.shadowBlur = 12;
+    c.stroke();
+
+    c.beginPath();
+    c.moveTo(A[0], A[1]);
+    c.lineTo(B[0], B[1]);
+    c.strokeStyle = '#ffffff';
+    c.globalAlpha = alpha * 0.9;
+    c.lineWidth = 1.0;
+    c.shadowBlur = 0;
+    c.stroke();
+    c.restore();
+  },
+
+  renderBurst(c, b, bq) {
+    const prog = 1 - (b.life / (b.maxLife || 0.45));
+    const sz = ((b.size || 55) * (0.3 + prog * 1.2)) * (bq[3] || 1);
+    const alpha = Math.max(0, 1 - prog);
+
+    c.save();
+    c.beginPath();
+    c.arc(bq[0], bq[1], Math.max(1, sz), 0, TAU);
+    c.fillStyle = `rgba(251, 146, 60, ${(alpha * 0.5).toFixed(2)})`;
+    c.shadowColor = '#fb923c';
+    c.shadowBlur = 16;
+    c.fill();
+
+    c.beginPath();
+    c.arc(bq[0], bq[1], Math.max(0.5, sz * 0.5), 0, TAU);
+    c.fillStyle = `rgba(255, 255, 255, ${(alpha * 0.85).toFixed(2)})`;
+    c.fill();
+    c.restore();
+  },
+
+  renderEvacGate(c, g, q) {
+    let gR = Math.max(18, Math.min(200, (400 / q[2]) * 85));
+    if (g.imploding > 0) {
+      gR *= Math.max(0.05, g.imploding);
+    }
+    c.save();
+    c.translate(q[0], q[1]);
+
+    const rotTime = performance.now() * 0.0015;
+    c.rotate(rotTime);
+    c.beginPath();
+    c.arc(0, 0, gR, 0, TAU);
+    c.strokeStyle = 'rgba(251, 191, 36, 0.88)';
+    c.lineWidth = 2.8;
+    c.shadowColor = '#fbbf24';
+    c.shadowBlur = 20;
+    c.stroke();
+
+    c.beginPath();
+    c.arc(0, 0, gR * 0.62, 0, TAU);
+    c.strokeStyle = 'rgba(168, 85, 247, 0.82)';
+    c.lineWidth = 2.2;
+    c.shadowColor = '#a855f7';
+    c.shadowBlur = 16;
+    c.stroke();
+    c.shadowBlur = 0;
+
+    c.rotate(-rotTime);
+    c.font = '10px "SFMono-Regular", Consolas, monospace';
+    c.fillStyle = 'rgba(255, 215, 0, 0.75)';
+    c.textAlign = 'center';
+    c.fillText('✦ 奇点折跃 ✦', 0, -gR - 8);
+    c.restore();
+  },
+
+  draw(c) {
+    if (window.Starfield && window.Starfield.getState && !window.Starfield.getState().started) return;
+    if (!fleet || !fleet[LEAD]) return;
+    const leadPos = craftWorld(fleet[LEAD]);
+    const leadQ = project(leadPos);
 
     // Flagship Shield Flare Deflection Ripple
     if (this.fleetShieldFlare > 0 && leadQ) {
@@ -12356,57 +12668,6 @@ const StarfieldInFlightExtraction = {
       c.shadowBlur = 16;
       c.stroke();
       c.restore();
-    }
-
-    // Spark Particles from destroyed craft
-    for (const sp of this.sparks) {
-      const sq = project([sp.x, sp.y, sp.z]);
-      if (sq && sq[2] > 0) {
-        c.fillStyle = '#fbbf24';
-        c.fillRect(sq[0], sq[1], 2, 2);
-      }
-    }
-
-    // 5. Draw Singularity Extraction Gate in 3D
-    if (this.evacGate) {
-      const g = this.evacGate;
-      const q = project([g.x, g.y, g.z]);
-      if (q && q[2] > 0 && q[2] < 55000) {
-        let gR = Math.max(18, Math.min(200, (400 / q[2]) * 85));
-        if (g.imploding > 0) {
-          gR *= Math.max(0.05, g.imploding);
-        }
-        c.save();
-        c.translate(q[0], q[1]);
-
-        // Swirling golden accretion corona
-        const rotTime = performance.now() * 0.0015;
-        c.rotate(rotTime);
-        c.beginPath();
-        c.arc(0, 0, gR, 0, TAU);
-        c.strokeStyle = 'rgba(251, 191, 36, 0.88)';
-        c.lineWidth = 2.8;
-        c.shadowColor = '#fbbf24';
-        c.shadowBlur = 20;
-        c.stroke();
-
-        // Inner cosmic violet singularity disk
-        c.beginPath();
-        c.arc(0, 0, gR * 0.62, 0, TAU);
-        c.strokeStyle = 'rgba(168, 85, 247, 0.82)';
-        c.lineWidth = 2.2;
-        c.shadowColor = '#a855f7';
-        c.shadowBlur = 16;
-        c.stroke();
-        c.shadowBlur = 0;
-
-        c.rotate(-rotTime);
-        c.font = '10px "SFMono-Regular", Consolas, monospace';
-        c.fillStyle = 'rgba(255, 215, 0, 0.75)';
-        c.textAlign = 'center';
-        c.fillText('✦ 奇点折跃 ✦', 0, -gR - 8);
-        c.restore();
-      }
     }
   }
 };
@@ -12445,6 +12706,7 @@ const StarfieldOrbitalMechanics = {
     let lastTapTime = 0;
     window.addEventListener('touchend', (e) => {
       if ((typeof currentMode !== 'undefined' && currentMode !== 'cruise') || (typeof window !== 'undefined' && window.currentMode && window.currentMode !== 'cruise')) return;
+      if (e.target && e.target.closest && e.target.closest('button, .sf-drawer, #codex-modal, #sf-hatch, .sf-mobile-drawer, .hud-panel, #masthead, #controls, #sf-contract-hud, [role="button"], #settings-drawer, .sf-touch-more-tray, .sf-touch-joy-zone, .sf-clean-hud-btn, #sf-descent-btn, #sf-sonar-capsule')) return;
       const now = performance.now();
       if (now - lastTapTime < 320) {
         this.launchProbe();
@@ -12459,13 +12721,10 @@ const StarfieldOrbitalMechanics = {
 
   playGravSound(type) {
     try {
-      const AudioCtx = window.AudioContext || window.webkitAudioContext;
-      if (!AudioCtx) return;
-      if (!this.audioCtx) this.audioCtx = new AudioCtx();
-      if (this.audioCtx.state === 'suspended') {
-        this.audioCtx.resume().catch(() => {});
-      }
-      const ctx = this.audioCtx;
+      const ctx = window.StarfieldAudio ? window.StarfieldAudio.getContext() : (window.AudioContext ? new window.AudioContext() : null);
+      if (!ctx) return;
+      if (ctx.state === 'suspended') ctx.resume().catch(() => {});
+      this.audioCtx = ctx;
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       if (type === 'slingshot') {
@@ -12482,7 +12741,8 @@ const StarfieldOrbitalMechanics = {
         gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.6);
       }
       osc.connect(gain);
-      gain.connect(ctx.destination);
+      const sfxDest = (window.StarfieldAudio && window.StarfieldAudio.sfxBus) ? window.StarfieldAudio.sfxBus : ctx.destination;
+      gain.connect(sfxDest);
       osc.onended = () => {
         try { osc.disconnect(); gain.disconnect(); } catch(e) {}
       };
@@ -12675,6 +12935,76 @@ const StarfieldOrbitalMechanics = {
     // Unobstructed HUD: ensure no bottom probe button exists
     const pBtn = document.getElementById('sf-inflight-probe-btn');
     if (pBtn) pBtn.remove();
+    this.updateDescentCorridor(dt);
+  },
+
+  updateDescentCorridor(dt) {
+    if ((typeof currentMode !== 'undefined' && currentMode !== 'cruise') || (window.currentMode && window.currentMode !== 'cruise')) {
+      const btn = document.getElementById('sf-descent-btn');
+      if (btn) btn.classList.remove('show');
+      return;
+    }
+    const ap = this.activePlanet || (window.SFProbe && window.SFProbe.nearest && window.SFProbe.nearest());
+    const dist = ap ? (ap.dist !== undefined ? ap.dist : (ap.d !== undefined ? ap.d : 99999)) : 99999;
+    let btn = document.getElementById('sf-descent-btn');
+    if (!btn && typeof document !== 'undefined') {
+      btn = document.createElement('button');
+      btn.id = 'sf-descent-btn';
+      btn.className = 'sf-descent-corridor-btn';
+      btn.innerHTML = '✦ 降轨穿云 · DESCENT ✦';
+      btn.setAttribute('aria-label', '进入近地走廊');
+      document.body.appendChild(btn);
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.triggerDescentTransition(ap);
+      });
+      btn.addEventListener('pointerdown', (e) => e.stopPropagation());
+    }
+    const flightActive = (typeof started !== 'undefined' && started) || (window.Starfield && window.Starfield.getState && window.Starfield.getState().started);
+    if (btn) {
+      if (dist < 4500 && flightActive && window.SFSurface && !window.SFSurface.isActive()) {
+        btn.classList.add('show');
+      } else {
+        btn.classList.remove('show');
+      }
+    }
+  },
+
+  triggerDescentTransition(ap) {
+    if (!window.SFSurface || window.SFSurface.isActive()) return;
+    const btn = document.getElementById('sf-descent-btn');
+    if (btn) btn.classList.remove('show');
+
+    // Spawn ink cloud-piercing break particles
+    if (typeof particles !== 'undefined' && Array.isArray(particles)) {
+      for (let i = 0; i < 42; i++) {
+        particles.push({
+          x: (Math.random() - 0.5) * 800,
+          y: (Math.random() - 0.5) * 400,
+          z: (typeof travel !== 'undefined' ? travel : 0) + 400 + Math.random() * 600,
+          vx: (Math.random() - 0.5) * 120,
+          vy: (Math.random() - 0.5) * 60,
+          vz: 800 + Math.random() * 1200,
+          life: 1.2,
+          maxLife: 1.2,
+          c: [244, 235, 215],
+          size: 3 + Math.random() * 5
+        });
+      }
+    }
+    if (typeof toast === 'function') toast('✦ 切入引力近地走廊 · 破空穿云降轨 ✦', 2.0);
+
+    // Smooth pull zoom
+    if (typeof manual !== 'undefined') {
+      manual.distance = Math.max(380, manual.distance * 0.65);
+    }
+
+    setTimeout(() => {
+      const manif = (ap && ap.w && ap.w.manif && ap.w.manif.id) || (ap && ap.manif) || 'earth_egg';
+      const hue = (ap && ap.w && ap.w.hue) || (ap && ap.hue) || 200;
+      const name = (ap && (ap.name || (ap.w && ap.w.name))) || '近地巡航天体';
+      window.SFSurface.enter({ manif: manif, hue: hue, name: name });
+    }, 450);
   },
 
   triggerSlingshotBoost(pm) {
@@ -12863,30 +13193,37 @@ const StarfieldOrbitalMechanics = {
       }
     }
 
-    // 4. Render 3D Expanding Gravitational Shockwaves (连锁引力冲击波)
+  },
+
+  queue3D() {
+    // Queue 3D Expanding Gravitational Shockwaves into depth sort
     for (const sw of this.shockwaves) {
       const q = project([sw.x, sw.y, sw.z]);
       if (q && q[2] > 0) {
-        const prog = 1 - (sw.life / (sw.maxLife || 1.8));
-        const sR = Math.max(12, Math.min(320, (400 / q[2]) * sw.radius * 0.08));
-        const alpha = Math.max(0, (1 - prog) * 0.85);
+        queue.push({
+          type: 4, d: q[2], alpha: 1, fn: () => {
+            const prog = 1 - (sw.life / (sw.maxLife || 1.8));
+            const sR = Math.max(12, Math.min(320, (400 / q[2]) * sw.radius * 0.08));
+            const alpha = Math.max(0, (1 - prog) * 0.85);
 
-        c.save();
-        c.beginPath();
-        c.arc(q[0], q[1], sR, 0, TAU);
-        c.strokeStyle = `rgba(168, 85, 247, ${alpha.toFixed(2)})`;
-        c.lineWidth = 3.0;
-        c.shadowColor = '#c084fc';
-        c.shadowBlur = 16;
-        c.stroke();
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(q[0], q[1], sR, 0, TAU);
+            ctx.strokeStyle = `rgba(168, 85, 247, ${alpha.toFixed(2)})`;
+            ctx.lineWidth = 3.0;
+            ctx.shadowColor = '#c084fc';
+            ctx.shadowBlur = 16;
+            ctx.stroke();
 
-        // Inner harmonic resonance ripple
-        c.beginPath();
-        c.arc(q[0], q[1], sR * 0.65, 0, TAU);
-        c.strokeStyle = `rgba(56, 189, 248, ${(alpha * 0.7).toFixed(2)})`;
-        c.lineWidth = 1.8;
-        c.stroke();
-        c.restore();
+            // Inner harmonic resonance ripple
+            ctx.beginPath();
+            ctx.arc(q[0], q[1], sR * 0.65, 0, TAU);
+            ctx.strokeStyle = `rgba(56, 189, 248, ${(alpha * 0.7).toFixed(2)})`;
+            ctx.lineWidth = 1.8;
+            ctx.stroke();
+            ctx.restore();
+          }
+        });
       }
     }
   }
@@ -14949,10 +15286,17 @@ class Soundscape {
   if(this.ready)return this.resume();
   const AC=window.AudioContext||window.webkitAudioContext;if(!AC){toast('WebAudio unavailable');return;}
   try{
-   this.ac=new AC();const ac=this.ac;
-   this.master=ac.createGain();this.master.gain.value=0;
-   const compressor=ac.createDynamicsCompressor();compressor.threshold.value=-15;compressor.knee.value=20;compressor.ratio.value=3;this.master.connect(compressor);compressor.connect(ac.destination);
-   this.musicGain=ac.createGain();this.musicGain.gain.value=.68;this.musicGain.connect(this.master);
+   if(window.StarfieldAudio){this.ac=window.StarfieldAudio.getContext()||new AC();}
+   else{this.ac=new AC();}
+   const ac=this.ac;
+   if(window.StarfieldAudio&&window.StarfieldAudio.masterBus){
+     this.master=window.StarfieldAudio.masterBus;
+     this.musicGain=window.StarfieldAudio.musicBus;
+   }else{
+     this.master=ac.createGain();this.master.gain.value=0;
+     const compressor=ac.createDynamicsCompressor();compressor.threshold.value=-15;compressor.knee.value=20;compressor.ratio.value=3;this.master.connect(compressor);compressor.connect(ac.destination);
+     this.musicGain=ac.createGain();this.musicGain.gain.value=.68;this.musicGain.connect(this.master);
+   }
    // --- RESTORE ORIGINAL 6 STEREO MASTER SCORES (原曲全量恢复) ---
    this.originalTracks = [
      { title: "1. 原野 · 晨曦微光 (D 大调 / A 混合利底亚)", desc: "和纸原野 · 66s 沉浸原曲" },
@@ -15403,14 +15747,6 @@ function onPointerMove(e){
  if(!previous&&(e.buttons===1||e.pointerType==='touch')){pointers.set(e.pointerId,p);previous=p;}
  if(!previous)return;
  pointers.set(e.pointerId,p);
- if(pointers.size>=2){
-  const a=[...pointers.values()],d=Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y);
-  if(pinchDistance>0&&d>5){
-   if(autoCamera){observation.distance=clamp(observation.distance+(pinchDistance-d)*2,-180,520);observation.last=time;}
-   else manual.distance=clamp(manual.distance*pinchDistance/d,360,4400);
-  }
-  pinchDistance=d;return;
- }
  if(!autoCamera){
   const dx=p.x-previous.x,dy=p.y-previous.y;
   if(Math.abs(dx)>0||Math.abs(dy)>0){
@@ -15430,6 +15766,11 @@ function releasePointer(e){
  if(pointers.size===0){
   canvas.classList.remove('dragging');
   if(!e||e.pointerType!=='mouse'){wind.active=false;wind.last=time;}
+  if(e && e.clientX !== undefined && e.clientY !== undefined) {
+    if(window.StarfieldSonar && typeof window.StarfieldSonar.checkTapHit === 'function') {
+      window.StarfieldSonar.checkTapHit(e.clientX, e.clientY);
+    }
+  }
  }
 }
 canvas.addEventListener('pointerdown',onPointerDown);
@@ -15923,7 +16264,7 @@ window.addEventListener('keydown',e=>{
  if ((typeof currentMode !== 'undefined' && currentMode !== 'cruise') || (window.currentMode && window.currentMode !== 'cruise')) return;
  if(!started||e.ctrlKey||e.metaKey||e.altKey)return;
  if(e.code==='Space'){if(e.target instanceof HTMLButtonElement)return;e.preventDefault();togglePause();}
- else if(e.key.toLowerCase()==='v')toggleCockpit();
+ else if(e.key.toLowerCase()==='v'||e.code==='KeyV')FleetFormations.cycle();
  else if(e.key.toLowerCase()==='c')toggleCamera();
  else if(!autoCamera&&(e.key==='ArrowLeft'||e.key==='ArrowRight'||e.key==='ArrowUp'||e.key==='ArrowDown')){
   e.preventDefault();
@@ -15962,7 +16303,7 @@ window.addEventListener('keydown',e=>{
  else if(e.key==='4')FleetFormations.set(3);
  else if(e.key.toLowerCase()==='l'){if(window.StarfieldHatch&&window.StarfieldHatch.openList)window.StarfieldHatch.openList();}
  else if(e.key==='5'){if(window.triggerTesseract)window.triggerTesseract();}
- else if(e.key.toLowerCase()==='f')FleetFormations.cycle();
+ else if(e.key.toLowerCase()==='f'||e.code==='KeyF'){if(window.StarfieldSonar&&window.StarfieldSonar.triggerScan)window.StarfieldSonar.triggerScan();}
  else if(e.key.toLowerCase()==='h'){if(typeof FleetCustomizer !== 'undefined')FleetCustomizer.toggle();}
 });
 document.addEventListener('visibilitychange',()=>{last=performance.now();if(document.hidden){sound.suspend();if(wakeLock)wakeLock.release().catch(()=>{});}else{if(!paused)sound.resume();requestWake();}});
@@ -16161,6 +16502,7 @@ try {
 // User Activity Monitor for Focus Eco-Cruise Thermal Throttle
 window.lastUserActiveTime = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
 const _sfRecordUserActive = () => {
+  if (window.StarfieldAudio) window.StarfieldAudio.resume();
   window.lastUserActiveTime = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
   if (window.STARFIELD_QUALITY && window.STARFIELD_QUALITY.isFocusEcoThrottled) {
     window.STARFIELD_QUALITY.isFocusEcoThrottled = false;
@@ -16283,7 +16625,7 @@ window.addEventListener('resize', () => {
       })
       .then(data => {
         if (data && data.build) {
-          const localBuild = 183;
+          const localBuild = 184;
           if (data.build > localBuild) {
             showOtaNotification(data);
           } else if (manual && window.toast) {
@@ -16359,10 +16701,10 @@ function frame(now){
    flightTime += dt;}else{previewTime+=dt;travel+=SPEED*.15*dt;}}
  updateDirector(realDt);
  currentPalette=region(routeX(travel),travel);
- if(dt){updateWind(dt);updateGravity();updateBirds(dt);updateGate(dt);updateCapture(dt);updateSling(dt);updateParticles(dt);updatePoem(dt);Narrator.update(dt);if(typeof StarfieldSonar!=='undefined')StarfieldSonar.update(dt);if(typeof StarfieldInFlightExtraction!=='undefined')StarfieldInFlightExtraction.update(dt);if(typeof StarfieldOrbitalMechanics!=='undefined')StarfieldOrbitalMechanics.update(dt);}
+ if(dt){updateWind(dt);updateGravity();updateBirds(dt);updateGate(dt);updateCapture(dt);updateSling(dt);updateParticles(dt);updatePoem(dt);Narrator.update(dt);if(typeof StarfieldSonar!=='undefined')StarfieldSonar.update(dt);if(typeof StarfieldInFlightExtraction!=='undefined')StarfieldInFlightExtraction.update(dt);if(typeof StarfieldOrbitalMechanics!=='undefined')StarfieldOrbitalMechanics.update(dt);if(typeof pollGamepad==='function')pollGamepad(now);if(window.AnomalyScanner&&window.AnomalyScanner.isInitialized&&window.AnomalyScanner.isInitialized()){if(typeof window.AnomalyScanner.step==='function')window.AnomalyScanner.step(now);}}
  ctx.setTransform(DPR,0,0,DPR,0,0);drawCalls=0;queue.length=0;holeDraws=0;
  updateSkyEvents(realDt);
- drawSky();deepfield();if(window.SFPassersby) window.SFPassersby.draw({ctx:ctx, project:project, routeX:routeX, courseY:courseY, W:W, H:H, travel:travel, CHUNK:CHUNK, hash:hash, started:started});drawCraftShadows();bodies();drawFleet();if(typeof drawEscortOrbits==='function')drawEscortOrbits();drawParticles();flush();if(typeof StarfieldSonar!=='undefined')StarfieldSonar.draw(ctx);if(typeof StarfieldOrbitalMechanics!=='undefined')StarfieldOrbitalMechanics.draw(ctx);if(typeof StarfieldInFlightExtraction!=='undefined')StarfieldInFlightExtraction.draw(ctx);if(window.SFHazard&&window.SFHazard.draw)window.SFHazard.draw(ctx);if(window.SFLensing) window.SFLensing.draw({ctx:ctx, project:project, time:time, W:W, H:H}); drawSkyEvents();
+ drawSky();deepfield();if(window.SFPassersby) window.SFPassersby.draw({ctx:ctx, project:project, routeX:routeX, courseY:courseY, W:W, H:H, travel:travel, CHUNK:CHUNK, hash:hash, started:started});drawCraftShadows();bodies();drawFleet();if(typeof drawEscortOrbits==='function')drawEscortOrbits();drawParticles();if(typeof StarfieldInFlightExtraction!=='undefined'&&StarfieldInFlightExtraction.queue3D)StarfieldInFlightExtraction.queue3D();if(typeof StarfieldOrbitalMechanics!=='undefined'&&StarfieldOrbitalMechanics.queue3D)StarfieldOrbitalMechanics.queue3D();flush();if(typeof StarfieldSonar!=='undefined')StarfieldSonar.draw(ctx);if(typeof StarfieldOrbitalMechanics!=='undefined')StarfieldOrbitalMechanics.draw(ctx);if(typeof StarfieldInFlightExtraction!=='undefined')StarfieldInFlightExtraction.draw(ctx);if(window.SFHazard&&window.SFHazard.draw)window.SFHazard.draw(ctx);if(window.SFLensing) window.SFLensing.draw({ctx:ctx, project:project, time:time, W:W, H:H}); drawSkyEvents();
  // The throat: a bell around the two seconds either side of the step.
  if(gateT>0){const b=gateT<3.0?clamp((gateT-.7)/2.3,0,1):clamp((6.2-gateT)/2.6,0,1);
   drawTunnel(b);}
@@ -17007,7 +17349,7 @@ requestAnimationFrame(frame);
       } else {
         const btn = document.getElementById('formation-toggle');
         if (btn) btn.click();
-        else window.dispatchEvent(new KeyboardEvent('keydown', { key: 'f', code: 'KeyF', bubbles: true }));
+        else window.dispatchEvent(new KeyboardEvent('keydown', { key: 'v', code: 'KeyV', bubbles: true }));
       }
     },
 
@@ -17715,6 +18057,7 @@ requestAnimationFrame(frame);
   // the joystick and the icon row keep their own pointer handling.
   function setupLongPressSpeed() {
     let t1 = 0, t2 = 0, stage = 0;
+    let startX = 0, startY = 0;
     const gear = (i) => {
       const S = window.Starfield;
       if (!S || !S.setWarpGear) return;
@@ -17725,16 +18068,26 @@ requestAnimationFrame(frame);
     const down = (e) => {
       if ((typeof currentMode !== 'undefined' && currentMode !== 'cruise') || (window.currentMode && window.currentMode !== 'cruise')) return;
       const t = e.target;
-      if (t && t.closest && t.closest('button,.sf-touch-joy-zone,.sf-touch-more-tray,#settings-drawer,#codex-modal')) return;
+      if (t && t.closest && t.closest('button,.sf-touch-joy-zone,.sf-touch-more-tray,#settings-drawer,#codex-modal,#sf-contract-hud,#sf-descent-btn,#sf-sonar-capsule')) return;
       if (!Engine.isFlightStarted || !Engine.isFlightStarted()) return;
+      startX = e.clientX;
+      startY = e.clientY;
       stage = 0;
       t1 = setTimeout(() => {
         stage = 1; gear(1);
         t2 = setTimeout(() => { stage = 2; gear(2); }, 850);
       }, 320);
     };
+    const move = (e) => {
+      if (stage === 0 && (t1 || t2)) {
+        if (Math.hypot(e.clientX - startX, e.clientY - startY) > 12) {
+          clear();
+        }
+      }
+    };
     const up = () => { clear(); if (stage > 0) gear(0); stage = 0; };
     window.addEventListener('pointerdown', down, { passive: true });
+    window.addEventListener('pointermove', move, { passive: true });
     window.addEventListener('pointerup', up, { passive: true });
     window.addEventListener('pointercancel', up, { passive: true });
   }
@@ -17801,18 +18154,15 @@ requestAnimationFrame(frame);
     }, 3800);
   }
 
-  // --- Gamepad Main Polling & Processing Loop ---
+  // --- Gamepad Main Polling & Processing Loop (Zero idle spin when disconnected) ---
   function pollGamepad(now) {
-    if (document.hidden) {
-      rafId = requestAnimationFrame(pollGamepad);
-      return;
-    }
+    if (document.hidden) return;
     if ((typeof currentMode !== 'undefined' && currentMode !== 'cruise') || (window.currentMode && window.currentMode !== 'cruise')) {
       const touchOverlay = document.getElementById('starfield-touch-overlay');
       if (touchOverlay) touchOverlay.style.display = 'none';
-      rafId = requestAnimationFrame(pollGamepad);
       return;
     }
+    if (!gamepadConnected) return;
     const dt = Math.min(0.05, Math.max(0.001, (now - lastFrameTime) / 1000));
     lastFrameTime = now;
 
@@ -17999,8 +18349,7 @@ requestAnimationFrame(frame);
       Engine.applySteer(steerX, steerY);
     }
 
-    // Continue frame loop
-    rafId = requestAnimationFrame(pollGamepad);
+    // Driven via main engine tick
   }
 
   // --- Gamepad Connection Events ---
@@ -18059,8 +18408,6 @@ requestAnimationFrame(frame);
       setupGamepadEvents();
 
       lastFrameTime = performance.now();
-      rafId = requestAnimationFrame(pollGamepad);
-
       isInitialized = true;
       return this;
     },
@@ -19707,14 +20054,8 @@ requestAnimationFrame(frame);
   let lastFrameTime = performance.now();
 
   function onFrame(now) {
-    if (document.hidden) {
-      requestAnimationFrame(onFrame);
-      return;
-    }
-    if ((typeof currentMode !== 'undefined' && currentMode !== 'cruise') || (window.currentMode && window.currentMode !== 'cruise')) {
-      requestAnimationFrame(onFrame);
-      return;
-    }
+    if (document.hidden) return;
+    if ((typeof currentMode !== 'undefined' && currentMode !== 'cruise') || (window.currentMode && window.currentMode !== 'cruise')) return;
     const dt = Math.min(0.1, Math.max(0.001, (now - lastFrameTime) / 1000));
     lastFrameTime = now;
 
@@ -19743,8 +20084,6 @@ requestAnimationFrame(frame);
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       canvas.width = 0; canvas.height = 0;
     }
-
-    requestAnimationFrame(onFrame);
   }
 
   const AnomalyScanner = {
@@ -19752,6 +20091,10 @@ requestAnimationFrame(frame);
 
     isInitialized() {
       return isInitialized;
+    },
+
+    step(now) {
+      onFrame(now || performance.now());
     },
 
     init() {
@@ -19762,8 +20105,6 @@ requestAnimationFrame(frame);
       RelicTuner.init();
 
       lastFrameTime = performance.now();
-      requestAnimationFrame(onFrame);
-
       console.log('📡 [AnomalyScanner] Deep Space Radar & Relic Deciphering System initialized.');
     },
 
@@ -22092,6 +22433,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       <div class="sf-card-actions">
         <button class="sf-card-act-btn primary" id="sf-btn-escort">编入护航</button>
+        <button class="sf-card-act-btn" id="sf-btn-accelerate">加速建造</button>
         <button class="sf-card-act-btn" id="sf-btn-flip">天文档案</button>
           <button class="sf-card-act-btn" id="sf-btn-visit">前往此星</button>
         <button class="sf-card-act-btn" id="sf-btn-next-core">开启下一颗</button>
@@ -22116,6 +22458,41 @@ document.addEventListener('DOMContentLoaded', () => {
     serialEl = card.querySelector('#sf-card-serial');
     tierBadgeEl = card.querySelector('#sf-card-tier-badge');
     escortBtn = card.querySelector('#sf-btn-escort');
+
+    var accelBtn = card.querySelector('#sf-btn-accelerate');
+    if (accelBtn) {
+      accelBtn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        if (!cur || !window.SFBuildup) return;
+        var stardust = (window.StarfieldInFlightExtraction && window.StarfieldInFlightExtraction.securedCredits) || 0;
+        var cores = (window.StarfieldHatch && window.StarfieldHatch.getUnopenedCores) ? window.StarfieldHatch.getUnopenedCores() : 0;
+        var costDust = 180;
+        var costCores = 0;
+        if (stardust < costDust && cores >= 1) {
+          costDust = 0;
+          costCores = 1;
+        }
+        var ok = window.SFBuildup.accelerate(cur, costDust, costCores);
+        if (ok) {
+          if (evoEl && window.SFBuildup) {
+            var left = window.SFBuildup.progress(cur);
+            evoEl.textContent = (window.SFEvolution ? window.SFEvolution.elapsedText(cur) + ' · ' : '') +
+              '轨道设施 ' + window.SFBuildup.stageLabel(cur) +
+              (left !== null ? '（还差 ' + left + ' 分钟）' : '（全级完工）');
+          }
+          if (planetRenderer && planetRenderer.setItem) planetRenderer.setItem(cur);
+          var newDust = (window.StarfieldInFlightExtraction && window.StarfieldInFlightExtraction.securedCredits) || 0;
+          var stg = window.SFBuildup.stage(cur);
+          if (stg >= 4) {
+            accelBtn.textContent = '奇观已完工';
+            accelBtn.disabled = true;
+            accelBtn.style.opacity = '0.45';
+          } else {
+            accelBtn.textContent = '加速建造 · ' + (newDust >= 180 ? '180星尘' : '1星核');
+          }
+        }
+      });
+    }
 
     var visitBtn = card.querySelector('#sf-btn-visit');
     if (visitBtn) {
@@ -22254,6 +22631,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
     planetRenderer.setItem(item);
     updateEscortBtn(window.StarfieldHatch.isEscorted(item.id));
+
+    var accelBtn = card.querySelector('#sf-btn-accelerate');
+    if (accelBtn) {
+      var stardust = (window.StarfieldInFlightExtraction && window.StarfieldInFlightExtraction.securedCredits) || 0;
+      var stage = window.SFBuildup ? window.SFBuildup.stage(item) : 0;
+      if (stage >= 4) {
+        accelBtn.textContent = '奇观已完工';
+        accelBtn.disabled = true;
+        accelBtn.style.opacity = '0.45';
+      } else {
+        accelBtn.textContent = '加速建造 · ' + (stardust >= 180 ? '180星尘' : '1星核');
+        accelBtn.disabled = false;
+        accelBtn.style.opacity = '1';
+      }
+    }
 
     var nextBtn = card.querySelector('#sf-btn-next-core');
     if (nextBtn) {
@@ -23026,6 +23418,57 @@ document.addEventListener('DOMContentLoaded', () => {
       done: function (c) { return P.surges - c.base >= 1; },
       text: function () { return '借力 ' + (P.surges - (state.active ? state.active.base : P.surges)) + ' / 1'; },
       ratio: function (c) { return Math.min(1, (P.surges - c.base) / 1); }
+    },
+    {
+      id: 'salvage', name: '深空打捞', dur: 90,
+      hint: '靠近并打捞漂流的战备物资残骸',
+      feasible: function () {
+        return !!(window.StarfieldInFlightExtraction && window.StarfieldInFlightExtraction.derelicts);
+      },
+      begin: function (c) {
+        c.base = window.StarfieldInFlightExtraction ? window.StarfieldInFlightExtraction.cargo.length : 0;
+      },
+      done: function (c) {
+        var cur = window.StarfieldInFlightExtraction ? window.StarfieldInFlightExtraction.cargo.length : 0;
+        return cur > c.base;
+      },
+      text: function (c) {
+        var cur = window.StarfieldInFlightExtraction ? window.StarfieldInFlightExtraction.cargo.length : 0;
+        return '打捞物资 ' + Math.min(1, Math.max(0, cur - c.base)) + ' / 1';
+      },
+      ratio: function (c) {
+        var cur = window.StarfieldInFlightExtraction ? window.StarfieldInFlightExtraction.cargo.length : 0;
+        return Math.min(1, Math.max(0, cur - c.base));
+      }
+    },
+    {
+      id: 'pirate', name: '反制伏击', dur: 85,
+      hint: '在虚空海盗拦截中突围或保持航程',
+      feasible: function () {
+        return !!(window.StarfieldInFlightExtraction);
+      },
+      begin: function (c) { c.base = travelNow(); },
+      done: function (c) { return travelNow() - c.base >= 1800; },
+      text: function (c) { return '突围 ' + Math.round(Math.min(1800, Math.max(0, travelNow() - c.base))) + ' / 1800'; },
+      ratio: function (c) { return Math.min(1, Math.max(0, travelNow() - c.base) / 1800); }
+    },
+    {
+      id: 'shockwave', name: '激波借力', dur: 90,
+      hint: '借助天体近心点触发连锁引力激波',
+      feasible: function () { return true; },
+      begin: function (c) { c.base = P.surges; },
+      done: function (c) { return (P.surges - c.base) >= 1; },
+      text: function (c) { return '激波共振 ' + Math.min(1, P.surges - c.base) + ' / 1'; },
+      ratio: function (c) { return Math.min(1, (P.surges - c.base) / 1); }
+    },
+    {
+      id: 'cloud_pierce', name: '低空穿云', dur: 95,
+      hint: '切入近地走廊压入 4,500 距离内',
+      feasible: function () { var n = P.nearest(); return !!(n && n.d < 12000); },
+      begin: function (c) { var n = P.nearest(); c.base = n ? Math.round(n.d) : 0; },
+      done: function () { var n = P.nearest(); return !!(n && n.d < 4500); },
+      text: function () { var n = P.nearest(); return '近地距离 ' + (n ? Math.round(n.d) : '—') + ' / 4500'; },
+      ratio: function (c) { var n = P.nearest(); if (!n || !c.base) return 0; return Math.min(1, Math.max(0, (c.base - n.d) / Math.max(1, c.base - 4500))); }
     }
   ];
 
@@ -23098,7 +23541,11 @@ document.addEventListener('DOMContentLoaded', () => {
     if (window.StarfieldHatch && typeof window.StarfieldHatch.addCores === 'function') {
       window.StarfieldHatch.addCores(n);
     }
-    if (typeof window.toast === 'function') window.toast('✦ 航行委托达成：' + inst.def.name + ' · +' + n + ' 天体核心', 3);
+    var dustBonus = 350 + state.streak * 60;
+    if (window.StarfieldInFlightExtraction && typeof window.StarfieldInFlightExtraction.addSecuredCredits === 'function') {
+      window.StarfieldInFlightExtraction.addSecuredCredits(dustBonus);
+    }
+    if (typeof window.toast === 'function') window.toast('✦ 航行委托达成：' + inst.def.name + ' · +' + n + ' 天体核心 · +' + dustBonus + ' 星尘 ✦', 3.2);
     state.active = null;
     state.cooldown = GAP;
     state.flashUntil = performance.now() + 2600;
@@ -25131,6 +25578,100 @@ function sfBuildManif(THREE, planet, manifId, hue, rng) {
       planet = null, cityGroup = null, raf = 0, t0 = 0,
       container = null, titleEl = null, curEnv = null;
 
+  /* GLB 缓存与空闲期预编译，消除切入地表时的 atob 与 parse 帧骤降 */
+  var _glbCache = {};
+  function getParsedGLB(key, base64Str, options, callback) {
+    if (_glbCache[key]) {
+      callback(_glbCache[key].clone(true));
+      return;
+    }
+    if (!THREE || !THREE.GLTFLoader || !base64Str) return;
+    try {
+      var bin = atob(base64Str);
+      var bytes = new Uint8Array(bin.length);
+      for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      new THREE.GLTFLoader().parse(bytes.buffer, '', function (gltf) {
+        var obj = gltf.scene || gltf.scenes[0];
+        sfFixGLB(obj, options);
+        _glbCache[key] = obj;
+        callback(obj.clone(true));
+      });
+    } catch(e) {
+      console.warn('[GLBCache] parse failed for ' + key, e);
+    }
+  }
+
+  function scheduleGLBPrecompile() {
+    var queue = [
+      { key: 'city', b64: window.__cityGLB, opt: { metal: 0.34, emis: 1.0 } },
+      { key: 'monument', b64: window.__monumentGLB, opt: { metal: 0.22, emis: 1.0 } },
+      { key: 'crystal', b64: window.__crystalGLB, opt: { metal: 0.2, emis: 1.0 } },
+      { key: 'mothership', b64: window.__mothershipGLB, opt: { metal: 0.32, emis: 1.0 } }
+    ];
+    var runNext = function (deadline) {
+      while (queue.length > 0 && (!deadline || deadline.timeRemaining() > 8)) {
+        var item = queue.shift();
+        if (item.b64 && !_glbCache[item.key]) {
+          getParsedGLB(item.key, item.b64, item.opt, function(){});
+        }
+      }
+      if (queue.length > 0) {
+        if (window.requestIdleCallback) window.requestIdleCallback(runNext, { timeout: 3000 });
+        else setTimeout(runNext, 400);
+      }
+    };
+    if (window.requestIdleCallback) window.requestIdleCallback(runNext, { timeout: 3000 });
+    else setTimeout(runNext, 800);
+  }
+  scheduleGLBPrecompile();
+
+  /* GLB 缓存与空闲期预编译，消除切入地表时的 atob 与 parse 帧骤降 */
+  var _glbCache = {};
+  function getParsedGLB(key, base64Str, options, callback) {
+    if (_glbCache[key]) {
+      callback(_glbCache[key].clone(true));
+      return;
+    }
+    if (!THREE || !THREE.GLTFLoader || !base64Str) return;
+    try {
+      var bin = atob(base64Str);
+      var bytes = new Uint8Array(bin.length);
+      for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      new THREE.GLTFLoader().parse(bytes.buffer, '', function (gltf) {
+        var obj = gltf.scene || gltf.scenes[0];
+        sfFixGLB(obj, options);
+        _glbCache[key] = obj;
+        callback(obj.clone(true));
+      });
+    } catch(e) {
+      console.warn('[GLBCache] parse failed for ' + key, e);
+    }
+  }
+
+  function scheduleGLBPrecompile() {
+    var queue = [
+      { key: 'city', b64: window.__cityGLB, opt: { metal: 0.34, emis: 1.0 } },
+      { key: 'monument', b64: window.__monumentGLB, opt: { metal: 0.22, emis: 1.0 } },
+      { key: 'crystal', b64: window.__crystalGLB, opt: { metal: 0.2, emis: 1.0 } },
+      { key: 'mothership', b64: window.__mothershipGLB, opt: { metal: 0.32, emis: 1.0 } }
+    ];
+    var runNext = function (deadline) {
+      while (queue.length > 0 && (!deadline || deadline.timeRemaining() > 8)) {
+        var item = queue.shift();
+        if (item.b64 && !_glbCache[item.key]) {
+          getParsedGLB(item.key, item.b64, item.opt, function(){});
+        }
+      }
+      if (queue.length > 0) {
+        if (window.requestIdleCallback) window.requestIdleCallback(runNext, { timeout: 3000 });
+        else setTimeout(runNext, 400);
+      }
+    };
+    if (window.requestIdleCallback) window.requestIdleCallback(runNext, { timeout: 3000 });
+    else setTimeout(runNext, 800);
+  }
+  scheduleGLBPrecompile();
+
   function sph(th, ph, r, out) {
     out = out || new THREE.Vector3();
     out.set(r * Math.sin(ph) * Math.cos(th), r * Math.cos(ph), r * Math.sin(ph) * Math.sin(th));
@@ -25245,7 +25786,7 @@ function sfBuildManif(THREE, planet, manifId, hue, rng) {
       '  <div id="sf-surface-env" style="font-size:10px;letter-spacing:.26em;margin-top:8px;opacity:.65"></div>' +
       '</div>' +
       '<div style="position:absolute;bottom:26px;left:0;right:0;text-align:center;font-size:9px;letter-spacing:.26em;opacity:.5">' +
-      '拖动转向 · ESC / L 返回太空</div>';
+      '拖动转向 · ESC / 点击返回太空</div>';
     document.body.appendChild(container);
     titleEl = container.querySelector('#sf-surface-title');
 
@@ -25411,14 +25952,10 @@ function sfBuildManif(THREE, planet, manifId, hue, rng) {
       cityGroup = buildCity(env, 36, rng, planet.landVertices);
       scene.add(cityGroup);
 
-      /* 发达城市：sand3d 建筑群地标（座在真实地形上，正立面朝相机） */
-      if (manif === 'cyber_metropolis' && THREE.GLTFLoader && window.__cityGLB) {
-        var ybin = atob(window.__cityGLB);
-        var ybytes = new Uint8Array(ybin.length);
-        for (var yi = 0; yi < ybin.length; yi++) ybytes[yi] = ybin.charCodeAt(yi);
-        new THREE.GLTFLoader().parse(ybytes.buffer, '', function (gltf) {
-          var y = gltf.scene;
-          sfFixGLB(y, { metal: 0.34, emis: 1.0 });
+      /* 发达城市：sand3d 建筑群地标（使用预编译缓存） */
+      if (manif === 'cyber_metropolis' && window.__cityGLB) {
+        getParsedGLB('city', window.__cityGLB, { metal: 0.34, emis: 1.0 }, function (y) {
+          if (!y) return;
           y.scale.setScalar(72);
           var dir = sph(0.16, 1.18, 1).normalize();
           var R0 = planet.cfg.radius;
@@ -25440,14 +25977,10 @@ function sfBuildManif(THREE, planet, manifId, hue, rng) {
         });
       }
 
-      /* 灾变废墟：sand3d 断裂纪念碑 */
-      if (manif === 'shattered_cataclysm' && THREE.GLTFLoader && window.__monumentGLB) {
-        var mbin = atob(window.__monumentGLB);
-        var mbytes = new Uint8Array(mbin.length);
-        for (var mi = 0; mi < mbin.length; mi++) mbytes[mi] = mbin.charCodeAt(mi);
-        new THREE.GLTFLoader().parse(mbytes.buffer, '', function (gltf) {
-          var m = gltf.scene;
-          sfFixGLB(m, { metal: 0.22, emis: 1.0 });
+      /* 灾变废墟：sand3d 断裂纪念碑（使用预编译缓存） */
+      if (manif === 'shattered_cataclysm' && window.__monumentGLB) {
+        getParsedGLB('monument', window.__monumentGLB, { metal: 0.22, emis: 1.0 }, function (m) {
+          if (!m) return;
           m.scale.setScalar(150);
           var mp = sph(0.16, 1.12, 36 + 3);
           m.position.copy(mp);
@@ -25456,14 +25989,10 @@ function sfBuildManif(THREE, planet, manifId, hue, rng) {
         });
       }
 
-      /* 星灵环境：sand3d 折光水晶簇地标 */
-      if (manif === 'protoss_crystal' && THREE.GLTFLoader && window.__crystalGLB) {
-        var cbin = atob(window.__crystalGLB);
-        var cbytes = new Uint8Array(cbin.length);
-        for (var ci = 0; ci < cbin.length; ci++) cbytes[ci] = cbin.charCodeAt(ci);
-        new THREE.GLTFLoader().parse(cbytes.buffer, '', function (gltf) {
-          var c = gltf.scene;
-          sfFixGLB(c, { metal: 0.2, emis: 1.0 });
+      /* 星灵环境：sand3d 折光水晶簇地标（使用预编译缓存） */
+      if (manif === 'protoss_crystal' && window.__crystalGLB) {
+        getParsedGLB('crystal', window.__crystalGLB, { metal: 0.2, emis: 1.0 }, function (c) {
+          if (!c) return;
           c.scale.setScalar(100);
           /* 星灵的建筑是浮空的，不是立在地上 */
           var cp = sph(0.16, 1.12, 36 + 9);
@@ -25496,14 +26025,10 @@ function sfBuildManif(THREE, planet, manifId, hue, rng) {
         });
       }
 
-      /* 母舰：sand3d 建模，悬停在地表上方，舰艏朝前方 */
-      if (env.dock && THREE.GLTFLoader && window.__mothershipGLB) {
-        var bin = atob(window.__mothershipGLB);
-        var bytes = new Uint8Array(bin.length);
-        for (var bi = 0; bi < bin.length; bi++) bytes[bi] = bin.charCodeAt(bi);
-        new THREE.GLTFLoader().parse(bytes.buffer, '', function (gltf) {
-          var ship = gltf.scene;
-          sfFixGLB(ship, { metal: 0.32, emis: 1.0 });
+      /* 母舰：sand3d 建模，悬停在地表上方，舰艏朝前方（使用预编译缓存） */
+      if (env.dock && window.__mothershipGLB) {
+        getParsedGLB('mothership', window.__mothershipGLB, { metal: 0.32, emis: 1.0 }, function (ship) {
+          if (!ship) return;
           ship.scale.setScalar(70);
           var dir = sph(0.16, 1.12, 1).normalize();
           var R0 = planet.cfg.radius;
@@ -25583,19 +26108,10 @@ function sfBuildManif(THREE, planet, manifId, hue, rng) {
     }
   };
 
-  /* L 进入/离开当前接近的星球；ESC 返回 */
+  /* 近地走廊降轨交互；ESC 返回 */
   window.addEventListener('keydown', function (e) {
     if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
     if (e.key === 'Escape' && window.SFSurface.isActive()) { window.SFSurface.exit(); return; }
-    if (e.key.toLowerCase() === 'l' && !e.ctrlKey && !e.altKey && !e.metaKey) {
-      if (window.SFSurface.isActive()) { window.SFSurface.exit(); return; }
-      var OM = window.StarfieldOrbitalMechanics;
-      var ap = OM && OM.activePlanet;
-      var manif = (ap && ap.w && ap.w.manif && ap.w.manif.id) || 'earth_egg';
-      var hue = (ap && ap.w && ap.w.hue) || (ap && ap.hue) || 200;
-      var name = (ap && (ap.name || (ap.w && ap.w.name))) || '未命名星体';
-      window.SFSurface.enter({ manif: manif, hue: hue, name: name });
-    }
   });
 })();
 
@@ -25830,9 +26346,35 @@ function sfBuildManif(THREE, planet, manifId, hue, rng) {
   ];
 
   window.SFBuildup = {
+    accelerate: function (item, stardustCost, coreCost) {
+      if (!item) return false;
+      var dust = typeof stardustCost === 'number' ? stardustCost : 180;
+      var cores = typeof coreCost === 'number' ? coreCost : 0;
+      var Ext = window.StarfieldInFlightExtraction;
+      var Hatch = window.StarfieldHatch;
+      if (dust > 0) {
+        if (!Ext || typeof Ext.spendSecuredCredits !== 'function' || !Ext.spendSecuredCredits(dust)) {
+          if (window.toast) toast('星尘储备不足，无法加速工程建设', 2);
+          return false;
+        }
+      }
+      if (cores > 0) {
+        if (!Hatch || typeof Hatch.cores !== 'function' || Hatch.cores() < cores) {
+          if (window.toast) toast('天体核心不足', 2);
+          return false;
+        }
+        Hatch.addCores(-cores);
+      }
+      item.buildBonusMinutes = (item.buildBonusMinutes || 0) + 60;
+      if (Hatch && typeof Hatch.saveCollection === 'function') Hatch.saveCollection();
+      if (window.toast) toast(`✦ 消耗 ${dust} 星尘 · 轨道工程推进 +60 分钟！✦`, 2.5);
+      return true;
+    },
     minutes: function (item) {
-      if (!item || typeof item.focusAtBirth !== 'number') return 0;
-      return Math.max(0, totalFocus() - item.focusAtBirth);
+      if (!item) return 0;
+      var bonus = item.buildBonusMinutes || 0;
+      if (typeof item.focusAtBirth !== 'number') return bonus;
+      return Math.max(0, totalFocus() - item.focusAtBirth) + bonus;
     },
     stage: function (item) {
       var m = this.minutes(item), s = 0;

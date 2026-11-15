@@ -45,7 +45,7 @@ public class MainActivity extends AppCompatActivity {
     private static final long MIN_HTML_BYTES = 4_000_000L;
     /** Assets the page resolves relatively; they must sit next to the OTA'd HTML. */
     private static final String[] MIRRORED_ASSETS = {
-        "libs/three.min.js", "libs/tween.umd.js", "libs/OrbitControls.js",
+        "libs/three.min.js", "libs/tween.umd.js", "libs/OrbitControls.js", "libs/GLTFLoader.js",
         "manifest.json", "icon-192.png", "icon-512.png",
         "service-worker.js", "version.json", "planet_studio.html"
     };
@@ -407,6 +407,50 @@ public class MainActivity extends AppCompatActivity {
                     setRequestedOrientation(android.content.pm.ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
                 }
             });
+        }
+
+        @JavascriptInterface
+        public boolean saveImageToGallery(String base64Data, String filename) {
+            try {
+                if (base64Data == null || base64Data.isEmpty()) return false;
+                if (base64Data.contains(",")) {
+                    base64Data = base64Data.substring(base64Data.indexOf(",") + 1);
+                }
+                byte[] decodedBytes = android.util.Base64.decode(base64Data, android.util.Base64.DEFAULT);
+                if (filename == null || filename.isEmpty()) {
+                    filename = "Starfield_Voyage_" + System.currentTimeMillis() + ".png";
+                }
+                if (!filename.endsWith(".png") && !filename.endsWith(".jpg")) {
+                    filename += ".png";
+                }
+
+                android.content.ContentValues values = new android.content.ContentValues();
+                values.put(android.provider.MediaStore.Images.Media.DISPLAY_NAME, filename);
+                values.put(android.provider.MediaStore.Images.Media.MIME_TYPE, "image/png");
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    values.put(android.provider.MediaStore.Images.Media.RELATIVE_PATH, android.os.Environment.DIRECTORY_PICTURES + "/Starfield");
+                    values.put(android.provider.MediaStore.Images.Media.IS_PENDING, 1);
+                }
+
+                android.net.Uri uri = getContentResolver().insert(android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values);
+                if (uri != null) {
+                    try (java.io.OutputStream out = getContentResolver().openOutputStream(uri)) {
+                        if (out != null) {
+                            out.write(decodedBytes);
+                            out.flush();
+                        }
+                    }
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                        values.clear();
+                        values.put(android.provider.MediaStore.Images.Media.IS_PENDING, 0);
+                        getContentResolver().update(uri, values, null, null);
+                    }
+                    return true;
+                }
+            } catch (Exception e) {
+                Log.e("StarfieldNative", "Failed to save image to gallery", e);
+            }
+            return false;
         }
     }
 

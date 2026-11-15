@@ -1,11 +1,11 @@
 {
   "version": "1.9.9.9.9",
-  "build": 183,
-  "updated_at": "2026-11-15T09:15:00+08:00",
+  "build": 184,
+  "updated_at": "2026-11-15T14:00:00+08:00",
   "min_native_version": "1.0.0",
   "is_beta": false,
-  "title": "深空水墨星系美学重塑与视界巡航优化 (Build 183)",
-  "changelog": "1. 彻底移除非调性深蓝多边形盘底板与机械旋臂，重塑为空灵水墨星晕与渐变对数密度波星流；\n2. 沿旋臂精细绘制电离 H-II 育婴室与年轻蓝巨星团，融入当前星区 Planck 辐射色彩；\n3. 深空星系生成视距与频次调优，远景背景层次更显深邃辽阔；\n4. 修复深空残骸搜寻准星 HUD 底部右角绘制笔画偏差并完成全套对抗测试。",
+  "title": "深度缺陷治理与水墨折纸美学升华 (Build 184)",
+  "changelog": "1. 根治全局按键冲突：声呐统一绑定为 [F]，僚机编队切换改为 [V]，解绑地表飞行全局 [L] 监听并转为近地走廊交互；\n2. WebAudio 全局单例三级音频总线重构，修复调音台 SFX 滑块误调总输出增益问题；\n3. 搜打撤星尘收益持久化至 localStorage 并在 HUD 顶部微光常驻，开启天体赋灵建造闭环；\n4. 残骸、海盗激光与弹弓激波环统一纳入 Painter's Sort 深度排序队列；\n5. 废除独立 rAF 轮询合并入主渲染循环，触控防误触死区与双击拦截治理，尾迹环形缓冲区与护航缓存优化；\n6. 航行委托池扩充太空残骸打捞、海盗反制、弹弓借力激波与近地低空穿云任务；\n7. 旋臂 276 次 stroke 风暴优化为离屏预烘焙水墨印章贴图，千纸鹤主翼增加动态明暗与次表面微透光；\n8. 近地走廊浮现降轨穿云按钮并支持平滑拉近水墨破空无缝过渡至地表巡航。",
   "entry": "starfield.html",
   "download_url": "https://jackeyloveseven.github.io/starfield/starfield.html",
   "apk_release_url": "https://github.com/jackeyloveseven/starfield/releases/tag/v1.19.1-focus-apk"
