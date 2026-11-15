@@ -4625,7 +4625,7 @@ body:has(#photo-ui.active) .sf-touch-cluster{
     <div class="shortcut-list">
       <div class="shortcut-row">
         <span>客户端版本</span>
-        <span class="shortcut-key" id="sf-version-tag">v1.9.9.9.9 (Build 182)</span>
+        <span class="shortcut-key" id="sf-version-tag">v1.9.9.9.9 (Build 183)</span>
       </div>
       <div class="shortcut-row">
         <span>OTA 实时热更新</span>
@@ -8940,24 +8940,24 @@ function chunk(k){
  if(!horizon && !hasEncounter && k > 1 && (k % 4 === 2 || k % 4 === 0)){
   events.push(SpaceEventEngine.createEvent(k, z0, r, laneX(zc), courseY(zc)));
  }
- // Procedural Deep Space Distant Galaxies & Stellar Clusters
- if(k > 0 && !horizon){
+ // Procedural Deep Space Distant Galaxies & Stellar Clusters (True deep space vistas)
+ if(k > 1 && !horizon && (hash(k, 8831) < 0.32)){
   const rg = rng((hash(k, 8831) * 4294967295) >>> 0);
-  const isCluster = rg() >= 0.65;
+  const isCluster = rg() >= 0.60;
   const gZ = z0 + CHUNK * (0.15 + rg() * 0.70);
   const gSide = rg() < 0.5 ? -1 : 1;
-  const gDist = isCluster ? (7000 + rg() * 9000) : (8000 + rg() * 12000);
+  const gDist = isCluster ? (16000 + rg() * 18000) : (22000 + rg() * 26000);
   const gX = baseRouteX(gZ) + gSide * gDist;
-  const gY = courseY(gZ) + (rg() - 0.5) * (isCluster ? 4200 : 5200);
-  const gRad = isCluster ? (1200 + rg() * 1400) : (2600 + rg() * 2400);
+  const gY = courseY(gZ) + (rg() - 0.5) * (isCluster ? 6000 : 8500);
+  const gRad = isCluster ? (1800 + rg() * 1600) : (4200 + rg() * 3800);
   galaxies.push({
    x: gX, y: gY, z: gZ,
    rad: gRad,
-   isCluster,
-   arms: 2 + Math.floor(rg() * 3),
    ang: rg() * TAU,
-   tilt: 0.28 + rg() * 0.52,
-   tone: rg()
+   tilt: (0.55 + rg() * 0.60) * (rg() < 0.5 ? -1 : 1),
+   arms: 2 + Math.floor(rg() * 2),
+   tone: rg(),
+   isCluster: isCluster
   });
  }
  const c={masses,shards,plates,galaxies,ships,gates,events,battles,k};chunks.set(k,c);return c;
@@ -10489,128 +10489,281 @@ function drawMass(m, p, t){
  if(glowA > 0.01) glow([m.x, m.y, m.z], m.r * 1.15, tint, .65 * glowA, 3.2);
  drawWorld(m, q, p, t, rad, tint);
 }
-/* A spiral galaxy as a printed plate: a flat toned disc with a crisp edge,
- * arms built as tapered ribbons rather than wires, and dust lanes that actually
- * occlude - a narrow near-opaque band over a wide faint shoulder, the recipe the
- * nebulae already use. Flat tones and hard edges; the only soft thing on the
- * object is the core bloom. */
+/* Distant Spiral Galaxies & Globular Clusters (深空水墨星系与球状星团)
+ * Pure celestial watercolor starlight, Planckian ionization halos, and flowing
+ * logarithmic density wave starlight streams. Zero opaque polygon plates or gyro rings. */
 function initGalaxyCache(g){
  if(g._cached) return;
- const u=[Math.cos(g.ang),0,Math.sin(g.ang)],ct=Math.cos(g.tilt),st=Math.sin(g.tilt);
+ const ct=Math.cos(g.tilt),st=Math.sin(g.tilt);
+ const u=[Math.cos(g.ang),0,Math.sin(g.ang)];
  const v=[-Math.sin(g.ang)*ct,st,Math.cos(g.ang)*ct];
- const at=(a,b)=>[g.x+u[0]*a+v[0]*b,g.y+u[1]*a+v[1]*b,g.z+u[2]*a+v[2]*b];
- const lobeD=a=>1+.11*Math.sin(a*4.3+g.tone*TAU*3)+.05*Math.sin(a*7.1+g.tone*TAU*5);
- const lobeA=(a,k)=>1+.045*Math.sin(a*3.1+k*1.7+g.tone*TAU*2);
- const disc=[];
- for(let i=0;i<=72;i++){const a=i/72*TAU,r=g.rad*.94*lobeD(a);disc.push(at(Math.cos(a)*r,Math.sin(a)*r*.985));}
- g._disc = disc;
- const arms=[];
- for(let k=0;k<g.arms;k++){
-  const off0=k/g.arms*TAU+g.tone*2,N=38,mid=[];
-  const span=2.95+.45*Math.sin(k*2.3+g.tone*TAU*2),r0=.08+.05*Math.abs(Math.sin(k*1.7+g.tone*TAU));
-  const wv=.85+.36*Math.abs(Math.sin(k*1.1+g.tone*TAU*3));
-  for(let i=0;i<=N;i++){
-   const f=i/N,th=off0+f*span,rr=g.rad*(r0+(.92-r0)*f)*lobeA(th,k);
-   mid.push([Math.cos(th)*rr,Math.sin(th)*rr]);
-  }
-  const midWorld = mid.map(m=>at(m[0],m[1]));
-  const buildRibbon = (w0, off=0) => {
-   const A=[], B=[];
-   for(let i=0;i<=N;i++){
-    const j=Math.min(N,i+1),h=Math.max(0,i-1);
-    let tx=mid[j][0]-mid[h][0],ty=mid[j][1]-mid[h][1];const L=Math.hypot(tx,ty)||1;tx/=L;ty/=L;
-    const f=i/N,w=w0*Math.pow(Math.sin(Math.PI*Math.min(1,f*.94+.03)),.62);
-    A.push(at(mid[i][0]-ty*(off-w),mid[i][1]+tx*(off-w)));
-    B.push(at(mid[i][0]-ty*(off+w),mid[i][1]+tx*(off+w)));
-   }
-   return A.concat(B.reverse());
-  };
-  const ribbonA = buildRibbon(g.rad*.068*wv, 0);
-  const ribbonB = buildRibbon(g.rad*.028*wv, -g.rad*.025);
-  const knots = [];
-  for(let j=6; j<N-3; j+=4){
-   const pt = mid[j];
-   knots.push(at(pt[0] * 1.02, pt[1] * 1.02));
-  }
-  arms.push({ midWorld, ribbonA, ribbonB, knots });
- }
- g._arms = arms;
- const cr=g.rad*.085,core=[];
- for(let i=0;i<=28;i++){const a=i/28*TAU;core.push(at(Math.cos(a)*cr*1.4,Math.sin(a)*cr*.9));}
- g._core = core;
  g._u = u;
  g._v = v;
+
+ if(g.isCluster){
+  const stars = [];
+  const crng = rng(((hash(Math.round(g.x), Math.round(g.z)) * 4294967295) >>> 0) || 71);
+  for(let i=0; i<48; i++){
+   const th = crng() * TAU;
+   const distNorm = Math.pow(crng(), 2.4) * 0.85;
+   const r = g.rad * distNorm;
+   const sz = 0.6 + crng() * 1.4 * (1 - distNorm * 0.6);
+   const a = 0.30 + crng() * 0.65;
+   const isGold = crng() < 0.45;
+   stars.push({
+    x: Math.cos(th) * r,
+    y: Math.sin(th) * r,
+    sz: sz,
+    alpha: a,
+    isGold: isGold
+   });
+  }
+  g._clusterStars = stars;
+ } else {
+  const arms = [];
+  const lobeA = (a, k) => 1 + 0.035 * Math.sin(a * 3.1 + k * 1.7 + g.tone * TAU * 2);
+  const grng = rng(((hash(Math.round(g.x), Math.round(g.z)) * 4294967295) >>> 0) || 123);
+  const numArms = g.arms || 2;
+
+  for(let k=0; k<numArms; k++){
+   const off0 = (k / numArms) * TAU + g.tone * 2.4;
+   const N = 46;
+   const span = 4.80 + 0.45 * Math.sin(k * 2.3 + g.tone * TAU);
+   const r0 = 0.07 + 0.03 * Math.abs(Math.sin(k * 1.6 + g.tone * TAU));
+   const spine = [];
+   const dustSpine = [];
+   const knots = [];
+   const stars = [];
+
+   for(let i=0; i<=N; i++){
+    const f = i / N;
+    const th = off0 + f * span;
+    const rr = g.rad * (r0 + (0.93 - r0) * Math.pow(f, 0.84)) * lobeA(th, k);
+    const px = Math.cos(th) * rr;
+    const py = Math.sin(th) * rr;
+    spine.push({ x: px, y: py, f: f });
+
+    // Inner dust contrast streamer
+    const dth = th - 0.045;
+    const drr = rr * 0.965;
+    dustSpine.push({ x: Math.cos(dth) * drr, y: Math.sin(dth) * drr, f: f });
+
+    // Stellar nurseries & H-II ionization knots
+    if(i > 5 && i < N - 3 && (i % 3 === 0)){
+     const isH2 = ((i + k) % 2 === 0);
+     const kOffset = (grng() - 0.5) * rr * 0.05;
+     knots.push({
+      px: px + kOffset,
+      py: py + kOffset,
+      rad: g.rad * (0.015 + 0.010 * Math.sin(i * 1.5)),
+      isH2: isH2
+     });
+    }
+
+    // Micro stardust points clustered along density waves
+    const numDust = 2 + Math.floor(grng() * 3);
+    for(let d=0; d<numDust; d++){
+     const sDist = (grng() - 0.5) * rr * (0.05 + 0.04 * f);
+     const dAngle = th + (grng() - 0.5) * 0.07;
+     const sRad = rr + sDist;
+     stars.push({
+      px: Math.cos(dAngle) * sRad,
+      py: Math.sin(dAngle) * sRad,
+      sz: 0.5 + grng() * 1.0,
+      a: (0.22 + grng() * 0.50) * (1 - f * 0.40)
+     });
+    }
+   }
+   arms.push({ spine, dustSpine, knots, stars });
+  }
+  g._arms = arms;
+ }
  g._cached = true;
 }
+
 function drawGalaxy(g,p,t,pj){
  const q=pj||project(g);if(!q)return;
- const R=g.rad*q[3];if(R<6)return;
+ const R=g.rad*q[3];if(R<4.5)return;
  const mv=(typeof massVis==='number')?massVis:1;
  if(mv<=0.001)return;
  const pal=NEB_PAL[p.index]||NEB_PAL[0];
+ const rim=blend(p.ink,pal[0],.32);
+ const inner=blend(p.ink,pal[1],.48);
+ const vis=clamp((R-12)/80);
+
+ initGalaxyCache(g);
+
  if(g.isCluster){
-  const inner=blend(p.ink,pal[1],.42);
-  const coreCol=blend(inner,[255,250,230],.75);
-  glow(g,g.rad*.85,inner,.28*mv,2.6);
-  glow(g,g.rad*.42,coreCol,.65*mv,2.2);
-  glow(g,g.rad*.15,[255,255,255],.95*mv,1.8);
+  // Globular Stellar Cluster (Omega Centauri / M13 spherical starlight swarm)
+  glow([g.x, g.y, g.z], g.rad * 0.48, inner, 0.18 * mv, 2.5);
+  glow([g.x, g.y, g.z], g.rad * 0.16, blend(inner, [255, 248, 225], 0.82), 0.50 * mv, 2.0);
+  glow([g.x, g.y, g.z], g.rad * 0.05, [255, 255, 255], 0.75 * mv, 1.6);
+
+  if(vis > 0.04 && g._clusterStars){
+   queue.push({
+    type: 4, d: q[2], alpha: mv, fn: () => {
+     const p0 = project([g.x, g.y, g.z]);
+     if(!p0) return;
+     ctx.save();
+     ctx.translate(p0[0], p0[1]);
+     const scaleR = q[3];
+     const stWhite = 'rgba(255, 252, 246, ';
+     const stGold = 'rgba(255, 235, 185, ';
+
+     for(let i=0; i<g._clusterStars.length; i++){
+      const st = g._clusterStars[i];
+      const sx = st.x * scaleR, sy = st.y * scaleR;
+      const alpha = (st.alpha * vis * mv).toFixed(2);
+      ctx.fillStyle = (st.isGold ? stGold : stWhite) + alpha + ')';
+      ctx.beginPath();
+      ctx.arc(sx, sy, Math.max(0.5, st.sz), 0, TAU);
+      ctx.fill();
+     }
+     ctx.restore();
+    }
+   });
+  }
   return;
  }
- initGalaxyCache(g);
- const rim=blend(p.ink,pal[0],.30),inner=blend(p.ink,pal[1],.42);
- const plate=blend(p.tree,p.paper,.34),dust=blend(p.paper,p.treeDark,.28);
- const white=blend(p.craft,[255,255,255],.30);
- const vis=clamp((R-40)/120);
 
- poly(g._disc,plate,{alpha:.52*mv});
- if(vis>.02)line(g._disc,blend(plate,p.ink,.34),.24*vis*mv,.6);
+ // Grand-Design Spiral Galaxy: Watercolor celestial starlight disc & density waves
+ const p0 = q;
+ const pU = project([g.x + g._u[0] * g.rad, g.y + g._u[1] * g.rad, g.z + g._u[2] * g.rad]);
+ const pV = project([g.x + g._v[0] * g.rad, g.y + g._v[1] * g.rad, g.z + g._v[2] * g.rad]);
+ if(!pU || !pV) return;
 
- const h2Pink = [255, 68, 148];
- const obBlue = [155, 210, 255];
- for(let k=0;k<g._arms.length;k++){
-  const arm = g._arms[k];
-  poly(arm.ribbonA,rim,{alpha:.32*mv});
-  poly(arm.ribbonB,blend(inner,obBlue,.45),{alpha:.48*mv});
-  if(vis>.02)line(arm.midWorld,white,.60*vis*mv,.9);
-  if(vis>0.12){
-   for(let j=0;j<arm.knots.length;j++){
-    glow(arm.knots[j],g.rad*0.022,h2Pink,0.45*vis*mv,1.8);
+ const dxU = pU[0] - p0[0], dyU = pU[1] - p0[1];
+ const lenU = Math.hypot(dxU, dyU);
+ const dxV = pV[0] - p0[0], dyV = pV[1] - p0[1];
+ const lenV = Math.hypot(dxV, dyV);
+ if(lenU < 2 || lenV < 0.6) return;
+
+ const ang = Math.atan2(dyU, dxU);
+ const aspect = clamp(lenV / lenU, 0.14, 0.96);
+ const scaleR = lenU / g.rad;
+
+ // Refined isotropic stellar core bloom in depth sort (subtle, non-blinding)
+ glow([g.x, g.y, g.z], g.rad * 0.10, blend(inner, [255, 240, 205], 0.75), 0.38 * mv, 2.0);
+
+ queue.push({
+  type: 4, d: q[2], alpha: mv, fn: () => {
+   ctx.save();
+   ctx.translate(p0[0], p0[1]);
+   ctx.rotate(ang);
+   ctx.scale(1.0, aspect);
+
+   // 1. Soft Watercolor Ionization Corona & Galactic Starlight Halo
+   const gHalo = ctx.createRadialGradient(0, 0, lenU * 0.10, 0, 0, lenU * 0.98);
+   gHalo.addColorStop(0.00, css(inner, 0.22 * mv));
+   gHalo.addColorStop(0.35, css(rim, 0.12 * mv));
+   gHalo.addColorStop(0.70, css(rim, 0.04 * mv));
+   gHalo.addColorStop(1.00, css(rim, 0.0));
+   ctx.fillStyle = gHalo;
+   ctx.beginPath();
+   ctx.arc(0, 0, lenU * 0.98, 0, TAU);
+   ctx.fill();
+
+   // 2. Luminous Stellar Density Waves & Spiral Streamers
+   if(g._arms){
+    const starlightWhite = blend(inner, [255, 252, 248], 0.85);
+    const starlightMist = blend(inner, pal[1], 0.60);
+    const dustContrast = blend(p.ink, rim, 0.35);
+    const h2Pink = blend(pal[0], [255, 140, 185], 0.75);
+    const obBlue = blend(pal[1], [165, 225, 255], 0.75);
+
+    for(let k=0; k<g._arms.length; k++){
+     const arm = g._arms[k];
+     const spine = arm.spine;
+     if(!spine || spine.length < 3) continue;
+
+     if(vis > 0.02){
+      // Segmented watercolor wash with smooth tapering
+      for(let i=0; i<spine.length - 1; i++){
+       const pA = spine[i], pB = spine[i + 1];
+       const f = pA.f;
+       const taper = Math.sin(Math.PI * Math.min(1, f * 0.90 + 0.08));
+       const fade = (1 - f * 0.60) * vis * mv;
+
+       // 2a. Soft diffuse watercolor starlight haze
+       ctx.strokeStyle = css(starlightMist, 0.15 * fade);
+       ctx.lineWidth = Math.max(1.8, lenU * 0.048 * taper);
+       ctx.lineCap = 'round';
+       ctx.beginPath();
+       ctx.moveTo(pA.x * scaleR, pA.y * scaleR);
+       ctx.lineTo(pB.x * scaleR, pB.y * scaleR);
+       ctx.stroke();
+
+       // 2b. Delicate starlight density spine
+       ctx.strokeStyle = css(starlightWhite, 0.40 * fade);
+       ctx.lineWidth = Math.max(0.8, lenU * 0.014 * taper);
+       ctx.beginPath();
+       ctx.moveTo(pA.x * scaleR, pA.y * scaleR);
+       ctx.lineTo(pB.x * scaleR, pB.y * scaleR);
+       ctx.stroke();
+      }
+
+      // 2c. Inner dust contrast streamer
+      if(arm.dustSpine && arm.dustSpine.length > 2){
+       for(let i=0; i<arm.dustSpine.length - 1; i++){
+        const dA = arm.dustSpine[i], dB = arm.dustSpine[i + 1];
+        const f = dA.f;
+        const taper = Math.sin(Math.PI * Math.min(1, f * 0.88 + 0.10));
+        ctx.strokeStyle = css(dustContrast, 0.10 * (1 - f * 0.5) * vis * mv);
+        ctx.lineWidth = Math.max(0.8, lenU * 0.018 * taper);
+        ctx.beginPath();
+        ctx.moveTo(dA.x * scaleR, dA.y * scaleR);
+        ctx.lineTo(dB.x * scaleR, dB.y * scaleR);
+        ctx.stroke();
+       }
+      }
+     }
+
+     // 2d. Stellar nurseries & H-II ionization knots
+     if(vis > 0.06 && arm.knots){
+      for(let j=0; j<arm.knots.length; j++){
+       const kn = arm.knots[j];
+       const kx = kn.px * scaleR, ky = kn.py * scaleR;
+       const kr = Math.max(1.2, kn.rad * scaleR * 1.3);
+       const kColor = kn.isH2 ? h2Pink : obBlue;
+       const kg = ctx.createRadialGradient(kx, ky, 0, kx, ky, kr);
+       kg.addColorStop(0.00, css(kColor, 0.55 * vis * mv));
+       kg.addColorStop(0.40, css(kColor, 0.18 * vis * mv));
+       kg.addColorStop(1.00, css(kColor, 0.0));
+       ctx.fillStyle = kg;
+       ctx.beginPath();
+       ctx.arc(kx, ky, kr, 0, TAU);
+       ctx.fill();
+      }
+     }
+
+     // 2e. Twinkling micro stardust points along density waves
+     if(vis > 0.08 && arm.stars){
+      const stColor = 'rgba(255, 252, 248, ';
+      for(let j=0; j<arm.stars.length; j++){
+       const st = arm.stars[j];
+       ctx.fillStyle = stColor + (st.a * vis * mv).toFixed(2) + ')';
+       ctx.beginPath();
+       ctx.arc(st.px * scaleR, st.py * scaleR, Math.max(0.5, st.sz), 0, TAU);
+       ctx.fill();
+      }
+     }
+    }
    }
+
+   // 3. Compact Elliptical Stellar Bulge & Warm Golden Core
+   const gBulge = ctx.createRadialGradient(0, 0, 0, 0, 0, lenU * 0.18);
+   gBulge.addColorStop(0.00, 'rgba(255, 255, 252, 0.88)');
+   gBulge.addColorStop(0.22, css(blend(inner, [255, 238, 205], 0.85), 0.68 * mv));
+   gBulge.addColorStop(0.60, css(blend(inner, [255, 218, 155], 0.65), 0.25 * mv));
+   gBulge.addColorStop(1.00, css(inner, 0.0));
+   ctx.fillStyle = gBulge;
+   ctx.beginPath();
+   ctx.arc(0, 0, lenU * 0.18, 0, TAU);
+   ctx.fill();
+
+   ctx.restore();
   }
- }
-
- poly(g._core,blend(inner,[255,255,255],.62),{alpha:.88*mv});
- glow(g,g.rad*.110,blend(inner,[255,245,210],.75),.68*mv,2.4);
- glow(g,g.rad*.045,[255,255,255],.92*mv,1.8);
-
- if(R >= 35 && vis > 0.08){
-  const u = g._u, v = g._v;
-  const at=(a,b)=>[g.x+u[0]*a+v[0]*b,g.y+u[1]*a+v[1]*b,g.z+u[2]*a+v[2]*b];
-  const dx=camera.eye[0]-g.x,dy=camera.eye[1]-g.y,dz=camera.eye[2]-g.z;
-  const ca=dx*u[0]+dy*u[1]+dz*u[2],cb=dx*v[0]+dy*v[1]+dz*v[2];
-  const cl=Math.hypot(ca,cb)||1,near=Math.atan2(cb/cl,ca/cl);
-  const lobeA=(a,k)=>1+.045*Math.sin(a*3.1+k*1.7+g.tone*TAU*2);
-  const ribbon=(mid,w0,alpha,c,off=0)=>{
-   const N=mid.length-1,A=[],B=[];
-   for(let i=0;i<=N;i++){
-    const j=Math.min(N,i+1),h=Math.max(0,i-1);
-    let tx=mid[j][0]-mid[h][0],ty=mid[j][1]-mid[h][1];const L=Math.hypot(tx,ty)||1;tx/=L;ty/=L;
-    const f=i/N,w=w0*Math.pow(Math.sin(Math.PI*Math.min(1,f*.94+.03)),.62);
-    A.push(at(mid[i][0]-ty*(off-w),mid[i][1]+tx*(off-w)));
-    B.push(at(mid[i][0]-ty*(off+w),mid[i][1]+tx*(off+w)));
-   }
-   poly(A.concat(B.reverse()),c,{alpha:alpha*mv});
-  };
-  for(let i=0;i<2;i++){
-   const off0=near+(i?1.75:-1.75)+g.tone*.9,N=14,mid=[];
-   for(let j=0;j<=N;j++){
-    const f=j/N,th=off0+f*1.65,rr=g.rad*(.36+.48*f)*lobeA(th,i+1);
-    mid.push([Math.cos(th)*rr,Math.sin(th)*rr]);
-   }
-   ribbon(mid,g.rad*.072,.22,dust);
-   ribbon(mid,g.rad*.030,.82,dust);
-  }
- }
+ });
 }
 function bodies(){
  activeShips.length=0;
@@ -10630,10 +10783,10 @@ function bodies(){
  for(const c of active){
   // Frustum-culled distance fade for galaxies & clusters
   for(const g of c.galaxies){
-   const pj=project(g);if(!pj||pj[2]>65000)continue;
-   const R=g.rad*pj[3];if(R<6)continue;
-   if(pj[0]+R<-60||pj[0]-R>W+60||pj[1]+R<-60||pj[1]-R>H+60)continue;
-   massVis=clamp((65000-pj[2])/26000);if(massVis<=0)continue;
+   const pj=project(g);if(!pj||pj[2]>75000)continue;
+   const R=g.rad*pj[3];if(R<4.5)continue;
+   if(pj[0]+R<-80||pj[0]-R>W+80||pj[1]+R<-80||pj[1]-R>H+80)continue;
+   massVis=clamp((75000-pj[2])/30000);if(massVis<=0)continue;
    drawGalaxy(g,region(g.x,g.z),time,pj);massVis=1;
   }
   // Render procedural space events (frustum-culled)
@@ -12048,7 +12201,7 @@ const StarfieldInFlightExtraction = {
         c.moveTo(-bSz, -bSz + 5); c.lineTo(-bSz, -bSz); c.lineTo(-bSz + 5, -bSz);
         c.moveTo(bSz - 5, -bSz); c.lineTo(bSz, -bSz); c.lineTo(bSz, -bSz + 5);
         c.moveTo(-bSz, bSz - 5); c.lineTo(-bSz, bSz); c.lineTo(-bSz + 5, bSz);
-        c.moveTo(bSz - 5, bSz); c.lineTo(bSz, bSz); c.lineTo(bSz, -bSz + 5);
+        c.moveTo(bSz - 5, bSz); c.lineTo(bSz, bSz); c.lineTo(bSz, bSz - 5);
         c.stroke();
         c.font = '9.5px "SFMono-Regular", Consolas, monospace';
         c.fillStyle = 'rgba(56, 189, 248, 0.85)';
@@ -16130,7 +16283,7 @@ window.addEventListener('resize', () => {
       })
       .then(data => {
         if (data && data.build) {
-          const localBuild = 182;
+          const localBuild = 183;
           if (data.build > localBuild) {
             showOtaNotification(data);
           } else if (manual && window.toast) {
