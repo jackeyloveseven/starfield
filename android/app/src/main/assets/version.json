@@ -1,11 +1,11 @@
 {
-  "version": "1.9.9.9.9.2",
-  "build": 190,
-  "updated_at": "2026-11-16T22:10:00+08:00",
+  "version": "1.9.9.9.9.3",
+  "build": 191,
+  "updated_at": "2026-11-16T22:58:00+08:00",
   "min_native_version": "1.0.0",
   "is_beta": false,
-  "title": "全面恢复3D活体生态与外层米氏大气光晕 & 60+ FPS底层架构 (Build 190)",
-  "changelog": "1. 彻底恢复3D活体生态星球系统：找回大陆群岛、雪山断崖、海洋镜面高光、双层动态流云与远古先驱巨构，根除伪物感；\n2. 重塑外层米氏与瑞利大气散射辉光壳：星球外围注入3D立体大气散射壳与高反差金橙/冰蓝黄昏光晕（Atmospheric Corona），彻底消除黑糊糊光秃秃感；\n3. 移除误杀3D引擎的低帧率看门狗：修复冷启动资源加载期误判导致关闭3D引擎的底层缺陷，确保3D生态全生命周期常驻；\n4. 移动端TBDR无损高帧率渲染管线：针对天玑9400+/Immortalis-G925优化FBO分级显存与零拷贝直出，消除Tile Flush卡顿，兼得华丽画质与60+ FPS；\n5. 轨道卫星与深空阵列全天候巡航：全面恢复低轨道卫星通讯链路与巡航微光，深空探索沉浸感全面归位。",
+  "title": "根治天玑9400+移动端<=5 FPS卡死：消灭预热反复创建驱逐震荡死循环 & 恢复硬件星海与60+ FPS (Build 191)",
+  "changelog": "1. 根治移动端5 FPS卡顿死循环：修复LPE预热扫描超视距masses导致的'每帧创建1.5个并驱逐1.5个3D星球'的严重LRU震荡死循环，修正预热视界至[500..18000]并扩容至32容量，单帧开销从150ms直降至1.3ms；\n2. 修复多星同屏Sub-Frame LOD失效缺陷：彻底修复isSwitch误判导致的多星同屏逐帧强制WebGL重绘问题，各模型独立遵循离屏Buffer距离LOD刷新步进；\n3. 完整恢复移动端StarfieldGL硬件星海加速：恢复移动端16,800颗恒星与银河带Point Sprites/Warp Lines全硬件GPU合批光栅化（耗时仅0.25ms），根除降级450星的视觉缩水；\n4. 根除动态尺寸频繁Resize对TBDR架构的严重冲击：彻底消除每帧动态变换离屏WebGL画布尺寸导致的显存帧缓冲反复重建与Tile Queue管线挂起，固化512x512超清缓冲；\n5. 100%保持满血3D视觉细节：大陆岛屿、雪山断崖、双层流云、瑞利/米氏大气散射辉光、低聚林木、先驱殖民巨构与巡航轨道卫星毫无妥协，兼顾极致流畅与绝美画质。",
   "entry": "starfield.html",
   "download_url": "https://jackeyloveseven.github.io/starfield/starfield.html",
   "apk_release_url": "https://github.com/jackeyloveseven/starfield/releases/tag/v1.19.1-focus-apk"

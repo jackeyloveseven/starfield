@@ -4964,7 +4964,7 @@ body:has(#photo-ui.active) .sf-touch-cluster{
     <div class="shortcut-list">
       <div class="shortcut-row">
         <span>客户端版本</span>
-        <span class="shortcut-key" id="sf-version-tag">v1.9.9.9.9.2 (Build 190)</span>
+        <span class="shortcut-key" id="sf-version-tag">v1.9.9.9.9.3 (Build 191)</span>
       </div>
       <div class="shortcut-row">
         <span>OTA 实时热更新</span>
@@ -6869,7 +6869,7 @@ const canGrade=typeof CanvasRenderingContext2D!=='undefined'&&
 const coarse=matchMedia('(pointer:coarse)').matches;
 const _isMobileDevice = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || (typeof window !== 'undefined' && 'ontouchstart' in window) || coarse; window._isMobileDevice = _isMobileDevice;
 /* ============================================================
-   WEBASSEMBLY VECTOR & PERSPECTIVE MATH ENGINE (Build 190)
+   WEBASSEMBLY VECTOR & PERSPECTIVE MATH ENGINE (Build 191)
 ============================================================ */
 const STARFIELD_WASM_B64 = "AGFzbQEAAAABGANgAn19AX1gA319fQF9YAZ9fX19fX0BfQMFBAABAgIHLwQKZmFzdF9oeXBvdAAAC2Zhc3RfaHlwb3QzAAEEZG90MwACCXByb2plY3RfegADCk0EDgAgACAAlCABIAGUkpELFAAgACAAlCABIAGUkiACIAKUkpELEwAgACADlCABIASUkiACIAWUkgsTACAAIAOUIAEgBJSSIAIgBZSSCw==";
 let wasmExports = null;
@@ -8003,31 +8003,43 @@ function updateDirector(dt){
 
 /* A compact painter's renderer, with near-plane clipping and distance haze. */
 let queue=[],drawCalls=0,fillPx=0;
-function view(p){const x=p[0]-camera.eye[0],y=p[1]-camera.eye[1],z=p[2]-camera.eye[2];return [StarfieldWasm.dot3(x,y,z,camera.right[0],camera.right[1],camera.right[2]),StarfieldWasm.dot3(x,y,z,camera.up[0],camera.up[1],camera.up[2]),StarfieldWasm.dot3(x,y,z,camera.forward[0],camera.forward[1],camera.forward[2])];}
+function view(p){
+ const px = p.x !== undefined ? p.x : p[0];
+ const py = p.y !== undefined ? p.y : p[1];
+ const pz = p.z !== undefined ? p.z : p[2];
+ const x = px - camera.eye[0], y = py - camera.eye[1], z = pz - camera.eye[2];
+ const r = camera.right, u = camera.up, f = camera.forward;
+ return [x*r[0] + y*r[1] + z*r[2], x*u[0] + y*u[1] + z*u[2], x*f[0] + y*f[1] + z*f[2]];
+}
 function project(p){
  const px = p.x !== undefined ? p.x : p[0];
  const py = p.y !== undefined ? p.y : p[1];
  const pz = p.z !== undefined ? p.z : p[2];
  const x = px - camera.eye[0], y = py - camera.eye[1], z = pz - camera.eye[2];
- const vz = StarfieldWasm.projectZ(x, y, z, camera.forward[0], camera.forward[1], camera.forward[2]);
+ const f = camera.forward;
+ const vz = x*f[0] + y*f[1] + z*f[2];
  if(vz < 18) return null;
  const k = camera.focal / vz;
- return [camera.cx + StarfieldWasm.dot3(x, y, z, camera.right[0], camera.right[1], camera.right[2]) * k, camera.cy - StarfieldWasm.dot3(x, y, z, camera.up[0], camera.up[1], camera.up[2]) * k, vz, k];
+ const r = camera.right, u = camera.up;
+ return [camera.cx + (x*r[0] + y*r[1] + z*r[2]) * k, camera.cy - (x*u[0] + y*u[1] + z*u[2]) * k, vz, k];
 }
 function clipped(points){
  const n = points.length;
  if(n < 3) return null;
  let allIn = true, anyIn = false;
  const v = new Array(n);
+ const r0 = camera.right[0], r1 = camera.right[1], r2 = camera.right[2];
+ const u0 = camera.up[0], u1 = camera.up[1], u2 = camera.up[2];
+ const f0 = camera.forward[0], f1 = camera.forward[1], f2 = camera.forward[2];
  for(let i = 0; i < n; i++){
   const pt = points[i];
   const px = pt.x !== undefined ? pt.x : pt[0];
   const py = pt.y !== undefined ? pt.y : pt[1];
   const pz = pt.z !== undefined ? pt.z : pt[2];
   const x = px - camera.eye[0], y = py - camera.eye[1], z = pz - camera.eye[2];
-  const vx = StarfieldWasm.dot3(x, y, z, camera.right[0], camera.right[1], camera.right[2]);
-  const vy = StarfieldWasm.dot3(x, y, z, camera.up[0], camera.up[1], camera.up[2]);
-  const vz = StarfieldWasm.projectZ(x, y, z, camera.forward[0], camera.forward[1], camera.forward[2]);
+  const vx = x*r0 + y*r1 + z*r2;
+  const vy = x*u0 + y*u1 + z*u2;
+  const vz = x*f0 + y*f1 + z*f2;
   v[i] = [vx, vy, vz];
   if(vz >= 18){ anyIn = true; } else { allIn = false; }
  }
@@ -10367,7 +10379,7 @@ function drawWorld(m, q, p, t, rad, tint) {
         const offCanvas = LivingPlanetEngine.renderPlanet(m, rad, [lx, ly, lz], camera);
         if (offCanvas) {
           const drawD = LivingPlanetEngine.getDrawSize(rad);
-          const blendAlpha3D = clamp((rad - minLivingRad) / 3.0, 0, 1);
+          const blendAlpha3D = clamp((rad - minLivingRad) / 4.0, 0, 1);
           if (blendAlpha3D >= 0.99) {
             ctx.imageSmoothingEnabled = true;
             ctx.drawImage(offCanvas, cx - drawD * 0.5, cy - drawD * 0.5, drawD, drawD);
@@ -14772,7 +14784,7 @@ const bandStars=Array.from({length:coarse?4800:8800},(_,i)=>{
 });
 if(typeof window!=='undefined'){window.bandStars=bandStars;}
 /* ============================================================
-   STARFIELD HARDWARE ACCELERATOR (Build 190)
+   STARFIELD HARDWARE ACCELERATOR (Build 191)
    Bottom-up hardware engine for 60 FPS mobile rendering:
    1. StarfieldWasm: Compiled Wasm vector & perspective math engine
    2. StarfieldGL: GPU Point Sprites & Warp Lines hardware pipeline
@@ -15711,10 +15723,11 @@ function skyPoint(v){
  const vx = v.x !== undefined ? v.x : v[0];
  const vy = v.y !== undefined ? v.y : v[1];
  const vz = v.z !== undefined ? v.z : v[2];
- const d = StarfieldWasm.dot3(vx, vy, vz, camera.forward[0], camera.forward[1], camera.forward[2]);
+ const r = camera.right, u = camera.up, f = camera.forward;
+ const d = vx*f[0] + vy*f[1] + vz*f[2];
  if(d <= .02) return null;
- const xx = StarfieldWasm.dot3(vx, vy, vz, camera.right[0], camera.right[1], camera.right[2]);
- const yy = StarfieldWasm.dot3(vx, vy, vz, camera.up[0], camera.up[1], camera.up[2]);
+ const xx = vx*r[0] + vy*r[1] + vz*r[2];
+ const yy = vx*u[0] + vy*u[1] + vz*u[2];
  return [camera.cx + xx/d*camera.focal, camera.cy - yy/d*camera.focal, d];
 }
 let lensSources=[];
@@ -16044,13 +16057,13 @@ function drawSky(){
 
     for (let i = 0; i < cpuLimit; i++) {
       const st = stars[i]; if (!st) continue;
-      const d = StarfieldWasm.projectZ(st.x, st.y, st.z, fwX, fwY, fwZ);
+      const d = st.x * fwX + st.y * fwY + st.z * fwZ;
       if (d <= minConeDot) continue;
       const invD = camFocal / d;
       const pad = hasLens ? 120 : 24;
-      const x = camCx + StarfieldWasm.dot3(st.x, st.y, st.z, rtX, rtY, rtZ) * invD;
+      const x = camCx + (st.x * rtX + st.y * rtY + st.z * rtZ) * invD;
       if (x < -pad || x > W + pad) continue;
-      const y = camCy - StarfieldWasm.dot3(st.x, st.y, st.z, upX, upY, upZ) * invD;
+      const y = camCy - (st.x * upX + st.y * upY + st.z * upZ) * invD;
       if (y < -pad || y > H + pad) continue;
 
       const tier = st.mag > .70 ? 3 : st.mag > .40 ? 2 : st.mag > .16 ? 1 : 0;
@@ -16095,13 +16108,13 @@ function drawSky(){
     const cpuLimit = _isMobileDevice ? Math.min(limit, 450) : limit;
     for (let i = 0; i < cpuLimit; i++) {
       const st = stars[i]; if (!st) continue;
-      const d = StarfieldWasm.projectZ(st.x, st.y, st.z, fwX, fwY, fwZ);
+      const d = st.x * fwX + st.y * fwY + st.z * fwZ;
       if (d <= minConeDot) continue;
       const invD = camFocal / d;
-      let x = camCx + StarfieldWasm.dot3(st.x, st.y, st.z, rtX, rtY, rtZ) * invD;
+      let x = camCx + (st.x * rtX + st.y * rtY + st.z * rtZ) * invD;
       const pad = hasLens ? 120 : 24;
       if (x < -pad || x > W + pad) continue;
-      let y = camCy - StarfieldWasm.dot3(st.x, st.y, st.z, upX, upY, upZ) * invD;
+      let y = camCy - (st.x * upX + st.y * upY + st.z * upZ) * invD;
       if (y < -pad || y > H + pad) continue;
 
       if (hasLens) {
@@ -16144,7 +16157,7 @@ function drawSky(){
  // bw computed above for starfieldGL
  {
   const [BU,BV,BN]=BAND_BASIS;
-  const bdir=(ca,sa,g)=>{const x=StarfieldWasm.dot3(BU[0],BV[0],BN[0],ca,sa,g),y=StarfieldWasm.dot3(BU[1],BV[1],BN[1],ca,sa,g),z=StarfieldWasm.dot3(BU[2],BV[2],BN[2],ca,sa,g),n=StarfieldWasm.fastHypot3(x,y,z)||1;return [x/n,y/n,z/n];};
+  const bdir=(ca,sa,g)=>{const x=BU[0]*ca+BV[0]*sa+BN[0]*g,y=BU[1]*ca+BV[1]*sa+BN[1]*g,z=BU[2]*ca+BV[2]*sa+BN[2]*g,n=Math.hypot(x,y,z)||1;return [x/n,y/n,z/n];};
   const col=blend(p.sun,p.paper,.34),segs=[];
   let cur=null;
   for(let i=0;i<=260;i++){
@@ -16208,13 +16221,13 @@ function drawSky(){
     for(let bi = 0; bi < maxBandCount; bi++){
      const st = bandStars[bi];
      const d=bdir(st.ca,st.sa,st.g+_rg.bandG);
-     const dot=StarfieldWasm.dot3(d[0],d[1],d[2],fwX,fwY,fwZ);
+     const dot=d[0]*fwX + d[1]*fwY + d[2]*fwZ;
      if(dot<=minConeDot)continue;
      const invD=camFocal/dot;
      const pad=hasLens?120:24;
-     let x=camCx+StarfieldWasm.dot3(d[0],d[1],d[2],rtX,rtY,rtZ)*invD;
+     let x=camCx+(d[0]*rtX + d[1]*rtY + d[2]*rtZ)*invD;
      if(x<-pad||x>W+pad)continue;
-     let y=camCy-StarfieldWasm.dot3(d[0],d[1],d[2],upX,upY,upZ)*invD;
+     let y=camCy-(d[0]*upX + d[1]*upY + d[2]*upZ)*invD;
      if(y<-pad||y>H+pad)continue;
      if(hasLens){const w=lensWarp(x,y);x=w[0];y=w[1];}
      const du=d[0]*ux+d[2]*uz;
@@ -16247,13 +16260,13 @@ function drawSky(){
     for(let bi = 0; bi < maxBandCount; bi++){
      const st = bandStars[bi];
      const d=bdir(st.ca,st.sa,st.g+_rg.bandG);
-     const dot=StarfieldWasm.dot3(d[0],d[1],d[2],fwX,fwY,fwZ);
+     const dot=d[0]*fwX + d[1]*fwY + d[2]*fwZ;
      if(dot<=minConeDot)continue;
      const invD=camFocal/dot;
      const pad=hasLens?120:24;
-     let x=camCx+StarfieldWasm.dot3(d[0],d[1],d[2],rtX,rtY,rtZ)*invD;
+     let x=camCx+(d[0]*rtX + d[1]*rtY + d[2]*rtZ)*invD;
      if(x<-pad||x>W+pad)continue;
-     let y=camCy-StarfieldWasm.dot3(d[0],d[1],d[2],upX,upY,upZ)*invD;
+     let y=camCy-(d[0]*upX + d[1]*upY + d[2]*upZ)*invD;
      if(y<-pad||y>H+pad)continue;
      if(hasLens){const w=lensWarp(x,y);x=w[0];y=w[1];if(x<-16||x>W+16||y<-16||y>H+16)continue;}
      else{if(x<-16||x>W+16||y<-16||y>H+16)continue;}
@@ -18808,7 +18821,7 @@ window.addEventListener('resize', () => {
       })
       .then(data => {
         if (data && data.build) {
-          const localBuild = 188;
+          const localBuild = 191;
           if (data.build > localBuild) {
             showOtaNotification(data);
           } else if (manual && window.toast) {
@@ -22666,7 +22679,7 @@ requestAnimationFrame(frame);
         canvas: this.canvas,
         alpha: true,
         antialias: !isMob,
-        preserveDrawingBuffer: true,
+        preserveDrawingBuffer: false,
         powerPreference: 'high-performance'
       });
       this.renderer.setSize(this.currentBufferSize, this.currentBufferSize, false);
@@ -22708,51 +22721,15 @@ requestAnimationFrame(frame);
       return (this.CAM_EXTENT / this.PLANET_R) * 2.0 * rad;
     },
 
-    // Dynamic Adaptive Multi-Tier Resolution Allocator:
-    // Automatically allocates optimal buffer sizes (160..1024) to guarantee zero wasted fragment fill
-    // while keeping low-poly geometry and trees 100% tack-sharp!
+    // Fixed 512x512 Crisp Buffer:
+    // Fixed buffer eliminates GPU context reallocation, tile queue flushing, and framebuffer invalidation.
+    MAX_CACHE_SIZE: 32,
     ensureBufferSize(rad) {
-      const dpr = (window.STARFIELD_QUALITY ? window.STARFIELD_QUALITY.getMaxDPR() : (typeof window !== 'undefined' && window.devicePixelRatio ? Math.min(window.devicePixelRatio, 2.0) : 1.0));
-      const drawD = this.getDrawSize(rad);
-      const neededPixels = Math.round(drawD * dpr);
-
-      let target = 512;
-      const isMob = (typeof window !== 'undefined' && window._isMobileDevice) || (typeof _isMobileDevice !== 'undefined' && _isMobileDevice);
-      if (isMob) {
-        if (rad < 24) target = 160;
-        else if (rad < 55) target = 256;
-        else if (rad < 110) target = 384;
-        else target = 512;
-      } else if (neededPixels > 550 || rad >= 80) {
-        target = 1024;
-      } else {
-        target = 512;
-      }
-
-      if (target > this.currentBufferSize) {
-        this.currentBufferSize = target;
-        this.shrinkCounter = 0;
-        this._resizeBuffer(target);
-      } else if (target < this.currentBufferSize) {
-        this.shrinkCounter++;
-        // 60-frame hysteresis before downscaling to prevent GPU context thrashing
-        if (this.shrinkCounter > 60) {
-          this.currentBufferSize = target;
-          this.shrinkCounter = 0;
-          this._resizeBuffer(target);
-        }
-      } else {
-        this.shrinkCounter = 0;
-      }
+      // 512x512 crisp fixed buffer: zero dynamic resizing overhead
     },
 
     _resizeBuffer(sz) {
-      if (!this.canvas || !this.renderer) return;
-      this.canvas.width = sz;
-      this.canvas.height = sz;
-      this.renderer.setSize(sz, sz, false);
-      this.renderer.setPixelRatio(1.0);
-      this._bufferResized = true;
+      // No-op to prevent WebGL context thrashing
     },
 
     // Pre-generates upcoming planets in activeMasses ahead of time during cruise
@@ -22768,15 +22745,17 @@ requestAnimationFrame(frame);
     prewarmUpcoming(masses, travel) {
       if (!this.initialized) this.init();
       if (!this.initialized || !masses) return;
+      this._prewarmTick = (this._prewarmTick || 0) + 1;
+      if (this._prewarmTick % 8 !== 0) return; // At most one upcoming check every 8 frames
       for (let i = 0; i < masses.length; i++) {
         const m = masses[i];
         if (m && (m.w || m.kind === 1 || m.kind === 8 || m.kind === 6)) {
           const dz = m.z - travel;
-          if (dz > 0 && dz < 68000) {
+          if (dz > 500 && dz < 18000) {
             const pId = this.getPlanetId(m);
             if (!this.planetCache.has(pId)) {
               this.getPlanetModel(m);
-              break; // At most one per frame to keep FPS completely flat
+              break; // At most one upcoming planet per check to keep FPS completely flat
             }
           }
         }
@@ -22794,8 +22773,8 @@ requestAnimationFrame(frame);
         return model;
       }
 
-      // Evict old cache if size exceeds 8 planets to keep memory minimal
-      if (this.planetCache.size > 8) {
+      // Evict oldest unused models if size exceeds 32 to keep memory minimal
+      if (this.planetCache.size >= (this.MAX_CACHE_SIZE || 32)) {
         const firstKey = this.planetCache.keys().next().value;
         const old = this.planetCache.get(firstKey);
         this.disposeModel(old);
@@ -22878,7 +22857,7 @@ requestAnimationFrame(frame);
 
       const R = this.PLANET_R;
       // High-performance geometry (detail 14 gives ~3,920 faces, crisp low-poly papercraft silhouette!)
-      const geom = new THREE.IcosahedronGeometry(R, 5);
+      const geom = new THREE.IcosahedronGeometry(R, 4);
       const pos = geom.attributes.position;
       const vertex = new THREE.Vector3();
       const normal = new THREE.Vector3();
@@ -23343,18 +23322,12 @@ requestAnimationFrame(frame);
       const model = this.getPlanetModel(m);
       if (!model) return null;
 
-      this.ensureBufferSize(rad);
-      const sz = this.currentBufferSize || 512;
-
-      // Ensure dedicated isolated 2D scratch canvas for this specific planet model
+      const sz = 512;
       if (!model.canvas) {
         model.canvas = document.createElement('canvas');
         model.canvas.width = sz;
         model.canvas.height = sz;
         model.ctx = model.canvas.getContext('2d', { alpha: true });
-      } else if (model.canvas.width !== sz || model.canvas.height !== sz) {
-        model.canvas.width = sz;
-        model.canvas.height = sz;
       }
 
       const now = performance.now() * 0.001;
@@ -23429,22 +23402,19 @@ requestAnimationFrame(frame);
       }
 
       // Adaptive Sub-Frame LOD Throttling:
-      const isSwitch = (this._lastRenderedId !== pId);
-      this._lastRenderedId = pId;
       this.currentRenderedId = pId;
-      const isBufferChange = (this._bufferResized === true);
-      this._bufferResized = false;
       model.renderAge = (model.renderAge || 0) + 1;
 
-      const refreshInterval = isMob ? (rad < 30 ? 3 : (rad < 60 ? 2 : 1)) : (rad < 35 ? 3 : (rad < 70 ? 2 : 1));
-      const shouldRenderWebGL = isSwitch || isBufferChange || (model.renderAge >= refreshInterval) || !model.hasRendered;
+      const refreshInterval = isMob ? (rad < 35 ? 3 : (rad < 75 ? 2 : 1)) : (rad < 35 ? 3 : (rad < 70 ? 2 : 1));
+      const shouldRenderWebGL = !model.hasRendered || (model.renderAge >= refreshInterval);
 
       if (shouldRenderWebGL) {
         model.renderAge = 0;
         model.hasRendered = true;
+        this._lastRenderedId = pId;
         this.renderer.render(this.scene, this.camera);
         if (model.canvas) {
-          model.ctx.clearRect(0, 0, sz, sz);
+          model.ctx.clearRect(0, 0, 512, 512);
           model.ctx.drawImage(this.canvas, 0, 0);
         }
       }
