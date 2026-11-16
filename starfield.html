@@ -8,6 +8,9 @@
 (function () {
   var KEY = 'sf_pending_planet_v1';
   var EVENT_NAMES = {
+    gundam_relic: '折翼高达遗迹残骸',
+    eva_longinus: '朗基努斯之枪·绝对领域',
+    ultraman_m78: 'M78星云·光之巨人',
     voyager_probe: '旅行者号探测器',
     dimension_foil: '二向箔坍缩点',
     dyson_ring: '戴森环巨构',
@@ -23,6 +26,7 @@
     spatial_anomaly: '时空微裂隙'
   };
   var EVENT_HUES = {
+    gundam_relic: 215, eva_longinus: 345, ultraman_m78: 48,
     voyager_probe: 210, dimension_foil: 52, dyson_ring: 45,
     wormhole_sphere: 285, pillars_of_creation: 320, monolith_artifact: 260,
     ghost_fleet: 170, asteroid_field: 35, pulsar: 190, comet: 200,
@@ -1455,7 +1459,7 @@ body.modal-open #sf-perf-hud {
 
 .sf-stardust-pill{display:inline-flex;align-items:center;gap:4px;font-family:ui-monospace,monospace;font-size:9.5px;letter-spacing:.12em;color:rgba(244,208,111,.92);text-shadow:0 0 10px rgba(244,208,111,.35);padding:2px 8px;border:1px solid rgba(244,208,111,.22);background:rgba(11,17,24,.65);border-radius:12px;pointer-events:none;margin-top:3px;}
 
-.sf-sonar-capsule{position:fixed;top:calc(var(--pad,40px) + 82px);left:50%;transform:translateX(-50%) translateY(-6px);z-index:840;padding:6px 16px;border:1px solid rgba(56,189,248,.65);background:rgba(11,17,24,.82);color:#38bdf8;font-family:"Songti SC","Noto Serif SC",serif;font-size:11px;letter-spacing:.16em;cursor:pointer;opacity:0;pointer-events:none;transition:opacity .35s ease,transform .35s ease;text-shadow:0 0 10px rgba(56,189,248,.45);border-radius:16px;}
+.sf-sonar-capsule{display:none !important;visibility:hidden !important;pointer-events:none !important;}
 .sf-sonar-capsule.show{opacity:1;pointer-events:auto;transform:translateX(-50%) translateY(0);}
 .sf-sonar-capsule:hover{background:rgba(56,189,248,.18);border-color:#38bdf8;}
 @media (max-width:900px), (pointer: coarse){
@@ -4716,7 +4720,7 @@ body:has(#photo-ui.active) .sf-touch-cluster{
     <div class="shortcut-list">
       <div class="shortcut-row">
         <span>客户端版本</span>
-        <span class="shortcut-key" id="sf-version-tag">v1.9.9.9.9 (Build 185)</span>
+        <span class="shortcut-key" id="sf-version-tag">v1.9.9.9.9 (Build 186)</span>
       </div>
       <div class="shortcut-row">
         <span>OTA 实时热更新</span>
@@ -6715,6 +6719,9 @@ const Codex = {
     wonders: [
       { id: 'dyson_ring', name: '恒星戴森环巨构', en: 'Dyson Swarm Ring', tag: '巨构 / W1', desc: '环绕发光恒星的巨大分段式轨道环带，金色能量传输光柱直刺星核，展现了神级文明的星际伟力。', cond: ev => ev.type === 'dyson_ring' },
       { id: 'wormhole_sphere', name: '球面虫洞莫比乌斯折射', en: 'Spherical Wormhole', tag: '折跃 / W2', desc: '悬浮于深空的引力透镜球体，球面上倒映着另一条旋臂的古老螺旋星系，穿行其中将跨越数万光年。', cond: ev => ev.type === 'wormhole_sphere' },
+      { id: 'gundam_relic', name: '折翼机体 · 白色恶魔残骸', en: 'Relic Mobile Suit: White Devil', tag: '奇迹 / G1', desc: '漂浮于星河边缘的传奇白色机动兵器残骸。断裂的折翼装甲泛着极细微的金属磷光，残存的V型天线依然指向群星深处。', cond: ev => ev.type === 'gundam_relic' },
+      { id: 'eva_longinus', name: '红海奇迹 · 朗基努斯之枪', en: 'Spear of Longinus & A.T. Field', tag: '奇迹 / E1', desc: '贯穿虚空的双螺旋猩红巨枪，伴随着如海潮般翻涌的血色星云与若隐若现的八角形绝对领域金色微格，隔绝一切尘世喧嚣。', cond: ev => ev.type === 'eva_longinus' },
+      { id: 'ultraman_m78', name: '光之彼方 · M78巨人星云', en: 'M78 Nebula & Spacium Ray', tag: '奇迹 / U1', desc: '来自三百万光年外的超现实光之星云。隐约浮现的流线型红银神圣巨人剪影，在群星间投射出永不熄灭的十字斯派修姆高能粒子流。', cond: ev => ev.type === 'ultraman_m78' },
       { id: 'voyager_probe', name: '旅行者深空探测器', en: 'Voyager Interstellar Probe', tag: '遗迹 / W3', desc: '抛物面高增益天线指向远方的暗淡蓝点，镀金唱片在星光下熠熠生辉，铭刻着人类文明最初的问候。', cond: ev => ev.type === 'voyager_probe' },
       { id: 'dimension_foil', name: '二向箔维度跌落裂隙', en: 'Dimension-Curling Foil', tag: '灾变 / W4', desc: '薄如蝉翼的三体平面薄膜，正在无声无息地卷曲周围的时空曲率，散发出摄人心魄的彩虹色焦散光晕。', cond: ev => ev.type === 'dimension_foil' },
       { id: 'pillars_of_creation', name: '创生之柱分子冷云', en: 'Pillars of Creation', tag: '星云 / W5', desc: '数光年高的指状星际冷分子尘埃柱，在边缘电离光的勾勒下如神殿支柱般矗立，孕育着初生原恒星。', cond: ev => ev.type === 'pillars_of_creation' },
@@ -6857,13 +6864,22 @@ const Codex = {
         this.discover(item.id, item.name);
       }
     }
+    for (const item of this.database.wonders) {
+      try {
+        if (item.cond && item.cond(m)) {
+          this.discover(item.id, item.name);
+        }
+      } catch (_) {}
+    }
   },
 
   checkWonderEncounter(ev) {
     for (const item of this.database.wonders) {
-      if (item.cond(ev)) {
-        this.discover(item.id, item.name);
-      }
+      try {
+        if (item.cond && item.cond(ev)) {
+          this.discover(item.id, item.name);
+        }
+      } catch (_) {}
     }
   },
 
@@ -7480,11 +7496,11 @@ function updateDirector(dt){
   skimRes = LowOrbitSkimmer.update(dt, autoCamera, capturePhase, activeMasses, fleet[LEAD], goal);
  }
 
- // 3. Black Hole Dominance & Horizon Framing (Priority 2: Only within 14,000-unit void corridor approaching Gargantua)
+ // 3. Black Hole Dominance & Horizon Framing (Priority 2: Deep corridor framing approaching Gargantua)
  let hm = null, hd = 1e9;
  if(autoCamera && !capturePhase && (!skimRes || !skimRes.active) && activeMasses.length){
   for(const m of activeMasses){
-   if(m.kind === 4 && !m.passed && m.z >= travel - 4000 && m.z <= travel + 14000){
+   if(m.kind === 4 && !m.passed && m.z >= travel - 8000 && m.z <= travel + 38000){
     const d = Math.hypot(m.x - camera.eye[0], m.y - camera.eye[1], m.z - camera.eye[2]);
     if(d < hd){hd = d; hm = m;}
    }
@@ -7501,7 +7517,7 @@ function updateDirector(dt){
   // Soft, continuous look-ahead to the solitary rising world up to 32,000 units ahead
   for(const m of activeMasses){
    if(m.kind >= 5 && m.kind <= 7) continue; // skip star light sources
-   if(m.kind === 4 || m.isMiller) continue; // strictly skip Gargantua and Miller companion
+   if(m.kind === 4 || m.isMiller || m.isDistantWorld) continue; // strictly skip Gargantua, Miller and distant background worlds
    const dz = m.z - travel;
    if(dz < -1200 || dz > 32000) continue;
    const dx = m.x - routeX(travel), dy = m.y - courseY(travel);
@@ -7549,12 +7565,12 @@ function updateDirector(dt){
  if(autoCamera && !capturePhase && hm){
   const fwl = craftWorld(fleet[LEAD]);
   const fr = Math.hypot(hm.x - fwl[0], hm.y - fwl[1], hm.z - fwl[2]);
-  const wT = clamp((14000 - fr) / 9000, 0, 1) * 0.42;
+  const wT = clamp((38000 - fr) / 24000, 0, 1) * 0.48;
   horizonW += (wT - horizonW) * Math.min(1, dt * 1.5);
   const w = horizonW;
   // Gently bias lookTarget towards hole, but KEEP anchored to fleet corridor so cranes stay in frame
   lookTarget = [mix(lookTarget[0], hm.x, w * 0.28), mix(lookTarget[1], hm.y, w * 0.28), mix(lookTarget[2], hm.z, w * 0.20)];
-  goal.distance = mix(goal.distance, 1380, w);
+  goal.distance = mix(goal.distance, 1420, w);
   goal.pitch = mix(goal.pitch, 0.08, w * 0.45);
  } else if(!capturePhase) {
   horizonW += (0 - horizonW) * Math.min(1, dt * 2.0);
@@ -8124,9 +8140,9 @@ const LowOrbitSkimmer = {
     let bestM = null, minDz = 1e9;
     const fwl = craftWorld(fleetLead);
 
-    // With 10-chunk spacing, there is at most ONE solitary encounter in the corridor
+    // With spaced encounters, there is at most ONE solitary close encounter in the corridor
     for (const m of activeMasses) {
-      if (!m.w || m.isMiller || m.kind === 4) continue;
+      if (!m.w || m.isMiller || m.kind === 4 || m.isDistantWorld) continue;
       const dz = m.z - travel;
       if (dz >= -2500 && dz <= 5500) {
         if (Math.abs(dz) < minDz) {
@@ -8138,6 +8154,7 @@ const LowOrbitSkimmer = {
 
     if (!bestM) {
       this.skimW = expStep(this.skimW, 0.0, 3.0, dt);
+      if (this.skimW <= 0.005) { this.activePlanet = null; this.skimW = 0.0; }
       return null;
     }
 
@@ -8211,13 +8228,15 @@ const LowOrbitSkimmer = {
     return null;
   }
 };
+if (typeof window !== 'undefined') window.LowOrbitSkimmer = LowOrbitSkimmer;
 
 const SpaceEventEngine = {
   createEvent(k, z0, r, laneX, courseY) {
     const types = [
       'asteroid_field', 'pulsar', 'comet', 'solar_flare', 'derelict', 'spatial_anomaly',
       'dyson_ring', 'wormhole_sphere', 'voyager_probe', 'dimension_foil',
-      'pillars_of_creation', 'monolith_artifact', 'ghost_fleet'
+      'pillars_of_creation', 'monolith_artifact', 'ghost_fleet',
+      'gundam_relic', 'eva_longinus', 'ultraman_m78'
     ];
     // Deterministic variety distribution across chunks
     const evTypeIdx = (hash(k, 239) + Math.floor(r() * types.length)) % types.length;
@@ -8275,6 +8294,30 @@ const SpaceEventEngine = {
         type, x, y, z,
         sphereRadius: 1300 + r() * 500,
         spin: 0.18 + r() * 0.12,
+        notified: false
+      };
+    } else if (type === 'gundam_relic') {
+      return {
+        type, x, y, z,
+        rot: r() * TAU,
+        spin: 0.05,
+        relicLen: 850 + r() * 350,
+        notified: false
+      };
+    } else if (type === 'eva_longinus') {
+      return {
+        type, x, y, z,
+        spearLen: 3600 + r() * 1200,
+        rot: r() * TAU,
+        spin: 0.03,
+        notified: false
+      };
+    } else if (type === 'ultraman_m78') {
+      return {
+        type, x, y, z,
+        nebulaRad: 4200 + r() * 1400,
+        rayLen: 8500 + r() * 2500,
+        angle: r() * TAU,
         notified: false
       };
     } else if (type === 'voyager_probe') {
@@ -8347,7 +8390,11 @@ const SpaceEventEngine = {
       ev.notified = true;
       // v140: an event actually seen can seed the next hatch.
       try { if (window.sfBindEvent) window.sfBindEvent(ev.type, travel); } catch (e) {}
-      if (ev.type === 'voyager_probe') Narrator.speak(Narrator.scripts.ev_voyager, { id: 'ev_voyager', priority: 2 });
+      try { if (typeof Codex !== 'undefined' && Codex.checkWonderEncounter) Codex.checkWonderEncounter(ev); } catch (e) {}
+      if (ev.type === 'gundam_relic') Narrator.speak(Narrator.scripts.ev_gundam, { id: 'ev_gundam', priority: 2 });
+      else if (ev.type === 'eva_longinus') Narrator.speak(Narrator.scripts.ev_eva, { id: 'ev_eva', priority: 2 });
+      else if (ev.type === 'ultraman_m78') Narrator.speak(Narrator.scripts.ev_ultraman, { id: 'ev_ultraman', priority: 2 });
+      else if (ev.type === 'voyager_probe') Narrator.speak(Narrator.scripts.ev_voyager, { id: 'ev_voyager', priority: 2 });
       else if (ev.type === 'dimension_foil') Narrator.speak(Narrator.scripts.ev_foil, { id: 'ev_foil', priority: 2 });
       else if (ev.type === 'dyson_ring') Narrator.speak(Narrator.scripts.ev_dyson, { id: 'ev_dyson', priority: 2 });
       else if (ev.type === 'wormhole_sphere') Narrator.speak(Narrator.scripts.ev_wormhole, { id: 'ev_wormhole', priority: 2 });
@@ -8366,7 +8413,10 @@ const SpaceEventEngine = {
       else if (ev.type === 'solar_flare') toast('☀ 日冕耀斑 · CORONAL MASS EJECTION', 4);
       else if (ev.type === 'derelict') toast('📡 远古中继信标 · ANCIENT RELAY BEACON', 4);
       else if (ev.type === 'spatial_anomaly') toast('◎ 时空微裂隙透镜异常 · GRAVITATIONAL ANOMALY', 4);
-      // 7 Epic Easter Egg Toasts
+      // 10 Epic Easter Egg Toasts
+      else if (ev.type === 'gundam_relic') toast('🤖 折翼高达遗迹残骸 · RX-78 WHITE DEVIL RELIC', 6);
+      else if (ev.type === 'eva_longinus') toast('🩸 朗基努斯之枪 · SPEAR OF LONGINUS & A.T. FIELD', 6);
+      else if (ev.type === 'ultraman_m78') toast('✨ M78星云 · 光之巨人十字斯派修姆粒子流', 6);
       else if (ev.type === 'dyson_ring') toast('✨ 戴森环巨构 · DYSON RING MEGASTRUCTURE', 5);
       else if (ev.type === 'wormhole_sphere') toast('🌀 球形虫洞 · INTERSTELLAR WORMHOLE SPHERE', 5);
       else if (ev.type === 'voyager_probe') toast('📡 旅行者号探测器 · VOYAGER INTERSTELLAR PROBE', 5);
@@ -8377,7 +8427,7 @@ const SpaceEventEngine = {
     }
 
     // Frustum Culling on cosmic events
-    const evPad = (ev.type === 'asteroid_field' || ev.type === 'pillars_of_creation' || ev.type === 'dyson_ring') ? (800 * q[3] + 160) : (350 * q[3] + 100);
+    const evPad = (ev.type === 'asteroid_field' || ev.type === 'pillars_of_creation' || ev.type === 'dyson_ring' || ev.type === 'ultraman_m78' || ev.type === 'eva_longinus' || ev.type === 'gundam_relic') ? Math.max(1200 * q[3] + 200, (ev.rayLen ? ev.rayLen * q[3] : 0), (ev.spearLen ? ev.spearLen * q[3] : 0)) : (350 * q[3] + 100);
     if (q[0] + evPad < 0 || q[0] - evPad > W || q[1] + evPad < 0 || q[1] - evPad > H) return;
 
     const evAlpha = clamp((65000 - q[2]) / 35000, 0, 1);
@@ -8670,6 +8720,232 @@ const SpaceEventEngine = {
       });
       glow([ev.x, ev.y, ev.z], ev.sphereRadius * 1.8, [130, 210, 255], 0.45 * evAlpha, 2.4);
 
+    } else if (ev.type === 'gundam_relic') {
+      // GUNDAM RX-78 RELIC: White Devil derelict floating mobile suit with broken V-fin antenna & optics
+      const gL = Math.max(12, ev.relicLen * q[3]);
+      queue.push({
+        type: 4, d: q[2], alpha: evAlpha, fn: () => {
+          const cx = q[0], cy = q[1];
+          ctx.save();
+          ctx.translate(cx, cy);
+          ctx.rotate(ev.rot + t * ev.spin);
+
+          // Torso & chest armor
+          ctx.fillStyle = 'rgba(235, 240, 248, 0.95)';
+          ctx.fillRect(-gL * 0.22, -gL * 0.35, gL * 0.44, gL * 0.70);
+          ctx.fillStyle = 'rgba(30, 64, 175, 0.92)';
+          ctx.fillRect(-gL * 0.20, -gL * 0.25, gL * 0.40, gL * 0.32);
+
+          // Crimson cockpit hatch
+          ctx.fillStyle = 'rgba(220, 38, 38, 0.95)';
+          ctx.fillRect(-gL * 0.08, -gL * 0.06, gL * 0.16, gL * 0.20);
+
+          // Dual yellow intake vents
+          ctx.fillStyle = 'rgba(234, 179, 8, 0.95)';
+          ctx.fillRect(-gL * 0.18, -gL * 0.20, gL * 0.08, gL * 0.14);
+          ctx.fillRect( gL * 0.10, -gL * 0.20, gL * 0.08, gL * 0.14);
+
+          // Shoulder armor
+          ctx.fillStyle = 'rgba(241, 245, 249, 0.95)';
+          ctx.beginPath();
+          ctx.moveTo(-gL * 0.42, -gL * 0.28); ctx.lineTo(-gL * 0.22, -gL * 0.35);
+          ctx.lineTo(-gL * 0.22, -gL * 0.10); ctx.lineTo(-gL * 0.40, -gL * 0.10);
+          ctx.closePath(); ctx.fill();
+
+          // Gundam head unit & iconic V-fin antenna
+          ctx.fillStyle = 'rgba(248, 250, 252, 0.98)';
+          ctx.fillRect(-gL * 0.10, -gL * 0.52, gL * 0.20, gL * 0.18);
+          ctx.fillStyle = 'rgba(220, 38, 38, 0.95)';
+          ctx.fillRect(-gL * 0.04, -gL * 0.37, gL * 0.08, gL * 0.05);
+
+          // V-fin antenna (right side broken from battle)
+          ctx.strokeStyle = 'rgba(250, 204, 21, 0.98)';
+          ctx.lineWidth = Math.max(1.2, gL * 0.035);
+          ctx.beginPath();
+          ctx.moveTo(0, -gL * 0.48); ctx.lineTo(-gL * 0.32, -gL * 0.68);
+          ctx.moveTo(0, -gL * 0.48); ctx.lineTo( gL * 0.18, -gL * 0.58);
+          ctx.stroke();
+          ctx.fillStyle = 'rgba(225, 29, 72, 0.95)';
+          ctx.beginPath(); ctx.arc(0, -gL * 0.48, Math.max(1.5, gL * 0.03), 0, TAU); ctx.fill();
+
+          // Twin emerald-green main optical sensors
+          const eyeBlink = 0.85 + 0.15 * Math.sin(t * 3.5);
+          ctx.fillStyle = `rgba(34, 197, 94, ${(eyeBlink * evAlpha).toFixed(3)})`;
+          ctx.fillRect(-gL * 0.07, -gL * 0.44, gL * 0.05, gL * 0.03);
+          ctx.fillRect( gL * 0.02, -gL * 0.44, gL * 0.05, gL * 0.03);
+
+          // Drifting broken shield fragment
+          const shX = gL * 0.65, shY = gL * 0.42;
+          ctx.save();
+          ctx.translate(shX, shY);
+          ctx.rotate(0.45 + t * 0.04);
+          ctx.fillStyle = 'rgba(220, 38, 38, 0.90)';
+          ctx.fillRect(-gL * 0.15, -gL * 0.30, gL * 0.30, gL * 0.60);
+          ctx.strokeStyle = 'rgba(254, 240, 138, 0.95)';
+          ctx.lineWidth = Math.max(1.0, gL * 0.025);
+          ctx.beginPath();
+          ctx.moveTo(0, -gL * 0.18); ctx.lineTo(0, gL * 0.18);
+          ctx.moveTo(-gL * 0.10, -gL * 0.04); ctx.lineTo(gL * 0.10, -gL * 0.04);
+          ctx.stroke();
+          ctx.restore();
+
+          // Minovsky dispersion particles
+          for (let p = 0; p < 8; p++) {
+            const pAng = p * 0.8 + t * 0.6;
+            const pDist = gL * (0.6 + 0.4 * Math.sin(p * 1.7 + t));
+            const px = Math.cos(pAng) * pDist, py = Math.sin(pAng) * pDist;
+            ctx.fillStyle = (p % 2 === 0) ? 'rgba(56, 189, 248, 0.75)' : 'rgba(250, 204, 21, 0.75)';
+            ctx.beginPath(); ctx.arc(px, py, Math.max(0.8, gL * 0.015), 0, TAU); ctx.fill();
+          }
+
+          ctx.restore();
+        }
+      });
+    } else if (ev.type === 'eva_longinus') {
+      // EVA SPEAR OF LONGINUS & ABSOLUTE TERROR (A.T.) FIELD
+      const spL = Math.max(18, ev.spearLen * q[3]);
+      queue.push({
+        type: 4, d: q[2], alpha: evAlpha, fn: () => {
+          const cx = q[0], cy = q[1];
+          ctx.save();
+          ctx.translate(cx, cy);
+          ctx.rotate(ev.rot + t * ev.spin);
+
+          // 1. LCL Red Sea Cosmic Nebula Cloud
+          const nebR = spL * 0.55;
+          const nGrad = ctx.createRadialGradient(0, 0, nebR * 0.1, 0, 0, nebR);
+          nGrad.addColorStop(0.0, `rgba(225, 29, 72, ${(0.42 * evAlpha).toFixed(3)})`);
+          nGrad.addColorStop(0.4, `rgba(190, 18, 60, ${(0.22 * evAlpha).toFixed(3)})`);
+          nGrad.addColorStop(1.0, 'rgba(88, 28, 135, 0)');
+          ctx.beginPath(); ctx.arc(0, 0, nebR, 0, TAU);
+          ctx.fillStyle = nGrad; ctx.fill();
+
+          // 2. Concentric Octagonal Golden A.T. Field
+          const atPulse = 0.55 + 0.45 * Math.sin(t * 2.8);
+          for (let f = 1; f <= 3; f++) {
+            const fRad = spL * (0.16 + f * 0.11) * (1.0 + atPulse * 0.06);
+            ctx.save();
+            ctx.beginPath();
+            for (let a = 0; a < 8; a++) {
+              const th = a * TAU / 8;
+              const ax = Math.cos(th) * fRad, ay = Math.sin(th) * fRad;
+              if (a === 0) ctx.moveTo(ax, ay); else ctx.lineTo(ax, ay);
+            }
+            ctx.closePath();
+            ctx.strokeStyle = `rgba(251, 191, 36, ${(0.75 * evAlpha * (1.0 - f * 0.22)).toFixed(3)})`;
+            ctx.lineWidth = Math.max(1.0, spL * 0.015);
+            ctx.stroke();
+            ctx.fillStyle = `rgba(245, 158, 11, ${(0.06 * evAlpha).toFixed(3)})`;
+            ctx.fill();
+            ctx.restore();
+          }
+
+          // 3. Spear of Longinus: Crimson Double Helix Spiral Shaft
+          ctx.save();
+          const shaftLen = spL * 0.85;
+          const coils = 6;
+          for (let strand = -1; strand <= 1; strand += 2) {
+            ctx.beginPath();
+            ctx.strokeStyle = (strand === 1) ? 'rgba(244, 63, 94, 0.95)' : 'rgba(225, 29, 72, 0.95)';
+            ctx.lineWidth = Math.max(1.5, spL * 0.022);
+            for (let i = 0; i <= 60; i++) {
+              const f = i / 60;
+              const sx = (f - 0.5) * shaftLen;
+              const sy = Math.sin(f * coils * TAU + strand * Math.PI) * (spL * 0.045 * (1.1 - f * 0.5));
+              if (i === 0) ctx.moveTo(sx, sy); else ctx.lineTo(sx, sy);
+            }
+            ctx.stroke();
+          }
+
+          // Fork Tines
+          const tipX = shaftLen * 0.5;
+          ctx.strokeStyle = 'rgba(255, 228, 230, 0.98)';
+          ctx.lineWidth = Math.max(1.8, spL * 0.025);
+          ctx.beginPath();
+          ctx.moveTo(tipX, -spL * 0.035); ctx.lineTo(tipX + spL * 0.25, -spL * 0.015);
+          ctx.moveTo(tipX,  spL * 0.035); ctx.lineTo(tipX + spL * 0.25,  spL * 0.015);
+          ctx.stroke();
+
+          ctx.beginPath(); ctx.arc(tipX + spL * 0.12, 0, Math.max(2, spL * 0.03), 0, TAU);
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.98)'; ctx.fill();
+
+          ctx.restore();
+          ctx.restore();
+        }
+      });
+    } else if (ev.type === 'ultraman_m78') {
+      // ULTRAMAN M78 NEBULA & CRUCIFORM SPACIUM BEAM
+      const mR = Math.max(22, ev.nebulaRad * q[3]);
+      queue.push({
+        type: 4, d: q[2], alpha: evAlpha, fn: () => {
+          const cx = q[0], cy = q[1];
+          ctx.save();
+          ctx.translate(cx, cy);
+
+          // 1. M78 Nebula Ionization Cloud
+          const nGrad = ctx.createRadialGradient(0, 0, mR * 0.08, 0, 0, mR);
+          nGrad.addColorStop(0.00, `rgba(255, 255, 255, ${(0.85 * evAlpha).toFixed(3)})`);
+          nGrad.addColorStop(0.25, `rgba(6, 182, 212, ${(0.45 * evAlpha).toFixed(3)})`);
+          nGrad.addColorStop(0.60, `rgba(59, 130, 246, ${(0.22 * evAlpha).toFixed(3)})`);
+          nGrad.addColorStop(1.00, 'rgba(15, 23, 42, 0)');
+          ctx.beginPath(); ctx.arc(0, 0, mR, 0, TAU);
+          ctx.fillStyle = nGrad; ctx.fill();
+
+          // 2. Streamlined Giant of Light Silhouette
+          const gH = mR * 0.48;
+          ctx.save();
+          ctx.fillStyle = 'rgba(241, 245, 249, 0.96)';
+          ctx.beginPath();
+          ctx.ellipse(0, 0, gH * 0.22, gH * 0.50, 0, 0, TAU);
+          ctx.fill();
+          ctx.fillStyle = 'rgba(225, 29, 72, 0.90)';
+          ctx.beginPath();
+          ctx.moveTo(-gH * 0.18, -gH * 0.20);
+          ctx.lineTo( gH * 0.18, -gH * 0.20);
+          ctx.lineTo(0, gH * 0.28);
+          ctx.closePath();
+          ctx.fill();
+
+          // Pulsing Cyan Color Timer
+          const timerPulse = 0.65 + 0.35 * Math.sin(t * 4.2);
+          ctx.fillStyle = `rgba(34, 211, 238, ${(timerPulse * evAlpha).toFixed(3)})`;
+          ctx.beginPath(); ctx.arc(0, -gH * 0.05, Math.max(1.8, gH * 0.05), 0, TAU); ctx.fill();
+
+          // 3. Crossed Arm "+" Stance & Titanic Spacium High-Energy Particle Beam
+          const beamLen = Math.min(W * 1.4, mR * 2.8);
+          const beamW = Math.max(2.5, mR * 0.04);
+          ctx.save();
+
+          // Horizontal Spacium Ray
+          const hGrad = ctx.createLinearGradient(-beamLen * 0.4, 0, beamLen * 0.8, 0);
+          hGrad.addColorStop(0, 'rgba(56, 189, 248, 0.2)');
+          hGrad.addColorStop(0.3, 'rgba(255, 255, 255, 0.98)');
+          hGrad.addColorStop(0.6, 'rgba(56, 189, 248, 0.85)');
+          hGrad.addColorStop(1, 'rgba(56, 189, 248, 0)');
+          ctx.fillStyle = hGrad;
+          ctx.fillRect(-beamLen * 0.4, -beamW * 0.5, beamLen * 1.2, beamW);
+
+          // Vertical Arm Ray Core
+          const vGrad = ctx.createLinearGradient(0, -beamLen * 0.3, 0, beamLen * 0.3);
+          vGrad.addColorStop(0, 'rgba(56, 189, 248, 0)');
+          vGrad.addColorStop(0.5, 'rgba(255, 255, 255, 0.98)');
+          vGrad.addColorStop(1, 'rgba(56, 189, 248, 0)');
+          ctx.fillStyle = vGrad;
+          ctx.fillRect(-beamW * 0.5, -beamLen * 0.3, beamW, beamLen * 0.6);
+
+          // Ionized rainbow sparkle crystals surging down the beam
+          for (let sp = 0; sp < 12; sp++) {
+            const spDist = ((t * 2.5 + sp * 0.2) % 1.0) * beamLen * 0.9;
+            const spY = (Math.sin(sp * 3.1 + t * 4) - 0.5) * beamW * 1.8;
+            ctx.fillStyle = (sp % 3 === 0) ? '#ffffff' : (sp % 3 === 1 ? '#38bdf8' : '#f472b6');
+            ctx.beginPath(); ctx.arc(spDist, spY, Math.max(0.8, mR * 0.015), 0, TAU); ctx.fill();
+          }
+
+          ctx.restore();
+          ctx.restore();
+          ctx.restore();
+        }
+      });
     } else if (ev.type === 'voyager_probe') {
       // 3) VOYAGER INTERSTELLAR PROBE: Retro probe with parabolic dish & glowing Golden Record
       const dR = Math.max(4, ev.dishRad * q[3]);
@@ -8982,6 +9258,7 @@ const SpaceEventEngine = {
 };
 
 function chunk(k){
+ if(typeof window!=='undefined'&&!window.chunk) window.chunk=chunk;
  if(chunks.has(k))return chunks.get(k);
  const r=rng((hash(k,71)*4294967295)>>>0),z0=k*CHUNK,masses=[],shards=[],plates=[],galaxies=[],ships=[],gates=[],events=[],battles=[];let hasEncounter=false;
  const zc=z0+CHUNK*.5;
@@ -8989,25 +9266,25 @@ function chunk(k){
  // 事件视界 departure lands on, and it is the ABYSS plate. 19 + this same
  // special put two horizons seven chunks apart; 37 puts the nearest one
  // twenty-five chunks away.
- const horizon = (k !== 0 && k % 48 === 0) || (k === 12);
+ const horizon = (k > 0 && k % 120 === 0);
 
  if(horizon){
-  // Gargantua Supermassive Black Hole (Towering 36,890-unit accretion disk)
+  // Gargantua Supermassive Black Hole (Towering 12,500-unit event horizon & titanic accretion disk)
   const z = z0 + CHUNK * .5;
-  const sx = baseRouteX(z) + 7200;
-  const y = courseY(z) + 240;
+  const sx = baseRouteX(z) + 12800;
+  const y = courseY(z) + 320;
   masses.push({
-   x: sx, y, z, kind: 4, r: 3500, axis: [0, 1, 0], phase: 0,
+   x: sx, y, z, kind: 4, r: 12500, axis: [0, 1, 0], phase: 0,
    captured: false, passed: false,
    isBlackHole: true
   });
 
   // Miller's Planet (Interstellar ocean world) in the lower abyss corridor
-  const mZ = z - 1800;
-  const mX = baseRouteX(mZ) - 620;
-  const mY = courseY(mZ) - 480;
+  const mZ = z - 2800;
+  const mX = baseRouteX(mZ) - 950;
+  const mY = courseY(mZ) - 620;
   masses.push({
-   x: mX, y: mY, z: mZ, kind: 1, r: 280,
+   x: mX, y: mY, z: mZ, kind: 1, r: 380,
    w: worldFor(0), // Pure ocean world
    axis: [0.1, 0.9, 0.1], phase: 3.65,
    isMiller: true,
@@ -9015,16 +9292,15 @@ function chunk(k){
    flybyDist: 930
   });
  } else {
-  // Solitary Grand Planetary Encounter spaced every 10 chunks (~8.6 minutes of pure, deep space cruise)
-  // Gargantua isolated with 6 full chunks (~5+ min) of pure void anticipation
-  const nearHole = Math.abs(k - 12) < 6 || (k >= 42 && (k % 48 < 6 || k % 48 > 42));
-  hasEncounter = (!nearHole) && (k % 10 === 5);
+  // Planetary encounters spaced every 2-3 chunks for exciting deep space variety
+  const nearHole = (k > 0 && (k % 120 < 8 || k % 120 > 112));
+  hasEncounter = (!nearHole) && (k % 5 === 2 || k % 5 === 4);
 
   let encIndex = 0;
   if(hasEncounter){
-   for(let cand = 5; cand < k; cand += 10){
-    const nh = Math.abs(cand - 12) < 6 || (cand >= 42 && (cand % 48 < 6 || cand % 48 > 42));
-    if(!nh) encIndex++;
+   for(let cand = 1; cand < k; cand++){
+    const nh = (cand > 0 && (cand % 120 < 8 || cand % 120 > 112));
+    if(!nh && (cand % 5 === 2 || cand % 5 === 4)) encIndex++;
    }
   }
 
@@ -9050,30 +9326,24 @@ function chunk(k){
    let x = baseRouteX(z), y = courseY(z), poseType = 'skim', reach = pRad * 1.35;
 
    if(archIndex === 0){
-    // TRUE NADIR ABYSS: Planet center strictly on the plumb line BENEATH the fleet!
-    // Fleet skims over the north polar / equatorial surface from above!
     poseType = 'nadir';
     const alt = pRad * (0.24 + 0.08 * r());
     x = baseRouteX(z);
     y = courseY(z) - (pRad + alt);
     reach = pRad + alt;
    } else if(archIndex === 1){
-    // TRUE ZENITH CANOPY: Planet center strictly on the plumb line in the HEAVENS ABOVE!
-    // Fleet skims underneath the titanic world and ring canopy looking straight up!
     poseType = 'zenith';
     const alt = pRad * (0.26 + 0.08 * r());
     x = baseRouteX(z);
     y = courseY(z) + (pRad + alt);
     reach = pRad + alt;
    } else if(archIndex === 2){
-    // TRUE FLANK LOW-ORBIT SKIM: Intimate close orbital skim on lateral tangent
     poseType = 'skim';
     const alt = pRad * (0.18 + 0.08 * r());
     reach = pRad + alt;
     x = baseRouteX(z) + side * reach;
     y = courseY(z);
    } else {
-    // TRUE FLANK PARALLAX TITAN: Scenic companion world 5000+ units out on lateral flank
     poseType = 'flank';
     reach = pRad * 1.55 + 5200;
     x = baseRouteX(z) + side * reach;
@@ -9092,8 +9362,41 @@ function chunk(k){
     seed: wD.seed || (encIndex * 7919 + 101),
     spinSpeed: 0.02 + r() * 0.03,
     notifiedSkim: false,
-    isEncounter: true
+    isEncounter: true,
+    hasSatellites: (archIndex === 2 || archIndex === 3 || (wD.manif && ['cyber_metropolis', 'dyson_swarm', 'monolith_artifact', 'earth_egg', 'protoss_crystal'].includes(wD.manif.id)) || (hash(k, 883) < 0.55))
    });
+  }
+
+  // Distant Background Scenic Worlds (远方星球分布密度与生成数量增多)
+  if(k > 0){
+   const numDistant = (r() < 0.65) ? 1 : 2;
+   for(let di = 0; di < numDistant; di++){
+    const dz = z0 + CHUNK * (0.15 + (di + r()) * 0.40);
+    const dSide = (r() < 0.5) ? -1 : 1;
+    const dDist = 6500 + r() * 21000;
+    const dx = baseRouteX(dz) + dSide * dDist;
+    const dy = courseY(dz) + (r() - 0.5) * 8500;
+    const dRad = 450 + r() * 1600;
+    const dIndex = (k * 7 + di * 31) >>> 0;
+    const dWorld = worldFor(dIndex);
+    const dKind = dWorld.hasRings ? 8 : (dWorld.pSize ? dWorld.pSize.kind : 1);
+
+    masses.push({
+     x: dx, y: dy, z: dz, kind: dKind, r: dRad,
+     w: dWorld,
+     axis: [r() - 0.5, r() - 0.5, r() - 0.5], phase: r() * TAU,
+     orb: null,
+     flybyDist: dDist,
+     poseType: 'flank',
+     reach: dDist,
+     encIndex: dIndex,
+     seed: dWorld.seed || (dIndex * 7919 + 203),
+     spinSpeed: 0.015 + r() * 0.025,
+     notifiedSkim: false,
+     isDistantWorld: true,
+     hasSatellites: (r() < 0.45)
+    });
+   }
   }
  }
  // A capital ship every fifth chunk: the scale ladder had a gap between a
@@ -9421,6 +9724,112 @@ function drawRinged(m, q, p, t, rad, tint) {
 /* ============================================================================
  * MASTER PLANET SURFACE RENDERER (Continuous Multi-Tier LOD)
  * ============================================================================ */
+function drawOrbitalSatellites(ctx, cx, cy, rad, m, t, tint, alpha) {
+  if (rad < 6.0 || alpha <= 0.01) return;
+  const pSeed = (m.seed !== undefined ? m.seed : (m.phase * 4096) | 0);
+  const numSats = 3 + (pSeed % 3);
+  const orbitR1 = rad * 1.48;
+  const orbitR2 = rad * 1.88;
+  const tilt1 = 0.28 + ((pSeed % 7) / 7) * 0.15;
+  const tilt2 = -0.32 - ((pSeed % 5) / 5) * 0.12;
+  const roll = (pSeed % 11) * 0.35;
+
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate(roll);
+
+  // 1. Orbital tracks
+  ctx.save();
+  ctx.scale(1.0, Math.abs(tilt1));
+  ctx.strokeStyle = `rgba(56, 189, 248, ${(0.22 * alpha).toFixed(3)})`;
+  ctx.lineWidth = 0.75;
+  ctx.setLineDash([4, 6]);
+  ctx.beginPath();
+  ctx.arc(0, 0, orbitR1, 0, TAU);
+  ctx.stroke();
+  ctx.restore();
+
+  ctx.save();
+  ctx.scale(1.0, Math.abs(tilt2));
+  ctx.strokeStyle = `rgba(147, 197, 253, ${(0.16 * alpha).toFixed(3)})`;
+  ctx.lineWidth = 0.65;
+  ctx.setLineDash([3, 8]);
+  ctx.beginPath();
+  ctx.arc(0, 0, orbitR2, 0, TAU);
+  ctx.stroke();
+  ctx.restore();
+
+  // 2. Satellites and telemetry links
+  const satPositions = [];
+  for (let i = 0; i < numSats; i++) {
+    const isRing2 = (i % 2 === 1);
+    const oR = isRing2 ? orbitR2 : orbitR1;
+    const oTilt = isRing2 ? tilt2 : tilt1;
+    const speed = (0.25 + (i * 0.08)) * (isRing2 ? -1 : 1);
+    const th = t * speed + (i * TAU / numSats) + (pSeed % 17);
+    const ox = Math.cos(th) * oR;
+    const oy = Math.sin(th) * oR * oTilt;
+    const oz = Math.sin(th);
+
+    if (oz < 0 && Math.hypot(ox, oy / Math.max(0.1, Math.abs(oTilt))) < rad * 0.95) {
+      continue;
+    }
+    satPositions.push({ ox, oy, oz, i, isStation: (i === 0) });
+  }
+
+  if (satPositions.length >= 2) {
+    ctx.strokeStyle = `rgba(56, 189, 248, ${(0.18 * alpha).toFixed(3)})`;
+    ctx.lineWidth = 0.6;
+    ctx.setLineDash([2, 5]);
+    ctx.beginPath();
+    for (let j = 0; j < satPositions.length; j++) {
+      const p1 = satPositions[j];
+      const p2 = satPositions[(j + 1) % satPositions.length];
+      ctx.moveTo(p1.ox, p1.oy);
+      ctx.lineTo(p2.ox, p2.oy);
+    }
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  for (let k = 0; k < satPositions.length; k++) {
+    const s = satPositions[k];
+    const sSize = Math.max(1.8, Math.min(6.5, rad * 0.038));
+    ctx.save();
+    ctx.translate(s.ox, s.oy);
+
+    if (s.isStation) {
+      const stR = sSize * 1.5;
+      ctx.strokeStyle = `rgba(224, 242, 254, ${(0.85 * alpha).toFixed(3)})`;
+      ctx.lineWidth = 0.8;
+      ctx.beginPath(); ctx.arc(0, 0, stR, 0, TAU); ctx.stroke();
+      ctx.fillStyle = `rgba(255, 255, 255, ${(0.95 * alpha).toFixed(3)})`;
+      ctx.beginPath(); ctx.arc(0, 0, stR * 0.35, 0, TAU); ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(-stR, 0); ctx.lineTo(stR, 0);
+      ctx.moveTo(0, -stR); ctx.lineTo(0, stR);
+      ctx.stroke();
+    } else {
+      ctx.fillStyle = `rgba(241, 245, 249, ${(0.92 * alpha).toFixed(3)})`;
+      ctx.fillRect(-sSize * 0.4, -sSize * 0.4, sSize * 0.8, sSize * 0.8);
+      ctx.fillStyle = `rgba(56, 189, 248, ${(0.88 * alpha).toFixed(3)})`;
+      ctx.fillRect(-sSize * 1.4, -sSize * 0.25, sSize * 0.8, sSize * 0.5);
+      ctx.fillRect( sSize * 0.6, -sSize * 0.25, sSize * 0.8, sSize * 0.5);
+    }
+
+    const blink = (Math.sin(t * 6.0 + s.i * 2.0) > 0.25);
+    ctx.fillStyle = blink ? 'rgba(255, 50, 80, 0.95)' : 'rgba(56, 189, 248, 0.95)';
+    ctx.beginPath();
+    ctx.arc(0, 0, Math.max(1.0, sSize * 0.25), 0, TAU);
+    ctx.fill();
+
+    ctx.restore();
+  }
+
+  ctx.restore();
+}
+if(typeof window!=='undefined'){window.drawOrbitalSatellites=drawOrbitalSatellites;}
+
 function drawWorld(m, q, p, t, rad, tint) {
   if (rad > 20 && typeof Codex !== 'undefined') Codex.checkCelestialEncounter(m);
   const cx = q[0], cy = q[1];
@@ -9539,6 +9948,9 @@ function drawWorld(m, q, p, t, rad, tint) {
           if (blendAlpha3D >= 0.99) {
             ctx.imageSmoothingEnabled = true;
             ctx.drawImage(offCanvas, cx - drawD * 0.5, cy - drawD * 0.5, drawD, drawD);
+            if (m.hasSatellites || (m.w && m.w.manif && ['cyber_metropolis','dyson_swarm','monolith_artifact','earth_egg','protoss_crystal'].includes(m.w.manif.id)) || ((m.seed || 1) % 3 === 0)) {
+              drawOrbitalSatellites(ctx, cx, cy, rad, m, t, tint, massVis);
+            }
             return;
           } else {
             blended3DCanvas = { canvas: offCanvas, drawD, alpha: blendAlpha3D };
@@ -9988,6 +10400,9 @@ function drawWorld(m, q, p, t, rad, tint) {
         ctx.drawImage(blended3DCanvas.canvas, cx - blended3DCanvas.drawD * 0.5, cy - blended3DCanvas.drawD * 0.5, blended3DCanvas.drawD, blended3DCanvas.drawD);
         ctx.restore();
       }
+      if (m.hasSatellites || (m.w && m.w.manif && ['cyber_metropolis','dyson_swarm','monolith_artifact','earth_egg','protoss_crystal'].includes(m.w.manif.id)) || ((m.seed || 1) % 3 === 0)) {
+        drawOrbitalSatellites(ctx, cx, cy, rad, m, t, tint, massVis);
+      }
     }
   });
 }
@@ -10332,24 +10747,24 @@ function drawHole(m, q, p, t, rad){
     queue.push({
       type: 4, d: q[2] + 50, alpha: massVis, fn: () => {
         // Relativistic Golden Lensing Core
-        const coreFlareR = Math.max(3.5, rad * 1.25);
-        const gL = ctx.createRadialGradient(cx, cy, 0, cx, cy, coreFlareR * 3.8);
+        const coreFlareR = Math.max(8.0, rad * 1.4);
+        const gL = ctx.createRadialGradient(cx, cy, 0, cx, cy, coreFlareR * 4.5);
         gL.addColorStop(0.00, 'rgba(255, 255, 240, 0.98)');
-        gL.addColorStop(0.18, 'rgba(255, 215, 120, 0.85)');
-        gL.addColorStop(0.45, 'rgba(255, 130, 40, 0.45)');
-        gL.addColorStop(0.75, 'rgba(180, 50, 15, 0.15)');
+        gL.addColorStop(0.18, 'rgba(255, 215, 120, 0.88)');
+        gL.addColorStop(0.45, 'rgba(255, 130, 40, 0.50)');
+        gL.addColorStop(0.75, 'rgba(180, 50, 15, 0.20)');
         gL.addColorStop(1.00, 'rgba(40, 5, 0, 0)');
-        ctx.beginPath(); ctx.arc(cx, cy, coreFlareR * 3.8, 0, TAU);
+        ctx.beginPath(); ctx.arc(cx, cy, coreFlareR * 4.5, 0, TAU);
         ctx.fillStyle = gL; ctx.fill();
 
         // Einstein Ring Curved Lensing Arc Wings
-        const arcSpan = Math.max(14.0, rad * 4.6);
+        const arcSpan = Math.max(28.0, rad * 5.8);
         ctx.save();
         ctx.translate(cx, cy);
         ctx.rotate(-0.32);
         ctx.scale(1.0, 0.28);
-        ctx.strokeStyle = 'rgba(255, 225, 140, 0.72)';
-        ctx.lineWidth = Math.max(1.5, rad * 0.15);
+        ctx.strokeStyle = 'rgba(255, 225, 140, 0.75)';
+        ctx.lineWidth = Math.max(2.0, rad * 0.22);
         ctx.beginPath(); ctx.arc(0, 0, arcSpan, 0, TAU); ctx.stroke();
         ctx.restore();
       }
@@ -10655,7 +11070,7 @@ function drawMass(m, p, t){
  // =========================================================================
  if(rad < 22){
   const cx = q[0], cy = q[1];
-  const starDistFade = clamp((70000 - q[2]) / 25000, 0, 1);
+  const starDistFade = clamp((120000 - q[2]) / 50000, 0, 1);
   if(starDistFade > 0.01){
    queue.push({
     type: 4, d: q[2] + 20, alpha: massVis * starDistFade, fn: () => {
@@ -10973,11 +11388,11 @@ function bodies(){
  const popK=1-Math.exp(-2.0*popDt);
  const popMax=.012;
  const k0=Math.floor(camera.eye[2]/CHUNK);
- const backRadius = 8;
- const fwdRadius = lowQuality ? 14 : 24;
+ const backRadius = 12;
+ const fwdRadius = lowQuality ? 28 : 52;
  const active = [];
  for(let k=k0-backRadius;k<=k0+fwdRadius;k++)active.push(chunk(k));
- for(const [k] of chunks)if(k < k0 - 12 || k > k0 + fwdRadius + 6)chunks.delete(k);
+ for(const [k] of chunks)if(k < k0 - 18 || k > k0 + fwdRadius + 16)chunks.delete(k);
  for(const c of active){
   // Frustum-culled distance fade for galaxies & clusters
   for(const g of c.galaxies){
@@ -11021,18 +11436,16 @@ function bodies(){
     continue;
    }
    const rad=m.r*pj[3];
-   const cullR=(m.kind>=5&&m.kind<=7)?(rad*12+100):(m.kind===4?Math.max(rad*8,500):(m.w&&m.w.hasRings||m.kind===8?rad*4+80:rad*2.8+80));
-   /* v137-pop-fade: the 70k / offscreen / near-plane `continue`s become three
-    * continuous targets. kind 4 keeps drawHole's 85k beacon range. */
-   const farDist=(m.kind===4)?85000:70000;
-   const distFade=clamp((farDist-pj[2])/45000);
+   const cullR=(m.kind>=5&&m.kind<=7)?(rad*12+100):(m.kind===4?Math.max(rad*9,1200):(m.w&&m.w.hasRings||m.kind===8?rad*4.5+120:rad*3.2+100));
+   const farDist=(m.kind===4)?160000:120000;
+   const distFade=clamp((farDist-pj[2])/50000);
    const vw=Math.min(pj[0]+cullR,W)-Math.max(pj[0]-cullR,0);
    const vh=Math.min(pj[1]+cullR,H)-Math.max(pj[1]-cullR,0);
    const edgeFade=clamp(Math.min(vw,vh)/Math.max(180,cullR*.45));
    const bodyAng=Math.atan2(Math.hypot(pj[0]-camera.cx,pj[1]-camera.cy),camera.focal);
    const cornerAng=Math.atan2(Math.hypot(W*.5,H*.5),camera.focal);
    const angRad=Math.atan2(rad,Math.max(1,pj[2]));
-   const angFade=clamp((cornerAng+.12+angRad-bodyAng)/.12);
+   const angFade=clamp((cornerAng+.15+angRad-bodyAng)/.15);
    const target=Math.min(distFade,edgeFade,angFade);
    if(m.fade===undefined)m.fade=0;
    m.fade+=clamp((target-m.fade)*popK,-popMax,popMax);
@@ -11085,15 +11498,16 @@ function updateGravity(){
  activeMasses.length = 0;
  stepOrbits();
  const k0 = Math.floor(travel / CHUNK);
- // Deep volumetric perception: scan 4 chunks behind and 24 chunks ahead (up to ~76,800 units)
- for(let k = k0 - 4; k <= k0 + 24; k++){
+ // Deep volumetric perception: scan 12 chunks behind and 52 chunks ahead (up to ~168,000 units)
+ for(let k = k0 - 12; k <= k0 + 52; k++){
   const c = chunk(k);
   if(!c || !c.masses) continue;
   for(const m of c.masses){
    const dz = m.z - travel;
-   if(m.kind === 4){ if(dz >= -6000 && dz <= 78000){ activeMasses.push(m); window.__sfBH = m; } } else {
-    // All planetary encounters and distant background giants kept in activeMasses for continuous tracking
-    if(dz >= -6000 && dz <= 78000) activeMasses.push(m);
+   if(m.kind === 4){
+    if(dz >= -45000 && dz <= 168000){ activeMasses.push(m); window.__sfBH = m; }
+   } else {
+    if(dz >= -45000 && dz <= 140000) activeMasses.push(m);
    }
   }
  }
@@ -11672,26 +12086,8 @@ const StarfieldSonar = {
   },
 
   updateSituationCapsule(target) {
-    let capsule = document.getElementById('sf-sonar-capsule');
-    if (!capsule) {
-      capsule = document.createElement('div');
-      capsule.id = 'sf-sonar-capsule';
-      capsule.className = 'sf-sonar-capsule';
-      document.body.appendChild(capsule);
-      capsule.addEventListener('click', (e) => {
-        e.stopPropagation();
-        this.triggerScan();
-      });
-      capsule.addEventListener('pointerdown', (e) => e.stopPropagation());
-    }
-    const flightActive = (typeof started !== 'undefined' && started) || (window.Starfield && window.Starfield.getState && window.Starfield.getState().started);
-    if (target && flightActive && (!window.currentMode || window.currentMode === 'cruise')) {
-      const name = target.name || (target.w && target.w.name) || '天体信号';
-      capsule.innerHTML = `✦ 态势锁定 · ${name} [轻触/按F测绘] ✦`;
-      capsule.classList.add('show');
-    } else {
-      capsule.classList.remove('show');
-    }
+    const capsule = document.getElementById('sf-sonar-capsule');
+    if (capsule) capsule.remove();
   },
 
   getTargetScreenPos() {
@@ -13363,14 +13759,15 @@ function drawParticles(){
 
 /* The star field: a power law of magnitudes, batched into a handful of fills.
  * Real migratory fleet steer by these; here they are the whole subject. */
-const stars=Array.from({length:coarse?6500:16000},(_,i)=>{
- const a=hash(i,110)*TAU,y=hash(i,111)*2-1,r=Math.sqrt(Math.max(0,1-y*y)),mag=Math.pow(hash(i,114),2.6);
- return {x:Math.cos(a)*r,y,z:Math.sin(a)*r,size:.34+mag*2.4,mag,phase:hash(i,113)*TAU};
+const stars=Array.from({length:coarse?24000:48000},(_,i)=>{
+ const a=hash(i,110)*TAU,y=hash(i,111)*2-1,r=Math.sqrt(Math.max(0,1-y*y)),mag=Math.pow(hash(i,114),2.5);
+ return {x:Math.cos(a)*r,y,z:Math.sin(a)*r,size:.36+mag*2.6,mag,phase:hash(i,113)*TAU};
 });
-const brightStars=Array.from({length:coarse?12:22},(_,i)=>{
+const brightStars=Array.from({length:coarse?48:96},(_,i)=>{
  const a=hash(i,310)*TAU,y=hash(i,311)*2-1,r=Math.sqrt(Math.max(0,1-y*y));
- return {x:Math.cos(a)*r,y,z:Math.sin(a)*r,size:1.9+hash(i,312)*2.4,phase:hash(i,313)*TAU,warm:hash(i,314)>.55};
+ return {x:Math.cos(a)*r,y,z:Math.sin(a)*r,size:2.0+hash(i,312)*2.6,phase:hash(i,313)*TAU,warm:hash(i,314)>.55};
 });
+if(typeof window!=='undefined'){window.stars=stars;window.brightStars=brightStars;}
 /* The band the corridor runs inside, fixed in the world. Its plane is the
  * VERTICAL plane containing the direction of travel, so its great circle passes
  * through ahead, overhead and underfoot at once - a director that spends most of
@@ -13388,10 +13785,11 @@ const BAND_BASIS=(()=>{
 })();
 /* a is fixed per star, so its sine and cosine are precomputed; only the basis
  * changes per frame. */
-const bandStars=Array.from({length:coarse?1800:3200},(_,i)=>{
+const bandStars=Array.from({length:coarse?4800:8800},(_,i)=>{
  const a=hash(i,410)*TAU,g=(hash(i,411)+hash(i,412)+hash(i,413)-1.5)*.050,mag=Math.pow(hash(i,414),2.4);
- return {ca:Math.cos(a),sa:Math.sin(a),g,size:.32+mag*1.0,mag,phase:hash(i,415)*TAU};
+ return {ca:Math.cos(a),sa:Math.sin(a),g,size:.32+mag*1.1,mag,phase:hash(i,415)*TAU};
 });
+if(typeof window!=='undefined'){window.bandStars=bandStars;}
 /* Ink washes for the deep field. Each is rendered once into an offscreen
  * canvas and then only scaled; the tint is quantised so the cache stays tiny
  * while the palette blends continuously. */
@@ -13835,9 +14233,9 @@ function updateLens(){
    // Sustains majestic Einstein ring aura even at 10,000 - 75,000 units away.
    // =========================================================================
    const rGeom = m.r * q[3];
-   const rRel = 0.58 * Math.sqrt(m.r * focal * q[3]);
-   const rE = clamp(Math.max(rGeom * 1.35, rRel), 14, screenMin * 0.45);
-   const rmax = rE * 3.8;
+   const rRel = 0.65 * Math.sqrt(m.r * focal * q[3]);
+   const rE = clamp(Math.max(rGeom * 1.45, rRel), 18, screenMin * 0.88);
+   const rmax = rE * 4.8;
 
    if(cx < -rmax || cx > W + rmax || cy < -rmax || cy > H + rmax) continue;
 
@@ -14093,8 +14491,8 @@ function drawSky(){
  for(let bi=0;bi<4;bi++) buckets[bi].length=0;
  // star COUNT per region: a dim sky with all its stars is still the same sky.
  const _pm=(typeof p!=='undefined')?p:{core:.2,shimmer:.2,void:.2};
- const _rc=clamp(.55+(_pm.core||0)*.95+(_pm.shimmer||0)*.25-(_pm.void||0)*.5,.12,1.4);
- const limit=Math.min(stars.length, Math.floor((lowQuality?stars.length*.26:stars.length)*_rc));
+ const _rc=clamp(.85+(_pm.core||0)*.95+(_pm.shimmer||0)*.35-(_pm.void||0)*.25,.45,1.6);
+ const limit=Math.min(stars.length, Math.floor((lowQuality?stars.length*.45:stars.length)*_rc));
  const hasLens=lensSources.length>0;
  for(let i=0;i<limit;i++){
   const st=stars[i];if(!st)continue;
@@ -16031,6 +16429,9 @@ const Narrator = {
   bh_sling: [{"id": "bh_sling", "text": "成功脱离！刚才那一瞬间的引力弹射，回头去给爱因斯坦写感谢信吧。"}, {"id": "bh_sling_alt1", "text": "弹弓加速完成！卡冈图雅的引力不仅没有撕碎我们，还成了我们的喷射引擎，重返深空！"}, {"id": "bh_sling_alt2", "text": "引力枷锁被挣脱了！超大质量黑洞被我们抛在身后，航向锁定深空走廊！"}, {"id": "bh_sling_alt3", "text": "速度暴增！我们借用了巨兽的自转角动量，像一颗脱弦的利箭射向无垠星海！"}, {"id": "bh_sling_alt4", "text": "挣脱视界！时间流速重新对齐，我们活着从黑洞的嘴边擦过去了！"}, {"id": "bh_sling_alt5", "text": "弹弓喷射完毕。卡冈图雅正在后视镜里渐渐缩小，这是一次载入教科书的变轨。"}, {"id": "bh_sling_alt6", "text": "引力红移解除。机体结构应力平复，我们从虚无的边缘偷回了一条命。"}, {"id": "bh_sling_alt7", "text": "航速突破峰值。重返浩瀚深空，下一次，可别再离这种深渊这么近了。"}],
   skirmish: [{"id": "skirmish", "text": "雷达捕捉到前方交火阵列！两支不知名的深空舰队正在对射，纸鹤机动规避，掠过战线。"}, {"id": "skirmish_alt1", "text": "主力舰对决交火区。纸白激光束与防空爆花，别管是谁在打仗，我们只是过客，穿越交火区。"}, {"id": "skirmish_alt2", "text": "深空遭遇战。战争在这片星区已经持续了几个世纪，保持静默，从炮火与残骸的间隙穿过去。"}, {"id": "skirmish_alt3", "text": "侦测到高能炮火互射。两侧的主力舰正在倾泻火力，注意规避流弹，我们没有装甲护盾。"}, {"id": "skirmish_alt4", "text": "穿越交战航道。那些炽白的光束在真空中无声绽放，残骸横陈，这就是宇宙的丛林法则。"}, {"id": "skirmish_alt5", "text": "前方交火烈度上升。十多艘重型舰体的对攻战，保持纸鹤的紧凑阵型，贴着航道底线滑过去。"}, {"id": "skirmish_alt6", "text": "偶遇一场未完的战役。光矛撕裂了星云，不过对我们这种纸质目标，他们大概连雷达锁定都懒得做。"}, {"id": "skirmish_alt7", "text": "战火在翼尖呼啸。防空爆点像纸花一样炸开，安全脱离交战区，继续巡航。"}],
   earth_egg: [{"id": "earth_egg", "text": "等等……扫描到熟悉的蓝色陆架，夜晚温暖的灯火……那是代号‘地球’的母星？太阳系早就不复存在了，这只是一颗倒影……但真美。"}, {"id": "earth_egg_alt1", "text": "蓝白相间的行星。看那两片陆地和温暖的城市灯火，折纸机群也曾拥有过这样的故乡吗？"}, {"id": "earth_egg_alt2", "text": "地球坐标确认。一万六千光年外的孤岛，在冰冷的深空里，只有那颗蓝星始终温柔。"}, {"id": "earth_egg_alt3", "text": "发现文明的火种星球。大气层里有一条完整的台风云系，那是古老生命繁衍生息的摇篮。"}, {"id": "earth_egg_alt4", "text": "晨昏线上亮起了万家灯火。哪怕知道这只是星海中偶然的镜像，也让人忍不住多看两眼。"}, {"id": "earth_egg_alt5", "text": "掠过蔚蓝母星。在所有的天体里，只有这一颗是可以用‘美丽’而不是‘恐怖’来形容的。"}],
+  ev_gundam: [{"id": "ev_gundam", "text": "雷达捕获到漂浮的白色机动装甲残骸……断裂的V字天线依然指向星海深处。那是旧时代的白色恶魔，向传奇机体致敬。"}, {"id": "ev_gundam_alt1", "text": "星河边缘的折翼高达机体……断裂的装甲泛着极细微的金属磷光，这是跨越维度的浪漫。"}],
+  ev_eva: [{"id": "ev_eva", "text": "贯穿虚空的双螺旋猩红巨枪！伴随着翻涌的血色星云与金色八角绝对领域，那是隔绝一切喧嚣的奇迹。"}, {"id": "ev_eva_alt1", "text": "朗基努斯之枪与绝对领域！金色多边形微格在真空中闪烁，神圣而不可侵犯。"}],
+  ev_ultraman: [{"id": "ev_ultraman", "text": "来自三百万光年外的超现实光之星云！流线型神圣巨人剪影，十字斯派修姆高能粒子流刺破了黑暗！"}, {"id": "ev_ultraman_alt1", "text": "M78星云的光之巨人！群星间奔流不息的斯派修姆高能光线，愿光芒与全舰队同在。"}],
   ev_voyager: [{"id": "ev_voyager", "text": "雷达抓到一个老古董。1977年发射的旅行者号探测器，镀金铜质唱片在纸鹤翼尖的反光中闪耀。向它致敬吧。"}, {"id": "ev_voyager_alt1", "text": "一枚古老的无声信使。金唱片还在反射着太阳系的余温，向它致敬吧。"}, {"id": "ev_voyager_alt2", "text": "旅行者一号。在无边无际的星海中漂流了半个世纪，两叠来自地球的信息在这里相遇了。"}, {"id": "ev_voyager_alt3", "text": "抓到了那根长长的磁强计吊杆。它是人类伸向宇宙的第一只指尖，孤独而坚定。"}, {"id": "ev_voyager_alt4", "text": "掠过老旧的抛物面天线。唱片里还刻着五十多种地球语言的问候，可听众却只有这十四只纸鹤。"}, {"id": "ev_voyager_alt5", "text": "永恒的深空浪人。向这位最早离开太阳系的开拓者行注目礼，我们接过了它的路标。"}],
   ev_foil: [{"id": "ev_foil", "text": "停！那不是普通的反光！那是二向箔，它把一张纸质飞船降维后，我甚至不知道该叫它二维纸片还是纸屑！全员拉高！"}, {"id": "ev_foil_alt1", "text": "极度危险！一张比纸还要薄的二维薄膜正在舒展，那是降维的死神，全速规避！"}, {"id": "ev_foil_alt2", "text": "空间曲率跌落！那是三体世界留下的二向箔，一旦卷进去，三维的折纸就会变成绝对平面！"}, {"id": "ev_foil_alt3", "text": "虹彩反射膜出现。那是一切维度的墓碑，赶紧调转航向，不要靠近它的卷曲边缘！"}, {"id": "ev_foil_alt4", "text": "警告，引力坍塌为零厚度！二向箔正在将星空画成平涂，哪怕是纸做的飞船也不能二维化！"}, {"id": "ev_foil_alt5", "text": "擦过降维前锋面。时空在它周围像肥皂泡一样薄脆，全速脱离，别回头看。"}],
   ev_dyson: [{"id": "ev_dyson", "text": "那是戴森环巨构！恒星能源接收板还在工作，但创造它的文明早就湮灭在虚空里了。"}, {"id": "ev_dyson_alt1", "text": "横跨恒星轨道的戴森工程。古老的文明已经离去，巨大的能量环却依旧在星海中空转。"}, {"id": "ev_dyson_alt2", "text": "环绕太阳的巨型机械环带。无数片太阳能帆板遮天蔽日，这得消耗多少颗行星才能造出来。"}, {"id": "ev_dyson_alt3", "text": "二类文明的奇迹。能量传输激光像琴弦一样穿过太空，我们就像从钟表齿轮间穿过的飞虫。"}, {"id": "ev_dyson_alt4", "text": "戴森球残环。它已经在这颗恒星周围运转了千万年，文明消亡了，工程却成了恒星的项圈。"}, {"id": "ev_dyson_alt5", "text": "飞跃戴森环段。金属骨架在恒星光芒下泛着冷光，在巨构面前，纸鹤的渺小如此纯粹。"}],
@@ -16709,7 +17110,7 @@ window.addEventListener('resize', () => {
       })
       .then(data => {
         if (data && data.build) {
-          const localBuild = 185;
+          const localBuild = 186;
           if (data.build > localBuild) {
             showOtaNotification(data);
           } else if (manual && window.toast) {
@@ -19072,6 +19473,18 @@ requestAnimationFrame(frame);
               name = '废弃信标浮标';
               icon = '⟐';
               category = 'derelict';
+            } else if (ev.type === 'gundam_relic') {
+              name = '高达遗迹机体残骸';
+              icon = '⚔';
+              category = 'derelict';
+            } else if (ev.type === 'eva_longinus') {
+              name = '朗基努斯之枪绝对领域';
+              icon = '✧';
+              category = 'spatial_anomaly';
+            } else if (ev.type === 'ultraman_m78') {
+              name = 'M78星云光之巨人';
+              icon = '✦';
+              category = 'spatial_anomaly';
             } else if (ev.type === 'voyager_probe') {
               name = '旅行者深空探测器';
               icon = '⟐';

@@ -233,7 +233,10 @@ def run_mobile_verification():
         print("\n   --- Portrait HUD Geometry Layout ---")
         print(f"   - #camera-hud: top={boxes['cam']['top']:.1f}, bottom={boxes['cam']['bottom']:.1f}, left={boxes['cam']['left']:.1f}, right={boxes['cam']['right']:.1f}")
         print(f"   - #sf-contract-hud: top={boxes['contract']['top']:.1f}, bottom={boxes['contract']['bottom']:.1f}, left={boxes['contract']['left']:.1f}, right={boxes['contract']['right']:.1f}")
-        print(f"   - .sf-sonar-capsule: top={boxes['sonar']['top']:.1f}, bottom={boxes['sonar']['bottom']:.1f}")
+        if boxes['sonar']:
+            print(f"   - .sf-sonar-capsule: top={boxes['sonar']['top']:.1f}, bottom={boxes['sonar']['bottom']:.1f}")
+        else:
+            print("   - .sf-sonar-capsule: completely removed / zero occlusion (Build 186+)")
         print(f"   - #comms-hud: top={boxes['comms']['top']:.1f}, bottom={boxes['comms']['bottom']:.1f}")
         print(f"   - #journey: left={boxes['journey']['left']:.1f}, right={boxes['journey']['right']:.1f}, bottom={boxes['journey']['bottom']:.1f}")
         print(f"   - .sf-touch-cluster: left={boxes['cluster']['left']:.1f}, right={boxes['cluster']['right']:.1f}, bottom={boxes['cluster']['bottom']:.1f}")
@@ -241,9 +244,10 @@ def run_mobile_verification():
         # Geometric assertions
         assert boxes['cam']['top'] >= 24, f"Camera HUD top must clear safe area (>=24px), got {boxes['cam']['top']}"
         assert boxes['contract']['left'] >= boxes['cam']['right'], f"Contract HUD overlaps Camera HUD horizontally! cam.right={boxes['cam']['right']}, contract.left={boxes['contract']['left']}"
-        assert boxes['sonar']['top'] >= boxes['cam']['bottom'] - 20, f"Sonar capsule overlaps camera info! cam.bottom={boxes['cam']['bottom']}, sonar.top={boxes['sonar']['top']}"
+        if boxes['sonar']:
+            assert boxes['sonar']['top'] >= boxes['cam']['bottom'] - 20, f"Sonar capsule overlaps camera info! cam.bottom={boxes['cam']['bottom']}, sonar.top={boxes['sonar']['top']}"
+            assert boxes['comms']['top'] >= boxes['sonar']['bottom'], f"COMMS covers sonar capsule! sonar.bottom={boxes['sonar']['bottom']}, comms.top={boxes['comms']['top']}"
         assert boxes['comms']['top'] >= boxes['cam']['bottom'], f"COMMS covers camera info! cam.bottom={boxes['cam']['bottom']}, comms.top={boxes['comms']['top']}"
-        assert boxes['comms']['top'] >= boxes['sonar']['bottom'], f"COMMS covers sonar capsule! sonar.bottom={boxes['sonar']['bottom']}, comms.top={boxes['comms']['top']}"
         assert boxes['journey']['right'] <= boxes['cluster']['left'], f"Journey HUD collides with touch buttons! journey.right={boxes['journey']['right']}, cluster.left={boxes['cluster']['left']}"
         print("   - [PASS] Zero occlusion across all portrait HUD components verified.")
 
