@@ -11,8 +11,9 @@ if sys.stdout.encoding.lower() != 'utf-8':
 from playwright.sync_api import sync_playwright
 
 def test_living_planet_flight():
-    html_path = os.path.abspath(r"d:\items\code\starfield-pub\starfield.html")
-    shots_dir = os.path.abspath(r"d:\items\code\starfield-pub\shots")
+    repo_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    html_path = os.path.join(repo_dir, "starfield.html")
+    shots_dir = os.path.join(repo_dir, "shots")
     os.makedirs(shots_dir, exist_ok=True)
 
     print("=================================================================")

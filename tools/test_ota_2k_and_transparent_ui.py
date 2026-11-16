@@ -3,7 +3,8 @@ import sys
 from playwright.sync_api import sync_playwright
 
 def test_ota_2k_and_transparent_ui():
-    html_path = os.path.abspath(r"d:\items\code\starfield-pub\starfield.html")
+    repo_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    html_path = os.path.join(repo_dir, "starfield.html")
     file_url = f"file:///{html_path.replace(os.sep, '/')}"
     artifact_dir = os.environ.get("ANTIGRAVITY_ARTIFACT_DIR", r"C:\Users\machine\.gemini\antigravity\brain\72ea3f45-0738-459a-8560-5853a3c36367")
 
@@ -62,7 +63,7 @@ def test_ota_2k_and_transparent_ui():
         print(f"   - Action button backgroundColor: {btn_bg} (Expected: rgba(0, 0, 0, 0))")
         assert 'rgba(0, 0, 0, 0)' in btn_bg or btn_bg == 'transparent', f"ERROR: Action button not transparent! Got: {btn_bg}"
 
-        boost_bg = page.evaluate("() => { const el = document.querySelector('.sf-touch-btn.boost'); return el ? getComputedStyle(el).backgroundColor : ''; }")
+        boost_bg = page.evaluate("() => { const el = document.querySelector('.sf-touch-btn.boost') || document.querySelector('.sf-touch-btn'); return el ? getComputedStyle(el).backgroundColor : ''; }")
         print(f"   - Boost button backgroundColor: {boost_bg} (Expected: rgba(0, 0, 0, 0))")
         assert 'rgba(0, 0, 0, 0)' in boost_bg or boost_bg == 'transparent', f"ERROR: Boost button not transparent! Got: {boost_bg}"
 

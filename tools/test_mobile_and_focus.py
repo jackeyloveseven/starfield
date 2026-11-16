@@ -4,7 +4,8 @@ import time
 from playwright.sync_api import sync_playwright
 
 def test_mobile_and_focus_engine():
-    html_path = os.path.abspath(r"d:\items\code\starfield-pub\starfield.html")
+    repo_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    html_path = os.path.join(repo_dir, "starfield.html")
     file_url = f"file:///{html_path.replace(os.sep, '/')}"
 
     errors = []

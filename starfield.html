@@ -4964,7 +4964,7 @@ body:has(#photo-ui.active) .sf-touch-cluster{
     <div class="shortcut-list">
       <div class="shortcut-row">
         <span>客户端版本</span>
-        <span class="shortcut-key" id="sf-version-tag">v1.9.9.9.9.3 (Build 191)</span>
+        <span class="shortcut-key" id="sf-version-tag">v1.9.9.9.9.4 (Build 192)</span>
       </div>
       <div class="shortcut-row">
         <span>OTA 实时热更新</span>
@@ -6869,7 +6869,7 @@ const canGrade=typeof CanvasRenderingContext2D!=='undefined'&&
 const coarse=matchMedia('(pointer:coarse)').matches;
 const _isMobileDevice = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || (typeof window !== 'undefined' && 'ontouchstart' in window) || coarse; window._isMobileDevice = _isMobileDevice;
 /* ============================================================
-   WEBASSEMBLY VECTOR & PERSPECTIVE MATH ENGINE (Build 191)
+   WEBASSEMBLY VECTOR & PERSPECTIVE MATH ENGINE (Build 192)
 ============================================================ */
 const STARFIELD_WASM_B64 = "AGFzbQEAAAABGANgAn19AX1gA319fQF9YAZ9fX19fX0BfQMFBAABAgIHLwQKZmFzdF9oeXBvdAAAC2Zhc3RfaHlwb3QzAAEEZG90MwACCXByb2plY3RfegADCk0EDgAgACAAlCABIAGUkpELFAAgACAAlCABIAGUkiACIAKUkpELEwAgACADlCABIASUkiACIAWUkgsTACAAIAOUIAEgBJSSIAIgBZSSCw==";
 let wasmExports = null;
@@ -10286,6 +10286,55 @@ function drawWorld(m, q, p, t, rad, tint) {
         return;
       }
 
+      // DISTANT CELESTIAL BODIES (1.8 <= rad < 7.5):
+      // Render a lightweight, crisp 2D celestial sphere with directional shading and corona (Build 192).
+      // Eliminates expensive Skia clipping masks (ctx.clip), worldShade() sampling, multiply passes, and 7-layer geological loops.
+      if (rad < 7.5) {
+        const w = m.w || worldFor(0);
+        const type = w.type || W_TYPES[0];
+        const atmoRay = type.atmo || tint;
+        const atmoMie = type.mie || [255, 255, 255];
+        const ak = type.power || 1.0;
+
+        // 1. Soft atmospheric corona glow (for rad >= 3.0)
+        if (rad >= 3.0) {
+          const coronaR = rad * 1.38;
+          const cGrad = ctx.createRadialGradient(cx, cy, rad * 0.85, cx, cy, coronaR);
+          cGrad.addColorStop(0.0, css(atmoRay, Math.min(0.70, 0.50 * ak)));
+          cGrad.addColorStop(0.6, css(atmoMie, Math.min(0.35, 0.20 * ak)));
+          cGrad.addColorStop(1.0, 'rgba(0,0,0,0)');
+          ctx.beginPath();
+          ctx.arc(cx, cy, coronaR, 0, TAU);
+          ctx.fillStyle = cGrad;
+          ctx.fill();
+        }
+
+        // 2. Crisp spherical body with directional lighting & day/night terminator
+        const lxOff = cx + lx * rad * 0.35;
+        const lyOff = cy - ly * rad * 0.35;
+        const bGrad = ctx.createRadialGradient(lxOff, lyOff, 0, cx, cy, rad);
+        const highCol = blend(tint, [255, 255, 255], 0.42);
+        const darkCol = blend(tint, [6, 10, 18], 0.88);
+        bGrad.addColorStop(0.0, css(highCol, 1.0));
+        bGrad.addColorStop(0.55, css(tint, 0.98));
+        bGrad.addColorStop(0.85, css(darkCol, 0.95));
+        bGrad.addColorStop(1.0, 'rgba(4, 6, 12, 0.92)');
+        ctx.beginPath();
+        ctx.arc(cx, cy, rad, 0, TAU);
+        ctx.fillStyle = bGrad;
+        ctx.fill();
+
+        // 3. Crisp atmospheric rim ring
+        if (rad >= 3.2) {
+          ctx.strokeStyle = css(atmoRay, Math.min(0.75, 0.45 * ak));
+          ctx.lineWidth = Math.max(0.8, rad * 0.08);
+          ctx.beginPath();
+          ctx.arc(cx, cy, rad, 0, TAU);
+          ctx.stroke();
+        }
+        return;
+      }
+
 
 
       // Smooth multi-tier continuous LOD blending factors (ZERO hard jumps)
@@ -10372,24 +10421,18 @@ function drawWorld(m, q, p, t, rad, tint) {
       }
 
       // Three.js 3D Procedural Living Planet Engine (Islands, Oceans, Trees, Monuments, Birds & Whales)
-      // Rendered with continuous sub-pixel LOD cross-fading (rad >= 7.5) to eliminate any 1-frame distance pops.
-      let blended3DCanvas = null;
+      // When 3D canvas is rendered, draw it directly and return immediately to eliminate double-render trap! (Build 192)
       const minLivingRad = 7.5;
       if (typeof LivingPlanetEngine !== 'undefined' && LivingPlanetEngine.enabled && rad >= minLivingRad && typeof THREE !== 'undefined') {
         const offCanvas = LivingPlanetEngine.renderPlanet(m, rad, [lx, ly, lz], camera);
         if (offCanvas) {
           const drawD = LivingPlanetEngine.getDrawSize(rad);
-          const blendAlpha3D = clamp((rad - minLivingRad) / 4.0, 0, 1);
-          if (blendAlpha3D >= 0.99) {
-            ctx.imageSmoothingEnabled = true;
-            ctx.drawImage(offCanvas, cx - drawD * 0.5, cy - drawD * 0.5, drawD, drawD);
-            if (m.hasSatellites || (m.w && m.w.manif && ['cyber_metropolis','dyson_swarm','monolith_artifact','earth_egg','protoss_crystal'].includes(m.w.manif.id)) || ((m.seed || 1) % 3 === 0)) {
-              drawOrbitalSatellites(ctx, cx, cy, rad, m, t, tint, massVis);
-            }
-            return;
-          } else {
-            blended3DCanvas = { canvas: offCanvas, drawD, alpha: blendAlpha3D };
+          ctx.imageSmoothingEnabled = true;
+          ctx.drawImage(offCanvas, cx - drawD * 0.5, cy - drawD * 0.5, drawD, drawD);
+          if (m.hasSatellites || (m.w && m.w.manif && ['cyber_metropolis','dyson_swarm','monolith_artifact','earth_egg','protoss_crystal'].includes(m.w.manif.id)) || ((m.seed || 1) % 3 === 0)) {
+            drawOrbitalSatellites(ctx, cx, cy, rad, m, t, tint, massVis);
           }
+          return;
         }
       }
 
@@ -10828,13 +10871,6 @@ function drawWorld(m, q, p, t, rad, tint) {
       }
 
       ctx.restore();
-      if (blended3DCanvas && blended3DCanvas.alpha > 0.01) {
-        ctx.save();
-        ctx.globalAlpha = blended3DCanvas.alpha;
-        ctx.imageSmoothingEnabled = true;
-        ctx.drawImage(blended3DCanvas.canvas, cx - blended3DCanvas.drawD * 0.5, cy - blended3DCanvas.drawD * 0.5, blended3DCanvas.drawD, blended3DCanvas.drawD);
-        ctx.restore();
-      }
       if (m.hasSatellites || (m.w && m.w.manif && ['cyber_metropolis','dyson_swarm','monolith_artifact','earth_egg','protoss_crystal'].includes(m.w.manif.id)) || ((m.seed || 1) % 3 === 0)) {
         drawOrbitalSatellites(ctx, cx, cy, rad, m, t, tint, massVis);
       }
@@ -11454,6 +11490,34 @@ function drawBattle(b,t){
   ctx.restore();
  }
 }
+
+// Pre-baked stellar flare sprite cache for distant celestial beacons (Build 192)
+// Eliminates dynamic createRadialGradient allocations and garbage collection per frame
+const _sfFlareCache = new Map();
+function getFlareSprite(tint) {
+  const key = ((tint[0] & 0xf0) << 8) | ((tint[1] & 0xf0) << 4) | (tint[2] & 0xf0);
+  let sprite = _sfFlareCache.get(key);
+  if (!sprite) {
+    sprite = document.createElement('canvas');
+    sprite.width = sprite.height = 64;
+    const sctx = sprite.getContext('2d');
+    const g = sctx.createRadialGradient(32, 32, 0, 32, 32, 32);
+    g.addColorStop(0.0, css(blend(tint, [255, 255, 255], 0.65), 0.85));
+    g.addColorStop(0.35, css(tint, 0.45));
+    g.addColorStop(1.0, css(tint, 0.0));
+    sctx.fillStyle = g;
+    sctx.beginPath();
+    sctx.arc(32, 32, 32, 0, TAU);
+    sctx.fill();
+    _sfFlareCache.set(key, sprite);
+  }
+  return sprite;
+}
+if (typeof window !== 'undefined') {
+  window._sfFlareCache = _sfFlareCache;
+  window.getFlareSprite = getFlareSprite;
+}
+
 function drawMass(m, p, t){
  const q = project([m.x, m.y, m.z]);
  if(!q || q[2] <= 30) return;
@@ -11511,15 +11575,10 @@ function drawMass(m, p, t){
      ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
      ctx.fill();
 
-     // 2. Atmospheric Colored Halo
+     // 2. Atmospheric Colored Halo (Pre-baked 64x64 sprite blit - Build 192)
      const haloR = Math.max(4.0, rad * 1.85);
-     const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, haloR);
-     g.addColorStop(0.0, css(blend(tint, [255, 255, 255], 0.65), 0.85));
-     g.addColorStop(0.35, css(tint, 0.45));
-     g.addColorStop(1.0, css(tint, 0.0));
-     ctx.beginPath(); ctx.arc(cx, cy, haloR, 0, TAU);
-     ctx.fillStyle = g;
-     ctx.fill();
+     const sprite = getFlareSprite(tint);
+     ctx.drawImage(sprite, cx - haloR, cy - haloR, haloR * 2, haloR * 2);
 
      // 3. Subtle Cosmic Diffraction Spike Cross at high distance (rad < 6)
      if(rad < 6.0){
@@ -14784,7 +14843,7 @@ const bandStars=Array.from({length:coarse?4800:8800},(_,i)=>{
 });
 if(typeof window!=='undefined'){window.bandStars=bandStars;}
 /* ============================================================
-   STARFIELD HARDWARE ACCELERATOR (Build 191)
+   STARFIELD HARDWARE ACCELERATOR (Build 192)
    Bottom-up hardware engine for 60 FPS mobile rendering:
    1. StarfieldWasm: Compiled Wasm vector & perspective math engine
    2. StarfieldGL: GPU Point Sprites & Warp Lines hardware pipeline
@@ -15900,6 +15959,33 @@ const grainCanvas=document.createElement('canvas');grainCanvas.width=192;grainCa
 const grainCtx=grainCanvas.getContext('2d'),grainImage=grainCtx.createImageData(192,192),grainRng=rng(SEED^12371);
 for(let i=0;i<grainImage.data.length;i+=4){const n=grainRng();grainImage.data[i]=grainImage.data[i+1]=grainImage.data[i+2]=n>.52?250:75;grainImage.data[i+3]=Math.floor(grainRng()*17);}
 grainCtx.putImageData(grainImage,0,0);let grainPattern=ctx.createPattern(grainCanvas,'repeat');
+
+// Pre-baked 64x64 star bloom sprites for 48 bright stars (Build 192)
+// Completely eliminates 48 dynamic createRadialGradient allocations per frame in drawSky
+let _starBloomWarm = null;
+let _starBloomCool = null;
+function getStarBloomSprite(warm) {
+  if (warm && _starBloomWarm) return _starBloomWarm;
+  if (!warm && _starBloomCool) return _starBloomCool;
+  const S = 64, half = S * 0.5;
+  const cv = document.createElement('canvas');
+  cv.width = cv.height = S;
+  const sctx = cv.getContext('2d');
+  const tint = warm ? [255, 236, 206] : [226, 240, 255];
+  const g = sctx.createRadialGradient(half, half, 0, half, half, half);
+  g.addColorStop(0.00, `rgba(${tint[0]}, ${tint[1]}, ${tint[2]}, 0.95)`);
+  g.addColorStop(0.16, `rgba(${tint[0]}, ${tint[1]}, ${tint[2]}, 0.30)`);
+  g.addColorStop(1.00, `rgba(${tint[0]}, ${tint[1]}, ${tint[2]}, 0)`);
+  sctx.fillStyle = g;
+  sctx.fillRect(0, 0, S, S);
+  if (warm) { _starBloomWarm = cv; if (typeof window !== 'undefined') window._starBloomWarm = cv; }
+  else { _starBloomCool = cv; if (typeof window !== 'undefined') window._starBloomCool = cv; }
+  return cv;
+}
+if (typeof window !== 'undefined') {
+  window.getStarBloomSprite = getStarBloomSprite;
+}
+
 function drawSky(){
  const p=currentPalette,nova=novaState(),g=ctx.createLinearGradient(0,0,0,H);
  // v132: where the paper's horizon sits is a composition choice per region.
@@ -15990,17 +16076,24 @@ function drawSky(){
  // u is the direction the fleet is travelling: the lane tangent, flat in y.
  // Every streak fans out from the point this direction projects to.
  const hd=laneD(travel)*.68,hl=Math.hypot(hd,1),ux=hd/hl,uz=1/hl;
- // Bright stars: a bloom and a cross each, so the eye has somewhere to land.
+ // Bright stars: a bloom and a cross each, so the eye has somewhere to land (Build 192 pre-baked bloom).
  for(const st of brightStars){
   const q=skyPoint(st);if(!q)continue;
   const w=lensSources.length?lensWarp(q[0],q[1]):q,x=w[0],y=w[1];
   if(x<-40||x>W+40||y<-40||y>H+40)continue;
   const tw=.42+.58*Math.sin(time*.5+st.phase)**2,r=st.size*(1+.35*tw);
   const _skye=skyEventStarDim(st);
-  const tint=st.warm?[255,236,206]:[226,240,255],gr=ctx.createRadialGradient(x,y,0,x,y,r*11);
-  gr.addColorStop(0,css(tint,.95*clamp(dense,0,1.3)*_skye));gr.addColorStop(.16,css(tint,.30*dense*_skye));gr.addColorStop(1,css(tint,0));
-  fillPx+=r*22*r*22;ctx.fillStyle=gr;ctx.fillRect(x-r*11,y-r*11,r*22,r*22);
+  const bloomAlpha = clamp(dense, 0, 1.3) * _skye;
+  if(bloomAlpha > 0.005){
+   const sprite = getStarBloomSprite(st.warm);
+   const bD = r * 22;
+   ctx.globalAlpha = bloomAlpha;
+   ctx.drawImage(sprite, x - r * 11, y - r * 11, bD, bD);
+   ctx.globalAlpha = 1.0;
+   fillPx += bD * bD;
+  }
   ctx.fillStyle=_skye<.999?css([255,255,255],.92*_skye):'rgba(255,255,255,.92)';ctx.beginPath();ctx.arc(x,y,r,0,TAU);ctx.fill();
+  const tint=st.warm?[255,236,206]:[226,240,255];
   ctx.strokeStyle=css(tint,.55*_skye);ctx.lineWidth=.7;ctx.beginPath();
   if(eps>0){
    const du=st.x*ux+st.z*uz,be=eps*5;
@@ -16160,18 +16253,19 @@ function drawSky(){
   const bdir=(ca,sa,g)=>{const x=BU[0]*ca+BV[0]*sa+BN[0]*g,y=BU[1]*ca+BV[1]*sa+BN[1]*g,z=BU[2]*ca+BV[2]*sa+BN[2]*g,n=Math.hypot(x,y,z)||1;return [x/n,y/n,z/n];};
   const col=blend(p.sun,p.paper,.34),segs=[];
   let cur=null;
-  for(let i=0;i<=260;i++){
-   const a2=i/260*TAU,d=bdir(Math.cos(a2),Math.sin(a2),_rg.bandG),q=skyPoint(d);
+  const maxSegSteps = (_isMobileDevice || lowQuality) ? 65 : 260;
+  for(let i=0;i<=maxSegSteps;i++){
+   const a2=i/maxSegSteps*TAU,d=bdir(Math.cos(a2),Math.sin(a2),_rg.bandG),q=skyPoint(d);
    if(!q){cur=null;continue;}
    const w=hasLens?lensWarp(q[0],q[1]):q;
    if(!cur){cur=[];segs.push(cur);}
    cur.push(w[0],w[1]);
   }
-  ctx.save();ctx.lineCap='round';ctx.lineJoin='round';
+  ctx.save();ctx.lineCap='round';ctx.lineJoin=(_isMobileDevice || lowQuality)?'bevel':'round';
   for(const seg of segs){
    if(seg.length<6)continue;
-   // Volumetric multi-tier Gaussian galactic disk glow (mobile-optimized fillrate)
-   const bandPasses = (_isMobileDevice || lowQuality) ? [[320*_rg.bandS,.028],[80*_rg.bandS,.082]] : [[420*_rg.bandS,.018],[240*_rg.bandS,.032],[110*_rg.bandS,.058],[45*_rg.bandS,.088]];
+   // Volumetric multi-tier Gaussian galactic disk glow (mobile-optimized fillrate & stroke geometry)
+   const bandPasses = (_isMobileDevice || lowQuality) ? [[180*_rg.bandS,.042],[70*_rg.bandS,.082]] : [[420*_rg.bandS,.018],[240*_rg.bandS,.032],[110*_rg.bandS,.058],[45*_rg.bandS,.088]];
    for(const L of bandPasses){
     ctx.beginPath();ctx.moveTo(seg[0],seg[1]);
     for(let j=2;j<seg.length;j+=2)ctx.lineTo(seg[j],seg[j+1]);
@@ -16186,7 +16280,7 @@ function drawSky(){
      ctx.lineTo(seg[j] + wobble, seg[j+1]);
    }
    ctx.strokeStyle = css(blend(p.paper, [10, 14, 28], 0.65), clamp(0.045 * bw, 0, 0.14));
-   ctx.lineWidth = 32 * _rg.bandS;
+   ctx.lineWidth = (_isMobileDevice || lowQuality ? 22 : 32) * _rg.bandS;
    ctx.stroke();
    fillPx+=250*250*4;
   }
@@ -18821,7 +18915,7 @@ window.addEventListener('resize', () => {
       })
       .then(data => {
         if (data && data.build) {
-          const localBuild = 191;
+          const localBuild = 192;
           if (data.build > localBuild) {
             showOtaNotification(data);
           } else if (manual && window.toast) {
