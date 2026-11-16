@@ -1,11 +1,11 @@
 {
-  "version": "1.9.9.9.9.1",
-  "build": 189,
-  "updated_at": "2026-11-16T21:55:00+08:00",
+  "version": "1.9.9.9.9.2",
+  "build": 190,
+  "updated_at": "2026-11-16T22:10:00+08:00",
   "min_native_version": "1.0.0",
   "is_beta": false,
-  "title": "天玑9400+移动端满血60FPS底层极速重构 (Build 189)",
-  "changelog": "1. 彻底修复移动端GPU着色器精度匹配：严格对齐GLSL ES 3.0 varying精度限定符，彻底解决天玑9400+/Mali/Immortalis-G925驱动Link报错导致的静默降级；\\n2. 黑洞光线追踪着色器移动端算力瘦身：针对移动TBDR架构大幅压缩积分步数与着色器分支，远距离平滑切换2D相对论光环，彻底消除4700万步光线积分导致的GPU堵塞；\\n3. 3D生态星球移动端分级调度：远距离行星自动采用高性能2D无损矢量渲染，近距离按需唤醒3D生态，彻底消除多行星同屏引发的频繁显存回读与TBDR Tile破裂；\\n4. 移动端DPR智能视网膜自适应与后处理轻量化：移动端默认采用1.5x超清视网膜，暗角与辉光迁移至单Pass零开销径向渐变，杜绝巨幅画布软拷贝；\\n5. 低帧率自愈看门狗：实时检测帧率异常，1.5秒内自动平衡画质与功耗，确保移动端100%稳定60+ FPS丝滑体验。",
+  "title": "全面恢复3D活体生态与外层米氏大气光晕 & 60+ FPS底层架构 (Build 190)",
+  "changelog": "1. 彻底恢复3D活体生态星球系统：找回大陆群岛、雪山断崖、海洋镜面高光、双层动态流云与远古先驱巨构，根除伪物感；\n2. 重塑外层米氏与瑞利大气散射辉光壳：星球外围注入3D立体大气散射壳与高反差金橙/冰蓝黄昏光晕（Atmospheric Corona），彻底消除黑糊糊光秃秃感；\n3. 移除误杀3D引擎的低帧率看门狗：修复冷启动资源加载期误判导致关闭3D引擎的底层缺陷，确保3D生态全生命周期常驻；\n4. 移动端TBDR无损高帧率渲染管线：针对天玑9400+/Immortalis-G925优化FBO分级显存与零拷贝直出，消除Tile Flush卡顿，兼得华丽画质与60+ FPS；\n5. 轨道卫星与深空阵列全天候巡航：全面恢复低轨道卫星通讯链路与巡航微光，深空探索沉浸感全面归位。",
   "entry": "starfield.html",
   "download_url": "https://jackeyloveseven.github.io/starfield/starfield.html",
   "apk_release_url": "https://github.com/jackeyloveseven/starfield/releases/tag/v1.19.1-focus-apk"

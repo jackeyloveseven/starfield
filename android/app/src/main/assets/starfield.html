@@ -4964,7 +4964,7 @@ body:has(#photo-ui.active) .sf-touch-cluster{
     <div class="shortcut-list">
       <div class="shortcut-row">
         <span>客户端版本</span>
-        <span class="shortcut-key" id="sf-version-tag">v1.9.9.9.9 (Build 189)</span>
+        <span class="shortcut-key" id="sf-version-tag">v1.9.9.9.9.2 (Build 190)</span>
       </div>
       <div class="shortcut-row">
         <span>OTA 实时热更新</span>
@@ -6869,7 +6869,7 @@ const canGrade=typeof CanvasRenderingContext2D!=='undefined'&&
 const coarse=matchMedia('(pointer:coarse)').matches;
 const _isMobileDevice = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || (typeof window !== 'undefined' && 'ontouchstart' in window) || coarse; window._isMobileDevice = _isMobileDevice;
 /* ============================================================
-   WEBASSEMBLY VECTOR & PERSPECTIVE MATH ENGINE (Build 189)
+   WEBASSEMBLY VECTOR & PERSPECTIVE MATH ENGINE (Build 190)
 ============================================================ */
 const STARFIELD_WASM_B64 = "AGFzbQEAAAABGANgAn19AX1gA319fQF9YAZ9fX19fX0BfQMFBAABAgIHLwQKZmFzdF9oeXBvdAAAC2Zhc3RfaHlwb3QzAAEEZG90MwACCXByb2plY3RfegADCk0EDgAgACAAlCABIAGUkpELFAAgACAAlCABIAGUkiACIAKUkpELEwAgACADlCABIASUkiACIAWUkgsTACAAIAOUIAEgBJSSIAIgBZSSCw==";
 let wasmExports = null;
@@ -10331,39 +10331,43 @@ function drawWorld(m, q, p, t, rad, tint) {
         if (isOblate) { ctx.rotate(spinRoll); ctx.scale(oblateScaleX, oblateScaleY); }
 
         // Adaptive atmo scale: perfectly continuous (C0 smooth) at rad = 180 without popping
-        const atmoOuterScale = rad > 180 ? 1.0 + (0.45 * (180 / rad)) : 1.45;
-        const rGrad = ctx.createRadialGradient(0, 0, rad * 0.94, 0, 0, rad * atmoOuterScale);
+        const atmoOuterScale = rad > 180 ? 1.0 + (0.45 * (180 / rad)) : 1.48;
+        const rGrad = ctx.createRadialGradient(0, 0, rad * 0.92, 0, 0, rad * atmoOuterScale);
         rGrad.addColorStop(0.00, css(atmoRay, 0.0));
-        rGrad.addColorStop(0.20, css(atmoRay, 0.35 * ak));
-        rGrad.addColorStop(0.55, css(atmoRay, 0.12 * ak));
-        rGrad.addColorStop(0.85, css(atmoRay, 0.02 * ak));
+        rGrad.addColorStop(0.18, css(atmoRay, Math.min(0.85, 0.65 * ak)));
+        rGrad.addColorStop(0.50, css(atmoRay, Math.min(0.55, 0.35 * ak)));
+        rGrad.addColorStop(0.80, css(atmoRay, Math.min(0.25, 0.10 * ak)));
         rGrad.addColorStop(1.00, css(atmoRay, 0.0));
         ctx.beginPath(); ctx.arc(0, 0, rad * atmoOuterScale, 0, TAU);
         ctx.fillStyle = rGrad; ctx.fill();
 
-        const mieOuterScale = rad > 180 ? 1.0 + (0.62 * (180 / rad)) : 1.62;
-        const mieOffsetX = ux * rad * 0.20, mieOffsetY = uy * rad * 0.20;
-        const mGrad = ctx.createRadialGradient(mieOffsetX, mieOffsetY, rad * 0.96, mieOffsetX, mieOffsetY, rad * mieOuterScale);
-        mGrad.addColorStop(0.00, css(atmoMie, 0.28 * ak));
-        mGrad.addColorStop(0.30, css(atmoMie, 0.10 * ak));
-        mGrad.addColorStop(0.70, css(atmoMie, 0.02 * ak));
+        const mieOuterScale = rad > 180 ? 1.0 + (0.62 * (180 / rad)) : 1.65;
+        const mieOffsetX = ux * rad * 0.22, mieOffsetY = uy * rad * 0.22;
+        const mGrad = ctx.createRadialGradient(mieOffsetX, mieOffsetY, rad * 0.94, mieOffsetX, mieOffsetY, rad * mieOuterScale);
+        mGrad.addColorStop(0.00, css(atmoMie, Math.min(0.95, 0.72 * ak)));
+        mGrad.addColorStop(0.25, css(atmoMie, Math.min(0.70, 0.42 * ak)));
+        mGrad.addColorStop(0.65, css(atmoMie, Math.min(0.35, 0.15 * ak)));
         mGrad.addColorStop(1.00, 'rgba(255,255,255,0)');
         ctx.beginPath(); ctx.arc(0, 0, rad * mieOuterScale, 0, TAU);
         ctx.fillStyle = mGrad; ctx.fill();
+
+        // Brilliant Atmospheric Corona Edge (Eliminates bald/bare silhouette)
+        ctx.strokeStyle = css(atmoRay, Math.min(0.80, 0.55 * ak));
+        ctx.lineWidth = Math.max(1.2, rad * 0.035);
+        ctx.beginPath(); ctx.arc(0, 0, rad * 1.01, 0, TAU); ctx.stroke();
 
         ctx.restore();
       }
 
       // Three.js 3D Procedural Living Planet Engine (Islands, Oceans, Trees, Monuments, Birds & Whales)
-      // Rendered with continuous sub-pixel LOD cross-fading to eliminate any 1-frame distance pops.
-      // On mobile devices, require rad >= 38.0 so distant worlds render via lightweight 2D vectors.
+      // Rendered with continuous sub-pixel LOD cross-fading (rad >= 7.5) to eliminate any 1-frame distance pops.
       let blended3DCanvas = null;
-      const minLivingRad = _isMobileDevice ? 38.0 : 7.5;
+      const minLivingRad = 7.5;
       if (typeof LivingPlanetEngine !== 'undefined' && LivingPlanetEngine.enabled && rad >= minLivingRad && typeof THREE !== 'undefined') {
         const offCanvas = LivingPlanetEngine.renderPlanet(m, rad, [lx, ly, lz], camera);
         if (offCanvas) {
           const drawD = LivingPlanetEngine.getDrawSize(rad);
-          const blendAlpha3D = clamp((rad - minLivingRad) / 4.0, 0, 1);
+          const blendAlpha3D = clamp((rad - minLivingRad) / 3.0, 0, 1);
           if (blendAlpha3D >= 0.99) {
             ctx.imageSmoothingEnabled = true;
             ctx.drawImage(offCanvas, cx - drawD * 0.5, cy - drawD * 0.5, drawD, drawD);
@@ -14768,7 +14772,7 @@ const bandStars=Array.from({length:coarse?4800:8800},(_,i)=>{
 });
 if(typeof window!=='undefined'){window.bandStars=bandStars;}
 /* ============================================================
-   STARFIELD HARDWARE ACCELERATOR (Build 189)
+   STARFIELD HARDWARE ACCELERATOR (Build 190)
    Bottom-up hardware engine for 60 FPS mobile rendering:
    1. StarfieldWasm: Compiled Wasm vector & perspective math engine
    2. StarfieldGL: GPU Point Sprites & Warp Lines hardware pipeline
@@ -18941,15 +18945,14 @@ function frame(now){
   if (window.STARFIELD_QUALITY && window.STARFIELD_QUALITY.updatePerfHud) {
    window.STARFIELD_QUALITY.updatePerfHud(realFps, refreshHz, DPR, qualityScale, frameDurationMs);
   }
-  if (_isMobileDevice && realFps > 0 && realFps < 22) {
+  if (_isMobileDevice && realFps > 0 && realFps < 22 && frameCount > 180) {
    window._sfLowFpsStreak = (window._sfLowFpsStreak || 0) + 1;
-   if (window._sfLowFpsStreak >= 3) {
+   if (window._sfLowFpsStreak >= 5) {
     window._sfLowFpsStreak = 0;
     if (window.STARFIELD_QUALITY && window.STARFIELD_QUALITY.profile !== 'balanced') {
      window.STARFIELD_QUALITY.setProfile('balanced');
     }
-    if (qualityScale > 0.8) { qualityScale = 0.8; resize(); }
-    if (window.LivingPlanetEngine) window.LivingPlanetEngine.enabled = false;
+    if (qualityScale > 0.85) { qualityScale = 0.85; resize(); }
    }
   } else if (_isMobileDevice && realFps >= 30) {
    window._sfLowFpsStreak = 0;
@@ -22658,10 +22661,12 @@ requestAnimationFrame(frame);
       this.canvas.width = this.currentBufferSize;
       this.canvas.height = this.currentBufferSize;
 
+      const isMob = (typeof window !== 'undefined' && window._isMobileDevice) || (typeof _isMobileDevice !== 'undefined' && _isMobileDevice);
       this.renderer = new THREE.WebGLRenderer({
         canvas: this.canvas,
         alpha: true,
-        antialias: true,
+        antialias: !isMob,
+        preserveDrawingBuffer: true,
         powerPreference: 'high-performance'
       });
       this.renderer.setSize(this.currentBufferSize, this.currentBufferSize, false);
@@ -22704,8 +22709,8 @@ requestAnimationFrame(frame);
     },
 
     // Dynamic Adaptive Multi-Tier Resolution Allocator:
-    // Automatically upscales offscreen WebGL buffer to 1024x1024 or 1536x1536 during close encounters (rad >= 200)
-    // so low-poly faceted geometry and trees remain 100% tack-sharp with ZERO bilinear blur!
+    // Automatically allocates optimal buffer sizes (160..1024) to guarantee zero wasted fragment fill
+    // while keeping low-poly geometry and trees 100% tack-sharp!
     ensureBufferSize(rad) {
       const dpr = (window.STARFIELD_QUALITY ? window.STARFIELD_QUALITY.getMaxDPR() : (typeof window !== 'undefined' && window.devicePixelRatio ? Math.min(window.devicePixelRatio, 2.0) : 1.0));
       const drawD = this.getDrawSize(rad);
@@ -22714,7 +22719,10 @@ requestAnimationFrame(frame);
       let target = 512;
       const isMob = (typeof window !== 'undefined' && window._isMobileDevice) || (typeof _isMobileDevice !== 'undefined' && _isMobileDevice);
       if (isMob) {
-        target = (neededPixels > 300 || rad >= 60) ? 384 : 256;
+        if (rad < 24) target = 160;
+        else if (rad < 55) target = 256;
+        else if (rad < 110) target = 384;
+        else target = 512;
       } else if (neededPixels > 550 || rad >= 80) {
         target = 1024;
       } else {
@@ -22973,6 +22981,32 @@ requestAnimationFrame(frame);
       const cloudMesh = new THREE.Mesh(cloudGeom, cloudMat);
       group.add(cloudMesh);
 
+      // 3D Volumetric Atmospheric Scattering Corona Shell (Rayleigh & Mie Glowing Halo)
+      const atmoGeom = new THREE.IcosahedronGeometry(R + 2.8, 3);
+      const atmoColor = new THREE.Color(cCoast).lerp(new THREE.Color(0xffffff), 0.35);
+      const atmoMat = new THREE.MeshBasicMaterial({
+        color: atmoColor,
+        transparent: true,
+        opacity: 0.32,
+        side: THREE.BackSide,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false
+      });
+      const atmoMesh = new THREE.Mesh(atmoGeom, atmoMat);
+      group.add(atmoMesh);
+
+      // 3D Atmospheric Horizon Limb Glow Shell (Luminous planetary silhouette rim)
+      const limbGeom = new THREE.IcosahedronGeometry(R + 0.6, 3);
+      const limbMat = new THREE.MeshBasicMaterial({
+        color: new THREE.Color(cCoast).lerp(new THREE.Color(0xffffff), 0.65),
+        transparent: true,
+        opacity: 0.22,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false
+      });
+      const limbMesh = new THREE.Mesh(limbGeom, limbMat);
+      group.add(limbMesh);
+
       // Instanced Trees (300-360 trees max for ultra-high FPS)
       let treesGroup = null;
       if (landVertices.length > 0) {
@@ -23037,8 +23071,7 @@ requestAnimationFrame(frame);
           flatShading: true
         });
         const whiteAlloyMat = new THREE.MeshLambertMaterial({
-          color: 0xf1f5f9,
-          flatShading: true
+          color: 0xf1f5f9
         });
         const solarMat = new THREE.MeshStandardMaterial({
           color: 0x1e3a8a,
@@ -23264,6 +23297,8 @@ requestAnimationFrame(frame);
         terrainMesh,
         oceanMesh,
         cloudMesh,
+        atmoMesh,
+        limbMesh,
         treesGroup,
         monumentsGroup,
         birdsGroup,
@@ -23296,10 +23331,11 @@ requestAnimationFrame(frame);
       if (!this.initialized) this.init();
       if (!this.initialized || !m) return null;
 
-      // On mobile devices, throttle to at most ONE 3D planet rendered per frame to prevent GPU tile thrashing
+      // On mobile devices, prioritize active planet and reuse cached buffer for secondary celestial bodies
       const isMob = (typeof window !== 'undefined' && window._isMobileDevice) || (typeof _isMobileDevice !== 'undefined' && _isMobileDevice);
       if (isMob && this._mobileRenderedThisFrame && this._lastRenderedId !== this.getPlanetId(m)) {
-        return null;
+        const mCached = this.planetCache.get(this.getPlanetId(m));
+        if (mCached && mCached.canvas && mCached.hasRendered) return mCached.canvas;
       }
       if (isMob) this._mobileRenderedThisFrame = true;
 
@@ -23400,17 +23436,19 @@ requestAnimationFrame(frame);
       this._bufferResized = false;
       model.renderAge = (model.renderAge || 0) + 1;
 
-      const refreshInterval = rad < 35 ? 3 : (rad < 70 ? 2 : 1);
+      const refreshInterval = isMob ? (rad < 30 ? 3 : (rad < 60 ? 2 : 1)) : (rad < 35 ? 3 : (rad < 70 ? 2 : 1));
       const shouldRenderWebGL = isSwitch || isBufferChange || (model.renderAge >= refreshInterval) || !model.hasRendered;
 
       if (shouldRenderWebGL) {
         model.renderAge = 0;
         model.hasRendered = true;
         this.renderer.render(this.scene, this.camera);
-        model.ctx.clearRect(0, 0, sz, sz);
-        model.ctx.drawImage(this.canvas, 0, 0);
+        if (model.canvas) {
+          model.ctx.clearRect(0, 0, sz, sz);
+          model.ctx.drawImage(this.canvas, 0, 0);
+        }
       }
-      return model.canvas;
+      return model.canvas || this.canvas;
     }
   };
 
