@@ -20,3 +20,5 @@ android/build/
 android/app/build/
 android/.gradle/
 *.apk
+
+tools/artifacts/
