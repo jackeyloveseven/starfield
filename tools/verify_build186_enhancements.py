@@ -105,23 +105,50 @@ def run_build186_verification():
         assert starfield_stats['bandStars'] >= 4000, f"Expected bandStars >= 4000, got {starfield_stats['bandStars']}"
         print("   - [PASS] Starfield density multifold expansion verified.")
 
-        # Check 4: Black Hole Frequency & Gargantuan Scale
+        # Check 4: Black Hole Frequency & Gargantuan Scale & Deep Lensing (160k Range)
         bh_stats = page.evaluate("""() => {
             if (typeof chunk !== 'function') return { error: 'No chunk function' };
             const c12 = chunk(12);
             const hasBHAt12 = c12 && c12.masses && c12.masses.some(m => m.isBlackHole);
             const c120 = chunk(120);
             const bhAt120 = c120 && c120.masses && c120.masses.find(m => m.isBlackHole);
+
+            // Test deep lensing at 100,000 units (must NOT be culled by old 78,000 limit)
+            let deepLensDetected = false;
+            if (window.Starfield && window.Starfield.updateLens && window.Starfield.getActiveMasses) {
+                const SF = window.Starfield;
+                const masses = SF.getActiveMasses();
+                const cam = SF.getCamera();
+                const testBH = {
+                    x: cam.eye[0] + cam.forward[0] * 100000,
+                    y: cam.eye[1] + cam.forward[1] * 100000,
+                    z: cam.eye[2] + cam.forward[2] * 100000,
+                    kind: 4, isBlackHole: true, r: 12500
+                };
+                masses.push(testBH);
+                try {
+                    SF.updateLens();
+                    const sources = SF.getLensSources();
+                    deepLensDetected = sources && sources.some(s => s.isBH);
+                } finally {
+                    const idx = masses.indexOf(testBH);
+                    if (idx !== -1) masses.splice(idx, 1);
+                    SF.updateLens();
+                }
+            }
+
             return {
                 hasBHAt12,
                 bhAt120Rad: bhAt120 ? bhAt120.r : 0,
-                bhAt120Kind: bhAt120 ? bhAt120.kind : null
+                bhAt120Kind: bhAt120 ? bhAt120.kind : null,
+                deepLensDetected
             };
         }""")
         print(f"   - Black hole encounter stats: {bh_stats}")
         assert not bh_stats['hasBHAt12'], "Black hole must NOT spawn at chunk 12 (reduced frequency)!"
         assert bh_stats['bhAt120Rad'] >= 10000, f"Black hole radius must be >= 10000, got {bh_stats['bhAt120Rad']}"
-        print("   - [PASS] Black hole encounter frequency reduced and radius scaled to gargantuan 12,500 units.")
+        assert bh_stats['deepLensDetected'], "Black hole gravitational lensing must function beyond 78,000 units (up to 160,000 units)!"
+        print("   - [PASS] Black hole encounter frequency reduced, radius scaled to 12,500, and deep lensing verified > 78k.")
 
         # Check 5: Distant Scenic Planets Expansion
         distant_stats = page.evaluate("""() => {
