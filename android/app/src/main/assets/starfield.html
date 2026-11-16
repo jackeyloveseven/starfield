@@ -4964,7 +4964,7 @@ body:has(#photo-ui.active) .sf-touch-cluster{
     <div class="shortcut-list">
       <div class="shortcut-row">
         <span>客户端版本</span>
-        <span class="shortcut-key" id="sf-version-tag">v1.9.9.9.9 (Build 188)</span>
+        <span class="shortcut-key" id="sf-version-tag">v1.9.9.9.9 (Build 189)</span>
       </div>
       <div class="shortcut-row">
         <span>OTA 实时热更新</span>
@@ -6867,9 +6867,9 @@ let postOn=true;
 const canGrade=typeof CanvasRenderingContext2D!=='undefined'&&
  'filter' in CanvasRenderingContext2D.prototype;
 const coarse=matchMedia('(pointer:coarse)').matches;
-const _isMobileDevice = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || (typeof window !== 'undefined' && 'ontouchstart' in window) || coarse;
+const _isMobileDevice = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || (typeof window !== 'undefined' && 'ontouchstart' in window) || coarse; window._isMobileDevice = _isMobileDevice;
 /* ============================================================
-   WEBASSEMBLY VECTOR & PERSPECTIVE MATH ENGINE (Build 188)
+   WEBASSEMBLY VECTOR & PERSPECTIVE MATH ENGINE (Build 189)
 ============================================================ */
 const STARFIELD_WASM_B64 = "AGFzbQEAAAABGANgAn19AX1gA319fQF9YAZ9fX19fX0BfQMFBAABAgIHLwQKZmFzdF9oeXBvdAAAC2Zhc3RfaHlwb3QzAAEEZG90MwACCXByb2plY3RfegADCk0EDgAgACAAlCABIAGUkpELFAAgACAAlCABIAGUkiACIAKUkpELEwAgACADlCABIASUkiACIAWUkgsTACAAIAOUIAEgBJSSIAIgBZSSCw==";
 let wasmExports = null;
@@ -10355,13 +10355,15 @@ function drawWorld(m, q, p, t, rad, tint) {
       }
 
       // Three.js 3D Procedural Living Planet Engine (Islands, Oceans, Trees, Monuments, Birds & Whales)
-      // Rendered with continuous sub-pixel LOD cross-fading (rad >= 7.5) to eliminate any 1-frame distance pops
+      // Rendered with continuous sub-pixel LOD cross-fading to eliminate any 1-frame distance pops.
+      // On mobile devices, require rad >= 38.0 so distant worlds render via lightweight 2D vectors.
       let blended3DCanvas = null;
-      if (typeof LivingPlanetEngine !== 'undefined' && LivingPlanetEngine.enabled && rad >= 7.5 && typeof THREE !== 'undefined') {
+      const minLivingRad = _isMobileDevice ? 38.0 : 7.5;
+      if (typeof LivingPlanetEngine !== 'undefined' && LivingPlanetEngine.enabled && rad >= minLivingRad && typeof THREE !== 'undefined') {
         const offCanvas = LivingPlanetEngine.renderPlanet(m, rad, [lx, ly, lz], camera);
         if (offCanvas) {
           const drawD = LivingPlanetEngine.getDrawSize(rad);
-          const blendAlpha3D = clamp((rad - 7.5) / 3.0, 0, 1);
+          const blendAlpha3D = clamp((rad - minLivingRad) / 4.0, 0, 1);
           if (blendAlpha3D >= 0.99) {
             ctx.imageSmoothingEnabled = true;
             ctx.drawImage(offCanvas, cx - drawD * 0.5, cy - drawD * 0.5, drawD, drawD);
@@ -11072,10 +11074,10 @@ function bootHoleGL(){
     if (_isMobileDevice) {
       tunedFS = tunedFS.replace(
         'for (int i = 0; i < 540; i++)',
-        'for (int i = 0; i < 180; i++)'
+        'for (int i = 0; i < 42; i++)'
       ).replace(
         'float dt = clamp(r < 6.5 ? (r - 0.96) * 0.020 : r * 0.048, 0.005, 2.5);',
-        'float dt = clamp(r < 6.5 ? (r - 0.96) * 0.032 : r * 0.060, 0.008, 2.5);'
+        'float dt = clamp(r < 6.5 ? (r - 0.96) * 0.075 : r * 0.140, 0.015, 3.5);'
       );
     }
     gl.shaderSource(fs,tunedFS);
@@ -11188,7 +11190,7 @@ function drawHole(m, q, p, t, rad){
     });
   }
 
-  if (!holeGL || rad < 1.2) { return; }
+  if (!holeGL || rad < (_isMobileDevice ? 16.0 : 1.2)) { return; }
   const G = holeGL, DRAW = rad * 5.27;
   holeDraws++; holeLastRad = Math.round(rad);
   glow([m.x, m.y, m.z], rad * 5.2, [255, 180, 85], 0.28, 2.6);
@@ -11207,7 +11209,7 @@ function drawHole(m, q, p, t, rad){
   // SPRITE_CAP existed but was never read: a hole filling the viewport at
   // DPR 2 asked for W*H*4 pixels, each one marching 540 rays. Scale the
   // buffer (never the geometry) and let drawImage upscale it.
-  const spriteCap = (window.STARFIELD_QUALITY && window.STARFIELD_QUALITY.getHoleSpriteCap) ? window.STARFIELD_QUALITY.getHoleSpriteCap() : (_isMobileDevice ? 512 : 1280);
+  const spriteCap = (window.STARFIELD_QUALITY && window.STARFIELD_QUALITY.getHoleSpriteCap) ? window.STARFIELD_QUALITY.getHoleSpriteCap() : (_isMobileDevice ? 256 : 1280);
   const sc = Math.min(1, spriteCap / Math.max(pw0, ph0));
   const pw = Math.max(1, Math.round(pw0 * sc));
   const ph = Math.max(1, Math.round(ph0 * sc));
@@ -14766,7 +14768,7 @@ const bandStars=Array.from({length:coarse?4800:8800},(_,i)=>{
 });
 if(typeof window!=='undefined'){window.bandStars=bandStars;}
 /* ============================================================
-   STARFIELD HARDWARE ACCELERATOR (Build 188)
+   STARFIELD HARDWARE ACCELERATOR (Build 189)
    Bottom-up hardware engine for 60 FPS mobile rendering:
    1. StarfieldWasm: Compiled Wasm vector & perspective math engine
    2. StarfieldGL: GPU Point Sprites & Warp Lines hardware pipeline
@@ -14820,14 +14822,14 @@ function bootStarfieldGL(stars, bandStars) {
 
     uniform vec4 uLens0;
     uniform vec4 uLens1;
-    uniform float uHasLens;
+    uniform mediump float uHasLens;
 
     uniform float uEps;
     uniform vec3 uTravelDir;
     uniform mediump float uIsLine;
 
-    out float vAlpha;
-    out float vTw;
+    out mediump float vAlpha;
+    out mediump float vTw;
 
     vec2 applyLens(vec2 pt) {
       if (uHasLens < 0.5) return pt;
@@ -14939,14 +14941,14 @@ function bootStarfieldGL(stars, bandStars) {
 
     uniform vec4 uLens0;
     uniform vec4 uLens1;
-    uniform float uHasLens;
+    uniform mediump float uHasLens;
 
     uniform float uEps;
     uniform vec3 uTravelDir;
     uniform mediump float uIsLine;
 
-    varying float vAlpha;
-    varying float vTw;
+    varying mediump float vAlpha;
+    varying mediump float vTw;
 
     vec2 applyLens(vec2 pt) {
       if (uHasLens < 0.5) return pt;
@@ -15034,9 +15036,9 @@ function bootStarfieldGL(stars, bandStars) {
 
     const fsSrc = isGL2 ? `#version 300 es
     precision mediump float;
-    in float vAlpha;
-    in float vTw;
-    uniform vec3 uInk;
+    in mediump float vAlpha;
+    in mediump float vTw;
+    uniform mediump vec3 uInk;
     uniform mediump float uIsLine;
     out vec4 fragColor;
     void main() {
@@ -15051,9 +15053,9 @@ function bootStarfieldGL(stars, bandStars) {
       }
     }` : `
     precision mediump float;
-    varying float vAlpha;
-    varying float vTw;
-    uniform vec3 uInk;
+    varying mediump float vAlpha;
+    varying mediump float vTw;
+    uniform mediump vec3 uInk;
     uniform mediump float uIsLine;
     void main() {
       if (uIsLine > 0.5) {
@@ -16031,7 +16033,7 @@ function drawSky(){
     );
     ctx.drawImage(starfieldGL.cv, 0, 0, W, H);
   } else if (eps > 0) {
-    const cpuLimit = _isMobileDevice ? Math.min(limit, 1800) : limit;
+    const cpuLimit = _isMobileDevice ? Math.min(limit, 450) : limit;
     if (!window._sfStarEpsBuckets) window._sfStarEpsBuckets = [[], [], [], []];
     const epsBuckets = window._sfStarEpsBuckets;
     for (let bi = 0; bi < 4; bi++) epsBuckets[bi].length = 0;
@@ -16086,7 +16088,7 @@ function drawSky(){
       ctx.stroke();
     }
   } else {
-    const cpuLimit = _isMobileDevice ? Math.min(limit, 1800) : limit;
+    const cpuLimit = _isMobileDevice ? Math.min(limit, 450) : limit;
     for (let i = 0; i < cpuLimit; i++) {
       const st = stars[i]; if (!st) continue;
       const d = StarfieldWasm.projectZ(st.x, st.y, st.z, fwX, fwY, fwZ);
@@ -16198,7 +16200,9 @@ function drawSky(){
     if(!window._sfBandEps) window._sfBandEps=[];
     const bb=window._sfBandEps;
     bb.length=0;
-    for(const st of bandStars){
+    const maxBandCount = _isMobileDevice ? 240 : bandStars.length;
+    for(let bi = 0; bi < maxBandCount; bi++){
+     const st = bandStars[bi];
      const d=bdir(st.ca,st.sa,st.g+_rg.bandG);
      const dot=StarfieldWasm.dot3(d[0],d[1],d[2],fwX,fwY,fwZ);
      if(dot<=minConeDot)continue;
@@ -16235,7 +16239,9 @@ function drawSky(){
     const bb2D=window._sfBandBuckets2D;
     for(let bi=0;bi<4;bi++) bb2D[bi].length=0;
     const timePhaseBand = time * 0.42;
-    for(const st of bandStars){
+    const maxBandCount = _isMobileDevice ? 240 : bandStars.length;
+    for(let bi = 0; bi < maxBandCount; bi++){
+     const st = bandStars[bi];
      const d=bdir(st.ca,st.sa,st.g+_rg.bandG);
      const dot=StarfieldWasm.dot3(d[0],d[1],d[2],fwX,fwY,fwZ);
      if(dot<=minConeDot)continue;
@@ -16733,8 +16739,8 @@ function postPass(){
   bloomCtx.drawImage(canvas,0,0,bw,bh);bloomCtx.filter='none';
   ctx.save();ctx.setTransform(1,0,0,1,0,0);ctx.globalCompositeOperation='lighter';
   ctx.globalAlpha=.28;ctx.imageSmoothingQuality='low';ctx.drawImage(bloom,0,0,dw,dh);ctx.restore();
- } else if (_isMobileDevice && postOn) {
-  // Mobile ultra-fast zero-filter bloom: hardware downscale + lighter composite (0.05ms, 0 CPU stall)
+ } else if (_isMobileDevice && postOn && (window.STARFIELD_QUALITY && window.STARFIELD_QUALITY.profile === '2k')) {
+  // Mobile 2K zero-filter bloom
   const bw=Math.max(1,dw>>2),bh=Math.max(1,dh>>2);
   if(bloom.width!==bw||bloom.height!==bh){bloom.width=bw;bloom.height=bh;}
   bloomCtx.setTransform(1,0,0,1,0,0);bloomCtx.globalCompositeOperation='copy';
@@ -16743,10 +16749,23 @@ function postPass(){
   ctx.save();ctx.setTransform(1,0,0,1,0,0);ctx.globalCompositeOperation='lighter';
   ctx.globalAlpha=.18;ctx.imageSmoothingQuality='low';ctx.drawImage(bloom,0,0,dw,dh);ctx.restore();
  }
- const vw=Math.max(64,Math.round(W/6)),vh=Math.max(36,Math.round(H/6));
- if(vig.width!==vw||vig.height!==vh)buildVignette(vw,vh);
- ctx.save();ctx.setTransform(1,0,0,1,0,0);ctx.globalCompositeOperation='multiply';
- ctx.imageSmoothingQuality='low';ctx.drawImage(vig,0,0,dw,dh);ctx.restore();
+ if (_isMobileDevice) {
+  // Direct procedural radial vignette: zero texture allocation & zero GPU tile stall
+  const rDiag = Math.hypot(W, H) * 0.68;
+  const vGrad = ctx.createRadialGradient(W * 0.5, H * 0.5, rDiag * 0.42, W * 0.5, H * 0.5, rDiag);
+  vGrad.addColorStop(0, 'rgba(0,0,0,0)');
+  vGrad.addColorStop(1, 'rgba(0,0,0,0.36)');
+  ctx.save();
+  ctx.globalCompositeOperation = 'multiply';
+  ctx.fillStyle = vGrad;
+  ctx.fillRect(0, 0, W, H);
+  ctx.restore();
+ } else {
+  const vw=Math.max(64,Math.round(W/6)),vh=Math.max(36,Math.round(H/6));
+  if(vig.width!==vw||vig.height!==vh)buildVignette(vw,vh);
+  ctx.save();ctx.setTransform(1,0,0,1,0,0);ctx.globalCompositeOperation='multiply';
+  ctx.imageSmoothingQuality='low';ctx.drawImage(vig,0,0,dw,dh);ctx.restore();
+ }
  postMs=postMs*.9+(performance.now()-t0)*.1;
  fillPx+=W*H*3.25;
 }
@@ -18510,19 +18529,19 @@ window.STARFIELD_QUALITY = {
     return 0; // 0 = 无上限，跟随屏幕物理硬件最高刷新率
   },
   getHoleSpriteCap() {
-    if (this.profile === 'powersave') return 384;
-    if (_isMobileDevice || this.profile === 'balanced') return 512;
+    if (this.profile === 'powersave') return 192;
+    if (_isMobileDevice || this.profile === 'balanced') return 256;
     return 1280;
   },
   getMaxDPR() {
     const raw = window.devicePixelRatio || 1.0;
-    const cap = _isMobileDevice ? (this.tierCap.mobile || 2.0) : (this.tierCap[_GPU.tier] || 2.0);
+    const cap = _isMobileDevice ? 1.75 : (this.tierCap[_GPU.tier] || 2.0);
     if (this.profile === '2k') {
-      const limit = _isMobileDevice ? 2.75 : 3.0;
+      const limit = _isMobileDevice ? 2.0 : 3.0;
       return Math.min(raw, Math.max(cap, limit));
     }
-    if (this.profile === 'balanced') return Math.min(raw, cap);
-    return Math.min(raw, 1.25);
+    if (this.profile === 'balanced') return Math.min(raw, _isMobileDevice ? 1.5 : cap);
+    return Math.min(raw, 1.0);
   },
   setProfile(p) {
     if (!['2k', 'balanced', 'powersave'].includes(p)) return;
@@ -18844,6 +18863,7 @@ function frame(now){
  } else {
   lastRenderTime = now;
  }
+ if (window.LivingPlanetEngine) window.LivingPlanetEngine._mobileRenderedThisFrame = false;
  const tFrameStart = performance.now();
  const realDt=Math.min(.05,Math.max(.001,(now-last)/1000));last=now;
  stepDeparture(realDt);
@@ -18920,6 +18940,19 @@ function frame(now){
   hudLastT = now;
   if (window.STARFIELD_QUALITY && window.STARFIELD_QUALITY.updatePerfHud) {
    window.STARFIELD_QUALITY.updatePerfHud(realFps, refreshHz, DPR, qualityScale, frameDurationMs);
+  }
+  if (_isMobileDevice && realFps > 0 && realFps < 22) {
+   window._sfLowFpsStreak = (window._sfLowFpsStreak || 0) + 1;
+   if (window._sfLowFpsStreak >= 3) {
+    window._sfLowFpsStreak = 0;
+    if (window.STARFIELD_QUALITY && window.STARFIELD_QUALITY.profile !== 'balanced') {
+     window.STARFIELD_QUALITY.setProfile('balanced');
+    }
+    if (qualityScale > 0.8) { qualityScale = 0.8; resize(); }
+    if (window.LivingPlanetEngine) window.LivingPlanetEngine.enabled = false;
+   }
+  } else if (_isMobileDevice && realFps >= 30) {
+   window._sfLowFpsStreak = 0;
   }
  }
  if(!hzDone&&realDt>0.001){
@@ -22679,10 +22712,13 @@ requestAnimationFrame(frame);
       const neededPixels = Math.round(drawD * dpr);
 
       let target = 512;
-      if (neededPixels > 550 || rad >= 80) {
-        target = 1024; // High-res 1024x1024 for approaching planets & close encounters
+      const isMob = (typeof window !== 'undefined' && window._isMobileDevice) || (typeof _isMobileDevice !== 'undefined' && _isMobileDevice);
+      if (isMob) {
+        target = (neededPixels > 300 || rad >= 60) ? 384 : 256;
+      } else if (neededPixels > 550 || rad >= 80) {
+        target = 1024;
       } else {
-        target = 512;  // Lightweight 512x512 for cruise phase
+        target = 512;
       }
 
       if (target > this.currentBufferSize) {
@@ -23259,6 +23295,13 @@ requestAnimationFrame(frame);
     renderPlanet(m, rad, lightDir, gameCam) {
       if (!this.initialized) this.init();
       if (!this.initialized || !m) return null;
+
+      // On mobile devices, throttle to at most ONE 3D planet rendered per frame to prevent GPU tile thrashing
+      const isMob = (typeof window !== 'undefined' && window._isMobileDevice) || (typeof _isMobileDevice !== 'undefined' && _isMobileDevice);
+      if (isMob && this._mobileRenderedThisFrame && this._lastRenderedId !== this.getPlanetId(m)) {
+        return null;
+      }
+      if (isMob) this._mobileRenderedThisFrame = true;
 
       const pId = this.getPlanetId(m);
       const model = this.getPlanetModel(m);
