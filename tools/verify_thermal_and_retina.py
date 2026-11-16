@@ -8,7 +8,7 @@ if sys.stdout.encoding.lower() != 'utf-8':
 from playwright.sync_api import sync_playwright
 
 def verify_thermal_and_retina():
-    html_path = os.path.abspath(r"d:\items\code\starfield-pub\starfield.html")
+    html_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'starfield.html'))
     file_url = f"file:///{html_path.replace(os.sep, '/')}"
 
     errors = []
@@ -121,7 +121,9 @@ def verify_thermal_and_retina():
         assert len(errors) == 0, f"Page had {len(errors)} errors: {errors}"
 
         # Take screenshot of sharp flight
-        shot_path = os.path.join(os.environ.get("ANTIGRAVITY_ARTIFACT_DIR", r"C:\Users\machine\.gemini\antigravity\brain\72ea3f45-0738-459a-8560-5853a3c36367"), "test_retina_sharp_flight.png")
+        artifacts_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), 'artifacts'))
+        os.makedirs(artifacts_dir, exist_ok=True)
+        shot_path = os.path.join(os.environ.get("ANTIGRAVITY_ARTIFACT_DIR", artifacts_dir), "test_retina_sharp_flight.png")
         page.screenshot(path=shot_path)
         print(f"   - Screenshot saved to: {shot_path}")
 

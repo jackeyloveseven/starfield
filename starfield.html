@@ -1457,7 +1457,7 @@ body.modal-open #sf-perf-hud {
   }
 }
 
-.sf-stardust-pill{display:inline-flex;align-items:center;gap:4px;font-family:ui-monospace,monospace;font-size:9.5px;letter-spacing:.12em;color:rgba(244,208,111,.92);text-shadow:0 0 10px rgba(244,208,111,.35);padding:2px 8px;border:1px solid rgba(244,208,111,.22);background:rgba(11,17,24,.65);border-radius:12px;pointer-events:none;margin-top:3px;}
+.sf-stardust-pill{display:inline-flex;align-items:center;gap:4px;font-family:ui-monospace,monospace;font-size:9.5px;letter-spacing:.12em;color:rgba(244,208,111,.92);text-shadow:0 0 10px rgba(244,208,111,.35);padding:2px 8px;border:1px solid rgba(244,208,111,.22);background:rgba(11,17,24,.65);border-radius:4px;pointer-events:none;margin-top:3px;}
 
 .sf-sonar-capsule{display:none !important;visibility:hidden !important;pointer-events:none !important;}
 .sf-sonar-capsule.show{opacity:1;pointer-events:auto;transform:translateX(-50%) translateY(0);}
@@ -1491,7 +1491,7 @@ body.modal-open #sf-perf-hud {
   padding: 3px 8px;
   background: rgba(15, 23, 42, 0.78);
   border: 1px solid rgba(56, 189, 248, 0.32);
-  border-radius: 12px;
+  border-radius: 4px;
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
@@ -1540,7 +1540,7 @@ body.modal-open #sf-perf-hud {
   background: rgba(15, 23, 42, 0.88);
   border: 1px solid rgba(52, 211, 153, 0.7);
   box-shadow: 0 0 24px rgba(52, 211, 153, 0.35);
-  border-radius: 24px;
+  border-radius: 4px;
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   z-index: 850;
@@ -1558,7 +1558,7 @@ body.modal-open #sf-perf-hud {
   border: none;
   color: #ffffff;
   padding: 4px 12px;
-  border-radius: 14px;
+  border-radius: 4px;
   font-weight: 600;
   font-size: 11.5px;
   cursor: pointer;
@@ -1598,7 +1598,7 @@ body.modal-open #sf-perf-hud {
   background: rgba(13, 20, 36, 0.95);
   border: 1px solid rgba(56, 189, 248, 0.35);
   box-shadow: 0 12px 48px rgba(0, 0, 0, 0.75), 0 0 24px rgba(56, 189, 248, 0.18);
-  border-radius: 16px;
+  border-radius: 4px;
   padding: 22px 24px;
   color: #f1f5f9;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -1628,7 +1628,7 @@ body.modal-open #sf-perf-hud {
   background: rgba(244, 208, 111, 0.12);
   border: 1px solid rgba(244, 208, 111, 0.35);
   padding: 3px 10px;
-  border-radius: 12px;
+  border-radius: 4px;
 }
 .sf-upgrades-grid {
   display: grid;
@@ -1638,7 +1638,7 @@ body.modal-open #sf-perf-hud {
 .sf-upgrade-card {
   background: rgba(30, 41, 59, 0.65);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 10px;
+  border-radius: 4px;
   padding: 12px 14px;
   display: flex;
   flex-direction: column;
@@ -1686,14 +1686,14 @@ body.modal-open #sf-perf-hud {
   color: #cbd5e1;
   background: rgba(0, 0, 0, 0.25);
   padding: 4px 8px;
-  border-radius: 6px;
+  border-radius: 4px;
 }
 .sf-upgrade-btn {
   background: linear-gradient(135deg, #0284c7, #0ea5e9);
   border: none;
   color: #ffffff;
   padding: 6px 12px;
-  border-radius: 8px;
+  border-radius: 4px;
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
@@ -4175,6 +4175,8 @@ body:has(#photo-ui.active) #edition-seed{
 body:has(#hangar-modal.open) .sf-touch-cluster,
 body:has(#codex-modal.open) .sf-touch-cluster,
 body:has(#settings-drawer.open) .sf-touch-cluster,
+body:has(#sf-upgrades-modal.open) .sf-touch-cluster,
+body.modal-open .sf-touch-cluster,
 body:has(#photo-ui.active) .sf-touch-cluster{
   display:none !important;
 }
@@ -4975,7 +4977,7 @@ body:has(#photo-ui.active) .sf-touch-cluster{
 
 <!-- BUILD 187: DEEP SPACE DOCKING BANNER -->
 <div id="sf-docking-prompt" class="sf-docking-banner">
-  <span>⛽</span>
+  <span style="color:#34d399;">◈</span>
   <span>已进近深空补给站停机坪</span>
   <button id="sf-dock-btn" class="sf-dock-action-btn">停靠并加满燃料 [E]</button>
 </div>
@@ -7888,8 +7890,17 @@ function updateDirector(dt){
  // 6. Damped Camera Integration
  const isSkimmingActive = skimRes && skimRes.active;
  const rate = (autoCamera || (capturePhase && autoCamera) || isSkimmingActive) ? 3.5 : 8.5;
+ if (!Number.isFinite(camera.yaw)) camera.yaw = 0;
+ if (!Number.isFinite(camera.pitch)) camera.pitch = 0.2;
+ if (!Number.isFinite(camera.distance) || camera.distance <= 10) camera.distance = 1200;
+ if (!Number.isFinite(camera.aimY)) camera.aimY = 0;
+ if (!Number.isFinite(camera.lane)) camera.lane = 0;
+ if (!Number.isFinite(camera.roll)) camera.roll = 0;
  camera.yaw += angleDelta(camera.yaw, goal.yaw) * (1 - Math.exp(-dt * rate));
  for(const k of ['pitch','distance','aimY','lane','roll']) camera[k] = expStep(camera[k], goal[k] || 0, rate, dt);
+ if (!Number.isFinite(camera.yaw)) camera.yaw = 0;
+ if (!Number.isFinite(camera.pitch)) camera.pitch = 0.2;
+ if (!Number.isFinite(camera.distance) || camera.distance <= 10) camera.distance = 1200;
 
  // 7. Smooth Target Settling
  if(!lookInit){lookSmooth[0]=lookTarget[0];lookSmooth[1]=lookTarget[1];lookSmooth[2]=lookTarget[2];lookInit=true;}
@@ -7927,7 +7938,7 @@ function updateDirector(dt){
  camera.eye = eye;
 
  let f = lookTarget.map((v,i) => v - eye[i]), flen = Math.hypot(...f);
- f = flen < 1e-5 ? [0,0,1] : f.map(v => v / flen);
+ f = (flen < 1e-5 || !Number.isFinite(flen)) ? [0,0,1] : f.map(v => v / flen);
  let r = [f[2], 0, -f[0]], rlen = Math.hypot(...r);
  if (rlen < 1e-4) {
   r = [Math.cos(camera.yaw), 0, Math.sin(camera.yaw)];
@@ -11771,13 +11782,14 @@ function drawGalaxy(g,p,t,pj){
  * glowing containment fields & rotating warning beacons.
  * ============================================================================ */
 function drawSupplyStation(st, pj, time) {
+  if (!pj || !Number.isFinite(pj[0]) || !Number.isFinite(pj[1]) || !Number.isFinite(pj[2])) return;
   const d = pj[2];
   const alpha = clamp((65000 - d) / 30000, 0, 1);
   if (alpha <= 0.01) return;
   const qx = pj[0], qy = pj[1];
-  const scale = pj[3];
-  const padL = Math.max(16, st.padLen * scale);
-  const padW = Math.max(7, st.padWidth * scale);
+  const scale = (Number.isFinite(pj[3]) && pj[3] > 0) ? pj[3] : 0.001;
+  const padL = Math.max(16, (st.padLen || 780) * scale);
+  const padW = Math.max(7, (st.padWidth || 280) * scale);
 
   ctx.save();
   ctx.translate(qx, qy);
@@ -11858,7 +11870,8 @@ function drawSupplyStation(st, pj, time) {
   // Holographic signage
   if (padL > 45) {
     ctx.fillStyle = `rgba(56, 189, 248, ${(0.85 * alpha).toFixed(3)})`;
-    ctx.font = `${Math.max(9, Math.round(11 * scale * 10))}px monospace`;
+    const fontSize = clamp(Math.round(11 * (Number.isFinite(scale) ? scale : 0.1) * 10), 9, 28);
+    ctx.font = `${fontSize}px monospace`;
     ctx.textAlign = 'center';
     ctx.fillText('DEPOT-07 // REFUEL', 0, padW * 0.5 + 14);
   }
@@ -11894,6 +11907,8 @@ function bodies(){
   for(const st of (c.stations||[])){
    const pj=project([st.x,st.y,st.z]);
    if(!pj||pj[2]>65000)continue;
+   const padR = Math.max(24, (st.r || 650) * pj[3]);
+   if(pj[0]+padR<-100||pj[0]-padR>W+100||pj[1]+padR<-100||pj[1]-padR>H+100)continue;
    drawSupplyStation(st,pj,time);
   }
   // Render procedural space events (frustum-culled)
@@ -12005,14 +12020,16 @@ function updateGravity(){
    }
   }
  }
+ window.activeMasses = activeMasses;
  if (typeof LivingPlanetEngine !== 'undefined' && LivingPlanetEngine.enabled && typeof THREE !== 'undefined') {
   LivingPlanetEngine.prewarmUpcoming(activeMasses, travel);
  }
 }
 function flockCentre(){
- let x=0,y=0,z=0;for(const b of fleet){x+=b.x;y+=b.y;z+=b.z;}
- const n=fleet.length;
- return [routeX(travel)+x/n,courseY(travel)+y/n,travel+z/n];
+ let x=0,y=0,z=0;for(const b of fleet){x+=(b.x||0);y+=(b.y||0);z+=(b.z||0);}
+ const n=Math.max(1,fleet.length);
+ const tz=Number.isFinite(travel)?travel:0;
+ return [routeX(tz)+x/n,courseY(tz)+y/n,tz+z/n];
 }
 /* The corridor damps every step, so an honest slingshot could never come out
  * faster. Make the boost a narrative beat instead, decided by impact
@@ -12711,7 +12728,7 @@ const StarfieldInFlightExtraction = {
   cargo: [],
   maxCargo: 6,
   securedCredits: (function() {
-    try { return parseInt(localStorage.getItem('sf_secured_credits_v1') || '0', 10) || 0; }
+    try { return Math.max(0, parseInt(localStorage.getItem('sf_secured_credits_v1') || '0', 10) || 0); }
     catch(e) { return 0; }
   })(),
   salvageTarget: null,
@@ -12730,15 +12747,17 @@ const StarfieldInFlightExtraction = {
     this.updateStardustHUD();
   },
   addSecuredCredits(amount, ignoreMultiplier) {
-    if (typeof amount !== 'number' || isNaN(amount)) return;
+    if (typeof amount !== 'number' || !Number.isFinite(amount) || amount <= 0) return;
     const bonus = (!ignoreMultiplier && window.StarfieldShipUpgrades && window.StarfieldShipUpgrades.getTractorMultiplier)
       ? window.StarfieldShipUpgrades.getTractorMultiplier()
       : 1.0;
-    const finalAmount = Math.round(amount * bonus);
+    const validBonus = (Number.isFinite(bonus) && bonus >= 1.0) ? bonus : 1.0;
+    const finalAmount = Math.max(0, Math.round(amount * validBonus));
     this.securedCredits = Math.max(0, this.securedCredits + finalAmount);
     this.saveSecuredCredits();
   },
   spendSecuredCredits(amount) {
+    if (typeof amount !== 'number' || !Number.isFinite(amount) || amount <= 0) return false;
     if (this.securedCredits >= amount) {
       this.securedCredits -= amount;
       this.saveSecuredCredits();
@@ -12775,6 +12794,7 @@ const StarfieldInFlightExtraction = {
     window.addEventListener('keydown', (e) => {
       if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable)) return;
       if ((typeof currentMode !== 'undefined' && currentMode !== 'cruise') || (typeof window !== 'undefined' && window.currentMode && window.currentMode !== 'cruise')) return;
+      if (window.Starfield && typeof window.Starfield.isModalOpen === 'function' && window.Starfield.isModalOpen()) return;
       if ((e.key.toLowerCase() === 'e' || e.code === 'KeyE') && !e.repeat) {
         if (window._activeDockStation) { dockAtStation(window._activeDockStation); } else if (this.salvageTarget) { this.fastLoot(); }
       }
@@ -13661,17 +13681,26 @@ const StarfieldFuelEngine = {
   init() {
     if (this._inited) return;
     this._inited = true;
+    if (window.StarfieldShipUpgrades && typeof window.StarfieldShipUpgrades.init === 'function') {
+      window.StarfieldShipUpgrades.init();
+    }
     try {
       const saved = localStorage.getItem('sf_fuel_level_v1');
       if (saved !== null) {
-        this.fuel = Math.min(this.maxFuel, Math.max(0, parseFloat(saved)));
-        if (this.fuel <= 0.05) this.isDrifting = true;
+        const val = parseFloat(saved);
+        if (Number.isFinite(val)) {
+          this.fuel = clamp(val, 0, this.maxFuel);
+          if (this.fuel <= 0.05) this.isDrifting = true;
+        }
       }
     } catch(e) {}
     this.updateHUD();
   },
 
-  save() {
+  save(force) {
+    const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+    if (!force && this._lastSaveTime && (now - this._lastSaveTime < 1000)) return;
+    this._lastSaveTime = now;
     try {
       localStorage.setItem('sf_fuel_level_v1', this.fuel.toFixed(1));
     } catch(e) {}
@@ -13679,12 +13708,14 @@ const StarfieldFuelEngine = {
 
   update(dt, isWarping, isStationDocked) {
     if (!this._inited) this.init();
-    if (isStationDocked) return;
+    if (!Number.isFinite(dt) || dt <= 0 || isStationDocked) return;
+    if (!Number.isFinite(this.fuel)) this.fuel = this.maxFuel;
 
     if (this.isDrifting) {
       this.fuel = Math.min(this.maxFuel, this.fuel + dt * 0.85);
       if (this.fuel >= 15) {
         this.isDrifting = false;
+        this.save(true);
         if (typeof showToast === 'function') {
           showToast('【动力重启】太阳能蓄能已达标 · 恢复亚光速巡航推进', 3);
         } else if (typeof window.toast === 'function') {
@@ -13695,6 +13726,7 @@ const StarfieldFuelEngine = {
       if (this.fuel <= 0.05) {
         this.fuel = 0;
         this.isDrifting = true;
+        this.save(true);
         if (typeof WarpDrive !== 'undefined') {
           WarpDrive.gearIndex = 0;
           WarpDrive.isHolding = false;
@@ -13720,14 +13752,14 @@ const StarfieldFuelEngine = {
   refuel(amount) {
     this.fuel = Math.min(this.maxFuel, this.fuel + amount);
     if (this.fuel > 10) this.isDrifting = false;
-    this.save();
+    this.save(true);
     this.updateHUD();
   },
 
   fullRefuel() {
     this.fuel = this.maxFuel;
     this.isDrifting = false;
-    this.save();
+    this.save(true);
     this.updateHUD();
   },
 
@@ -13738,7 +13770,7 @@ const StarfieldFuelEngine = {
       hud.id = 'sf-fuel-hud';
       hud.className = 'sf-fuel-gauge';
       hud.title = '反物质燃料储备 · 点击打开装备升级';
-      hud.innerHTML = '<span style="font-size:11px;">⚡</span><div class="sf-fuel-bar"><div id="sf-hud-fuel-fill" class="sf-fuel-fill"></div></div><span id="sf-hud-fuel-text" class="sf-fuel-label">燃料 100%</span>';
+      hud.innerHTML = '<span style="font-size:11px; color:#38bdf8;">✦</span><div class="sf-fuel-bar"><div id="sf-hud-fuel-fill" class="sf-fuel-fill"></div></div><span id="sf-hud-fuel-text" class="sf-fuel-label">燃料 100%</span>';
       hud.addEventListener('click', () => {
         if (window.StarfieldShipUpgrades) window.StarfieldShipUpgrades.toggleModal();
       });
@@ -13787,7 +13819,7 @@ const StarfieldShipUpgrades = {
     engineSpeed: {
       name: '曲率推进引擎',
       desc: '强化舰载亚光速巡航与曲率跃迁引擎推进功率',
-      icon: '⚡',
+      icon: '▲',
       maxLevel: 5,
       costs: [150, 350, 750, 1500],
       stat: (lvl) => `航速倍率: ${(1 + (lvl - 1) * 0.12).toFixed(2)}x`
@@ -13795,7 +13827,7 @@ const StarfieldShipUpgrades = {
     fuelCapacity: {
       name: '反物质燃料箱',
       desc: '扩容磁约束反物质燃料储罐与电浆储备舱',
-      icon: '⛽',
+      icon: '◈',
       maxLevel: 5,
       costs: [120, 300, 650, 1400],
       stat: (lvl) => `燃料容量: ${100 + (lvl - 1) * 75} 单位`
@@ -13803,7 +13835,7 @@ const StarfieldShipUpgrades = {
     burnEfficiency: {
       name: '热核燃烧工效',
       desc: '优化超光速工质裂变催化与等离子喷注效率',
-      icon: '🔥',
+      icon: '✦',
       maxLevel: 5,
       costs: [150, 350, 750, 1500],
       stat: (lvl) => `能耗节省: -${((lvl - 1) * 15)}%`
@@ -13811,7 +13843,7 @@ const StarfieldShipUpgrades = {
     shieldHarmonics: {
       name: '偏折能量护盾',
       desc: '增强高能偏导护盾对空间微流星与辐射的防御',
-      icon: '🛡️',
+      icon: '⬡',
       maxLevel: 5,
       costs: [100, 250, 550, 1200],
       stat: (lvl) => `护盾谐振: Lv.${lvl}`
@@ -13819,7 +13851,7 @@ const StarfieldShipUpgrades = {
     deepRadar: {
       name: '深空阵列雷达',
       desc: '提升主动声呐测绘波束探测距离与天体解析力',
-      icon: '📡',
+      icon: '⊕',
       maxLevel: 5,
       costs: [120, 280, 600, 1300],
       stat: (lvl) => `探测范围: +${((lvl - 1) * 25)}%`
@@ -13827,7 +13859,7 @@ const StarfieldShipUpgrades = {
     tractorBeam: {
       name: '采矿牵引光束',
       desc: '提高对深空遗迹残骸与天体矿脉的星尘捕获效率',
-      icon: '🧲',
+      icon: '◆',
       maxLevel: 5,
       costs: [150, 320, 700, 1450],
       stat: (lvl) => `星尘增益: +${((lvl - 1) * 30)}%`
@@ -13842,7 +13874,7 @@ const StarfieldShipUpgrades = {
       if (saved) {
         const parsed = JSON.parse(saved);
         for (const k in this.levels) {
-          if (typeof parsed[k] === 'number') this.levels[k] = clamp(parsed[k], 1, 5);
+          if (typeof parsed[k] === 'number' && Number.isFinite(parsed[k])) this.levels[k] = clamp(Math.floor(parsed[k]), 1, 5);
         }
       }
     } catch(e) {}
@@ -13945,7 +13977,11 @@ const StarfieldShipUpgrades = {
             gain.gain.setValueAtTime(0.2, ctx.currentTime);
             gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.35);
             osc.connect(gain);
-            gain.connect(ctx.destination);
+            const sfxDest = (window.StarfieldAudio && window.StarfieldAudio.sfxBus) ? window.StarfieldAudio.sfxBus : ctx.destination;
+            gain.connect(sfxDest);
+            osc.onended = () => {
+              try { osc.disconnect(); gain.disconnect(); } catch(e) {}
+            };
             osc.start();
             osc.stop(ctx.currentTime + 0.35);
           }
@@ -14028,7 +14064,11 @@ function dockAtStation(st) {
       gain.gain.setValueAtTime(0.2, ctx.currentTime);
       gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
       osc.connect(gain);
-      gain.connect(ctx.destination);
+      const sfxDest = (window.StarfieldAudio && window.StarfieldAudio.sfxBus) ? window.StarfieldAudio.sfxBus : ctx.destination;
+      gain.connect(sfxDest);
+      osc.onended = () => {
+        try { osc.disconnect(); gain.disconnect(); } catch(e) {}
+      };
       osc.start();
       osc.stop(ctx.currentTime + 0.5);
     }
@@ -14097,7 +14137,8 @@ const StarfieldOrbitalMechanics = {
     let lastTapTime = 0;
     window.addEventListener('touchend', (e) => {
       if ((typeof currentMode !== 'undefined' && currentMode !== 'cruise') || (typeof window !== 'undefined' && window.currentMode && window.currentMode !== 'cruise')) return;
-      if (e.target && e.target.closest && e.target.closest('button, .sf-drawer, #codex-modal, #sf-hatch, .sf-mobile-drawer, .hud-panel, #masthead, #controls, #sf-contract-hud, [role="button"], #settings-drawer, .sf-touch-more-tray, .sf-touch-joy-zone, .sf-clean-hud-btn, #sf-descent-btn, #sf-sonar-capsule')) return;
+      if (window.Starfield && typeof window.Starfield.isModalOpen === 'function' && window.Starfield.isModalOpen()) return;
+      if (e.target && e.target.closest && e.target.closest('button, .sf-drawer, #codex-modal, #sf-hatch, .sf-mobile-drawer, .hud-panel, #masthead, #controls, #sf-contract-hud, [role="button"], #settings-drawer, .sf-touch-more-tray, .sf-touch-joy-zone, .sf-clean-hud-btn, #sf-descent-btn, #sf-sonar-capsule, #sf-upgrades-modal, .sf-upgrades-panel, #sf-docking-prompt')) return;
       const now = performance.now();
       if (now - lastTapTime < 320) {
         this.launchProbe();
@@ -15435,10 +15476,11 @@ function drawSky(){
       const d = st.x * fwX + st.y * fwY + st.z * fwZ;
       if (d <= minConeDot) continue;
       const invD = camFocal / d;
+      const pad = hasLens ? 120 : 24;
       const x = camCx + (st.x * rtX + st.y * rtY + st.z * rtZ) * invD;
-      if (x < -20 || x > W + 20) continue;
+      if (x < -pad || x > W + pad) continue;
       const y = camCy - (st.x * upX + st.y * upY + st.z * upZ) * invD;
-      if (y < -20 || y > H + 20) continue;
+      if (y < -pad || y > H + pad) continue;
 
       const tier = st.mag > .70 ? 3 : st.mag > .40 ? 2 : st.mag > .16 ? 1 : 0;
       const du = st.x * ux + st.z * uz;
@@ -15452,8 +15494,10 @@ function drawSky(){
         if (hasLens) {
           const w1 = lensWarp(x, y);
           const w2 = lensWarp(ex2, ey2);
+          if ((w1[0] < -24 && w2[0] < -24) || (w1[0] > W + 24 && w2[0] > W + 24) || (w1[1] < -24 && w2[1] < -24) || (w1[1] > H + 24 && w2[1] > H + 24)) continue;
           epsBuckets[tier].push(w1[0], w1[1], w2[0], w2[1], st.size);
         } else {
+          if ((x < -24 && ex2 < -24) || (x > W + 24 && ex2 > W + 24) || (y < -24 && ey2 < -24) || (y > H + 24 && ey2 > H + 24)) continue;
           epsBuckets[tier].push(x, y, ex2, ey2, st.size);
         }
       }
@@ -15483,14 +15527,17 @@ function drawSky(){
       if (d <= minConeDot) continue;
       const invD = camFocal / d;
       let x = camCx + (st.x * rtX + st.y * rtY + st.z * rtZ) * invD;
-      if (x < -6 || x > W + 6) continue;
+      const pad = hasLens ? 120 : 24;
+      if (x < -pad || x > W + pad) continue;
       let y = camCy - (st.x * upX + st.y * upY + st.z * upZ) * invD;
-      if (y < -6 || y > H + 6) continue;
+      if (y < -pad || y > H + pad) continue;
 
       if (hasLens) {
         const w = lensWarp(x, y);
         x = w[0]; y = w[1];
-        if (x < -6 || x > W + 6 || y < -6 || y > H + 6) continue;
+        if (x < -16 || x > W + 16 || y < -16 || y > H + 16) continue;
+      } else {
+        if (x < -16 || x > W + 16 || y < -16 || y > H + 16) continue;
       }
 
       const tier = st.mag > .70 ? 3 : st.mag > .40 ? 2 : st.mag > .16 ? 1 : 0;
@@ -15588,10 +15635,11 @@ function drawSky(){
      const dot=d[0]*fwX+d[1]*fwY+d[2]*fwZ;
      if(dot<=minConeDot)continue;
      const invD=camFocal/dot;
+     const pad=hasLens?120:24;
      let x=camCx+(d[0]*rtX+d[1]*rtY+d[2]*rtZ)*invD;
-     if(x<-6||x>W+6)continue;
+     if(x<-pad||x>W+pad)continue;
      let y=camCy-(d[0]*upX+d[1]*upY+d[2]*upZ)*invD;
-     if(y<-6||y>H+6)continue;
+     if(y<-pad||y>H+pad)continue;
      if(hasLens){const w=lensWarp(x,y);x=w[0];y=w[1];}
      const du=d[0]*ux+d[2]*uz;
      const ex=d[0]+eps*(d[0]-du*ux),ey=d[1]+eps*d[1],ez=d[2]+eps*(d[2]-du*uz);
@@ -15602,6 +15650,7 @@ function drawSky(){
       let ex2=camCx+((ex/el)*rtX+(ey/el)*rtY+(ez/el)*rtZ)*einv;
       let ey2=camCy-((ex/el)*upX+(ey/el)*upY+(ez/el)*upZ)*einv;
       if(hasLens){const w2=lensWarp(ex2,ey2);ex2=w2[0];ey2=w2[1];}
+      if(hasLens){if((x<-20&&ex2<-20)||(x>W+20&&ex2>W+20)||(y<-20&&ey2<-20)||(y>H+20&&ey2>H+20))continue;}
       bb.push(x,y,ex2,ey2);
      }
     }
@@ -15623,11 +15672,13 @@ function drawSky(){
      const dot=d[0]*fwX+d[1]*fwY+d[2]*fwZ;
      if(dot<=minConeDot)continue;
      const invD=camFocal/dot;
+     const pad=hasLens?120:24;
      let x=camCx+(d[0]*rtX+d[1]*rtY+d[2]*rtZ)*invD;
-     if(x<-6||x>W+6)continue;
+     if(x<-pad||x>W+pad)continue;
      let y=camCy-(d[0]*upX+d[1]*upY+d[2]*upZ)*invD;
-     if(y<-6||y>H+6)continue;
-     if(hasLens){const w=lensWarp(x,y);x=w[0];y=w[1];if(x<-6||x>W+6||y<-6||y>H+6)continue;}
+     if(y<-pad||y>H+pad)continue;
+     if(hasLens){const w=lensWarp(x,y);x=w[0];y=w[1];if(x<-16||x>W+16||y<-16||y>H+16)continue;}
+     else{if(x<-16||x>W+16||y<-16||y>H+16)continue;}
      const ph = Math.floor(((Math.sin(timePhaseBand + st.phase) + 1) * 0.5) * 3.99);
      bb2D[ph].push(x,y,st.size);
     }
@@ -17730,7 +17781,8 @@ if(typeof FleetCustomizer !== 'undefined' && FleetCustomizer.init){
 $('warp-toggle').addEventListener('click', () => WarpDrive.cycle());
 window.addEventListener('keydown', e => {
   if ((typeof currentMode !== 'undefined' && currentMode !== 'cruise') || (window.currentMode && window.currentMode !== 'cruise')) return;
-  if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+  if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || (e.target && e.target.isContentEditable)) return;
+  if (window.Starfield && typeof window.Starfield.isModalOpen === 'function' && window.Starfield.isModalOpen()) return;
   if (e.key === 'Shift' || e.code === 'KeyW') {
     if (!e.repeat) WarpDrive.setHold(true);
   } else if (e.code === 'KeyG') {
@@ -17739,6 +17791,7 @@ window.addEventListener('keydown', e => {
 });
 window.addEventListener('keyup', e => {
   if ((typeof currentMode !== 'undefined' && currentMode !== 'cruise') || (window.currentMode && window.currentMode !== 'cruise')) return;
+  if (window.Starfield && typeof window.Starfield.isModalOpen === 'function' && window.Starfield.isModalOpen()) return;
   if (e.key === 'Shift' || e.code === 'KeyW') {
     WarpDrive.setHold(false);
   }
@@ -17752,6 +17805,53 @@ window.addEventListener('keydown',e=>{
  if ((typeof currentMode !== 'undefined' && currentMode !== 'cruise') || (window.currentMode && window.currentMode !== 'cruise')) return;
  if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || (e.target && e.target.isContentEditable)) return;
  if(!started||e.ctrlKey||e.metaKey||e.altKey)return;
+ const isModal = window.Starfield && typeof window.Starfield.isModalOpen === 'function' && window.Starfield.isModalOpen();
+ if(e.key==='Escape'){
+   if(window.StarfieldShipUpgrades&&window.StarfieldShipUpgrades.isOpen)window.StarfieldShipUpgrades.closeModal();
+   else if(PhotoStudio.active)PhotoStudio.close();
+   else if(typeof FleetCustomizer !== 'undefined' && FleetCustomizer.isOpen)FleetCustomizer.close();
+   else if($('hangar-modal') && $('hangar-modal').classList.contains('open'))$('hangar-modal').classList.remove('open');
+   else if($('codex-modal').classList.contains('open'))Codex.close();
+   else if($('sf-hatch-list') && $('sf-hatch-list').classList.contains('on'))$('sf-hatch-list').classList.remove('on');
+   else if($('sf-hatch') && $('sf-hatch').classList.contains('active'))$('sf-hatch').classList.remove('active');
+   else if(window.StarfieldFocusEngine&&window.StarfieldFocusEngine.isDashboardOpen)window.StarfieldFocusEngine.closeDashboard();
+   else if($('settings-drawer').classList.contains('open'))GameSettings.close();
+   else GameSettings.toggle();
+   return;
+ }
+ else if(e.key.toLowerCase()==='u'||e.code==='KeyU'){
+   if(window.StarfieldShipUpgrades){
+     if(window.StarfieldShipUpgrades.isOpen)window.StarfieldShipUpgrades.closeModal();
+     else{if(window.Starfield&&window.Starfield.closeModal)window.Starfield.closeModal();window.StarfieldShipUpgrades.openModal();}
+   }
+   return;
+ }
+ else if(e.key.toLowerCase()==='p'){
+   if(PhotoStudio.active)PhotoStudio.close();
+   else{if(window.Starfield&&window.Starfield.closeModal)window.Starfield.closeModal();PhotoStudio.open();}
+   return;
+ }
+ else if(e.key.toLowerCase()==='j'||e.key==='Tab'){
+   e.preventDefault();
+   if($('codex-modal').classList.contains('open'))Codex.close();
+   else{if(window.Starfield&&window.Starfield.closeModal)window.Starfield.closeModal();Codex.open();}
+   return;
+ }
+ else if(e.key.toLowerCase()==='o'){
+   if(window.StarfieldFocusEngine){
+     if(window.StarfieldFocusEngine.isDashboardOpen)window.StarfieldFocusEngine.closeDashboard();
+     else{if(window.Starfield&&window.Starfield.closeModal)window.Starfield.closeModal();window.StarfieldFocusEngine.openDashboard();}
+   }
+   return;
+ }
+ else if(e.key.toLowerCase()==='h'){
+   if(typeof FleetCustomizer !== 'undefined'){
+     if(FleetCustomizer.isOpen)FleetCustomizer.close();
+     else{if(window.Starfield&&window.Starfield.closeModal)window.Starfield.closeModal();FleetCustomizer.open();}
+   }
+   return;
+ }
+ if(isModal) return;
  if(e.code==='Space'){if(e.target instanceof HTMLButtonElement)return;e.preventDefault();togglePause();}
  else if(e.key.toLowerCase()==='v'||e.code==='KeyV')FleetFormations.cycle();
  else if(e.key.toLowerCase()==='c')toggleCamera();
@@ -17781,12 +17881,7 @@ window.addEventListener('keydown',e=>{
     if (trk && typeof toast === 'function') toast('🎼 配乐切换 · ' + trk.title);
   }
  }
- else if(e.key.toLowerCase()==='o'){if(window.StarfieldFocusEngine)window.StarfieldFocusEngine.toggleDashboard();}
- else if(e.key.toLowerCase()==='p')PhotoStudio.toggle();
  else if(e.key.toLowerCase()==='t')togglePoem();
- else if(e.key.toLowerCase()==='j'||e.key==='Tab'){e.preventDefault();Codex.toggle();}
- else if(e.key.toLowerCase()==='u'||e.code==='KeyU'){if(window.StarfieldShipUpgrades)window.StarfieldShipUpgrades.toggleModal();}
- else if(e.key==='Escape'){if(window.StarfieldShipUpgrades&&window.StarfieldShipUpgrades.isOpen)window.StarfieldShipUpgrades.closeModal();else if(PhotoStudio.active)PhotoStudio.close();else if(typeof FleetCustomizer !== 'undefined' && FleetCustomizer.isOpen)FleetCustomizer.close();else if($('codex-modal').classList.contains('open'))Codex.close();else GameSettings.toggle();}
  else if(e.key==='1')FleetFormations.set(0);
  else if(e.key==='2')FleetFormations.set(1);
  else if(e.key==='3')FleetFormations.set(2);
@@ -17862,6 +17957,9 @@ window.STARFIELD_QUALITY = {
     this.profile = p;
     qualityScale = 1.0; // Reset scaler on profile switch
     fastWindows = 0;
+    slowWindows = 0;
+    framesInWindow = 0;
+    measureStart = performance.now();
     try { localStorage.setItem('sf_quality_profile', p); } catch(e) {}
     this.updateUI();
     if (typeof resize === 'function') resize();
@@ -18187,18 +18285,20 @@ function frame(now){
    const effWarp = Math.max(warp, WarpDrive.currentWarp);
    const surgeBonus = (typeof slingshotSurgeActive !== 'undefined' && slingshotSurgeActive) ? 0.5 : 0;
    const upgradeSpdMul = (window.StarfieldShipUpgrades && window.StarfieldShipUpgrades.getSpeedMultiplier) ? window.StarfieldShipUpgrades.getSpeedMultiplier() : 1.0;
+   const validSpdMul = (Number.isFinite(upgradeSpdMul) && upgradeSpdMul >= 0.5) ? upgradeSpdMul : 1.0;
    const isDrifting = window.StarfieldFuelEngine && window.StarfieldFuelEngine.isDrifting;
    if (isDrifting) {
-     travel += SPEED * 0.22 * dt;
+     travel += SPEED * dt * (0.22 + (1.1 + surgeBonus) * (sling || 0) + (capturePhase > 0 ? (warp || 0) : 0));
    } else {
-     travel += SPEED * dt * (1 + (1.1 + surgeBonus) * sling + effWarp) * upgradeSpdMul;
+     travel += SPEED * dt * (1 + (1.1 + surgeBonus) * (sling || 0) + effWarp) * validSpdMul;
    }
    if (typeof updateSlingshotMechanic !== 'undefined') updateSlingshotMechanic(dt);
    flightTime += dt;}else{previewTime+=dt;travel+=SPEED*.15*dt;}}
  updateDirector(realDt);
  currentPalette=region(routeX(travel),travel);
  if(dt){updateWind(dt);updateGravity();updateBirds(dt);updateGate(dt);updateCapture(dt);updateSling(dt);updateParticles(dt);updatePoem(dt);Narrator.update(dt);if(typeof StarfieldSonar!=='undefined')StarfieldSonar.update(dt);if(typeof StarfieldInFlightExtraction!=='undefined')StarfieldInFlightExtraction.update(dt);
-    if(window.StarfieldFuelEngine) window.StarfieldFuelEngine.update(dt, (typeof effWarp !== 'undefined' && effWarp > 0.1), !!window._activeDockStation);
+    const isEngineWarp = (typeof WarpDrive !== 'undefined') && (WarpDrive.currentWarp > 0.1 || WarpDrive.gearIndex > 0 || WarpDrive.isHolding);
+    if(window.StarfieldFuelEngine) window.StarfieldFuelEngine.update(dt, isEngineWarp, false);
     {
       let nearStation = null; let nearDist = Infinity;
       const leadPos = (typeof craftWorld === 'function' && fleet && fleet[LEAD]) ? craftWorld(fleet[LEAD]) : [0, 0, travel];
@@ -18576,6 +18676,11 @@ window.Starfield=Object.freeze({
  cycleWarp:()=>WarpDrive.cycle(),
  setWarpHold:(h)=>WarpDrive.setHold(h),
  throttleUp:()=>{
+  if (window.StarfieldFuelEngine && window.StarfieldFuelEngine.isDrifting) {
+    if (typeof showToast === 'function') showToast('反物质能源耗尽 · 光帆微速漂流中，无法加速', 2.5);
+    else if (typeof window.toast === 'function') window.toast('反物质能源耗尽 · 光帆微速漂流中，无法加速', 2.5);
+    return;
+  }
   if(WarpDrive.gearIndex<WarpDrive.gears.length-1){
    WarpDrive.gearIndex++;WarpDrive.updateUI();
    const g=WarpDrive.gears[WarpDrive.gearIndex];toast(`已加速至 ${g.label} · 速度 ${g.cVal}`);
@@ -18607,15 +18712,22 @@ window.Starfield=Object.freeze({
  isCockpit:()=>cockpitMode,
  isAutoCamera:()=>autoCamera,
  isModalOpen:()=>{
+  const hangarOpen = (typeof FleetCustomizer !== 'undefined' && FleetCustomizer.isOpen) || ($('hangar-modal') && $('hangar-modal').classList.contains('open'));
+  const hatchOpen = ($('sf-hatch') && $('sf-hatch').classList.contains('active')) || ($('sf-hatch-list') && $('sf-hatch-list').classList.contains('on'));
   const focusOpen = (window.StarfieldFocusEngine && window.StarfieldFocusEngine.isDashboardOpen);
   const upgradesOpen = !!(window.StarfieldShipUpgrades && window.StarfieldShipUpgrades.isOpen);
-  return PhotoStudio.active||$('codex-modal').classList.contains('open')||$('settings-drawer').classList.contains('open')||focusOpen||upgradesOpen;
+  return PhotoStudio.active||$('codex-modal').classList.contains('open')||$('settings-drawer').classList.contains('open')||focusOpen||upgradesOpen||hangarOpen||hatchOpen;
  },
  closeModal:()=>{
   if(window.StarfieldShipUpgrades && window.StarfieldShipUpgrades.isOpen)window.StarfieldShipUpgrades.closeModal();
   else if(PhotoStudio.active)PhotoStudio.close();
+  else if(typeof FleetCustomizer !== 'undefined' && FleetCustomizer.isOpen)FleetCustomizer.close();
+  else if($('hangar-modal') && $('hangar-modal').classList.contains('open'))$('hangar-modal').classList.remove('open');
   else if($('codex-modal').classList.contains('open'))Codex.close();
+  else if($('sf-hatch-list') && $('sf-hatch-list').classList.contains('on'))$('sf-hatch-list').classList.remove('on');
+  else if($('sf-hatch') && $('sf-hatch').classList.contains('active'))$('sf-hatch').classList.remove('active');
   else if($('settings-drawer').classList.contains('open'))GameSettings.close();
+  else if(window.StarfieldFocusEngine && window.StarfieldFocusEngine.isDashboardOpen)window.StarfieldFocusEngine.closeDashboard();
  },
  toggleCodex:()=>Codex.toggle(),
  togglePhoto:()=>PhotoStudio.toggle(),
@@ -18624,7 +18736,7 @@ window.Starfield=Object.freeze({
  getGateT:()=>gateT,
  getCapturePhase:()=>capturePhase,
  setCapturePhase:(p)=>{capturePhase=p;},
- triggerCrash:()=>{if(typeof WarpDrive!=='undefined'){WarpDrive.shake=6;WarpDrive.brakeKick=200;WarpDrive.currentWarp=0;}capturePhase=2;},
+ triggerCrash:()=>{if(typeof WarpDrive!=='undefined'){WarpDrive.shake=6;WarpDrive.brakeKick=200;WarpDrive.currentWarp=0;}capturePhase=2;captureT=0;captureTotal=0;},
  getWarpDrive:()=>WarpDrive,
  getFleetFormations:()=>FleetFormations,
  getFleet:()=>fleet,
@@ -25366,7 +25478,11 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function applyDamage(hits, reason, gold) {
-    st.hull = Math.max(0, st.hull - hits * HIT_DMG);
+    var shieldMul = (window.StarfieldShipUpgrades && typeof window.StarfieldShipUpgrades.getShieldReduction === 'function')
+      ? window.StarfieldShipUpgrades.getShieldReduction()
+      : 1.0;
+    var dmg = Math.round(hits * HIT_DMG * shieldMul * 10) / 10;
+    st.hull = Math.max(0, st.hull - dmg);
     st.lastHit = performance.now();
     flash.classList.toggle('flare', !!gold);
     flash.style.opacity = '1';
@@ -25374,7 +25490,7 @@ document.addEventListener('DOMContentLoaded', () => {
     var wd = S.getWarpDrive && S.getWarpDrive();
     if (wd) wd.shake = Math.min(7, (wd.shake || 0) + (gold ? 3.6 : 2.6));
     if (typeof window.toast === 'function') {
-      window.toast((reason || '碎片撞击') + ' · 船体完整度 -' + (hits * HIT_DMG) + '%', 2);
+      window.toast((reason || '碎片撞击') + ' · 船体完整度 -' + dmg + '%', 2);
     }
   }
 
