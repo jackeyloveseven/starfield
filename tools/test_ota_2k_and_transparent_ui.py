@@ -6,7 +6,8 @@ def test_ota_2k_and_transparent_ui():
     repo_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     html_path = os.path.join(repo_dir, "starfield.html")
     file_url = f"file:///{html_path.replace(os.sep, '/')}"
-    artifact_dir = os.environ.get("ANTIGRAVITY_ARTIFACT_DIR", r"C:\Users\machine\.gemini\antigravity\brain\72ea3f45-0738-459a-8560-5853a3c36367")
+    artifact_dir = os.environ.get("ANTIGRAVITY_ARTIFACT_DIR", os.path.join(repo_dir, "shots"))
+    os.makedirs(artifact_dir, exist_ok=True)
 
     errors = []
     def on_page_error(exc):
@@ -81,21 +82,24 @@ def test_ota_2k_and_transparent_ui():
         # 4. Verify 2K Ultra Resolution DPR Scaling Engine
         print("\n4. Verifying 2K Resolution DPR Engine...")
         initial_dpr = page.evaluate("() => window.DPR")
+        max_dpr = page.evaluate("() => window.STARFIELD_QUALITY.getMaxDPR()")
         quality_profile = page.evaluate("() => window.STARFIELD_QUALITY.profile")
-        print(f"   - Quality profile: {quality_profile}, Active Canvas DPR: {initial_dpr}")
-        assert initial_dpr == 3.0, f"ERROR: Expected 2K DPR=3.0, got {initial_dpr}"
+        print(f"   - Quality profile: {quality_profile}, Max DPR: {max_dpr}, Active Canvas DPR: {initial_dpr}")
+        # On mobile devices, defaults to 'balanced' (capped at 1.5 for thermal stability)
+        assert quality_profile == 'balanced', f"ERROR: Expected profile 'balanced' on mobile, got {quality_profile}"
+        assert max_dpr == 1.5, f"ERROR: Expected Balanced Max DPR=1.5 on mobile, got {max_dpr}"
 
-        # Switch to Balanced mode
-        page.evaluate("() => window.STARFIELD_QUALITY.setProfile('balanced')")
-        balanced_dpr = page.evaluate("() => window.DPR")
-        print(f"   - Balanced mode DPR: {balanced_dpr} (Expected: 2.0)")
-        assert balanced_dpr == 2.0, f"ERROR: Expected Balanced DPR=2.0, got {balanced_dpr}"
-
-        # Switch back to 2K mode
+        # Switch to 2K Ultra mode (on mobile, capped at 2.0 to protect GPU thermals)
         page.evaluate("() => window.STARFIELD_QUALITY.setProfile('2k')")
         retina_dpr = page.evaluate("() => window.DPR")
-        print(f"   - 2K Ultra mode DPR: {retina_dpr} (Expected: 3.0)")
-        assert retina_dpr == 3.0, f"ERROR: Expected 2K DPR=3.0, got {retina_dpr}"
+        print(f"   - 2K Ultra mode DPR: {retina_dpr} (Expected: 2.0 on mobile)")
+        assert retina_dpr == 2.0, f"ERROR: Expected 2K DPR=2.0 on mobile, got {retina_dpr}"
+
+        # Switch back to Balanced mode
+        page.evaluate("() => window.STARFIELD_QUALITY.setProfile('balanced')")
+        balanced_dpr = page.evaluate("() => window.DPR")
+        print(f"   - Balanced mode DPR: {balanced_dpr} (Expected: 1.5)")
+        assert balanced_dpr == 1.5, f"ERROR: Expected Balanced DPR=1.5, got {balanced_dpr}"
 
         # 5. Verify Hot Update (OTA) Notification
         print("\n5. Verifying OTA Hot Update Notification Pill...")

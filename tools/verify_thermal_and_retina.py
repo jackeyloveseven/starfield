@@ -56,13 +56,13 @@ def verify_thermal_and_retina():
 
         print(f"   - Profile: {profile} (Expected: balanced)")
         print(f"   - Target FPS: {target_fps} (Expected: 0, Uncapped Native Hz)")
-        print(f"   - Hole Sprite Cap: {sprite_cap} (Expected: 512)")
-        print(f"   - Active DPR: {dpr} (Expected: 2.0, Raw: {raw_dpr})")
+        print(f"   - Hole Sprite Cap: {sprite_cap} (Expected: 256)")
+        print(f"   - Active DPR: {dpr} (Expected: 1.5, Raw: {raw_dpr})")
 
         assert profile == 'balanced', f"Expected profile 'balanced', got {profile}"
         assert target_fps == 0, f"Expected uncapped target FPS 0, got {target_fps}"
-        assert sprite_cap == 512, f"Expected mobile hole sprite cap 512, got {sprite_cap}"
-        assert abs(dpr - 2.0) < 0.05, f"Expected mobile balanced DPR ~2.0, got {dpr}"
+        assert sprite_cap == 256, f"Expected mobile hole sprite cap 256, got {sprite_cap}"
+        assert abs(dpr - 1.5) < 0.05, f"Expected mobile balanced DPR ~1.5, got {dpr}"
 
         # 2. Test 2K Ultra Retina Profile Switch
         print("\n2. Testing 2K Ultra Retina Mode Switch...")
@@ -72,9 +72,9 @@ def verify_thermal_and_retina():
         p2k = page.evaluate("() => window.STARFIELD_QUALITY.profile")
         dpr2k = page.evaluate("() => window.DPR")
         print(f"   - Switched Profile: {p2k} (Expected: 2k)")
-        print(f"   - 2K Mode DPR: {dpr2k} (Expected: 2.75 for mobile, point-to-point Retina)")
+        print(f"   - 2K Mode DPR: {dpr2k} (Expected: 2.0 for mobile)")
         assert p2k == '2k', f"Expected profile 2k, got {p2k}"
-        assert abs(dpr2k - 2.75) < 0.05, f"Expected 2K mobile DPR 2.75, got {dpr2k}"
+        assert abs(dpr2k - 2.0) < 0.05, f"Expected 2K mobile DPR 2.0, got {dpr2k}"
 
         # 3. Test PowerSave Mode Switch
         print("\n3. Testing PowerSave Mode Switch...")
@@ -87,12 +87,12 @@ def verify_thermal_and_retina():
         cap_ps = page.evaluate("() => window.STARFIELD_QUALITY.getHoleSpriteCap()")
         print(f"   - Switched Profile: {p_ps} (Expected: powersave)")
         print(f"   - PowerSave Target FPS: {fps_ps} (Expected: 45)")
-        print(f"   - PowerSave Sprite Cap: {cap_ps} (Expected: 384)")
-        print(f"   - PowerSave DPR: {dpr_ps} (Expected: 1.25)")
+        print(f"   - PowerSave Sprite Cap: {cap_ps} (Expected: 192)")
+        print(f"   - PowerSave DPR: {dpr_ps} (Expected: 1.0)")
         assert p_ps == 'powersave', f"Expected powersave, got {p_ps}"
         assert fps_ps == 45, f"Expected 45 fps, got {fps_ps}"
-        assert cap_ps == 384, f"Expected 384 cap, got {cap_ps}"
-        assert abs(dpr_ps - 1.25) < 0.05, f"Expected 1.25 DPR, got {dpr_ps}"
+        assert cap_ps == 192, f"Expected 192 cap, got {cap_ps}"
+        assert abs(dpr_ps - 1.0) < 0.05, f"Expected 1.0 DPR, got {dpr_ps}"
 
         # Reset to balanced for flight
         page.evaluate("() => window.STARFIELD_QUALITY.setProfile('balanced')")
