@@ -4964,7 +4964,7 @@ body:has(#photo-ui.active) .sf-touch-cluster{
     <div class="shortcut-list">
       <div class="shortcut-row">
         <span>客户端版本</span>
-        <span class="shortcut-key" id="sf-version-tag">v1.9.9.9.9.5 (Build 193)</span>
+        <span class="shortcut-key" id="sf-version-tag">v1.9.9.9.9.6 (Build 194)</span>
       </div>
       <div class="shortcut-row">
         <span>OTA 实时热更新</span>
@@ -6789,7 +6789,7 @@ body:has(#photo-ui.active) .sf-touch-cluster{
  */
 (() => {
 const $ = id => document.getElementById(id);
-const root = $('world'), canvas = $('landscape'), ctx = canvas.getContext('2d', {alpha:false, desynchronized:true});
+const root = $('world'), canvas = $('landscape'), ctx = canvas.getContext('2d', {alpha:false, desynchronized:false});
 if (!ctx) { $('begin').textContent = '此浏览器无法使用 Canvas'; return; }
 // Slower than it was: at 108 the encounters were over before the eye had
 // settled on them, which is part of why the piece read as a slideshow.
@@ -10115,17 +10115,28 @@ function ringHalf(m, q, rad, back) {
       // is the minimum that stops a close pass from printing as one flat fill;
       // the gaps fall where the hash puts them, never at a regular pitch.
       const veil = 1 - .45 * clamp(rad / (H * .75), 0, 1);
-      for (const rL of ringLayers) {
-        for (let k = 0; k < 5; k++) {
-          const u0 = rL.r0 + (rL.r1 - rL.r0) * k / 5;
-          const u1 = rL.r0 + (rL.r1 - rL.r0) * (k + 1) / 5;
-          const dens = .55 + hash(hb, 40 + Math.round(rL.r0 * 100), k) * .9;
-          ctx.beginPath();
-          ctx.arc(0, 0, rad * u1, a0, a1, false);
-          ctx.arc(0, 0, rad * u0, a1, a0, true);
-          ctx.closePath();
-          ctx.fillStyle = css(rL.c, Math.min(.92, rL.a * dens * veil));
-          ctx.fill();
+      const isMobRing = (typeof _isMobileDevice !== 'undefined' && _isMobileDevice);
+      if (isMobRing && rad < 8.0) {
+        ctx.beginPath();
+        ctx.arc(0, 0, rad * 2.05, a0, a1, false);
+        ctx.arc(0, 0, rad * 1.25, a1, a0, true);
+        ctx.closePath();
+        ctx.fillStyle = css(pal.t, Math.min(.85, 0.70 * ringFade * veil));
+        ctx.fill();
+      } else {
+        const subBands = isMobRing ? 2 : 5;
+        for (const rL of ringLayers) {
+          for (let k = 0; k < subBands; k++) {
+            const u0 = rL.r0 + (rL.r1 - rL.r0) * k / subBands;
+            const u1 = rL.r0 + (rL.r1 - rL.r0) * (k + 1) / subBands;
+            const dens = .55 + hash(hb, 40 + Math.round(rL.r0 * 100), k) * .9;
+            ctx.beginPath();
+            ctx.arc(0, 0, rad * u1, a0, a1, false);
+            ctx.arc(0, 0, rad * u0, a1, a0, true);
+            ctx.closePath();
+            ctx.fillStyle = css(rL.c, Math.min(.92, rL.a * dens * veil));
+            ctx.fill();
+          }
         }
       }
 
@@ -14862,13 +14873,13 @@ function bootStarfieldGL(stars, bandStars) {
     cv = document.createElement('canvas');
     gl = cv.getContext('webgl2', {
       alpha: true,
-      desynchronized: true,
+      desynchronized: false,
       premultipliedAlpha: true,
       antialias: false,
       powerPreference: 'high-performance'
     }) || cv.getContext('webgl', {
       alpha: true,
-      desynchronized: true,
+      desynchronized: false,
       premultipliedAlpha: true,
       antialias: false
     });
@@ -15129,7 +15140,6 @@ function bootStarfieldGL(stars, bandStars) {
       } else {
         vec2 p = gl_PointCoord - vec2(0.5);
         float r = length(p);
-        if (r > 0.5) discard;
         float a = smoothstep(0.5, 0.15, r) * vAlpha;
         fragColor = vec4(uInk * a, a);
       }
@@ -15145,7 +15155,6 @@ function bootStarfieldGL(stars, bandStars) {
       } else {
         vec2 p = gl_PointCoord - vec2(0.5);
         float r = length(p);
-        if (r > 0.5) discard;
         float a = smoothstep(0.5, 0.15, r) * vAlpha;
         gl_FragColor = vec4(uInk * a, a);
       }
@@ -15461,7 +15470,7 @@ function nebulaTex(seed,idx){
  // 384 rather than 192: the camera can sit inside one of these, and a dust lane
  // that is meant to have a hard edge does not survive a 10x upscale. The fills
  // are clipped to their own bounding box, so the extra pixels are cheap.
- const N=384,c=document.createElement('canvas');c.width=c.height=N;
+ const N=(typeof _isMobileDevice!=='undefined'&&_isMobileDevice)?192:384,c=document.createElement('canvas');c.width=c.height=N;
  const g=c.getContext('2d'),r=rng((SEED^Math.imul(seed,0x9e3779b1)^Math.imul(idx+1,0x85ebca6b))>>>0);
  const cx=N*.5,cy=N*.5;
  /* Two surfaces. The warm emission is a REGION of the gas, not a 50/50 blend
@@ -15773,7 +15782,10 @@ function nebulaTex(seed,idx){
   g.beginPath();g.arc(core.x+Math.cos(a)*d,core.y+Math.sin(a)*d*.85,rr,0,TAU);g.fill();
  }
  g.globalCompositeOperation='source-over';
- if(nebCache.size>40)nebCache.clear();
+ if(nebCache.size>128){
+  const oldestKey=nebCache.keys().next().value;
+  if(oldestKey!==undefined)nebCache.delete(oldestKey);
+ }
  // The tile is blitted as a SQUARE. Gas left at the border becomes a
  // rectangle in the sky the moment the camera turns; zero the rim.
  {
@@ -16751,26 +16763,23 @@ function drawTesseract(){
  ctx.restore();
 }
 function paperFinish(){
- if(!coarse){ctx.save();ctx.globalAlpha=.40;ctx.fillStyle=grainPattern;ctx.fillRect(0,0,W,H);ctx.globalAlpha=1;}
- if(captureFlash>.002&&captureMass){
-  // A bloom around the ink well, not a full-screen fill: the old one painted the
-  // whole frame white at .62 alpha on every capture.
-  const q=project([captureMass.x,captureMass.y,captureMass.z]);
-  if(q){
-   const r=clamp(captureMass.r*q[3]*7,90,Math.hypot(W,H)*.92);
-   const fg=ctx.createRadialGradient(q[0],q[1],0,q[0],q[1],r);
-   fg.addColorStop(0,css(currentPalette.sun,captureFlash*.52));
-   fg.addColorStop(.30,css(currentPalette.sun,captureFlash*.20));
-   fg.addColorStop(1,css(currentPalette.sun,0));
-   ctx.fillStyle=fg;ctx.fillRect(0,0,W,H);
+ if(!coarse){
+  ctx.save();ctx.globalAlpha=.40;ctx.fillStyle=grainPattern;ctx.fillRect(0,0,W,H);ctx.globalAlpha=1;
+  if(captureFlash>.002&&captureMass){
+   // A bloom around the ink well, not a full-screen fill: the old one painted the
+   // whole frame white at .62 alpha on every capture.
+   const q=project([captureMass.x,captureMass.y,captureMass.z]);
+   if(q){
+    const r=clamp(captureMass.r*q[3]*7,90,Math.hypot(W,H)*.92);
+    const fg=ctx.createRadialGradient(q[0],q[1],0,q[0],q[1],r);
+    fg.addColorStop(0,css(currentPalette.sun,captureFlash*.52));
+    fg.addColorStop(.30,css(currentPalette.sun,captureFlash*.20));
+    fg.addColorStop(1,css(currentPalette.sun,0));
+    ctx.fillStyle=fg;ctx.fillRect(0,0,W,H);
+   }
   }
+  ctx.restore();
  }
- // The corner treatment used to live here, and it pulled the wrong way:
- // currentPalette.ink is the LIGHT colour (#e6eff7) - paper is the dark one -
- // so this was a near-white veil at .043-.075 over the whole frame, +8..+14 of
- // lift at the corners. Measured effect: the frame had no black anywhere
- // (p1 = 30, sky floor 45). It is a real vignette in postPass() now.
- ctx.restore();
  if(started&&autoCamera&&wind.active&&time-wind.last<1.5){
   const x=wind.filteredX*W,y=wind.filteredY*H,a=clamp(1-(time-wind.last)/1.5)*.24;ctx.strokeStyle=css(currentPalette.ink,a);ctx.lineWidth=.6;ctx.beginPath();ctx.arc(x,y,9+Math.hypot(wind.x,wind.y)*8,.15,Math.PI*1.35);ctx.stroke();ctx.beginPath();ctx.arc(x,y,2,0,TAU);ctx.stroke();
  }
@@ -18933,7 +18942,7 @@ window.addEventListener('resize', () => {
       })
       .then(data => {
         if (data && data.build) {
-          const localBuild = 193;
+          const localBuild = 194;
           if (data.build > localBuild) {
             showOtaNotification(data);
           } else if (manual && window.toast) {
@@ -23517,7 +23526,7 @@ requestAnimationFrame(frame);
       this.currentRenderedId = pId;
       model.renderAge = (model.renderAge || 0) + 1;
 
-      const refreshInterval = isMob ? (rad < 35 ? 3 : (rad < 75 ? 2 : 1)) : (rad < 35 ? 3 : (rad < 70 ? 2 : 1));
+      const refreshInterval = isMob ? 1 : (rad < 35 ? 3 : (rad < 70 ? 2 : 1));
       const shouldRenderWebGL = !model.hasRendered || (model.renderAge >= refreshInterval);
 
       if (shouldRenderWebGL) {
@@ -23525,7 +23534,7 @@ requestAnimationFrame(frame);
         model.hasRendered = true;
         this._lastRenderedId = pId;
         this.renderer.render(this.scene, this.camera);
-        if (isMob && refreshInterval === 1) {
+        if (isMob) {
           return this.canvas;
         }
         if (model.canvas) {
