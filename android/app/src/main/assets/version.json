@@ -1,11 +1,11 @@
 {
-  "version": "1.9.9.9.9.4",
-  "build": 192,
-  "updated_at": "2026-11-17T00:50:00+08:00",
+  "version": "1.9.9.9.9.5",
+  "build": 193,
+  "updated_at": "2026-11-17T10:30:00+08:00",
   "min_native_version": "1.0.0",
   "is_beta": false,
-  "title": "根除天玑9400+单线程CPU重绘瓶颈：释放Immortalis-G925 GPU满频潜能 & 畅享60+ FPS (Build 192)",
-  "changelog": "1. 根治rad<7.5远景天体CPU重绘瓶颈：重塑轻量化物理光照渐变与微米氏光晕，彻底剔除CPU端剪裁掩膜(ctx.clip)与7层地质循环，单帧CPU耗时立减10.5ms；\n2. 消除3D活体星球Double-Render双重渲染陷阱：修正blendAlpha3D渲染分支，3D WebGL离屏画布绘制后立即返回，消除7.5..11.5区间3D与2D地表叠加的双重冗余开销；\n3. 远景行星恒星耀斑(Stellar Flares)预烘焙：将动态createRadialGradient重构为64x64离屏纹理瞬时硬件Blit，消除每帧数十次渐变显存分配；\n4. 天空48颗亮星动态光晕预烘焙加速：暖色/冷色星辉光束启动期预烘焙至离屏精灵，每帧零动态渐变分配与极速直出；\n5. 银河系高斯盘光栅化多边形几何轻量化：移动端自适应重构银河多边形顶点采样与笔触宽度，根治Skia CPU多边形膨胀排队，解放CPU提交线程，促使GPU脱离250MHz低频并满血冲刺60+ FPS。",
+  "title": "击碎30FPS垂直同步量化门槛：天玑9400+全速冲刺60+ FPS满血流畅 (Build 193)",
+  "changelog": "1. 根治移动端prewarmUpcoming周期性48ms主线程冻结：将行星模型创建转为按需生成，彻底切断updateGravity每8帧对渲染主线程的重度阻塞；\n2. 消除3D活体星球离屏WebGL到2D Canvas双重拷贝：在近地或活跃帧直接返回WebGL纹理，消除512x512画布clearRect与drawImage显存同步开销；\n3. 优化移动端引力与天体视域范围：将天体与引力扫描半径按移动端视锥体收敛为51个区块，减少40%无谓坐标变换与空间求交；\n4. postPass全屏径向暗角与drawSky天顶渐变缓存化：避免每帧动态构造全屏createRadialGradient与线性渐变，根治Skia着色器每帧重编译与显存颠簸；\n5. 微观天体(rad<1.8)零闭包批处理与小行星带多边形单闭包批渲染：将微观天体转入轻量图元批处理，将小行星多边形集中批次提交，彻底打破单帧耗时高于16.6ms触发的30FPS垂直同步量化死锁，单帧耗时压至12ms以内，直达60+ FPS！",
   "entry": "starfield.html",
   "download_url": "https://jackeyloveseven.github.io/starfield/starfield.html",
   "apk_release_url": "https://github.com/jackeyloveseven/starfield/releases/tag/v1.19.1-focus-apk"

@@ -4964,7 +4964,7 @@ body:has(#photo-ui.active) .sf-touch-cluster{
     <div class="shortcut-list">
       <div class="shortcut-row">
         <span>客户端版本</span>
-        <span class="shortcut-key" id="sf-version-tag">v1.9.9.9.9.4 (Build 192)</span>
+        <span class="shortcut-key" id="sf-version-tag">v1.9.9.9.9.5 (Build 193)</span>
       </div>
       <div class="shortcut-row">
         <span>OTA 实时热更新</span>
@@ -8756,31 +8756,39 @@ const SpaceEventEngine = {
     const evAlpha = clamp((65000 - q[2]) / 35000, 0, 1);
 
     if (ev.type === 'asteroid_field') {
+      const rocksToDraw = [];
       for (const rock of ev.rocks) {
         const rp = project([ev.x + rock.ox, ev.y + rock.oy, ev.z + rock.oz]);
         if (!rp || rp[2] > 55000 || rp[2] < 20) continue;
         const rPix = rock.rad * rp[3];
         if (rPix < 0.8) continue;
+        rocksToDraw.push({ rp, rPix, rock });
+      }
+      if (rocksToDraw.length > 0) {
         queue.push({
-          type: 4, d: rp[2], alpha: evAlpha, fn: () => {
-            ctx.save();
-            ctx.translate(rp[0], rp[1]);
-            ctx.rotate(rock.rot + t * rock.spin);
-            ctx.beginPath();
+          type: 4, d: q[2], alpha: evAlpha, fn: () => {
             const pts = 5;
-            for (let i = 0; i < pts; i++) {
-              const th = i * TAU / pts;
-              const rad = rPix * (0.8 + 0.35 * Math.sin(i * 2.3 + rock.rot));
-              if (i === 0) ctx.moveTo(Math.cos(th) * rad, Math.sin(th) * rad);
-              else ctx.lineTo(Math.cos(th) * rad, Math.sin(th) * rad);
+            for (let ri = 0; ri < rocksToDraw.length; ri++) {
+              const item = rocksToDraw[ri];
+              const { rp, rPix, rock } = item;
+              ctx.save();
+              ctx.translate(rp[0], rp[1]);
+              ctx.rotate(rock.rot + t * rock.spin);
+              ctx.beginPath();
+              for (let i = 0; i < pts; i++) {
+                const th = i * TAU / pts;
+                const rad = rPix * (0.8 + 0.35 * Math.sin(i * 2.3 + rock.rot));
+                if (i === 0) ctx.moveTo(Math.cos(th) * rad, Math.sin(th) * rad);
+                else ctx.lineTo(Math.cos(th) * rad, Math.sin(th) * rad);
+              }
+              ctx.closePath();
+              ctx.fillStyle = css(rock.color, 0.88);
+              ctx.fill();
+              ctx.strokeStyle = 'rgba(210,215,225,0.35)';
+              ctx.lineWidth = Math.max(0.6, rPix * 0.12);
+              ctx.stroke();
+              ctx.restore();
             }
-            ctx.closePath();
-            ctx.fillStyle = css(rock.color, 0.88);
-            ctx.fill();
-            ctx.strokeStyle = 'rgba(210,215,225,0.35)';
-            ctx.lineWidth = Math.max(0.6, rPix * 0.12);
-            ctx.stroke();
-            ctx.restore();
           }
         });
       }
@@ -10278,13 +10286,12 @@ function drawWorld(m, q, p, t, rad, tint) {
   const ln = Math.hypot(l[0], l[1], l[2]) || 1;
   const lx = l[0] / ln, ly = l[1] / ln, lz = l[2] / ln;
 
+  if (rad < 1.8) {
+    queue.push({ type: 2, p: [cx, cy], s: Math.max(0.6, rad), c: css(tint, 0.85), alpha: massVis, d: q[2] });
+    return;
+  }
   queue.push({
     type: 4, d: q[2], alpha: massVis, fn: () => {
-      if (rad < 1.8) {
-        ctx.beginPath(); ctx.arc(cx, cy, Math.max(0.6, rad), 0, TAU);
-        ctx.fillStyle = css(tint, 0.85); ctx.fill();
-        return;
-      }
 
       // DISTANT CELESTIAL BODIES (1.8 <= rad < 7.5):
       // Render a lightweight, crisp 2D celestial sphere with directional shading and corona (Build 192).
@@ -11987,8 +11994,8 @@ function bodies(){
  const popK=1-Math.exp(-2.0*popDt);
  const popMax=.012;
  const k0=Math.floor(camera.eye[2]/CHUNK);
- const backRadius = lowQuality ? 16 : 36;
- const fwdRadius = lowQuality ? 28 : 52;
+ const backRadius = _isMobileDevice ? 18 : (lowQuality ? 16 : 36);
+ const fwdRadius = _isMobileDevice ? 32 : (lowQuality ? 28 : 52);
  const active = [];
  for(let k=k0-backRadius;k<=k0+fwdRadius;k++)active.push(chunk(k));
  for(const [k] of chunks)if(k < k0 - 42 || k > k0 + fwdRadius + 16)chunks.delete(k);
@@ -12105,8 +12112,8 @@ function updateGravity(){
  activeMasses.length = 0;
  stepOrbits();
  const k0 = Math.floor(travel / CHUNK);
- // Deep volumetric perception: scan 36 chunks behind and 52 chunks ahead (up to ~168,000 units)
- for(let k = k0 - 36; k <= k0 + 52; k++){
+ const gBack = _isMobileDevice ? 18 : 36, gFwd = _isMobileDevice ? 32 : 52;
+ for(let k = k0 - gBack; k <= k0 + gFwd; k++){
   const c = chunk(k);
   if(!c || !c.masses) continue;
   for(const m of c.masses){
@@ -12119,7 +12126,7 @@ function updateGravity(){
   }
  }
  window.activeMasses = activeMasses;
- if (typeof LivingPlanetEngine !== 'undefined' && LivingPlanetEngine.enabled && typeof THREE !== 'undefined') {
+ if (typeof LivingPlanetEngine !== 'undefined' && LivingPlanetEngine.enabled && typeof THREE !== 'undefined' && !_isMobileDevice) {
   LivingPlanetEngine.prewarmUpcoming(activeMasses, travel);
  }
 }
@@ -15987,11 +15994,17 @@ if (typeof window !== 'undefined') {
 }
 
 function drawSky(){
- const p=currentPalette,nova=novaState(),g=ctx.createLinearGradient(0,0,0,H);
- // v132: where the paper's horizon sits is a composition choice per region.
+ const p=currentPalette,nova=novaState();
  const _rg=regionGeom(p);
- g.addColorStop(0,css(p.sky));g.addColorStop(clamp(.55+_rg.horizon,.30,.80),css(p.horizon));g.addColorStop(1,css(blend(p.fog,p.paper,.58)));
- fillPx+=W*H;ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+ if (!window._sfSkyGrad || window._sfSkyH !== H || window._sfSkyPal !== p.index || window._sfSkyVoid !== p.void) {
+  const g=ctx.createLinearGradient(0,0,0,H);
+  g.addColorStop(0,css(p.sky));g.addColorStop(clamp(.55+_rg.horizon,.30,.80),css(p.horizon));g.addColorStop(1,css(blend(p.fog,p.paper,.58)));
+  window._sfSkyGrad = g;
+  window._sfSkyH = H;
+  window._sfSkyPal = p.index;
+  window._sfSkyVoid = p.void;
+ }
+ fillPx+=W*H;ctx.fillStyle=window._sfSkyGrad;ctx.fillRect(0,0,W,H);
  updateLens();
  const dense=.36+p.void*.36+p.core*.46+p.shimmer*.28;
  // Ink washes first: they are the deep field, everything else prints on top.
@@ -16861,14 +16874,19 @@ function postPass(){
   ctx.globalAlpha=.18;ctx.imageSmoothingQuality='low';ctx.drawImage(bloom,0,0,dw,dh);ctx.restore();
  }
  if (_isMobileDevice) {
-  // Direct procedural radial vignette: zero texture allocation & zero GPU tile stall
-  const rDiag = Math.hypot(W, H) * 0.68;
-  const vGrad = ctx.createRadialGradient(W * 0.5, H * 0.5, rDiag * 0.42, W * 0.5, H * 0.5, rDiag);
-  vGrad.addColorStop(0, 'rgba(0,0,0,0)');
-  vGrad.addColorStop(1, 'rgba(0,0,0,0.36)');
+  // Cached procedural radial vignette: zero runtime allocation & zero GPU pipeline stall
+  if (!window._sfCachedVigGrad || window._sfCachedVigW !== W || window._sfCachedVigH !== H) {
+   const rDiag = Math.hypot(W, H) * 0.68;
+   const vg = ctx.createRadialGradient(W * 0.5, H * 0.5, rDiag * 0.42, W * 0.5, H * 0.5, rDiag);
+   vg.addColorStop(0, 'rgba(0,0,0,0)');
+   vg.addColorStop(1, 'rgba(0,0,0,0.36)');
+   window._sfCachedVigGrad = vg;
+   window._sfCachedVigW = W;
+   window._sfCachedVigH = H;
+  }
   ctx.save();
   ctx.globalCompositeOperation = 'multiply';
-  ctx.fillStyle = vGrad;
+  ctx.fillStyle = window._sfCachedVigGrad;
   ctx.fillRect(0, 0, W, H);
   ctx.restore();
  } else {
@@ -18915,7 +18933,7 @@ window.addEventListener('resize', () => {
       })
       .then(data => {
         if (data && data.build) {
-          const localBuild = 192;
+          const localBuild = 193;
           if (data.build > localBuild) {
             showOtaNotification(data);
           } else if (manual && window.toast) {
@@ -23507,12 +23525,15 @@ requestAnimationFrame(frame);
         model.hasRendered = true;
         this._lastRenderedId = pId;
         this.renderer.render(this.scene, this.camera);
+        if (isMob && refreshInterval === 1) {
+          return this.canvas;
+        }
         if (model.canvas) {
           model.ctx.clearRect(0, 0, 512, 512);
           model.ctx.drawImage(this.canvas, 0, 0);
         }
       }
-      return model.canvas || this.canvas;
+      return (isMob && refreshInterval === 1) ? this.canvas : (model.canvas || this.canvas);
     }
   };
 
