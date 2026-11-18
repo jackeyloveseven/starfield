@@ -4964,7 +4964,7 @@ body:has(#photo-ui.active) .sf-touch-cluster{
     <div class="shortcut-list">
       <div class="shortcut-row">
         <span>客户端版本</span>
-        <span class="shortcut-key" id="sf-version-tag">v1.9.9.9.9.6 (Build 194)</span>
+        <span class="shortcut-key" id="sf-version-tag">v1.9.9.9.9.7 (Build 195)</span>
       </div>
       <div class="shortcut-row">
         <span>OTA 实时热更新</span>
@@ -7950,10 +7950,11 @@ function updateDirector(dt){
  }
  const horizontal = Math.cos(camera.pitch) * camera.distance;
  const curSkimW = skimRes ? skimRes.sw : 0;
+ const kickZ = (WarpDrive.shake > 0.05) ? WarpDrive.brakeKick : 0;
  let eye = [
   lookTarget[0] + Math.sin(camera.yaw) * horizontal,
   lookTarget[1] + Math.sin(camera.pitch) * camera.distance,
-  lookTarget[2] - Math.cos(camera.yaw) * horizontal
+  lookTarget[2] - Math.cos(camera.yaw) * horizontal - kickZ
  ];
  eye[0] = mix(eye[0], routeX(eye[2]), camera.lane * 0.90 * (1 - curSkimW));
  camera.eye = eye;
@@ -7983,7 +7984,6 @@ function updateDirector(dt){
  if(WarpDrive.shake > 0.05){
   camera.cx += (Math.random() - 0.5) * WarpDrive.shake * 3.5;
   camera.cy += (Math.random() - 0.5) * WarpDrive.shake * 2.5;
-  camera.eye[2] -= WarpDrive.brakeKick;
  }
  if(cockpitBlend > 0.001){
   const cp = getChasePose(dt);
@@ -12122,6 +12122,7 @@ function stepOrbits(){
 function updateGravity(){
  activeMasses.length = 0;
  stepOrbits();
+ let currentBH = null;
  const k0 = Math.floor(travel / CHUNK);
  const gBack = _isMobileDevice ? 18 : 36, gFwd = _isMobileDevice ? 32 : 52;
  for(let k = k0 - gBack; k <= k0 + gFwd; k++){
@@ -12130,12 +12131,13 @@ function updateGravity(){
   for(const m of c.masses){
    const dz = m.z - travel;
    if(m.kind === 4){
-    if(dz >= -120000 && dz <= 168000){ activeMasses.push(m); window.__sfBH = m; }
+    if(dz >= -120000 && dz <= 168000){ activeMasses.push(m); currentBH = m; }
    } else {
     if(dz >= -120000 && dz <= 140000) activeMasses.push(m);
    }
   }
  }
+ window.__sfBH = currentBH;
  window.activeMasses = activeMasses;
  if (typeof LivingPlanetEngine !== 'undefined' && LivingPlanetEngine.enabled && typeof THREE !== 'undefined' && !_isMobileDevice) {
   LivingPlanetEngine.prewarmUpcoming(activeMasses, travel);
@@ -12329,6 +12331,7 @@ function updateCapture(dt){
   b.x = wx - routeX(travel);
   b.y = wy - courseY(travel);
   b.z = wz - travel;
+  b.vx = 0; b.vy = 0; b.vz = 0;
  }
 
  // Relativistic gravitational slingshot assist between 38s and 50s
@@ -12347,6 +12350,10 @@ function updateCapture(dt){
   captureCamPose = null;
   warp = 0;
   sound.setTension(false);
+  for(const b of fleet){
+   b.vx = 0; b.vy = 0; b.vz = 0;
+   b.ax = 0; b.ay = 0; b.az = 0;
+  }
   toast('重返浩瀚深空 · DEEP SPACE RESUMED', 5);
   // Once in a while the flight comes out the other side of the page.
   if(hash(cycle,707)<.45){tessT=1e-4;toast('五维空间 · TESSERACT',9);
@@ -14354,7 +14361,8 @@ const StarfieldOrbitalMechanics = {
       let simX = leadPos[0], simY = leadPos[1], simZ = leadPos[2];
       let simVx = (routeX(travel + 100) - routeX(travel)) * 12;
       let simVy = (courseY(travel + 100) - courseY(travel)) * 12;
-      let simVz = SPEED * (1 + (warp || 0));
+      const effWarp = Math.max(warp || 0, (typeof WarpDrive !== 'undefined' && WarpDrive.currentWarp) ? WarpDrive.currentWarp : 0);
+      let simVz = SPEED * (1 + effWarp);
 
       const steps = 36;
       const targetZDist = Math.max(1200, pm.z - simZ);
@@ -15140,7 +15148,7 @@ function bootStarfieldGL(stars, bandStars) {
       } else {
         vec2 p = gl_PointCoord - vec2(0.5);
         float r = length(p);
-        float a = smoothstep(0.5, 0.15, r) * vAlpha;
+        float a = (1.0 - smoothstep(0.15, 0.5, r)) * vAlpha;
         fragColor = vec4(uInk * a, a);
       }
     }` : `
@@ -15155,7 +15163,7 @@ function bootStarfieldGL(stars, bandStars) {
       } else {
         vec2 p = gl_PointCoord - vec2(0.5);
         float r = length(p);
-        float a = smoothstep(0.5, 0.15, r) * vAlpha;
+        float a = (1.0 - smoothstep(0.15, 0.5, r)) * vAlpha;
         gl_FragColor = vec4(uInk * a, a);
       }
     }`;
@@ -15466,7 +15474,12 @@ const NEB_PAL=[
 function nebulaTex(seed,idx){
  const pal=NEB_PAL[idx % NEB_PAL.length] || NEB_PAL[0];
  const key=seed+'|'+idx;
- if(nebCache.has(key))return nebCache.get(key);
+ if(nebCache.has(key)){
+  const val = nebCache.get(key);
+  nebCache.delete(key);
+  nebCache.set(key, val);
+  return val;
+ }
  // 384 rather than 192: the camera can sit inside one of these, and a dust lane
  // that is meant to have a hard edge does not survive a 10x upscale. The fills
  // are clipped to their own bounding box, so the extra pixels are cheap.
@@ -18346,7 +18359,8 @@ speak(candidate, options = {}) {
     if (snd.readyState >= 1) syncTypewriter();
 
     this.currentAudio = snd;
-    snd.volume = 0.95;
+    const vScale = (typeof this.volumeScale === 'number') ? this.volumeScale : 1.0;
+    snd.volume = Math.max(0, Math.min(1, 0.95 * vScale));
     let ended = false;
     const finish = () => {
      if (!ended) {
@@ -18745,7 +18759,7 @@ window.STARFIELD_QUALITY = {
       hud.addEventListener('click', () => {
         if (window.toast) {
           const modeName = this.isFocusEcoThrottled ? '专注挂机降温 (45FPS)' : (this.fpsMode === 'uncapped' ? '满血高刷 (无上限)' : `${this.fpsMode} FPS 锁定`);
-          window.toast(`渲染遥测: ${fps} FPS · 刷新率 ${hz}Hz · 视网膜 ${(dpr*scale).toFixed(2)}x (${modeName}) · 耗时 ${ms.toFixed(1)}ms`);
+          window.toast(`渲染遥测: ${fps} FPS · 刷新率 ${hz}Hz · 视网膜 ${(dpr).toFixed(2)}x (${modeName}) · 耗时 ${ms.toFixed(1)}ms`);
         }
       });
       document.body.appendChild(hud);
@@ -18766,7 +18780,7 @@ window.STARFIELD_QUALITY = {
       hzEl.textContent = this.isFocusEcoThrottled ? ' ECO' : (hz ? `/${hz}Hz` : '');
     }
     if (dprEl) {
-      dprEl.textContent = `${(dpr * scale).toFixed(2)}x`;
+      dprEl.textContent = `${(dpr).toFixed(2)}x`;
     }
     if (msEl) {
       msEl.textContent = `${ms.toFixed(1)}ms`;
@@ -18942,7 +18956,7 @@ window.addEventListener('resize', () => {
       })
       .then(data => {
         if (data && data.build) {
-          const localBuild = 194;
+          const localBuild = 195;
           if (data.build > localBuild) {
             showOtaNotification(data);
           } else if (manual && window.toast) {
@@ -19384,7 +19398,7 @@ window.Starfield=Object.freeze({
  windX:()=>+wind.x.toFixed(3),windY:()=>+wind.y.toFixed(3),
  palette:()=>({index:currentPalette.index,t:currentPalette.t,sky:currentPalette.sky,horizon:currentPalette.horizon,fog:currentPalette.fog,tree:currentPalette.tree,craft:currentPalette.craft,sun:currentPalette.sun,shimmer:currentPalette.shimmer,front:currentPalette.front}),
  flock:()=>{let mx=0,mv=0,bad=false;for(const b of fleet){const d=Math.hypot(b.x,b.y,b.z);if(d>mx)mx=d;const v=Math.hypot(b.vx,b.vy,b.vz);if(v>mv)mv=v;if(!Number.isFinite(b.x+b.y+b.z+b.vx+b.vy+b.vz))bad=true;}return {radius:Math.round(mx),speed:Math.round(mv),bad};},
- holeGL:!!holeGL,getHoleGL:()=>holeGL,starGL:!!starfieldGL,getStarGL:()=>starfieldGL,wasm:StarfieldWasm,getNebPalettes:()=>NEB_PAL,nebulaTex:(s,i)=>nebulaTex(s,i),
+ holeGL:!!holeGL,getHoleGL:()=>holeGL,starGL:!!starfieldGL,getStarGL:()=>starfieldGL,wasm:StarfieldWasm,getNebPalettes:()=>NEB_PAL,nebulaTex:(s,i)=>nebulaTex(s,i),getNebCache:()=>nebCache,
  getState:()=>({seed:SEED,started,paused,autoCamera,region:rawStyles[currentPalette.index].en,regionMix:currentPalette.t,travel,flightTime,capture:capturePhase,captureT,sling:Math.round(sling*100)/100,masses:activeMasses.length,kinds:activeMasses.map(m=>m.kind).sort().join(''),lensSources:lensSources.length,nebTex:nebCache.size,nebGens,fillMPx:+(lastFillPx/1e6).toFixed(1),fleet:fleet.length,particles:particles.length,variation:cycle+1,lens:plans.get(cycle)[shot].name,distance:camera.distance,pitch:camera.pitch,yaw:camera.yaw,eye:[...camera.eye],fps:Math.round(fps),drawCalls,loadedChunks:chunks.size,rotated,width:W,height:H,dpr:DPR,audio:sound.ready?sound.ac.state:'not-started',track:sound.index+1,postMs:+(postMs).toFixed(2),postOn,holeGL:!!holeGL,starGL:!!starfieldGL,wasm:!!(StarfieldWasm&&StarfieldWasm.isSupported),warpGear:WarpDrive.gearIndex,departing:!!__depart,clips:(typeof NarratorClips!=='undefined')?Object.keys(NarratorClips).length:0,gpu:_GPU.tier,gpuName:String(_GPU.name).slice(0,48),hz:refreshHz,dprCap:(window.STARFIELD_QUALITY?STARFIELD_QUALITY.tierCap[_GPU.tier]:null),fpsMode:(window.STARFIELD_QUALITY?STARFIELD_QUALITY.fpsMode:'uncapped'),perfHud:(window.STARFIELD_QUALITY?STARFIELD_QUALITY.perfHudEnabled:false),focusEco:(window.STARFIELD_QUALITY?STARFIELD_QUALITY.isFocusEcoThrottled:false),holeDraws,holeLastRad}),
  getLensSources:()=>lensSources.map(L=>({...L})),
  lensWarp:(x,y)=>lensWarp(x,y),
@@ -19454,21 +19468,21 @@ window.Starfield=Object.freeze({
  isCockpit:()=>cockpitMode,
  isAutoCamera:()=>autoCamera,
  isModalOpen:()=>{
-  const hangarOpen = (typeof FleetCustomizer !== 'undefined' && FleetCustomizer.isOpen) || ($('hangar-modal') && $('hangar-modal').classList.contains('open'));
-  const hatchOpen = ($('sf-hatch') && $('sf-hatch').classList.contains('active')) || ($('sf-hatch-list') && $('sf-hatch-list').classList.contains('on'));
-  const focusOpen = (window.StarfieldFocusEngine && window.StarfieldFocusEngine.isDashboardOpen);
+  const hangarOpen = (typeof FleetCustomizer !== 'undefined' && FleetCustomizer.isOpen) || ($('hangar-modal')?.classList?.contains('open'));
+  const hatchOpen = ($('sf-hatch')?.classList?.contains('active')) || ($('sf-hatch-list')?.classList?.contains('on'));
+  const focusOpen = !!(window.StarfieldFocusEngine && window.StarfieldFocusEngine.isDashboardOpen);
   const upgradesOpen = !!(window.StarfieldShipUpgrades && window.StarfieldShipUpgrades.isOpen);
-  return PhotoStudio.active||$('codex-modal').classList.contains('open')||$('settings-drawer').classList.contains('open')||focusOpen||upgradesOpen||hangarOpen||hatchOpen;
+  return PhotoStudio.active||$('codex-modal')?.classList?.contains('open')||$('settings-drawer')?.classList?.contains('open')||focusOpen||upgradesOpen||hangarOpen||hatchOpen;
  },
  closeModal:()=>{
   if(window.StarfieldShipUpgrades && window.StarfieldShipUpgrades.isOpen)window.StarfieldShipUpgrades.closeModal();
   else if(PhotoStudio.active)PhotoStudio.close();
   else if(typeof FleetCustomizer !== 'undefined' && FleetCustomizer.isOpen)FleetCustomizer.close();
-  else if($('hangar-modal') && $('hangar-modal').classList.contains('open'))$('hangar-modal').classList.remove('open');
-  else if($('codex-modal').classList.contains('open'))Codex.close();
-  else if($('sf-hatch-list') && $('sf-hatch-list').classList.contains('on'))$('sf-hatch-list').classList.remove('on');
-  else if($('sf-hatch') && $('sf-hatch').classList.contains('active'))$('sf-hatch').classList.remove('active');
-  else if($('settings-drawer').classList.contains('open'))GameSettings.close();
+  else if($('hangar-modal')?.classList?.contains('open'))$('hangar-modal').classList.remove('open');
+  else if($('codex-modal')?.classList?.contains('open'))Codex.close();
+  else if($('sf-hatch-list')?.classList?.contains('on'))$('sf-hatch-list').classList.remove('on');
+  else if($('sf-hatch')?.classList?.contains('active'))$('sf-hatch').classList.remove('active');
+  else if($('settings-drawer')?.classList?.contains('open'))GameSettings.close();
   else if(window.StarfieldFocusEngine && window.StarfieldFocusEngine.isDashboardOpen)window.StarfieldFocusEngine.closeDashboard();
  },
  toggleCodex:()=>Codex.toggle(),
@@ -20522,6 +20536,7 @@ requestAnimationFrame(frame);
     };
     const clear = () => { if (t1) clearTimeout(t1); if (t2) clearTimeout(t2); t1 = t2 = 0; };
     const down = (e) => {
+      if (!e.isPrimary) return;
       if ((typeof currentMode !== 'undefined' && currentMode !== 'cruise') || (window.currentMode && window.currentMode !== 'cruise')) return;
       const t = e.target;
       if (t && t.closest && t.closest('button, .sf-touch-cluster, .sf-touch-joy-zone, .sf-touch-more-tray, #settings-drawer, #codex-modal, #sf-contract-hud, #sf-descent-btn, #sf-sonar-capsule')) return;
@@ -21054,11 +21069,14 @@ requestAnimationFrame(frame);
       }
       try {
         const AC = window.AudioContext || window.webkitAudioContext;
-        if (!AC) return;
-        this.ac = new AC();
-        this.masterGain = this.ac.createGain();
-        this.masterGain.gain.value = 0.85;
-        this.masterGain.connect(this.ac.destination);
+        if (!AC && !(window.StarfieldAudio && window.StarfieldAudio.getContext)) return;
+        this.ac = (window.StarfieldAudio && window.StarfieldAudio.getContext) ? window.StarfieldAudio.getContext() : new AC();
+        if (this.ac) {
+          const sfxDest = (window.StarfieldAudio && window.StarfieldAudio.sfxBus) ? window.StarfieldAudio.sfxBus : this.ac.destination;
+          this.masterGain = this.ac.createGain();
+          this.masterGain.gain.value = 0.85;
+          this.masterGain.connect(sfxDest);
+        }
       } catch (e) {
         console.warn('[ScannerAudio] AudioContext init deferred:', e);
       }
@@ -23534,12 +23552,12 @@ requestAnimationFrame(frame);
         model.hasRendered = true;
         this._lastRenderedId = pId;
         this.renderer.render(this.scene, this.camera);
-        if (isMob) {
-          return this.canvas;
-        }
         if (model.canvas) {
           model.ctx.clearRect(0, 0, 512, 512);
           model.ctx.drawImage(this.canvas, 0, 0);
+        }
+        if (isMob) {
+          return this.canvas;
         }
       }
       return (isMob && refreshInterval === 1) ? this.canvas : (model.canvas || this.canvas);
@@ -24473,8 +24491,12 @@ document.addEventListener('DOMContentLoaded', () => {
   var audioCtx = null;
   function getAudio() {
     if (!audioCtx) {
-      var AC = window.AudioContext || window.webkitAudioContext;
-      if (AC) audioCtx = new AC();
+      if (window.StarfieldAudio && window.StarfieldAudio.getContext) {
+        audioCtx = window.StarfieldAudio.getContext();
+      } else {
+        var AC = window.AudioContext || window.webkitAudioContext;
+        if (AC) audioCtx = new AC();
+      }
     }
     if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
     return audioCtx;
@@ -24503,8 +24525,9 @@ document.addEventListener('DOMContentLoaded', () => {
         osc.start(t0);
         osc.stop(t0 + 1.6);
       }
+      var sfxDest = (window.StarfieldAudio && window.StarfieldAudio.sfxBus) ? window.StarfieldAudio.sfxBus : ctx.destination;
       lp.connect(g);
-      g.connect(ctx.destination);
+      g.connect(sfxDest);
     } catch (e) {}
   }
 
@@ -24522,7 +24545,8 @@ document.addEventListener('DOMContentLoaded', () => {
         gain.gain.setValueAtTime(0.001, ctx.currentTime + idx * 0.05);
         gain.gain.linearRampToValueAtTime(0.14, ctx.currentTime + idx * 0.05 + 0.08);
         gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + idx * 0.05 + 1.8);
-        osc.connect(gain); gain.connect(ctx.destination);
+        var sfxDest = (window.StarfieldAudio && window.StarfieldAudio.sfxBus) ? window.StarfieldAudio.sfxBus : ctx.destination;
+        osc.connect(gain); gain.connect(sfxDest);
         osc.start(ctx.currentTime + idx * 0.05); osc.stop(ctx.currentTime + idx * 0.05 + 1.9);
       });
     } catch(e) {}
@@ -25448,9 +25472,11 @@ document.addEventListener('DOMContentLoaded', () => {
     window.__sfRevealSfxNotes = notes.length;
     try {
       var AC = window.AudioContext || window.webkitAudioContext;
-      if (!AC) { window.__sfRevealSfxState = 'unsupported'; return; }
-      if (!actx || actx.state === 'closed') actx = new AC();
-      if (actx.state === 'suspended' && typeof actx.resume === 'function') {
+      if (!AC && !(window.StarfieldAudio && window.StarfieldAudio.getContext)) { window.__sfRevealSfxState = 'unsupported'; return; }
+      if (!actx || actx.state === 'closed') {
+        actx = (window.StarfieldAudio && window.StarfieldAudio.getContext) ? window.StarfieldAudio.getContext() : new AC();
+      }
+      if (actx && actx.state === 'suspended' && typeof actx.resume === 'function') {
         try {
           var p = actx.resume();
           if (p && typeof p.then === 'function') {
@@ -25468,8 +25494,9 @@ document.addEventListener('DOMContentLoaded', () => {
       var lp = actx.createBiquadFilter();
       lp.type = 'lowpass';
       lp.frequency.setValueAtTime(5200, t0);
+      var sfxDest = (window.StarfieldAudio && window.StarfieldAudio.sfxBus) ? window.StarfieldAudio.sfxBus : actx.destination;
       master.connect(lp);
-      lp.connect(actx.destination);
+      lp.connect(sfxDest);
 
       var step = 0.06;
       var dur = rank >= 3 ? 0.42 : 0.30;
@@ -27790,7 +27817,8 @@ function sfBuildManif(THREE, planet, manifId, hue, rng) {
       sizeTo(p.canvas);
 
       var item = p.item || {};
-      var key = (item.tier || 'common') + '|' + (item.hue || 200);
+      var buildupStage = window.SFBuildup ? window.SFBuildup.stage(item) : 0;
+      var key = (item.tier || 'common') + '|' + (item.hue || 200) + '|' + buildupStage;
       if (key !== curKey) buildFor(item);
 
       var t = (performance.now() - startT) / 1000;
@@ -28682,11 +28710,15 @@ function sfBuildManif(THREE, planet, manifId, hue, rng) {
 
   function ac() {
     if (!ctx) {
-      var AC = window.AudioContext || window.webkitAudioContext;
-      if (!AC) return null;
-      ctx = new AC();
+      if (window.StarfieldAudio && window.StarfieldAudio.getContext) {
+        ctx = window.StarfieldAudio.getContext();
+      } else {
+        var AC = window.AudioContext || window.webkitAudioContext;
+        if (!AC) return null;
+        ctx = new AC();
+      }
     }
-    if (ctx.state === 'suspended') { try { ctx.resume(); } catch (e) {} }
+    if (ctx && ctx.state === 'suspended') { try { ctx.resume(); } catch (e) {} }
     return ctx;
   }
 
@@ -28737,7 +28769,8 @@ function sfBuildManif(THREE, planet, manifId, hue, rng) {
     master = c.createGain();
     master.gain.setValueAtTime(0.0001, t);
     master.gain.exponentialRampToValueAtTime(v.gain, t + 2.2);  /* 淡入，别突兀 */
-    master.connect(c.destination);
+    var sfxDest = (window.StarfieldAudio && window.StarfieldAudio.sfxBus) ? window.StarfieldAudio.sfxBus : c.destination;
+    master.connect(sfxDest);
 
     if (v.kind === 'wave') {
       var src = c.createBufferSource();

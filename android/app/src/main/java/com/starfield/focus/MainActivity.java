@@ -110,7 +110,16 @@ public class MainActivity extends AppCompatActivity {
         syncAssets();
 
         // 1. Initial Page Load (Cached active update file or bundled asset fallback)
+        SharedPreferences prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        long currentBuild = prefs.getLong(KEY_BUILD, 0L);
+        long bundledBuild = getBundledBuild();
+
         File activeHtml = new File(getFilesDir(), "starfield_active.html");
+        if (bundledBuild >= currentBuild && activeHtml.exists()) {
+            activeHtml.delete();
+            prefs.edit().putLong(KEY_BUILD, bundledBuild).apply();
+        }
+
         if (activeHtml.exists() && activeHtml.length() > 500000) {
             webView.loadUrl("file://" + activeHtml.getAbsolutePath());
         } else {
@@ -192,6 +201,20 @@ public class MainActivity extends AppCompatActivity {
             return new String(tail, "UTF-8").toLowerCase().contains("</html");
         } catch (Exception e) {
             return false;
+        }
+    }
+
+    private long getBundledBuild() {
+        try (InputStream is = getAssets().open("version.json")) {
+            BufferedReader reader = new BufferedReader(new InputStreamReader(is, "UTF-8"));
+            StringBuilder sb = new StringBuilder();
+            String line;
+            while ((line = reader.readLine()) != null) sb.append(line);
+            JSONObject json = new JSONObject(sb.toString());
+            return json.optLong("build", 0L);
+        } catch (Exception e) {
+            Log.w("StarfieldOTA", "Failed to read bundled version.json", e);
+            return 0L;
         }
     }
 

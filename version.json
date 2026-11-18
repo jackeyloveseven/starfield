@@ -1,11 +1,11 @@
 {
-  "version": "1.9.9.9.9.6",
-  "build": 194,
-  "updated_at": "2026-11-17T12:05:00+08:00",
+  "version": "1.9.9.9.9.7",
+  "build": 195,
+  "updated_at": "2026-11-18T21:30:00+08:00",
   "min_native_version": "1.0.0",
   "is_beta": false,
-  "title": "彻底铲除移动端6 FPS硬件同步锁与FBM雪崩：天玑9400+全速冲刺60+ FPS满血流畅 (Build 194)",
-  "changelog": "1. 根治跨上下文EGL硬件同步栅栏锁死：移除主2D Canvas与starfieldGL上的desynchronized强制异步声明，消灭跨上下文drawImage触发的eglClientWaitSyncKHR阻塞，彻底解绑Android Choreographer 10周期量化锁死（6/60 FPS）；\n2. 消除starfieldGL点精灵着色器冗余discard：释放Arm Immortalis-G925 TBDR架构Early-Z与Forward Pixel Kill（FPK）片上SRAM瓦片合并加速，28,800颗恒星与曲率光丝零着色气泡直通流处理；\n3. 根治nebulaTex缓存清空踩踏与FBM突发计算：将星云缓存扩容至128（72种全天区星云一次生成终身常驻），采用安全LRU淘汰机制，移动端贴图分辨率收敛至192，消灭/boost极速巡航时单帧240ms的CPU密集重算停顿；\n4. 修复paperFinish Canvas状态栈非法下溢：将save与restore严格闭合配对，避免移动端每帧Skia状态栈负向错位破坏矩阵上下文；\n5. 3D活体生态球移动端60 FPS直通渲染：消除Three.js到2D Canvas多余双重离屏拷贝，移动端每帧原生GPU硬件光栅化直通呈现，维持100%全景动植物、生态穹顶与天体光影；\n6. 环系行星多层向量路径轻量LOD：微小与远距环系天体转入轻量单环，近距收敛子环层级，向量路径计算量直降80%，彻底打破单核CPU瓶颈！",
+  "title": "深度全域优化与异常阻断：根治多机位渲染风暴与音频硬上限，满血跨端平稳运行 (Build 195)",
+  "changelog": "1. 根治移动端副星球与缓存星球白屏/黑屏：重构LivingPlanetEngine渲染管线，确保WebGL离屏光栅化结果每帧完整镜像至独立Canvas纹理；\n2. 阻断SFPlanetGL每帧Three.js网格重建风暴：补齐缓存键buildupStage阶段标识，消灭60 FPS无休止对象销毁与几何体垃圾回收卡顿；\n3. 修复Narrator语音音量滑块控制失效：在_executeSpeak正确挂载并计算volumeScale音量增益；\n4. 彻底收拢独立AudioContext与音频总线路由：收归ScannerAudio、CardCraft、RevealSfx及PlanetAmbientAudio至StarfieldAudio单例并汇入sfxBus，击碎移动端6-Context硬上限；\n5. 修正GLSL ES smoothstep参数顺序规范：将倒置范围重构为(1.0 - smoothstep)，消除特定移动端GPU着色器编译崩溃；\n6. 根治WarpDrive急刹时相机抖动与投影错位：在构建相机正交基前预先扣除brakeKick位移，确保视线与视锥体刚性一致；\n7. 消除黑洞引力透镜幽灵常驻泄漏：在updateGravity扫描范围外严谨复位__sfBH为null；\n8. 修复Android原生APK升级后旧版缓存覆盖新版资源：比对APK打包版本与本地OTA记录，高版本APK启动时自动清除陈旧HTML并直读打包资源；\n9. 补齐Android打包工程planet_studio.html与version.json双向镜像校验，确保100% SHA256哈希对齐；\n10. 星云贴图缓存升级为严格真LRU淘汰：访问缓存时刷新Map插入序，消除极速巡航时的FIFO缓存踩踏；\n11. 引力轨道推演力学全面适配超曲速巡航：轨迹预测模拟动态注入effWarp航速缩放；\n12. 消除黑洞掠过阶段结束时护航纸鹤相对速度尖峰爆发；\n13. 优化多指缩放触摸冲突：长按极速加速仅响应Primary主指针，消除双指缩放误触超光速飞窜；\n14. 纠正性能监视器HUD视网膜DPR倍率计算逻辑，杜绝二次折算畸变；\n15. 全面加固弹窗与抽屉classList安全链式调用，杜绝DOM节点缺失下的空指针异常。",
   "entry": "starfield.html",
   "download_url": "https://jackeyloveseven.github.io/starfield/starfield.html",
   "apk_release_url": "https://github.com/jackeyloveseven/starfield/releases/tag/v1.19.1-focus-apk"
