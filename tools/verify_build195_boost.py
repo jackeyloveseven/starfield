@@ -216,16 +216,20 @@ def test_build195():
         print(f"13. Fix 12 (Fleet velocities finite & clean): {fleet_test}")
         assert fleet_test["success"] and fleet_test["allFinite"], "Fix 12 check failed"
 
-        # --- Test Fix 13: Non-primary pointerdown ignored ---
+        # --- Test Fix 13: Non-primary pointerdown/move/up ignored ---
         touch_test = page.evaluate("""() => {
-            const ev = new PointerEvent('pointerdown', { isPrimary: false, clientX: 200, clientY: 300 });
+            const evDown = new PointerEvent('pointerdown', { isPrimary: false, clientX: 200, clientY: 300 });
+            const evMove = new PointerEvent('pointermove', { isPrimary: false, clientX: 400, clientY: 500 });
+            const evUp = new PointerEvent('pointerup', { isPrimary: false, clientX: 400, clientY: 500 });
             let err = null;
             try {
-                window.dispatchEvent(ev);
+                window.dispatchEvent(evDown);
+                window.dispatchEvent(evMove);
+                window.dispatchEvent(evUp);
             } catch(e) { err = String(e); }
             return { success: err === null, error: err };
         }""")
-        print(f"14. Fix 13 (Non-primary pointerdown event dispatch): {touch_test}")
+        print(f"14. Fix 13 (Non-primary pointerdown/move/up event dispatch): {touch_test}")
         assert touch_test["success"], "Fix 13 check failed"
 
         # --- Test Fix 14: Perf HUD DPR without duplicate scale ---
@@ -244,26 +248,29 @@ def test_build195():
         print(f"15. Fix 14 (Perf HUD DPR display): {hud_test}")
         assert hud_test["success"] and hud_test["dprText"] == "1.50x", f"Expected 1.50x, got {hud_test['dprText']}"
 
-        # --- Test Fix 15: Modal check with optional chaining ---
+        # --- Test Fix 15: Modal check with optional chaining & boolean guarantee ---
         modal_test = page.evaluate("""() => {
             if (!window.Starfield || !window.Starfield.isModalOpen) return { success: false, reason: 'No isModalOpen' };
-            // Temporarily remove codex-modal and settings-drawer to test robustness
-            const codex = document.getElementById('codex-modal');
-            const drawer = document.getElementById('settings-drawer');
-            let resWithoutDom = null;
+            let res = null;
+            let keydownNoCrash = true;
             try {
-                // If elements exist or don't exist, isModalOpen should not throw
-                resWithoutDom = window.Starfield.isModalOpen();
+                res = window.Starfield.isModalOpen();
+                // Test keydown handling with modal closed
+                const escEv = new KeyboardEvent('keydown', { key: 'Escape' });
+                window.dispatchEvent(escEv);
             } catch(e) {
                 return { success: false, error: String(e) };
             }
             return {
                 success: true,
-                isOpen: resWithoutDom
+                isOpen: res,
+                isStrictBoolean: typeof res === 'boolean'
             };
         }""")
-        print(f"16. Fix 15 (Modal safe check optional chaining): {modal_test}")
+        print(f"16. Fix 15 (Modal safe check optional chaining & boolean): {modal_test}")
         assert modal_test["success"], f"Fix 15 failed: {modal_test}"
+        assert modal_test["isStrictBoolean"], f"Fix 15 returned non-boolean: {modal_test['isOpen']}"
+        assert modal_test["isOpen"] is False, f"Expected boolean False, got: {modal_test['isOpen']}"
 
         # Screenshot verification
         shot_path = os.path.join(SHOTS_DIR, "test_build195_warp_flight.png")

@@ -52,6 +52,7 @@ public class MainActivity extends AppCompatActivity {
 
     private WebView webView;
     private final ExecutorService otaExecutor = Executors.newSingleThreadExecutor();
+    private volatile long cachedBundledBuild = -1L;
     /** True once the page has finished loading; before that its inline script may
      *  still be parsing and would drop an evaluateJavascript() call. */
     private volatile boolean pageReady = false;
@@ -205,13 +206,15 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private long getBundledBuild() {
+        if (cachedBundledBuild >= 0) return cachedBundledBuild;
         try (InputStream is = getAssets().open("version.json")) {
             BufferedReader reader = new BufferedReader(new InputStreamReader(is, "UTF-8"));
             StringBuilder sb = new StringBuilder();
             String line;
             while ((line = reader.readLine()) != null) sb.append(line);
             JSONObject json = new JSONObject(sb.toString());
-            return json.optLong("build", 0L);
+            cachedBundledBuild = json.optLong("build", 0L);
+            return cachedBundledBuild;
         } catch (Exception e) {
             Log.w("StarfieldOTA", "Failed to read bundled version.json", e);
             return 0L;
@@ -223,7 +226,7 @@ public class MainActivity extends AppCompatActivity {
             String stage = "版本查询";
             try {
                 SharedPreferences prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
-                long currentBuild = prefs.getLong(KEY_BUILD, 0L);
+                long currentBuild = Math.max(getBundledBuild(), prefs.getLong(KEY_BUILD, 0L));
 
                 // 1. Fetch remote version descriptor (with multi-mirror fallback)
                 JSONObject obj = null;
@@ -415,6 +418,10 @@ public class MainActivity extends AppCompatActivity {
         /** Which page build the OTA has landed on, 0 when still on the bundled copy. */
         @JavascriptInterface
         public long getOtaBuild() {
+            File activeHtml = new File(getFilesDir(), "starfield_active.html");
+            if (!activeHtml.exists() || activeHtml.length() <= 500000) {
+                return 0L;
+            }
             SharedPreferences prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
             return prefs.getLong(KEY_BUILD, 0L);
         }

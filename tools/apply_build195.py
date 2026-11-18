@@ -46,12 +46,12 @@ def sha256_of_file(path):
 
 
 def apply_step(content, target, repl, step_name):
-    if target in content:
-        print(f"  [APPLY] {step_name}")
-        return content.replace(target, repl)
-    elif repl in content:
+    if repl in content:
         print(f"  [OK-ALREADY] {step_name}")
         return content
+    elif target in content:
+        print(f"  [APPLY] {step_name}")
+        return content.replace(target, repl)
     else:
         raise AssertionError(f"Target not found for step: {step_name}")
 
@@ -86,8 +86,8 @@ def apply_build195():
         model.hasRendered = true;
         this._lastRenderedId = pId;
         this.renderer.render(this.scene, this.camera);
-        if (model.canvas) {
-          model.ctx.clearRect(0, 0, 512, 512);
+        if (model.canvas && model.ctx) {
+          model.ctx.clearRect(0, 0, model.canvas.width, model.canvas.height);
           model.ctx.drawImage(this.canvas, 0, 0);
         }
         if (isMob) {
@@ -537,10 +537,52 @@ def apply_build195():
     html = apply_step(html, target_fix12_exit, repl_fix12_exit, "Fix 12-2: Reset fleet velocity exiting capture")
 
     target_fix13 = """    const down = (e) => {
-      if ((typeof currentMode !== 'undefined' && currentMode !== 'cruise') || (window.currentMode && window.currentMode !== 'cruise')) return;"""
+      if ((typeof currentMode !== 'undefined' && currentMode !== 'cruise') || (window.currentMode && window.currentMode !== 'cruise')) return;
+      const t = e.target;
+      if (t && t.closest && t.closest('button, .sf-touch-cluster, .sf-touch-joy-zone, .sf-touch-more-tray, #settings-drawer, #codex-modal, #sf-contract-hud, #sf-descent-btn, #sf-sonar-capsule')) return;
+      if (!Engine.isFlightStarted || !Engine.isFlightStarted()) return;
+      startX = e.clientX;
+      startY = e.clientY;
+      stage = 0;
+      t1 = setTimeout(() => {
+        stage = 1; gear(1);
+        t2 = setTimeout(() => { stage = 2; gear(2); }, 850);
+      }, 320);
+    };
+    const move = (e) => {
+      if (stage === 0 && (t1 || t2)) {
+        if (Math.hypot(e.clientX - startX, e.clientY - startY) > 12) {
+          clear();
+        }
+      }
+    };
+    const up = () => { clear(); if (stage > 0) gear(0); stage = 0; };"""
     repl_fix13 = """    const down = (e) => {
       if (!e.isPrimary) return;
-      if ((typeof currentMode !== 'undefined' && currentMode !== 'cruise') || (window.currentMode && window.currentMode !== 'cruise')) return;"""
+      if ((typeof currentMode !== 'undefined' && currentMode !== 'cruise') || (window.currentMode && window.currentMode !== 'cruise')) return;
+      const t = e.target;
+      if (t && t.closest && t.closest('button, .sf-touch-cluster, .sf-touch-joy-zone, .sf-touch-more-tray, #settings-drawer, #codex-modal, #sf-contract-hud, #sf-descent-btn, #sf-sonar-capsule')) return;
+      if (!Engine.isFlightStarted || !Engine.isFlightStarted()) return;
+      startX = e.clientX;
+      startY = e.clientY;
+      stage = 0;
+      t1 = setTimeout(() => {
+        stage = 1; gear(1);
+        t2 = setTimeout(() => { stage = 2; gear(2); }, 850);
+      }, 320);
+    };
+    const move = (e) => {
+      if (e && !e.isPrimary) return;
+      if (stage === 0 && (t1 || t2)) {
+        if (Math.hypot(e.clientX - startX, e.clientY - startY) > 12) {
+          clear();
+        }
+      }
+    };
+    const up = (e) => {
+      if (e && !e.isPrimary) return;
+      clear(); if (stage > 0) gear(0); stage = 0;
+    };"""
     html = apply_step(html, target_fix13, repl_fix13, "Fix 13: Touch gesture conflict primary check")
 
     target_fix14_toast = "window.toast(`渲染遥测: ${fps} FPS · 刷新率 ${hz}Hz · 视网膜 ${(dpr*scale).toFixed(2)}x (${modeName}) · 耗时 ${ms.toFixed(1)}ms`);"
@@ -578,7 +620,7 @@ def apply_build195():
   const hatchOpen = ($('sf-hatch')?.classList?.contains('active')) || ($('sf-hatch-list')?.classList?.contains('on'));
   const focusOpen = !!(window.StarfieldFocusEngine && window.StarfieldFocusEngine.isDashboardOpen);
   const upgradesOpen = !!(window.StarfieldShipUpgrades && window.StarfieldShipUpgrades.isOpen);
-  return PhotoStudio.active||$('codex-modal')?.classList?.contains('open')||$('settings-drawer')?.classList?.contains('open')||focusOpen||upgradesOpen||hangarOpen||hatchOpen;
+  return !!(PhotoStudio.active||$('codex-modal')?.classList?.contains('open')||$('settings-drawer')?.classList?.contains('open')||focusOpen||upgradesOpen||hangarOpen||hatchOpen);
  },
  closeModal:()=>{
   if(window.StarfieldShipUpgrades && window.StarfieldShipUpgrades.isOpen)window.StarfieldShipUpgrades.closeModal();
