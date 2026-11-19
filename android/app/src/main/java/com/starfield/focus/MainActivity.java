@@ -121,7 +121,7 @@ public class MainActivity extends AppCompatActivity {
             prefs.edit().putLong(KEY_BUILD, bundledBuild).apply();
         }
 
-        if (activeHtml.exists() && activeHtml.length() > 500000) {
+        if (activeHtml.exists() && activeHtml.length() >= MIN_HTML_BYTES) {
             webView.loadUrl("file://" + activeHtml.getAbsolutePath());
         } else {
             webView.loadUrl("file:///android_asset/starfield.html");
@@ -383,7 +383,7 @@ public class MainActivity extends AppCompatActivity {
             runOnUiThread(() -> {
                 pageReady = false;
                 File active = new File(getFilesDir(), "starfield_active.html");
-                if (active.exists() && active.length() > 500000) {
+                if (active.exists() && active.length() >= MIN_HTML_BYTES) {
                     webView.loadUrl("file://" + active.getAbsolutePath());
                 } else {
                     webView.reload();
@@ -419,7 +419,7 @@ public class MainActivity extends AppCompatActivity {
         @JavascriptInterface
         public long getOtaBuild() {
             File activeHtml = new File(getFilesDir(), "starfield_active.html");
-            if (!activeHtml.exists() || activeHtml.length() <= 500000) {
+            if (!activeHtml.exists() || activeHtml.length() < MIN_HTML_BYTES) {
                 return 0L;
             }
             SharedPreferences prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
@@ -510,8 +510,32 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
+    protected void onPause() {
+        super.onPause();
+        if (webView != null) {
+            webView.onPause();
+        }
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (webView != null) {
+            webView.onResume();
+        }
+    }
+
+    @Override
     protected void onDestroy() {
         super.onDestroy();
         otaExecutor.shutdown();
+        if (webView != null) {
+            webView.onPause();
+            if (webView.getParent() instanceof android.view.ViewGroup) {
+                ((android.view.ViewGroup) webView.getParent()).removeView(webView);
+            }
+            webView.destroy();
+            webView = null;
+        }
     }
 }

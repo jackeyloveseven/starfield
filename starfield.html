@@ -4964,7 +4964,7 @@ body:has(#photo-ui.active) .sf-touch-cluster{
     <div class="shortcut-list">
       <div class="shortcut-row">
         <span>客户端版本</span>
-        <span class="shortcut-key" id="sf-version-tag">v1.9.9.9.9.7 (Build 195)</span>
+        <span class="shortcut-key" id="sf-version-tag">v1.9.9.9.9.8 (Build 196)</span>
       </div>
       <div class="shortcut-row">
         <span>OTA 实时热更新</span>
@@ -6196,6 +6196,7 @@ body:has(#photo-ui.active) .sf-touch-cluster{
         if (e.touches.length > 0) onMove(e.touches[0].clientX, e.touches[0].clientY);
       }, { passive: true });
       window.addEventListener('touchend', onEnd);
+      window.addEventListener('touchcancel', onEnd);
     },
 
     startTurntableLoop() {
@@ -8562,7 +8563,7 @@ const SpaceEventEngine = {
       'gundam_relic', 'eva_longinus', 'ultraman_m78'
     ];
     // Deterministic variety distribution across chunks
-    const evTypeIdx = (hash(k, 239) + Math.floor(r() * types.length)) % types.length;
+    const evTypeIdx = (Math.floor(hash(k, 239) * types.length) + Math.floor(r() * types.length)) % types.length;
     let type = types[evTypeIdx];
     // Reduce wormhole_sphere encounter rate by 5x (only 20% pass through)
     if (type === 'wormhole_sphere' && hash(k, 881) >= 0.20) {
@@ -9590,6 +9591,18 @@ const SpaceEventEngine = {
     }
   }
 };
+if (typeof window !== 'undefined') window.SpaceEventEngine = SpaceEventEngine;
+
+// Precomputed O(1) 120-cycle lookup table for encounter indices (42 encounters per 120 chunks)
+const _ENC_CYCLE_TABLE = (function() {
+  const t = new Uint8Array(121);
+  for (let c = 1; c <= 120; c++) {
+    const nh = (c < 8 || c > 112);
+    t[c] = t[c - 1] + ((!nh && (c % 5 === 2 || c % 5 === 4)) ? 1 : 0);
+  }
+  return t;
+})();
+if (typeof window !== 'undefined') window._ENC_CYCLE_TABLE = _ENC_CYCLE_TABLE;
 
 function chunk(k){
  if(typeof window!=='undefined'&&!window.chunk) window.chunk=chunk;
@@ -9647,9 +9660,9 @@ function chunk(k){
 
   let encIndex = 0;
   if(hasEncounter){
-   for(let cand = 1; cand < k; cand++){
-    const nh = (cand > 0 && (cand % 120 < 8 || cand % 120 > 112));
-    if(!nh && (cand % 5 === 2 || cand % 5 === 4)) encIndex++;
+   const candMax = k - 1;
+   if(candMax > 0){
+    encIndex = Math.floor(candMax / 120) * 42 + _ENC_CYCLE_TABLE[candMax % 120];
    }
   }
 
@@ -9702,7 +9715,7 @@ function chunk(k){
    // Poisson Disk clearance check for encounter planet
    const prevMasses = [];
    for (let pk = k - 2; pk < k; pk++) {
-     const pc = chunks.has(pk) ? chunks.get(pk) : (pk >= 0 ? chunk(pk) : null);
+     const pc = chunks.get(pk) || null;
      if (pc && pc.masses) {
        for (let pi = 0; pi < pc.masses.length; pi++) prevMasses.push(pc.masses[pi]);
      }
@@ -9743,7 +9756,7 @@ function chunk(k){
    const numOmni = (r() < 0.35) ? 2 : 3;
    const prevMasses = [];
    for (let pk = k - 2; pk < k; pk++) {
-     const pc = chunks.has(pk) ? chunks.get(pk) : (pk >= 0 ? chunk(pk) : null);
+     const pc = chunks.get(pk) || null;
      if (pc && pc.masses) {
        for (let pi = 0; pi < pc.masses.length; pi++) prevMasses.push(pc.masses[pi]);
      }
@@ -12357,7 +12370,7 @@ function updateCapture(dt){
   toast('重返浩瀚深空 · DEEP SPACE RESUMED', 5);
   // Once in a while the flight comes out the other side of the page.
   if(hash(cycle,707)<.45){tessT=1e-4;toast('五维空间 · TESSERACT',9);
-   const L=TESS_IN[hash(cycle,707)%TESS_IN.length];Narrator.speak(L[1],{id:L[0],priority:2});}
+   const L=TESS_IN[Math.floor(hash(cycle,707)*TESS_IN.length)];Narrator.speak(L[1],{id:L[0],priority:2});}
  }
 }
 function updateBirds(dt){
@@ -18533,9 +18546,15 @@ window.addEventListener('keydown', e => {
   }
 });
 window.addEventListener('keyup', e => {
-  if ((typeof currentMode !== 'undefined' && currentMode !== 'cruise') || (window.currentMode && window.currentMode !== 'cruise')) return;
-  if (window.Starfield && typeof window.Starfield.isModalOpen === 'function' && window.Starfield.isModalOpen()) return;
   if (e.key === 'Shift' || e.code === 'KeyW') {
+    if (typeof WarpDrive !== 'undefined' && WarpDrive.setHold) WarpDrive.setHold(false);
+  }
+});
+window.addEventListener('blur', () => {
+  if (typeof WarpDrive !== 'undefined' && WarpDrive.setHold) WarpDrive.setHold(false);
+});
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden && typeof WarpDrive !== 'undefined' && WarpDrive.setHold) {
     WarpDrive.setHold(false);
   }
 });
@@ -18956,7 +18975,7 @@ window.addEventListener('resize', () => {
       })
       .then(data => {
         if (data && data.build) {
-          const localBuild = 195;
+          const localBuild = 196;
           if (data.build > localBuild) {
             showOtaNotification(data);
           } else if (manual && window.toast) {
@@ -19079,7 +19098,7 @@ function frame(now){
   ctx.fillStyle=css([255,250,240],gateFlash*.55);ctx.fillRect(0,0,W,H);ctx.restore();
   gateFlash*=Math.max(0,1-realDt*2.2);}
  if(tessT>0){tessT+=dt;drawTesseract();if(tessT>TESS_DUR){tessT=0;
-   const L=TESS_OUT[hash(cycle,911)%TESS_OUT.length];Narrator.speak(L[1],{id:L[0],priority:1});}}
+   const L=TESS_OUT[Math.floor(hash(cycle,911)*TESS_OUT.length)];Narrator.speak(L[1],{id:L[0],priority:1});}}
  cockpitBlend+=((cockpitMode?1:0)-cockpitBlend)*Math.min(1,realDt*3.2);
  drawCockpit(time);paperFinish();postPass();
  uiAccumulator+=realDt;if(uiAccumulator>.12){uiAccumulator=0;updateUI();}
@@ -20214,8 +20233,12 @@ requestAnimationFrame(frame);
   // Android fires resize before innerWidth has flipped; the delayed pass is
   // the one that lands in the new orientation.
   window.addEventListener('orientationchange', () => {
+    if (typeof resize === 'function') resize();
     layoutTouch();
-    setTimeout(layoutTouch, 160);
+    setTimeout(() => {
+      if (typeof resize === 'function') resize();
+      layoutTouch();
+    }, 160);
   });
 
   // --- Build Virtual Touch HUD ---
@@ -21140,6 +21163,19 @@ requestAnimationFrame(frame);
 
       sonarGain.connect(this.masterGain);
       merger.connect(this.masterGain);
+
+      // Clean up cyclic feedback loop after sonar ping decay (3.2s)
+      setTimeout(() => {
+        try {
+          sonarGain.disconnect();
+          filter.disconnect();
+          delayL.disconnect();
+          delayR.disconnect();
+          feedbackL.disconnect();
+          feedbackR.disconnect();
+          merger.disconnect();
+        } catch (_) {}
+      }, 3200);
 
       // Main Sine Oscillator: 784 Hz (G5) dropping to 330 Hz (E4)
       const oscMain = ac.createOscillator();
@@ -22228,6 +22264,7 @@ requestAnimationFrame(frame);
           if (e.touches.length > 0) onMove(e.touches[0].clientX);
         }, { passive: true });
         window.addEventListener('touchend', onUp);
+        window.addEventListener('touchcancel', onUp);
       }
 
       // 6. Global Keydown Handlers (R, E, A, D, Left, Right, Escape)
@@ -22663,6 +22700,7 @@ requestAnimationFrame(frame);
 
   // Expose to window
   window.AnomalyScanner = AnomalyScanner;
+  window.ScannerAudio = ScannerAudio;
 
   // Auto-initialize when ready
   if (document.readyState === 'complete' || document.readyState === 'interactive') {
@@ -24613,6 +24651,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (e.touches.length > 0) onMove(e.touches[0].clientX, e.touches[0].clientY);
     }, { passive: true });
     window.addEventListener('touchend', onEnd);
+    window.addEventListener('touchcancel', onEnd);
   }
 
   ProceduralPlanet.prototype.setItem = function(it) {
@@ -26819,11 +26858,13 @@ class LivingPlanet {
     while (this.group.children.length > 0) {
       const obj = this.group.children[0];
       this.group.remove(obj);
-      if (obj.geometry) obj.geometry.dispose();
-      if (obj.material) {
-        if (Array.isArray(obj.material)) obj.material.forEach(m => m.dispose());
-        else obj.material.dispose();
-      }
+      obj.traverse(child => {
+        if (child.geometry) child.geometry.dispose();
+        if (child.material) {
+          if (Array.isArray(child.material)) child.material.forEach(m => m.dispose());
+          else child.material.dispose();
+        }
+      });
     }
 
     this.noise = new SimplexNoise(this.cfg.seed);
@@ -27653,17 +27694,31 @@ function sfBuildManif(THREE, planet, manifId, hue, rng) {
   }
 
   function disposePlanet() {
-    if (!planet) return;
-    for (var i = 0; i < planet.group.children.length; i++) {
-      var o = planet.group.children[i];
-      if (o.geometry) o.geometry.dispose();
-      if (o.material) {
-        if (Array.isArray(o.material)) o.material.forEach(function (m) { m.dispose(); });
-        else o.material.dispose();
-      }
+    if (facilityGroup) {
+      facilityGroup.traverse(function (o) {
+        if (o.geometry) o.geometry.dispose();
+        if (o.material) {
+          if (Array.isArray(o.material)) o.material.forEach(function (m) { m.dispose(); });
+          else o.material.dispose();
+        }
+      });
+      scene.remove(facilityGroup);
+      facilityGroup = null;
     }
-    scene.remove(planet.group);
-    planet = null;
+    if (planet) {
+      if (planet.group) {
+        planet.group.traverse(function (child) {
+          if (child.geometry) child.geometry.dispose();
+          if (child.material) {
+            if (Array.isArray(child.material)) child.material.forEach(function (m) { m.dispose(); });
+            else child.material.dispose();
+          }
+        });
+        scene.remove(planet.group);
+      }
+      planet = null;
+    }
+    manifExtra = null;
     if (outlineMesh) {
       if (outlineMesh.geometry) outlineMesh.geometry.dispose();
       if (outlineMesh.material) outlineMesh.material.dispose();
@@ -27849,6 +27904,7 @@ function sfBuildManif(THREE, planet, manifId, hue, rng) {
       return true;
     },
     isOn: function () { return ok; },
+    disposePlanet: disposePlanet,
     LivingPlanet: LivingPlanet, Presets: Presets, SimplexNoise: SimplexNoise, tierLook: TIER_LOOK, manifFor: sfManifFor
   };
 })();
@@ -28135,53 +28191,7 @@ function sfBuildManif(THREE, planet, manifId, hue, rng) {
   }
   scheduleGLBPrecompile();
 
-  /* GLB 缓存与空闲期预编译，消除切入地表时的 atob 与 parse 帧骤降 */
-  var _glbCache = {};
-  function getParsedGLB(key, base64Str, options, callback) {
-    if (_glbCache[key]) {
-      callback(_glbCache[key].clone(true));
-      return;
-    }
-    if (!THREE || !THREE.GLTFLoader || !base64Str) return;
-    try {
-      var bin = atob(base64Str);
-      var bytes = new Uint8Array(bin.length);
-      for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-      new THREE.GLTFLoader().parse(bytes.buffer, '', function (gltf) {
-        var obj = gltf.scene || gltf.scenes[0];
-        sfFixGLB(obj, options);
-        _glbCache[key] = obj;
-        callback(obj.clone(true));
-      });
-    } catch(e) {
-      console.warn('[GLBCache] parse failed for ' + key, e);
-    }
-  }
-
-  function scheduleGLBPrecompile() {
-    var queue = [
-      { key: 'city', b64: window.__cityGLB, opt: { metal: 0.34, emis: 1.0 } },
-      { key: 'monument', b64: window.__monumentGLB, opt: { metal: 0.22, emis: 1.0 } },
-      { key: 'crystal', b64: window.__crystalGLB, opt: { metal: 0.2, emis: 1.0 } },
-      { key: 'mothership', b64: window.__mothershipGLB, opt: { metal: 0.32, emis: 1.0 } }
-    ];
-    var runNext = function (deadline) {
-      while (queue.length > 0 && (!deadline || deadline.timeRemaining() > 8)) {
-        var item = queue.shift();
-        if (item.b64 && !_glbCache[item.key]) {
-          getParsedGLB(item.key, item.b64, item.opt, function(){});
-        }
-      }
-      if (queue.length > 0) {
-        if (window.requestIdleCallback) window.requestIdleCallback(runNext, { timeout: 3000 });
-        else setTimeout(runNext, 400);
-      }
-    };
-    if (window.requestIdleCallback) window.requestIdleCallback(runNext, { timeout: 3000 });
-    else setTimeout(runNext, 800);
-  }
-  scheduleGLBPrecompile();
-
+  
   function sph(th, ph, r, out) {
     out = out || new THREE.Vector3();
     out.set(r * Math.sin(ph) * Math.cos(th), r * Math.cos(ph), r * Math.sin(ph) * Math.sin(th));
