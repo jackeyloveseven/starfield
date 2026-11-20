@@ -4696,7 +4696,7 @@ body:has(#photo-ui.active) .sf-touch-cluster{
 </button>
 <button class="control camera" id="camera-toggle" aria-pressed="true" title="自动 / 自主镜头（C）；自主模式拖拽旋转，滚轮缩放"><i class="icon orbit-icon" aria-hidden="true"></i><span id="camera-button-name">自动运镜</span></button><i class="control-separator"></i>
 <button class="control sound-on" id="sound-toggle" aria-pressed="true" title="声音开关（M）" aria-label="声音开关"><i class="icon sound-icon" aria-hidden="true"><i></i><i></i><i></i><i></i></i></button>
-<button class="control" id="codex-toggle" title="星图手札 · 天体探索图鉴 (Tab / J)" aria-label="星图手札">
+<button class="control" id="codex-toggle" title="星图手札 · 天体探索图鉴 (J)" aria-label="星图手札">
 <span class="icon codex-icon">
 <svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.3">
 <path d="M2.5 3.5C2.5 2.67 3.17 2 4 2H13.5V13.5H4C3.17 13.5 2.5 12.83 2.5 12V3.5Z" stroke-linecap="round" stroke-linejoin="round"/>
@@ -4943,7 +4943,8 @@ body:has(#photo-ui.active) .sf-touch-cluster{
       <div class="shortcut-row"><span>C</span><span class="shortcut-key">自动运镜 ⇄ 自由机位</span></div>
       <div class="shortcut-row"><span>1 - 4 / F</span><span class="shortcut-key">编队形态切换</span></div>
       <div class="shortcut-row"><span>P</span><span class="shortcut-key">深空摄影工坊</span></div>
-      <div class="shortcut-row"><span>Tab / J</span><span class="shortcut-key">星图手札与图鉴</span></div>
+      <div class="shortcut-row"><span>J</span><span class="shortcut-key">星图手札与图鉴</span></div>
+      <div class="shortcut-row"><span>K</span><span class="shortcut-key">旗舰特写 / 驾驶舱视角</span></div>
       <div class="shortcut-row"><span>N</span><span class="shortcut-key">切换下一首古典名曲</span></div>
       <div class="shortcut-row"><span>M / 空格</span><span class="shortcut-key">声音开关 / 暂停</span></div>
       <div class="shortcut-row"><span>ESC</span><span class="shortcut-key">打开/关闭本菜单</span></div>
@@ -4964,7 +4965,7 @@ body:has(#photo-ui.active) .sf-touch-cluster{
     <div class="shortcut-list">
       <div class="shortcut-row">
         <span>客户端版本</span>
-        <span class="shortcut-key" id="sf-version-tag">v1.9.9.9.9.8 (Build 196)</span>
+        <span class="shortcut-key" id="sf-version-tag">v1.9.9.9.9.9 (Build 197)</span>
       </div>
       <div class="shortcut-row">
         <span>OTA 实时热更新</span>
@@ -6940,6 +6941,13 @@ const WarpDrive = {
       else if (typeof window.toast === 'function') window.toast('反物质能源耗尽 · 光帆微速漂流中，无法启动跃迁引擎', 3);
       return;
     }
+    if (window.SFHazard && window.SFHazard.state && window.SFHazard.state().hull < 25) {
+      this.gearIndex = 0;
+      this.updateUI();
+      if (typeof showToast === 'function') showToast('船体严重受损 · 动力总线锁定 (POWER LOSS)', 2.5);
+      else if (typeof window.toast === 'function') window.toast('船体严重受损 · 动力总线锁定 (POWER LOSS)', 2.5);
+      return;
+    }
     this.gearIndex = (this.gearIndex + 1) % this.gears.length;
     const curG = this.gears[this.gearIndex];
     if(this.gearIndex === 1) Narrator.speak(Narrator.scripts.warp_5x, { id: 'warp_5x' });
@@ -6951,10 +6959,17 @@ const WarpDrive = {
   },
 
   setHold(holding) {
-    if (holding && window.StarfieldFuelEngine && window.StarfieldFuelEngine.isDrifting) {
-      if (typeof showToast === 'function') showToast('反物质能源耗尽 · 无法超频充能', 2.5);
-      else if (typeof window.toast === 'function') window.toast('反物质能源耗尽 · 无法超频充能', 2.5);
-      return;
+    if (holding) {
+      if (window.StarfieldFuelEngine && window.StarfieldFuelEngine.isDrifting) {
+        if (typeof showToast === 'function') showToast('反物质能源耗尽 · 无法超频充能', 2.5);
+        else if (typeof window.toast === 'function') window.toast('反物质能源耗尽 · 无法超频充能', 2.5);
+        return;
+      }
+      if (window.SFHazard && window.SFHazard.state && window.SFHazard.state().hull < 25) {
+        if (typeof showToast === 'function') showToast('船体严重受损 · 动力总线锁定 (POWER LOSS)', 2.5);
+        else if (typeof window.toast === 'function') window.toast('船体严重受损 · 动力总线锁定 (POWER LOSS)', 2.5);
+        return;
+      }
     }
     if (this.isHolding === holding) return;
     this.isHolding = holding;
@@ -7589,7 +7604,8 @@ const GameSettings = {
       const b = $('btn-toggle-grain');
       const isOn = b.classList.toggle('active');
       b.textContent = isOn ? '开' : '关';
-      grainCanvas.style.display = isOn ? '' : 'none';
+      window.grainOn = isOn;
+      toast(isOn ? '胶片噪点已开启' : '胶片噪点已关闭 · 纯净画面');
     });
 
     $('btn-toggle-dof').addEventListener('click', () => {
@@ -7975,13 +7991,21 @@ function updateDirector(dt){
  // 9. Cinematic IMAX Centering: smoothly shifts from cruise offset (0.385, 0.465) to majestic center (0.485, 0.495)
  const centerWeight = Math.max(captureCamPose ? captureCamPose.blend : 0, curSkimW, hm ? horizonW : 0);
  const isPortrait = H > W;
- camera.cx = W * (isPortrait ? 0.50 : mix(0.385, 0.485, centerWeight));
+ const aspect = W / (H || 1);
+ const ultrawideT = isPortrait ? 0 : clamp((aspect - 1.78) / (2.35 - 1.78), 0, 1);
+ const baseDeskCx = mix(0.385, 0.50, ultrawideT);
+ camera.cx = W * (isPortrait ? 0.50 : mix(baseDeskCx, 0.50, centerWeight));
  camera.cy = H * (isPortrait ? 0.48 : mix(0.465, 0.495, centerWeight));
 
  const effWarpF = Math.max(warp, WarpDrive.currentWarp);
  const warpFactor = clamp(effWarpF / 28, 0, 1.2);
  const fovWarp = 1 / (1 + warpFactor * 0.35 - WarpDrive.reverseR * 0.22);
- camera.focal = (isPortrait ? Math.min(W, H) * 1.25 : H * 1.12) * fovWarp * (captureCamPose ? mix(1, captureCamPose.focal, captureCamPose.blend) : 1);
+ let baseFocal = isPortrait ? Math.min(W, H) * 1.25 : H * 1.12;
+ if (!isPortrait && aspect > 1.85) {
+   const minFocalUltrawide = (W * 0.5) / Math.tan(46 * Math.PI / 180);
+   baseFocal = Math.max(baseFocal, minFocalUltrawide);
+ }
+ camera.focal = baseFocal * fovWarp * (captureCamPose ? mix(1, captureCamPose.focal, captureCamPose.blend) : 1);
  if(WarpDrive.shake > 0.05){
   camera.cx += (Math.random() - 0.5) * WarpDrive.shake * 3.5;
   camera.cy += (Math.random() - 0.5) * WarpDrive.shake * 2.5;
@@ -8108,7 +8132,7 @@ function line(points,c,alpha=1,width=1){
 /* A soft radial bloom that takes part in the depth sort, so a glow can sit
  * behind the nearer shards instead of over everything. No 60px sprite clamp. */
 function glow(world,size,c,alpha=1,spread=3){const p=project(world);if(!p)return;const s=clamp(size*p[3],1,Math.max(W,H)*.7);const r=s*spread;if(p[0]+r<-20||p[0]-r>W+20||p[1]+r<-20||p[1]-r>H+20)return;queue.push({type:3,p,d:p[2],s,c,alpha,spread});}
-function sprite(world,size,c,kind,alpha=1,rotation=0){const p=project(world);if(!p||p[0]<-40||p[0]>W+40||p[1]<-40||p[1]>H+40)return;queue.push({type:2,p,d:p[2],s:clamp(size*p[3],.4,60),c:css(haze(c,p[2])),alpha,kind,rotation});}
+function sprite(world,size,c,kind,alpha=1,rotation=0){const p=project(world);if(!p)return;const s=clamp(size*p[3],.4,60);const m=kind==='firefly'?s*4:Math.max(40,s*1.8);if(p[0]<-m||p[0]>W+m||p[1]<-m||p[1]>H+m)return;queue.push({type:2,p,d:p[2],s:clamp(size*p[3],.4,60),c:css(haze(c,p[2])),alpha,kind,rotation});}
 function flush(){
  queue.sort((a,b)=>(b.d||0)-(a.d||0));
  for(const o of queue){
@@ -12112,7 +12136,8 @@ function updateWind(dt){
  const age=time-wind.last,energy=wind.active?Math.exp(-Math.max(0,age-1.35)*.75):Math.exp(-Math.max(0,age)*1.35);
  if(capturePhase>1){wind.x=expStep(wind.x,0,3,dt);wind.y=expStep(wind.y,0,3,dt);return;}
  const targetX=input((wind.filteredX-.42)/.55)*energy,targetY=input((wind.filteredY-.5)/.5)*energy;
- wind.x=expStep(wind.x,autoCamera?targetX:0,1.4,dt);wind.y=expStep(wind.y,autoCamera?targetY:0,1.4,dt);
+ const allowSteer = autoCamera || cockpitMode;
+ wind.x=expStep(wind.x,allowSteer?targetX:0,1.4,dt);wind.y=expStep(wind.y,allowSteer?targetY:0,1.4,dt);
 }
 function craftWorld(b){return [routeX(travel)+b.x,courseY(travel)+b.y,travel+b.z];}
 window.craftWorld = craftWorld; window.fleet = fleet; window.LEAD = LEAD;
@@ -16789,7 +16814,7 @@ function drawTesseract(){
  ctx.restore();
 }
 function paperFinish(){
- if(!coarse){
+ if(!coarse && (window.grainOn !== false)){
   ctx.save();ctx.globalAlpha=.40;ctx.fillStyle=grainPattern;ctx.fillRect(0,0,W,H);ctx.globalAlpha=1;
   if(captureFlash>.002&&captureMass){
    // A bloom around the ink well, not a full-screen fill: the old one painted the
@@ -18028,7 +18053,7 @@ function onPointerDown(e){
  try{canvas.setPointerCapture(e.pointerId);}catch(_){}
  const p=logicalPoint(e);pointers.set(e.pointerId,p);
  if(pointers.size===2){const a=[...pointers.values()];pinchDistance=Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y);wind.active=false;}
- else if(autoCamera)feedWind(p);else canvas.classList.add('dragging');
+ else if(autoCamera||cockpitMode)feedWind(p);else canvas.classList.add('dragging');
 }
 function onPointerMove(e){
  if(!started)return;
@@ -18036,7 +18061,8 @@ function onPointerMove(e){
  if(!previous&&(e.buttons===1||e.pointerType==='touch')){pointers.set(e.pointerId,p);previous=p;}
  if(!previous)return;
  pointers.set(e.pointerId,p);
- if(!autoCamera){
+ if(!autoCamera && !cockpitMode){
+  if(pointers.size > 1) return;
   const dx=p.x-previous.x,dy=p.y-previous.y;
   if(Math.abs(dx)>0||Math.abs(dy)>0){
    manual.yaw-=(dx)*.0045;
@@ -18044,7 +18070,7 @@ function onPointerMove(e){
    manual.lane=0;
    canvas.classList.add('dragging');
   }
- }else if(autoCamera&&(e.pointerType==='mouse'||previous))feedWind(p);
+ }else if((autoCamera||cockpitMode)&&(e.pointerType==='mouse'||previous))feedWind(p);
 }
 function releasePointer(e){
  if(e&&e.pointerId!=null){
@@ -18072,6 +18098,7 @@ canvas.addEventListener('pointercancel',releasePointer);
 window.addEventListener('pointerup',e=>{
  if(pointers.has(e.pointerId)||e.buttons===0){releasePointer(e);}
 });
+window.addEventListener('pointercancel',releasePointer);
 canvas.addEventListener('lostpointercapture',e=>{
  if(!(e.buttons&1)){releasePointer(e);}
 });
@@ -18575,7 +18602,10 @@ window.addEventListener('keydown',e=>{
    else if($('hangar-modal') && $('hangar-modal').classList.contains('open'))$('hangar-modal').classList.remove('open');
    else if($('codex-modal')?.classList?.contains('open'))Codex.close();
    else if($('sf-hatch-list') && $('sf-hatch-list').classList.contains('on'))$('sf-hatch-list').classList.remove('on');
-   else if($('sf-hatch') && $('sf-hatch').classList.contains('active'))$('sf-hatch').classList.remove('active');
+   else if($('sf-hatch') && ($('sf-hatch').classList.contains('on') || $('sf-hatch').classList.contains('active'))){
+     if(window.StarfieldHatch && typeof window.StarfieldHatch.hide === 'function') window.StarfieldHatch.hide();
+     else { $('sf-hatch').classList.remove('on'); $('sf-hatch').classList.remove('active'); }
+   }
    else if(window.StarfieldFocusEngine&&window.StarfieldFocusEngine.isDashboardOpen)window.StarfieldFocusEngine.closeDashboard();
    else if($('settings-drawer')?.classList?.contains('open'))GameSettings.close();
    else GameSettings.toggle();
@@ -18593,7 +18623,16 @@ window.addEventListener('keydown',e=>{
    else{if(window.Starfield&&window.Starfield.closeModal)window.Starfield.closeModal();PhotoStudio.open();}
    return;
  }
- else if(e.key.toLowerCase()==='j'||e.key==='Tab'){
+ else if(e.key.toLowerCase()==='j'||e.code==='KeyJ'){
+    if($('codex-modal')?.classList?.contains('open'))Codex.close();
+    else{if(window.Starfield&&window.Starfield.closeModal)window.Starfield.closeModal();Codex.open();}
+    return;
+  }
+  else if(e.key.toLowerCase()==='k'||e.code==='KeyK'){
+    toggleCockpit();
+    return;
+  }
+  else if(false){
    e.preventDefault();
    if($('codex-modal')?.classList?.contains('open'))Codex.close();
    else{if(window.Starfield&&window.Starfield.closeModal)window.Starfield.closeModal();Codex.open();}
@@ -18653,8 +18692,8 @@ window.addEventListener('keydown',e=>{
  else if(e.key.toLowerCase()==='f'||e.code==='KeyF'){if(window.StarfieldSonar&&window.StarfieldSonar.triggerScan)window.StarfieldSonar.triggerScan();}
  else if(e.key.toLowerCase()==='h'){if(typeof FleetCustomizer !== 'undefined')FleetCustomizer.toggle();}
 });
-document.addEventListener('visibilitychange',()=>{last=performance.now();if(document.hidden){sound.suspend();if(wakeLock)wakeLock.release().catch(()=>{});}else{if(!paused)sound.resume();requestWake();}});
-window.addEventListener('blur',()=>{wind.active=false;wind.last=time;pointers.clear();});
+document.addEventListener('visibilitychange',()=>{last=performance.now();if(document.hidden){sound.suspend();if(window.Narrator&&window.Narrator.currentAudio&&!window.Narrator.currentAudio.paused){try{window.Narrator.currentAudio.pause();}catch(_){}}if(wakeLock)wakeLock.release().catch(()=>{});}else{if(!paused)sound.resume();requestWake();}});
+window.addEventListener('blur',()=>{wind.active=false;wind.last=time;pointers.clear();if(window.Narrator&&window.Narrator.currentAudio&&!window.Narrator.currentAudio.paused){try{window.Narrator.currentAudio.pause();}catch(_){}}});
 // --- 2K Ultra Resolution & Adaptive Performance Engine (Anti-Stutter & Battery Saver) ---
 // Note: _isMobileDevice is defined near top for early GL boot
 // --- GPU tier ---------------------------------------------------------------
@@ -18975,7 +19014,7 @@ window.addEventListener('resize', () => {
       })
       .then(data => {
         if (data && data.build) {
-          const localBuild = 196;
+          const localBuild = 197;
           if (data.build > localBuild) {
             showOtaNotification(data);
           } else if (manual && window.toast) {
@@ -19456,6 +19495,11 @@ window.Starfield=Object.freeze({
     else if (typeof window.toast === 'function') window.toast('反物质能源耗尽 · 光帆微速漂流中，无法加速', 2.5);
     return;
   }
+  if (window.SFHazard && window.SFHazard.state && window.SFHazard.state().hull < 25) {
+    if (typeof showToast === 'function') showToast('船体严重受损 · 动力总线锁定 (POWER LOSS)', 2.5);
+    else if (typeof window.toast === 'function') window.toast('船体严重受损 · 动力总线锁定 (POWER LOSS)', 2.5);
+    return;
+  }
   if(WarpDrive.gearIndex<WarpDrive.gears.length-1){
    WarpDrive.gearIndex++;WarpDrive.updateUI();
    const g=WarpDrive.gears[WarpDrive.gearIndex];toast(`已加速至 ${g.label} · 速度 ${g.cVal}`);
@@ -19488,7 +19532,7 @@ window.Starfield=Object.freeze({
  isAutoCamera:()=>autoCamera,
  isModalOpen:()=>{
   const hangarOpen = (typeof FleetCustomizer !== 'undefined' && FleetCustomizer.isOpen) || ($('hangar-modal')?.classList?.contains('open'));
-  const hatchOpen = ($('sf-hatch')?.classList?.contains('active')) || ($('sf-hatch-list')?.classList?.contains('on'));
+  const hatchOpen = ($('sf-hatch')?.classList?.contains('on') || $('sf-hatch')?.classList?.contains('active')) || ($('sf-hatch-list')?.classList?.contains('on'));
   const focusOpen = !!(window.StarfieldFocusEngine && window.StarfieldFocusEngine.isDashboardOpen);
   const upgradesOpen = !!(window.StarfieldShipUpgrades && window.StarfieldShipUpgrades.isOpen);
   return !!(PhotoStudio.active||$('codex-modal')?.classList?.contains('open')||$('settings-drawer')?.classList?.contains('open')||focusOpen||upgradesOpen||hangarOpen||hatchOpen);
@@ -19500,7 +19544,10 @@ window.Starfield=Object.freeze({
   else if($('hangar-modal')?.classList?.contains('open'))$('hangar-modal').classList.remove('open');
   else if($('codex-modal')?.classList?.contains('open'))Codex.close();
   else if($('sf-hatch-list')?.classList?.contains('on'))$('sf-hatch-list').classList.remove('on');
-  else if($('sf-hatch')?.classList?.contains('active'))$('sf-hatch').classList.remove('active');
+  else if($('sf-hatch')?.classList?.contains('on') || $('sf-hatch')?.classList?.contains('active')){
+    if(window.StarfieldHatch && typeof window.StarfieldHatch.hide === 'function') window.StarfieldHatch.hide();
+    else { $('sf-hatch').classList.remove('on'); $('sf-hatch').classList.remove('active'); }
+  }
   else if($('settings-drawer')?.classList?.contains('open'))GameSettings.close();
   else if(window.StarfieldFocusEngine && window.StarfieldFocusEngine.isDashboardOpen)window.StarfieldFocusEngine.closeDashboard();
  },
@@ -19545,7 +19592,21 @@ window.Starfield=Object.freeze({
   return { encIndex: targetEncIndex, travel, k, world: worldFor(targetEncIndex) };
  },
  stepDeparture:(dt)=>stepDeparture(dt),
- setWarpGear:(i)=>{WarpDrive.gearIndex=i;WarpDrive.updateUI();},
+ setWarpGear:(i)=>{
+   if (i > 0) {
+     if (window.StarfieldFuelEngine && window.StarfieldFuelEngine.isDrifting) {
+       if (typeof showToast === 'function') showToast('反物质能源耗尽 · 无法切换曲率档位', 2.5);
+       else if (typeof window.toast === 'function') window.toast('反物质能源耗尽 · 无法切换曲率档位', 2.5);
+       return;
+     }
+     if (window.SFHazard && window.SFHazard.state && window.SFHazard.state().hull < 25) {
+       if (typeof showToast === 'function') showToast('船体严重受损 · 动力总线锁定 (POWER LOSS)', 2.5);
+       else if (typeof window.toast === 'function') window.toast('船体严重受损 · 动力总线锁定 (POWER LOSS)', 2.5);
+       return;
+     }
+   }
+   WarpDrive.gearIndex=i;WarpDrive.updateUI();
+ },
  seek:(seconds)=>{
   const step=1/60,n=Math.max(0,Math.round(seconds/step));
   for(let i=0;i<n;i++){
@@ -19864,7 +19925,7 @@ requestAnimationFrame(frame);
       } else {
         const btn = document.getElementById('codex-toggle');
         if (btn) btn.click();
-        else window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', code: 'Tab', bubbles: true }));
+        else window.dispatchEvent(new KeyboardEvent('keydown', { key: 'j', code: 'KeyJ', bubbles: true }));
       }
     },
 
@@ -20562,7 +20623,7 @@ requestAnimationFrame(frame);
       if (!e.isPrimary) return;
       if ((typeof currentMode !== 'undefined' && currentMode !== 'cruise') || (window.currentMode && window.currentMode !== 'cruise')) return;
       const t = e.target;
-      if (t && t.closest && t.closest('button, .sf-touch-cluster, .sf-touch-joy-zone, .sf-touch-more-tray, #settings-drawer, #codex-modal, #sf-contract-hud, #sf-descent-btn, #sf-sonar-capsule')) return;
+      if (t && t.closest && t.closest('button, .sf-touch-cluster, .sf-touch-more-tray, #settings-drawer, #codex-modal, #sf-contract-hud, #sf-descent-btn, #sf-sonar-capsule')) return;
       if (!Engine.isFlightStarted || !Engine.isFlightStarted()) return;
       startX = e.clientX;
       startY = e.clientY;
@@ -22161,7 +22222,7 @@ requestAnimationFrame(frame);
               <h4 class="victory-title serif">✦ 谐振锁定 · 远古折纸密文破译完成 ✦</h4>
               <p class="victory-lore-text serif" id="tuner-lore-content">“在光线无法逃逸的深渊边缘，我们曾折叠过第七个维度……”</p>
               <div class="victory-actions">
-                <button class="victory-btn primary mono" id="tuner-view-codex-btn">查阅星图手札 <span class="kbd-hint">[Tab]</span></button>
+                <button class="victory-btn primary mono" id="tuner-view-codex-btn">查阅星图手札 <span class="kbd-hint">[J]</span></button>
                 <button class="victory-btn secondary mono" id="tuner-continue-flight-btn">继续星海巡游</button>
               </div>
             </div>
@@ -23599,10 +23660,10 @@ requestAnimationFrame(frame);
           model.ctx.drawImage(this.canvas, 0, 0);
         }
         if (isMob) {
-          return this.canvas;
+          return (model.canvas || this.canvas);
         }
       }
-      return (isMob && refreshInterval === 1) ? this.canvas : (model.canvas || this.canvas);
+      return (model.canvas || this.canvas);
     }
   };
 
@@ -25436,10 +25497,26 @@ document.addEventListener('DOMContentLoaded', () => {
   document.addEventListener('contextmenu',function(e){ e.preventDefault(); },{passive:false});
   // One place for system Back: close whatever is on top, else let the app exit.
   window.__sfBack=function(){
-    var h=document.getElementById('sf-hatch'); if(h&&h.classList.contains('on')){h.classList.remove('on');return true;}
+    var tray=document.getElementById('sf-touch-more-tray');
+    if(tray&&tray.classList.contains('open')){
+      tray.classList.remove('open');
+      var moreBtn=document.getElementById('sf-touch-more-btn');
+      if(moreBtn)moreBtn.setAttribute('aria-expanded','false');
+      return true;
+    }
+    if(window.StarfieldShipUpgrades && window.StarfieldShipUpgrades.isOpen){ window.StarfieldShipUpgrades.closeModal(); return true; }
+    if(typeof PhotoStudio !== 'undefined' && PhotoStudio.active){ PhotoStudio.close(); return true; }
+    if(typeof FleetCustomizer !== 'undefined' && FleetCustomizer.isOpen){ FleetCustomizer.close(); return true; }
+    var hangar=document.getElementById('hangar-modal'); if(hangar&&hangar.classList.contains('open')){hangar.classList.remove('open'); return true;}
+    var h=document.getElementById('sf-hatch'); if(h&&(h.classList.contains('on')||h.classList.contains('active'))){
+      if(window.StarfieldHatch && typeof window.StarfieldHatch.hide === 'function') window.StarfieldHatch.hide();
+      else { h.classList.remove('on'); h.classList.remove('active'); }
+      return true;
+    }
     var l=document.getElementById('sf-hatch-list'); if(l&&l.classList.contains('on')){l.classList.remove('on');return true;}
     var c=document.getElementById('codex-modal'); if(c&&c.classList.contains('open')){var b=c.querySelector('.codex-close');if(b){b.click();return true;}}
     var d=document.getElementById('settings-drawer'); if(d&&d.classList.contains('open')){var s=document.getElementById('settings-close-btn');if(s){s.click();return true;}}
+    if(window.StarfieldFocusEngine && window.StarfieldFocusEngine.isDashboardOpen){ window.StarfieldFocusEngine.closeDashboard(); return true; }
     return false;
   };
 })();
@@ -28783,8 +28860,8 @@ function sfBuildManif(THREE, planet, manifId, hue, rng) {
     master = c.createGain();
     master.gain.setValueAtTime(0.0001, t);
     master.gain.exponentialRampToValueAtTime(v.gain, t + 2.2);  /* 淡入，别突兀 */
-    var sfxDest = (window.StarfieldAudio && window.StarfieldAudio.sfxBus) ? window.StarfieldAudio.sfxBus : c.destination;
-    master.connect(sfxDest);
+    var ambDest = (window.StarfieldAudio && (window.StarfieldAudio.ambienceBus || window.StarfieldAudio.sfxBus)) ? (window.StarfieldAudio.ambienceBus || window.StarfieldAudio.sfxBus) : c.destination;
+    master.connect(ambDest);
 
     if (v.kind === 'wave') {
       var src = c.createBufferSource();

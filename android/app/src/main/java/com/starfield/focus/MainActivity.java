@@ -70,6 +70,16 @@ public class MainActivity extends AppCompatActivity {
         // Setup Edge-to-Edge full immersive sticky layout
         setupImmersiveFullscreen();
 
+        // Build 197: Downward storage permission safety check for legacy devices (API <= 28)
+        if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.P) {
+            try {
+                if (checkSelfPermission(android.Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                        != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                    requestPermissions(new String[]{android.Manifest.permission.WRITE_EXTERNAL_STORAGE}, 101);
+                }
+            } catch (Throwable ignored) {}
+        }
+
         webView = new WebView(this);
         setContentView(webView);
 
@@ -161,16 +171,27 @@ public class MainActivity extends AppCompatActivity {
      * OTA'd copy of starfield.html can still find libs/three.min.js, its manifest
      * and its icons. Skipped when already present.
      */
+    private static final String KEY_ASSETS_SYNCED_BUILD = "assets_synced_bundled_build";
+
+    /**
+     * Copies the small assets the page resolves relatively into filesDir, so the
+     * OTA'd copy of starfield.html can still find libs/three.min.js, its manifest
+     * and its icons.
+     * Build 197 optimization: Gated by bundled build timestamp in SharedPreferences to prevent
+     * repeating 1MB uncompressed disk write storm on every cold startup.
+     */
     private void syncAssets() {
+        long currentBuild = readBundledBuild();
+        SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        long lastSyncedBuild = prefs.getLong(KEY_ASSETS_SYNCED_BUILD, -1L);
+        boolean needsSync = (currentBuild <= 0 || currentBuild != lastSyncedBuild);
+
         for (String name : MIRRORED_ASSETS) {
             try {
                 File out = new File(getFilesDir(), name);
-                long assetLen = -1;
-                try (InputStream probe = getAssets().open(name)) { assetLen = probe.available(); }
-                catch (Exception ignored) {}
-                // Copy when the asset changed: the old "skip if it exists" left the
-                // previous icon and version.json in place forever after an upgrade.
-                if (out.exists() && out.length() > 0 && (assetLen <= 0 || out.length() == assetLen)) continue;
+                if (!needsSync && out.exists() && out.length() > 0) {
+                    continue;
+                }
                 if (out.getParentFile() != null) out.getParentFile().mkdirs();
                 try (InputStream in = getAssets().open(name)) {
                     copyStream(in, out);
@@ -180,6 +201,9 @@ public class MainActivity extends AppCompatActivity {
                 // three.js and degrades quietly for the rest.
                 Log.w("StarfieldOTA", "asset " + name + " not mirrored: " + e);
             }
+        }
+        if (currentBuild > 0) {
+            prefs.edit().putLong(KEY_ASSETS_SYNCED_BUILD, currentBuild).apply();
         }
     }
 

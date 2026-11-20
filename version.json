@@ -1,11 +1,11 @@
 {
-  "version": "1.9.9.9.9.8",
-  "build": 196,
-  "updated_at": "2026-11-19T13:30:00+08:00",
+  "version": "1.9.9.9.9.9",
+  "build": 197,
+  "updated_at": "2026-11-20T08:00:00+08:00",
   "min_native_version": "1.0.0",
   "is_beta": false,
-  "title": "深度异常阻断与生命周期加固：根治区块递归爆栈与偶发崩溃，全面复苏全域宇宙事件 (Build 196)",
-  "changelog": "1. 根治超远航程下chunk(k)递归爆栈崩溃：解除Poisson Disk防重叠检测对前序区块的递归生成依赖，阻断RangeError最大调用栈溢出；\n2. 修复SpaceEventEngine浮点数索引导致的宇宙事件全域失效：修正evTypeIdx类型转换，全面复苏16类深空宇宙事件、雷达探测与叙事语音；\n3. 修复五维空间Tesseract出入场浮点索引未取整崩溃：防止加尔冈狂黑洞视界掠过与跃迁时报TypeError空引用异常；\n4. 优化encIndex星际遭遇索引线性检索：以O(1)的120区块周期查找表替代O(k)累加循环，大幅降低深空巡航CPU开销；\n5. 根治SFPlanetGL facilityGroup显存与对象泄漏：在disposePlanet中全面深度遍历释放地表设施网格几何体与材质，并移出场景；\n6. 强化LivingPlanet生物群系与宏伟奇观深度资源释放：在重新构建前使用obj.traverse遍历销毁所有嵌套网格、群系与材质，消除GPU显存泄漏；\n7. 清除SFPlanetGL中重复声明的_glbCache缓存字典与scheduleGLBPrecompile空闲期预编译块；\n8. 消除ScannerRadar声呐雷达探测立体声延迟环路音频图泄漏：在声呐回响衰减后（3.2s）自动切断并断开全部环路节点连接，解除WebAudio常驻累积；\n9. 根治WarpDrive超光速推进键位失焦永久超频锁死：允许弹窗激活时响应keyup释放加速，并追加window.onblur与visibilitychange安全降频保护；\n10. 补齐移动端触摸手势touchcancel事件监听，杜绝旋转底座与雷达示波器在来电或系统手势触发时永久处于拖拽吸附状态；\n11. 修复移动端屏幕旋转orientationchange未触发画布渲染重整：在延时阶段同步触发resize()与layoutTouch()，消除黑边与视口拉伸；\n12. 规范Android原生端MainActivity WebView生命周期与常量定义：实现onPause/onResume/onDestroy资源调度，以MIN_HTML_BYTES统一常量替代硬编码阈值。",
+  "title": "跨端对抗实测全景收敛与架构韧性修复：超宽带鱼屏视口纠偏、模态返回键闭环、机体动力防穿透与原生冷启闪存加速 (Build 197)",
+  "changelog": "1. 根治抽卡档案模态窗状态脱节与安卓物理返回键闪退（P0）：重构isModalOpen与closeModal支持.on类名，__sfBack补齐更多托盘、抽卡、改装与专注弹窗层级，并联动StarfieldHatch.hide()优雅切断音效；\n2. 封堵主动力丧失POWER LOSS加速穿透漏洞（P0）：在setHold、throttleUp、cycle与setWarpGear中全面注入SFHazard.hull < 25与isDrifting动力总线锁定检查，彻底阻断危态强行跃迁漏洞；\n3. 归还键盘Tab焦点导航键与a11y无障碍（P0）：移除Tab对星图手札的强行劫持，保留KeyJ图鉴，并将KeyK专属赋予旗舰特写/驾驶舱视角快捷切换；\n4. 纠偏21:9与32:9超宽带鱼屏视口与消解FOV透视畸变（P1）：动态映射宽高比计算baseDeskCx，并根据宽高比实施水平FOV不超过92°的最小焦距几何约束，根治马鞍形拉伸与偏心；\n5. 恢复驾驶舱特写视角操舵控制（P1）：修正updateWind中wind.x/y的autoCamera判断，允许cockpitMode操舵转向，并联动触控手势响应；\n6. 根治移动端双指捏合缩放横滚撕裂（P1）：在onPointerMove中引入多指互斥锁，多指缩放时严格屏蔽单指视角俯仰与偏航旋转；\n7. 消除移动端3D活体星球纹理串色与画布劫持（P1）：禁止移动端直出单例WebGL canvas，统一通过model.canvas隔离回贴，杜绝跨星体贴图污染；\n8. 音频拓扑纠偏与旁白后台暂停（P1）：将地表与天体氛围白噪从sfxBus重定向接入专用ambienceBus，并在visibilitychange与blur失焦时主动挂起原生Narrator解说音频；\n9. 瓦解虚拟摇杆左下角45vw x 55vh隐形触控盲区（P1）：从长按加速排除区解绑sf-touch-joy-zone，实现摇杆静触跃迁加速与滑移转向的无缝兼顾；\n10. 根治Android冷启动主线程资产刷写风暴（P1）：引入assets_synced_bundled_build首启版本记忆，避免每次启动重写1MB闪存，显著降低冷启延迟与磨损；\n11. 解决深空粒子边界硬裁剪突兀消失Popping（P2）：根据萤火粒子实际光晕半径（s*4）动态扩展剔除安全边距，杜绝边缘骤灭闪烁；\n12. 彻底激活胶片噪点安慰剂开关（P2）：建立window.grainOn引擎响应，在主管线paperFinish中真正拦截grainPattern全屏绘制，释放低端机渲染负载；\n13. 补齐全局window.pointercancel监听（P2）：防止多任务与系统边缘手势切出时触控指针常驻导致交互冻结；\n14. 注入Android 7.0~9.0存储权限向下兼容桩（P2）：确保老旧系统媒体与截图导出安全无崩。",
   "entry": "starfield.html",
   "download_url": "https://jackeyloveseven.github.io/starfield/starfield.html",
   "apk_release_url": "https://github.com/jackeyloveseven/starfield/releases/tag/v1.19.1-focus-apk"
