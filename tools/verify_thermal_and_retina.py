@@ -72,9 +72,9 @@ def verify_thermal_and_retina():
         p2k = page.evaluate("() => window.STARFIELD_QUALITY.profile")
         dpr2k = page.evaluate("() => window.DPR")
         print(f"   - Switched Profile: {p2k} (Expected: 2k)")
-        print(f"   - 2K Mode DPR: {dpr2k} (Expected: 2.0 for mobile)")
+        print(f"   - 2K Mode DPR: {dpr2k} (Expected: 1.75 for mobile clamped)")
         assert p2k == '2k', f"Expected profile 2k, got {p2k}"
-        assert abs(dpr2k - 2.0) < 0.05, f"Expected 2K mobile DPR 2.0, got {dpr2k}"
+        assert abs(dpr2k - 1.75) < 0.05, f"Expected 2K mobile DPR 1.75, got {dpr2k}"
 
         # 3. Test PowerSave Mode Switch
         print("\n3. Testing PowerSave Mode Switch...")
