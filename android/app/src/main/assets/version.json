@@ -1,14 +1,14 @@
 {
-  "version": "2.0.0.0",
-  "build": 200,
-  "updated_at": "2026-11-22T13:30:00+08:00",
+  "version": "2.0.0.1",
+  "build": 201,
+  "updated_at": "2026-11-22T16:31:00+08:00",
   "min_native_version": "1.0.0",
   "is_beta": false,
-  "title": "Starfield v2.0.0.0 (Build 200): 旗舰零卡顿帧率平滑引擎、深空全息仪器美学系统、星航段位与远征指令链闭环玩法、以及原生 120Hz App 指挥中枢",
-  "changelog": "1. 零卡顿帧步进与 DOM 脏检查引擎 (Zero-Jank Frame Pacing)：消除主循环内燃料条、战术货舱、停靠提示、根级 CSS 变量的每帧 DOM 读写与强制同步重排，引入 EMA 帧间隔平滑与折纸尾迹批量多段绘制；\n2. 深空全息仪器与人文社论美学 (Deep-Space Editorial & Holographic Instrument HUD)：统一全局 1px 发丝线、0px 精密直角、tabular-nums 等宽遥测与折纸舰队金箔脊线反差；\n3. 星航段位与远征指令链核心玩法闭环 (Starfarer Progression & Active Expedition Loop)：新增 8 阶星航段位系统、情境感知主动战术动作舱 (#sf-tactical-capsule) 与可交互远征指令舱 (#sf-contract-hud)，打通巡天声呐、行星引力弹弓、探测鸟激波、远古遗迹示波器破译、碎片带极限规避、星核孵化与装备升级工坊的全链路奖励正反馈；\n4. 旗舰级 App 指挥坞与原生 120Hz 桥接 (Flagship App Shell & Native Bridge)：桌面与移动端统一指挥中枢一键直达天象馆、装备工坊、专注远征与星图手札，集成 Android 120Hz 高刷锁帧、沉浸式全面屏、原生触觉反馈 (StarfieldNative.triggerHaptic) 与生命周期功耗协同。",
+  "title": "Starfield v2.0.0.1 (Build 201): 移动端 3D 星球渲染与无框洁净 HUD 紧急修复版",
+  "changelog": "1. 移动端 3D 星球渲染修复：内联嵌入 Three.js r128 + GLTFLoader，彻底消除离线/OTA 环境加载失败；修复 Android WebView `LivingPlanetEngine` 跳帧清屏与多星丢弃，改为持久化独立缓存并对齐 TBDR `desynchronized: false` 与原生 `LAYER_TYPE_NONE`；\n2. 巡航态 3D 星球高级质感实装：升级 GLSL Fresnel 大气散射辉光、高光海洋、3D 星环与幽能水晶/霓虹巨构/碎裂电弧/极光带/生化囊肿等奇观实体；修复背面光环投影本影裁剪，清除星球背后黑色椭圆阴影；\n3. 移动端零遮挡无框洁净 HUD：移除顶栏、远征卡片、货舱与右下触控岛的厚重黑盒与键位提示，单行精简遥测，全面释放中心航道与天体视野。",
   "entry": "starfield.html",
   "download_url": "https://jackeyloveseven.github.io/starfield/starfield.html",
   "apk_release_url": "https://github.com/jackeyloveseven/starfield/releases/tag/v1.19.1-focus-apk",
-  "description": "Build 200 (v2.0.0.0): Zero-Jank Frame Pacing, Deep-Space Editorial & Holographic Instrument Aesthetics, Starfarer Progression & Active Expedition Loop, and Flagship 120Hz Native App Command Dock",
-  "timestamp": "2026-11-22T05:30:00Z"
+  "description": "Build 201 (v2.0.0.1): Inline Three.js, fix mobile LivingPlanetEngine WebGL buffer wipe & multi-planet rendering with Fresnel atmosphere & 3D manifestations, restore borderless mobile HUD",
+  "timestamp": "2026-11-22T08:31:00Z"
 }

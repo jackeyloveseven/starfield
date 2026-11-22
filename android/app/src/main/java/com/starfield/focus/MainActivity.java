@@ -129,7 +129,9 @@ public class MainActivity extends AppCompatActivity {
         webView.setFocusable(true);
         webView.setFocusableInTouchMode(true);
         webView.setKeepScreenOn(true);
-        webView.setLayerType(View.LAYER_TYPE_HARDWARE, null);
+        // Do not force LAYER_TYPE_HARDWARE on the WebView root (avoids TBDR FBO blitting stalls;
+        // hardware acceleration is active via Window FLAG_HARDWARE_ACCELERATED).
+        webView.setLayerType(View.LAYER_TYPE_NONE, null);
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             try {
