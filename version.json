@@ -1,14 +1,14 @@
 {
-  "version": "1.9.9.9.9.11",
-  "build": 199,
-  "updated_at": "2026-11-21T20:18:00+08:00",
+  "version": "2.0.0.0",
+  "build": 200,
+  "updated_at": "2026-11-22T13:30:00+08:00",
   "min_native_version": "1.0.0",
   "is_beta": false,
-  "title": "移动端与天玑 9400+ 满血帧率与渲染管线削峰优化：DPR 安全钳位、Hot Loop 零 GC 对象池、LivingPlanetEngine 跨上下文解耦与 GPU 硬件加速 (Build 198)",
-  "changelog": "1. DPR 智能安全钳位 (DPR Clamping)：在 STARFIELD_QUALITY 与 resize 中，移动端 Balanced 默认钳位 1.5，极清封顶 1.75，彻底消除天玑 9400+ 原生 3.0 直渲 3.39 Mpx 引发的总线带宽与填充率饱和（Fillrate Starvation），带宽吞吐从 8.47 GB/s 骤降至 2.25 GB/s；\n2. Hot Loop 零 GC 对象池系统 (Zero-GC Optimization)：注入全局预分配静态池（_projPool, _clipPt2Pool, _clipPt3Pool, _clipResPool, _qPool），重构 projectXYZ/project、clipped、poly、line、sprite、glow 与 flush，彻底消灭每帧数万次临时数组与微对象垃圾，瓦解 5~18.8ms 的 Minor GC Jank 停顿；\n3. LivingPlanetEngine 跨上下文解耦与零拷贝直通：切断 WebGL -> model.canvas(2D) -> main Canvas 双重拷贝链条，移动端直通 WebGL 贴图上屏，消除每帧 512x512 2D Canvas 内存分配与 EGL Sync Fence 隐式同步停顿，节省单帧 3MB 显存读写；\n4. Canvas 硬件加速属性与独立合成层调优：主 Canvas 与 WebGL Canvas 注入 desynchronized: true、powerPreference: 'high-performance' 与 premultipliedAlpha，注入 will-change: transform 与 transform: translateZ(0) 强制独立硬件合成层；\n5. 全屏后期效果开销控制与降频安全：移动端跳过全屏 192x192 grainPattern 密铺，禁用 4x MSAA，释放 75% 顶点与片元显存带宽；\n6. 星空与星带 CPU 降级防雪崩：为 drawStars 与 bandStars CPU 降级路径施加自适应上限（移动端 350 / 180，桌面端 1800 / 1200），彻底消除极端异常下 CPU 遍历 48,000 颗星导致的 20ms 阻塞；\n7. 编队物理与天体遍历削峰：FleetFormations 静态缓冲化、updateBirds 重复 craftWorld 消除、bodies 消除 active chunk 数组分配；\n8. 双端资产 100% SHA256 镜像对齐与版本自洽：推进至 Build 198 (v1.9.9.9.9.10)，确保 Web 与 Android Live Wallpaper 资产完全一致。",
+  "title": "Starfield v2.0.0.0 (Build 200): 旗舰零卡顿帧率平滑引擎、深空全息仪器美学系统、星航段位与远征指令链闭环玩法、以及原生 120Hz App 指挥中枢",
+  "changelog": "1. 零卡顿帧步进与 DOM 脏检查引擎 (Zero-Jank Frame Pacing)：消除主循环内燃料条、战术货舱、停靠提示、根级 CSS 变量的每帧 DOM 读写与强制同步重排，引入 EMA 帧间隔平滑与折纸尾迹批量多段绘制；\n2. 深空全息仪器与人文社论美学 (Deep-Space Editorial & Holographic Instrument HUD)：统一全局 1px 发丝线、0px 精密直角、tabular-nums 等宽遥测与折纸舰队金箔脊线反差；\n3. 星航段位与远征指令链核心玩法闭环 (Starfarer Progression & Active Expedition Loop)：新增 8 阶星航段位系统、情境感知主动战术动作舱 (#sf-tactical-capsule) 与可交互远征指令舱 (#sf-contract-hud)，打通巡天声呐、行星引力弹弓、探测鸟激波、远古遗迹示波器破译、碎片带极限规避、星核孵化与装备升级工坊的全链路奖励正反馈；\n4. 旗舰级 App 指挥坞与原生 120Hz 桥接 (Flagship App Shell & Native Bridge)：桌面与移动端统一指挥中枢一键直达天象馆、装备工坊、专注远征与星图手札，集成 Android 120Hz 高刷锁帧、沉浸式全面屏、原生触觉反馈 (StarfieldNative.triggerHaptic) 与生命周期功耗协同。",
   "entry": "starfield.html",
   "download_url": "https://jackeyloveseven.github.io/starfield/starfield.html",
   "apk_release_url": "https://github.com/jackeyloveseven/starfield/releases/tag/v1.19.1-focus-apk",
-  "description": "Build 199: Mobile Fluid Island Capsule Touch Dock with In-situ Status Indicators and Pure Vision (Zen) Cinema Mode",
-  "timestamp": "2026-11-21T22:15:00Z"
+  "description": "Build 200 (v2.0.0.0): Zero-Jank Frame Pacing, Deep-Space Editorial & Holographic Instrument Aesthetics, Starfarer Progression & Active Expedition Loop, and Flagship 120Hz Native App Command Dock",
+  "timestamp": "2026-11-22T05:30:00Z"
 }
