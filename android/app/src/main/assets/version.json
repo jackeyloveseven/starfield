@@ -1,14 +1,14 @@
 {
-  "version": "2.0.0.2",
-  "build": 202,
-  "updated_at": "2026-11-23T10:25:00+08:00",
+  "version": "2.0.0.3",
+  "build": 203,
+  "updated_at": "2026-11-23T10:56:00+08:00",
   "min_native_version": "1.0.0",
   "is_beta": false,
-  "title": "Starfield v2.0.0.2 (Build 202): 移动端密集星球防卡顿架构优化版",
-  "changelog": "1. 消灭密集星球 3~4 FPS 掉帧雪崩：移动端 3D 星球缓存扩至 28 颗 + 离屏缓冲降至 256×256（像素量砍 56%），彻底根治 15+ 星团同屏时的 LRU 销毁/重建死循环；\n2. 消除同步着色器编译与 WebGL→2D 同步停顿：移除每星 synchronous renderer.compile()、建立共享几何/材质池，移动端每帧严格限流至 ≤1 颗新建模型、≤1 次 WebGL→2D 拷贝，并按屏幕半径错峰 2~8 帧刷新；\n3. 远星分级 LOD 与零 GC 地形生成：移动端 3D 晋升门槛提至 22px，远处小星及建星排队帧统一走极速 2D 球体占位，地形网格减负并消除顶点循环临时对象分配。",
+  "title": "Starfield v2.0.0.3 (Build 203): 电影级巨物构图、ACES 胶片光影与静谧留白美学版",
+  "changelog": "1. 巨物史诗构图与深空留白：远景背景星球生成密度大幅精简 80%，主航道天体尺度放大 1.25×，彻底告别“弹珠堆砌”，兼顾史诗构图与移动端高帧率；\n2. ACES 电影胶片色调与高反差昼夜晨昏线：启用 ACESFilmicToneMapping，压低深渊靛蓝环境光（0.18）、增强暖金主光（2.35）与冷青轮廓光，彻底洗掉发灰塑料感；\n3. 统一低饱和电影色板与洁净球面轮廓：替换刺眼荧光色板与过曝大气光环，移动端去除 256px 下的细碎树苗噪点，并柔化巡航态闲置战术按钮透明度。",
   "entry": "starfield.html",
   "download_url": "https://jackeyloveseven.github.io/starfield/starfield.html",
   "apk_release_url": "https://github.com/jackeyloveseven/starfield/releases/tag/v1.19.1-focus-apk",
-  "description": "Build 202 (v2.0.0.2): Mobile dense-planet anti-stutter architecture overhaul (shared pool, 1-build/1-blit per-frame budget, 28-slot 256px LRU, 22px mobile 3D LOD)",
-  "timestamp": "2026-11-23T02:25:00Z"
+  "description": "Build 203 (v2.0.0.3): Phase 1 cinematic composition (megalophobia framing, -80% omni clutter), ACES filmic lighting & desaturated palettes, quiet mobile HUD",
+  "timestamp": "2026-11-23T02:56:00Z"
 }

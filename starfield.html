@@ -8923,7 +8923,7 @@ body:has(#photo-ui.active) .sf-touch-cluster{
     <div class="shortcut-list">
       <div class="shortcut-row">
         <span>客户端版本</span>
-        <span class="shortcut-key" id="sf-version-tag">v2.0.0.2 (Build 202)</span>
+        <span class="shortcut-key" id="sf-version-tag">v2.0.0.3 (Build 203)</span>
       </div>
       <div class="shortcut-row">
         <span>OTA 实时热更新</span>
@@ -13785,7 +13785,7 @@ function chunk(k){
    }
 
    const kKind = wD.hasRings ? 8 : wD.pSize.kind;
-   const pRad = wD.pSize.radMin + r() * (wD.pSize.radMax - wD.pSize.radMin);
+   const pRad = (wD.pSize.radMin + r() * (wD.pSize.radMax - wD.pSize.radMin)) * 1.25;
 
    // =========================================================================
    // 4 RIGOROUS 3D SPATIAL ARCHETYPES (TRUE NADIR, TRUE ZENITH, TRUE FLANK):
@@ -13860,7 +13860,7 @@ function chunk(k){
   // BUILD 187: OMNIDIRECTIONAL 3D SPHERICAL SHELL CELESTIAL WORLDS
   // Populates Zenith (+Y), Nadir (-Y), Port (-X), Starboard (+X), Diagonals, and Aft (-Z)
   if(k > 0){
-   const numOmni = (r() < 0.35) ? 2 : 3;
+   const numOmni = (k % 3 === 1 && r() < 0.65) ? 1 : 0;
    const prevMasses = [];
    for (let pk = k - 2; pk < k; pk++) {
      const pc = chunks.get(pk) || null;
@@ -13873,7 +13873,7 @@ function chunk(k){
     const angle = (sector / 8) * TAU + (r() - 0.5) * 0.35;
     const isAft = (r() < 0.28);
     const dz = isAft ? (z0 - CHUNK * (0.15 + r() * 0.45)) : (z0 + CHUNK * (0.15 + (di + r()) * 0.35));
-    const dDist = 7500 + r() * 22000;
+    const dDist = 14000 + r() * 26000;
     const cosA = Math.cos(angle), sinA = Math.sin(angle);
     let dx = baseRouteX(dz) + cosA * dDist;
     let dy = courseY(dz) + sinA * (dDist * 0.65 + 1400);
@@ -23257,7 +23257,7 @@ window.addEventListener('resize', () => {
       })
       .then(data => {
         if (data && data.build) {
-          const localBuild = 202;
+          const localBuild = 203;
           if (data.build > localBuild) {
             showOtaNotification(data);
           } else if (manual && window.toast) {
@@ -27361,6 +27361,10 @@ requestAnimationFrame(frame);
       this.renderer.setSize(this.currentBufferSize, this.currentBufferSize, false);
       this.renderer.setPixelRatio(1.0);
       this.renderer.setClearColor(0x000000, 0);
+      if (THREE.ACESFilmicToneMapping !== undefined) {
+        this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        this.renderer.toneMappingExposure = 1.06;
+      }
 
       this.scene = new THREE.Scene();
 
@@ -27373,14 +27377,15 @@ requestAnimationFrame(frame);
       this.camera.position.set(0, 0, 90);
       this.camera.lookAt(0, 0, 0);
 
-      this.ambientLight = new THREE.AmbientLight(0xffffff, 0.56);
+      // Build 203 Cinematic Deep-Space Lighting: deep indigo nightside + crisp warm key terminator
+      this.ambientLight = new THREE.AmbientLight(0x18263a, 0.18);
       this.scene.add(this.ambientLight);
 
-      this.sunLight = new THREE.DirectionalLight(0xfff5e6, 1.55);
+      this.sunLight = new THREE.DirectionalLight(0xfff0d8, 2.35);
       this.sunLight.position.set(60, 40, 50);
       this.scene.add(this.sunLight);
 
-      this.rimLight = new THREE.DirectionalLight(0x7ea8d8, 0.65);
+      this.rimLight = new THREE.DirectionalLight(0x6da6dc, 0.52);
       this.rimLight.position.set(-60, -30, -50);
       this.scene.add(this.rimLight);
 
@@ -27491,54 +27496,55 @@ requestAnimationFrame(frame);
       let isAlien = false;
       const isFractured = (w.shape && w.shape.id === 'fractured') || (manifId === 'fractured_core');
 
-      let cDeep = 0x03142c;
-      let cCoast = 0x168aad;
-      let cSand = 0xf4e285;
-      let cGrass = 0x52b788;
-      let cForest = 0x2d6a4f;
-      let cRock = 0x6c584c;
-      let cSnow = 0xf8f9fa;
+      // Build 203 Film-Grade Desaturated Palettes (Interstellar x Monument Valley)
+      let cDeep = 0x071526;
+      let cCoast = 0x1e5c78;
+      let cSand = 0xcab998;
+      let cGrass = 0x4b6e5f;
+      let cForest = 0x2b453e;
+      let cRock = 0x4f4a48;
+      let cSnow = 0xe4e9ee;
 
       if (typeId === 'ocean' || manifId === 'skimming_water') {
         isAbyss = true;
-        landRatio = 0.12; // 88% deep ocean with atolls
-        cDeep = 0x020b18;
-        cCoast = 0x0077b6;
+        landRatio = 0.14;
+        cDeep = 0x05101f;
+        cCoast = 0x185272;
       } else if (typeId === 'forest') {
         isForest = true;
-        landRatio = 0.62;
-        cGrass = 0x38b000;
-        cForest = 0x007200;
+        landRatio = 0.58;
+        cGrass = 0x3d6150;
+        cForest = 0x233d33;
       } else if (manifId === 'protoss_crystal') {
         isAlien = true;
-        landRatio = 0.46;
-        cDeep = 0x061630;
-        cCoast = 0x0ea5e9;
-        cSand = 0x67e8f9;
-        cGrass = 0x1d4ed8;
-        cForest = 0x0f766e;
-        cRock = 0x312e81;
+        landRatio = 0.44;
+        cDeep = 0x081426;
+        cCoast = 0x1f5f85;
+        cSand = 0x7fb8cf;
+        cGrass = 0x223e5e;
+        cForest = 0x18424d;
+        cRock = 0x2f3554;
       } else if (manifId === 'zerg_biomorphic') {
         isAlien = true;
         landRatio = 0.44;
-        cDeep = 0x1a052b;
-        cCoast = 0x7209b7;
-        cSand = 0x4cc9f0;
-        cGrass = 0xf72585;
-        cForest = 0x3a0ca3;
+        cDeep = 0x160d21;
+        cCoast = 0x4c2459;
+        cSand = 0x5c8a9e;
+        cGrass = 0x7d2948;
+        cForest = 0x28173d;
       } else if (isFractured) {
         landRatio = 0.56;
-        cDeep = 0x660a00; // Incandescent molten magma canyons
-        cCoast = 0xff4500;
-        cRock = 0x221d1b; // Obsidian basalt tectonic plates
-        cSand = 0x8a2010;
-        cGrass = 0x3d302a;
-        cForest = 0x1f1917;
+        cDeep = 0x521208;
+        cCoast = 0xc94a1c;
+        cRock = 0x1e1b1c;
+        cSand = 0x7a2b14;
+        cGrass = 0x332927;
+        cForest = 0x1a1718;
       } else if (manifId === 'cyber_metropolis' || manifId === 'dune_arrakis') {
         landRatio = 0.52;
-        cSand = 0xee9b00;
-        cGrass = 0xbb3e03;
-        cForest = 0x6d6875;
+        cSand = 0xb88946;
+        cGrass = 0x7d4a27;
+        cForest = 0x464952;
       }
 
       const R = this.PLANET_R;
@@ -27656,20 +27662,20 @@ requestAnimationFrame(frame);
       const cloudMesh = new THREE.Mesh(cloudGeom, cloudMat);
       group.add(cloudMesh);
 
-      // 3D GLSL Fresnel Atmospheric Glow ShaderMaterial (smooth limb & back-side corona)
-      let atmoRGB = new THREE.Color(cCoast).lerp(new THREE.Color(0x6ecbff), 0.38);
-      if (manifId === 'protoss_crystal') atmoRGB.setHex(0x38e4ff);
-      else if (manifId === 'zerg_biomorphic') atmoRGB.setHex(0xd946ef);
-      else if (manifId === 'cyber_metropolis') atmoRGB.setHex(0x22d3ee);
-      else if (manifId === 'shattered_cataclysm' || isFractured) atmoRGB.setHex(0xff6b2b);
-      else if (manifId === 'super_storm') atmoRGB.setHex(0x34d399);
-      else if (manifId === 'dark_void') atmoRGB.setHex(0x9333ea);
+      // 3D GLSL Fresnel Atmospheric Glow (Build 203 Film-Grade Rayleigh Limb)
+      let atmoRGB = new THREE.Color(cCoast).lerp(new THREE.Color(0x8bc2e0), 0.35);
+      if (manifId === 'protoss_crystal') atmoRGB.setHex(0x6bb8d9);
+      else if (manifId === 'zerg_biomorphic') atmoRGB.setHex(0x9e6db8);
+      else if (manifId === 'cyber_metropolis') atmoRGB.setHex(0x6aaec4);
+      else if (manifId === 'shattered_cataclysm' || isFractured) atmoRGB.setHex(0xd47142);
+      else if (manifId === 'super_storm') atmoRGB.setHex(0x6ab39b);
+      else if (manifId === 'dark_void') atmoRGB.setHex(0x7c5ca8);
 
       const atmoGeom = (this._shared && this._shared.shAtmo) ? this._shared.shAtmo : new THREE.SphereGeometry(R * 1.18, 20, 14);
       const atmoMat = new THREE.ShaderMaterial({
         uniforms: { uColor: { value: atmoRGB } },
         vertexShader: 'varying vec3 vN; void main(){ vN = normalize(normalMatrix * normal); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
-        fragmentShader: 'varying vec3 vN; uniform vec3 uColor; void main(){ float i = pow(max(0.0, 0.72 - dot(vN, vec3(0.0, 0.0, 1.0))), 2.5); gl_FragColor = vec4(uColor, 1.0) * i * 0.92; }',
+        fragmentShader: 'varying vec3 vN; uniform vec3 uColor; void main(){ float i = pow(max(0.0, 0.68 - dot(vN, vec3(0.0, 0.0, 1.0))), 3.0); gl_FragColor = vec4(uColor, 1.0) * i * 0.72; }',
         blending: THREE.AdditiveBlending,
         side: THREE.BackSide,
         transparent: true,
@@ -27680,9 +27686,9 @@ requestAnimationFrame(frame);
 
       const limbGeom = (this._shared && this._shared.shLimb) ? this._shared.shLimb : new THREE.SphereGeometry(R * 1.035, 20, 14);
       const limbMat = new THREE.ShaderMaterial({
-        uniforms: { uColor: { value: atmoRGB.clone().lerp(new THREE.Color(0xffffff), 0.30) } },
+        uniforms: { uColor: { value: atmoRGB.clone().lerp(new THREE.Color(0xf0f4f8), 0.25) } },
         vertexShader: 'varying vec3 vN; void main(){ vN = normalize(normalMatrix * normal); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
-        fragmentShader: 'varying vec3 vN; uniform vec3 uColor; void main(){ float ndv = max(0.0, dot(vN, vec3(0.0, 0.0, 1.0))); float rim = pow(1.0 - ndv, 3.2); gl_FragColor = vec4(uColor, 1.0) * rim * 0.58; }',
+        fragmentShader: 'varying vec3 vN; uniform vec3 uColor; void main(){ float ndv = max(0.0, dot(vN, vec3(0.0, 0.0, 1.0))); float rim = pow(1.0 - ndv, 3.8); gl_FragColor = vec4(uColor, 1.0) * rim * 0.44; }',
         blending: THREE.AdditiveBlending,
         side: THREE.FrontSide,
         transparent: true,
@@ -27693,8 +27699,8 @@ requestAnimationFrame(frame);
 
       // Instanced Trees (300-360 trees max for ultra-high FPS)
       let treesGroup = null;
-      if (landVertices.length > 0) {
-        const treeCount = Math.min(isMobDev ? 96 : 320, landVertices.length);
+      if (!isMobDev && landVertices.length > 0) {
+        const treeCount = Math.min(320, landVertices.length);
         const trunkGeom = (this._shared && this._shared.shTrunk) ? this._shared.shTrunk : new THREE.CylinderGeometry(0.1, 0.18, 0.9, 4);
         const leavesGeom = (this._shared) ? (isAlien ? this._shared.shLeavesAlien : this._shared.shLeavesStd) : (isAlien ? new THREE.DodecahedronGeometry(0.65) : new THREE.ConeGeometry(0.6, 1.3, 4));
 
@@ -34145,10 +34151,14 @@ function sfBuildManif(THREE, planet, manifId, hue, rng) {
     .sf-tac-btn {
       font-size: 8px !important;
       padding: 2px 5px !important;
-      background: rgba(6, 9, 14, 0.30) !important;
+      background: transparent !important;
       border: none !important;
-      border-bottom: 1px solid rgba(230, 237, 242, 0.28) !important;
+      border-bottom: 1px solid rgba(230, 237, 242, 0.20) !important;
+      opacity: 0.56;
       text-shadow: 0 1px 6px rgba(0, 0, 0, 0.92);
+    }
+    .sf-tac-btn.highlight, .sf-tac-btn.cyan, .sf-tac-btn:active {
+      opacity: 1;
     }
     .sf-touch-cluster {
       right: calc(max(env(safe-area-inset-right, 0px), 10px)) !important;
