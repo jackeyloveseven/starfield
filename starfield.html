@@ -8923,7 +8923,7 @@ body:has(#photo-ui.active) .sf-touch-cluster{
     <div class="shortcut-list">
       <div class="shortcut-row">
         <span>客户端版本</span>
-        <span class="shortcut-key" id="sf-version-tag">v2.0.0.1 (Build 201)</span>
+        <span class="shortcut-key" id="sf-version-tag">v2.0.0.2 (Build 202)</span>
       </div>
       <div class="shortcut-row">
         <span>OTA 实时热更新</span>
@@ -14529,19 +14529,41 @@ function drawWorld(m, q, p, t, rad, tint) {
       }
 
       // Three.js 3D Procedural Living Planet Engine (GLSL Fresnel Atmosphere, 3D Rings, Manif Wonders)
-      // Check 3D render FIRST so 2D fallback concentric halos never muddy pure 3D WebGL lighting & silhouettes!
-      const minLivingRad = (_isMobileDevice ? 8.5 : 8.0) * (1 + Math.min(0.55, Math.max(warp, WarpDrive.currentWarp) * 0.025));
+      // Build 202: On mobile, require rad >= 22px for 3D; smaller or build-queued planets use ultra-fast 2D sphere (<0.03ms)
+      const minLivingRad = (_isMobileDevice ? 22.0 : 8.5) * (1 + Math.min(0.55, Math.max(warp, WarpDrive.currentWarp) * 0.025));
       if (typeof LivingPlanetEngine !== 'undefined' && LivingPlanetEngine.enabled && rad >= minLivingRad && typeof THREE !== 'undefined') {
         const offCanvas = LivingPlanetEngine.renderPlanet(m, rad, [lx, ly, lz], camera);
         if (offCanvas) {
           const drawD = LivingPlanetEngine.getDrawSize(rad);
           ctx.imageSmoothingEnabled = true;
           ctx.drawImage(offCanvas, cx - drawD * 0.5, cy - drawD * 0.5, drawD, drawD);
-          if (m.hasSatellites || (m.w && m.w.manif && ['cyber_metropolis','dyson_swarm','monolith_artifact','earth_egg','protoss_crystal'].includes(m.w.manif.id)) || ((m.seed || 1) % 3 === 0)) {
+          if (rad >= (_isMobileDevice ? 32 : 12) && (m.hasSatellites || (m.w && m.w.manif && ['cyber_metropolis','dyson_swarm','monolith_artifact','earth_egg','protoss_crystal'].includes(m.w.manif.id)) || ((m.seed || 1) % 3 === 0))) {
             drawOrbitalSatellites(ctx, cx, cy, rad, m, t, tint, massVis);
           }
           return;
         }
+      }
+      if (_isMobileDevice && typeof LivingPlanetEngine !== 'undefined' && LivingPlanetEngine.enabled) {
+        const coronaR = rad * 1.32;
+        const cGrad = ctx.createRadialGradient(cx, cy, rad * 0.85, cx, cy, coronaR);
+        cGrad.addColorStop(0.0, css(atmoRay, Math.min(0.65, 0.45 * ak)));
+        cGrad.addColorStop(0.6, css(atmoMie, Math.min(0.30, 0.18 * ak)));
+        cGrad.addColorStop(1.0, 'rgba(0,0,0,0)');
+        ctx.beginPath(); ctx.arc(cx, cy, coronaR, 0, TAU);
+        ctx.fillStyle = cGrad; ctx.fill();
+
+        const bGrad = ctx.createRadialGradient(cx + lx * rad * 0.35, cy - ly * rad * 0.35, 0, cx, cy, rad);
+        bGrad.addColorStop(0.0, css(blend(tint, [255, 255, 255], 0.40), 1.0));
+        bGrad.addColorStop(0.55, css(tint, 0.98));
+        bGrad.addColorStop(0.88, css(blend(tint, [6, 10, 18], 0.86), 0.96));
+        bGrad.addColorStop(1.0, 'rgba(4, 6, 12, 0.92)');
+        ctx.beginPath(); ctx.arc(cx, cy, rad, 0, TAU);
+        ctx.fillStyle = bGrad; ctx.fill();
+
+        ctx.strokeStyle = css(atmoRay, Math.min(0.70, 0.42 * ak));
+        ctx.lineWidth = Math.max(0.9, rad * 0.05);
+        ctx.beginPath(); ctx.arc(cx, cy, rad, 0, TAU); ctx.stroke();
+        return;
       }
 
       // 1. Atmospheric Limb Glow (Rayleigh & Forward Mie Glare for 2D fallback / distant worlds)
@@ -23235,7 +23257,7 @@ window.addEventListener('resize', () => {
       })
       .then(data => {
         if (data && data.build) {
-          const localBuild = 201;
+          const localBuild = 202;
           if (data.build > localBuild) {
             showOtaNotification(data);
           } else if (manual && window.toast) {
@@ -23294,7 +23316,7 @@ function frame(now){
  } else {
   lastRenderTime = now;
  }
- if (window.LivingPlanetEngine) { window.LivingPlanetEngine._mobileRenderedThisFrame = false; window.LivingPlanetEngine._webglDrawsThisFrame = 0; }
+ if (window.LivingPlanetEngine) { window.LivingPlanetEngine._mobileRenderedThisFrame = false; window.LivingPlanetEngine._webglDrawsThisFrame = 0; window.LivingPlanetEngine._buildsThisFrame = 0; window.LivingPlanetEngine._hadUnrenderedLastFrame = !!window.LivingPlanetEngine._sawUnrenderedThisFrame; window.LivingPlanetEngine._sawUnrenderedThisFrame = false; }
  const tFrameStart = performance.now();
  if (typeof resetFramePools === 'function') resetFramePools();
  if (typeof updateTouchInSituBadges === 'function' && ((frameCount || 0) % 15 === 0)) updateTouchInSituBadges();
@@ -27286,8 +27308,30 @@ requestAnimationFrame(frame);
 
       const isMob = (typeof window !== 'undefined' && window._isMobileDevice) || (typeof _isMobileDevice !== 'undefined' && _isMobileDevice);
       this.isMob = !!isMob;
-      this.MAX_CACHE_SIZE = isMob ? 14 : 32;
-      this.currentBufferSize = isMob ? 384 : 512;
+      this.MAX_CACHE_SIZE = isMob ? 28 : 32;
+      this.currentBufferSize = isMob ? 256 : 512;
+      this._buildsThisFrame = 0;
+      const shAtmo = new THREE.SphereGeometry(this.PLANET_R * 1.18, isMob ? 20 : 28, isMob ? 14 : 22);
+      shAtmo.userData.shared = true;
+      const shLimb = new THREE.SphereGeometry(this.PLANET_R * 1.035, isMob ? 20 : 28, isMob ? 14 : 22);
+      shLimb.userData.shared = true;
+      const shOcean = new THREE.IcosahedronGeometry(this.PLANET_R + 0.14, isMob ? 5 : 10);
+      shOcean.userData.shared = true;
+      const shTrunk = new THREE.CylinderGeometry(0.1, 0.18, 0.9, 4);
+      shTrunk.translate(0, 0.45, 0);
+      shTrunk.userData.shared = true;
+      const shLeavesStd = new THREE.ConeGeometry(0.6, 1.3, 4);
+      shLeavesStd.translate(0, 1.3, 0);
+      shLeavesStd.userData.shared = true;
+      const shLeavesAlien = new THREE.DodecahedronGeometry(0.65);
+      shLeavesAlien.translate(0, 1.3, 0);
+      shLeavesAlien.userData.shared = true;
+      const shBirdGeom = new THREE.BufferGeometry();
+      shBirdGeom.setAttribute('position', new THREE.BufferAttribute(new Float32Array([0,0,0.35, -0.5,0.08,0, 0,0,-0.25,  0,0,0.35, 0,0,-0.25, 0.5,0.08,0]), 3));
+      shBirdGeom.userData.shared = true;
+      const shBirdMat = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide });
+      shBirdMat.userData.shared = true;
+      this._shared = { shAtmo, shLimb, shOcean, shTrunk, shLeavesStd, shLeavesAlien, shBirdGeom, shBirdMat };
       this.canvas = document.createElement('canvas');
       this.canvas.width = this.currentBufferSize;
       this.canvas.height = this.currentBufferSize;
@@ -27379,8 +27423,9 @@ requestAnimationFrame(frame);
       if (!this.initialized) this.init();
       if (!this.initialized || this.contextLost || !masses) return;
       this._prewarmTick = (this._prewarmTick || 0) + 1;
-      const interval = this.isMob ? 16 : 8;
+      const interval = this.isMob ? 24 : 8;
       if (this._prewarmTick % interval !== 0) return;
+      if ((this._buildsThisFrame || 0) > 0) return;
       for (let i = 0; i < masses.length; i++) {
         const m = masses[i];
         if (m && (m.w || m.kind === 1 || m.kind === 8 || m.kind === 6)) {
@@ -27415,13 +27460,11 @@ requestAnimationFrame(frame);
         this.planetCache.delete(firstKey);
       }
 
+      this._buildsThisFrame = (this._buildsThisFrame || 0) + 1;
       const model = this.createProceduralPlanet(m, pId);
       model.pId = pId;
       this.planetsContainer.add(model.group);
       this.planetCache.set(pId, model);
-      if (this.renderer && this.scene && this.camera) {
-        try { this.renderer.compile(this.scene, this.camera); } catch(e) {}
-      }
       return model;
     },
 
@@ -27500,13 +27543,14 @@ requestAnimationFrame(frame);
 
       const R = this.PLANET_R;
       const isMobDev = !!this.isMob;
-      const terrainDetail = isMobDev ? 7 : 9;
+      const terrainDetail = isMobDev ? 5 : 9;
       const geom = new THREE.IcosahedronGeometry(R, terrainDetail);
       const pos = geom.attributes.position;
       const vertex = new THREE.Vector3();
       const normal = new THREE.Vector3();
+      const tmpCol = new THREE.Color();
 
-      const colors = [];
+      const colors = new Float32Array(pos.count * 3);
       const colDeep = new THREE.Color(cDeep);
       const colCoast = new THREE.Color(cCoast);
       const colSand = new THREE.Color(cSand);
@@ -27518,40 +27562,38 @@ requestAnimationFrame(frame);
       const seaLevelThreshold = 0.5 - (landRatio - 0.4);
       const landVertices = [];
       const oceanVertices = [];
+      const landSampleMod = isMobDev ? 3 : 1;
 
       for (let i = 0; i < pos.count; i++) {
         vertex.fromBufferAttribute(pos, i);
         normal.copy(vertex).normalize();
 
-        const n1 = noise.fBm(normal.x * 1.6, normal.y * 1.6, normal.z * 1.6, 3);
+        const n1 = noise.fBm(normal.x * 1.6, normal.y * 1.6, normal.z * 1.6, isMobDev ? 2 : 3);
         const n2 = Math.abs(noise.noise3D(normal.x * 3.2, normal.y * 3.2, normal.z * 3.2)) * 0.22;
         const rawH = (n1 + 1.0) * 0.5 + n2;
 
         let finalR = R;
-        let col = new THREE.Color();
 
         if (rawH < seaLevelThreshold) {
-          // Ocean floor
           const depth = (seaLevelThreshold - rawH) / seaLevelThreshold;
           finalR = R - depth * 2.5;
-          col.copy(colCoast).lerp(colDeep, Math.min(1.0, depth * 1.8));
+          tmpCol.copy(colCoast).lerp(colDeep, Math.min(1.0, depth * 1.8));
 
-          if (depth > 0.45 && (i % 8 === 0)) {
+          if (depth > 0.45 && (i % (isMobDev ? 16 : 8) === 0) && oceanVertices.length < (isMobDev ? 24 : 96)) {
             oceanVertices.push({ pos: normal.clone().multiplyScalar(R + 0.1), normal: normal.clone() });
           }
         } else {
-          // Land
           const landElev = (rawH - seaLevelThreshold) / (1.0 - seaLevelThreshold);
           const mountainH = Math.pow(landElev, 1.25) * 3.6;
           finalR = R + mountainH;
 
-          if (landElev < 0.10) col.copy(colSand);
-          else if (landElev < 0.38) col.copy(colGrass);
-          else if (landElev < 0.70) col.copy(colForest);
-          else if (landElev < 0.88) col.copy(colRock);
-          else col.copy(colSnow);
+          if (landElev < 0.10) tmpCol.copy(colSand);
+          else if (landElev < 0.38) tmpCol.copy(colGrass);
+          else if (landElev < 0.70) tmpCol.copy(colForest);
+          else if (landElev < 0.88) tmpCol.copy(colRock);
+          else tmpCol.copy(colSnow);
 
-          if (landElev > 0.08 && landElev < 0.65) {
+          if (landElev > 0.08 && landElev < 0.65 && (i % landSampleMod === 0) && landVertices.length < (isMobDev ? 140 : 480)) {
             landVertices.push({
               pos: normal.clone().multiplyScalar(finalR),
               normal: normal.clone(),
@@ -27563,10 +27605,11 @@ requestAnimationFrame(frame);
 
         vertex.copy(normal).multiplyScalar(finalR);
         pos.setXYZ(i, vertex.x, vertex.y, vertex.z);
-        colors.push(col.r, col.g, col.b);
+        const ci3 = i * 3;
+        colors[ci3] = tmpCol.r; colors[ci3 + 1] = tmpCol.g; colors[ci3 + 2] = tmpCol.b;
       }
 
-      geom.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+      geom.setAttribute('color', new THREE.BufferAttribute(colors, 3));
       geom.computeVertexNormals();
 
       const terrainMat = new THREE.MeshStandardMaterial({
@@ -27579,7 +27622,7 @@ requestAnimationFrame(frame);
       bodyGroup.add(terrainMesh);
 
       // Ocean Shell (Smooth specular oceanic sheen matching SFPlanetGL)
-      const oceanGeom = new THREE.IcosahedronGeometry(R + 0.14, isMobDev ? 8 : 10);
+      const oceanGeom = (this._shared && this._shared.shOcean) ? this._shared.shOcean : new THREE.IcosahedronGeometry(R + 0.14, isMobDev ? 5 : 10);
       const oceanMat = new THREE.MeshStandardMaterial({
         color: new THREE.Color(cCoast),
         transparent: true,
@@ -27592,7 +27635,7 @@ requestAnimationFrame(frame);
       bodyGroup.add(oceanMesh);
 
       // Clouds Deck (Sculpted volumetric cloud deck)
-      const cloudGeom = new THREE.IcosahedronGeometry(R + 1.45, isMobDev ? 5 : 6);
+      const cloudGeom = new THREE.IcosahedronGeometry(R + 1.45, isMobDev ? 3 : 6);
       const cPos = cloudGeom.attributes.position;
       const cVec = new THREE.Vector3();
       for (let ci = 0; ci < cPos.count; ci++) {
@@ -27622,7 +27665,7 @@ requestAnimationFrame(frame);
       else if (manifId === 'super_storm') atmoRGB.setHex(0x34d399);
       else if (manifId === 'dark_void') atmoRGB.setHex(0x9333ea);
 
-      const atmoGeom = new THREE.SphereGeometry(R * 1.18, 28, 22);
+      const atmoGeom = (this._shared && this._shared.shAtmo) ? this._shared.shAtmo : new THREE.SphereGeometry(R * 1.18, 20, 14);
       const atmoMat = new THREE.ShaderMaterial({
         uniforms: { uColor: { value: atmoRGB } },
         vertexShader: 'varying vec3 vN; void main(){ vN = normalize(normalMatrix * normal); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
@@ -27635,7 +27678,7 @@ requestAnimationFrame(frame);
       const atmoMesh = new THREE.Mesh(atmoGeom, atmoMat);
       group.add(atmoMesh);
 
-      const limbGeom = new THREE.SphereGeometry(R * 1.035, 28, 22);
+      const limbGeom = (this._shared && this._shared.shLimb) ? this._shared.shLimb : new THREE.SphereGeometry(R * 1.035, 20, 14);
       const limbMat = new THREE.ShaderMaterial({
         uniforms: { uColor: { value: atmoRGB.clone().lerp(new THREE.Color(0xffffff), 0.30) } },
         vertexShader: 'varying vec3 vN; void main(){ vN = normalize(normalMatrix * normal); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
@@ -27651,11 +27694,9 @@ requestAnimationFrame(frame);
       // Instanced Trees (300-360 trees max for ultra-high FPS)
       let treesGroup = null;
       if (landVertices.length > 0) {
-        const treeCount = Math.min(320, landVertices.length);
-        const trunkGeom = new THREE.CylinderGeometry(0.1, 0.18, 0.9, 4);
-        trunkGeom.translate(0, 0.45, 0);
-        const leavesGeom = isAlien ? new THREE.DodecahedronGeometry(0.65) : new THREE.ConeGeometry(0.6, 1.3, 4);
-        leavesGeom.translate(0, 1.3, 0);
+        const treeCount = Math.min(isMobDev ? 96 : 320, landVertices.length);
+        const trunkGeom = (this._shared && this._shared.shTrunk) ? this._shared.shTrunk : new THREE.CylinderGeometry(0.1, 0.18, 0.9, 4);
+        const leavesGeom = (this._shared) ? (isAlien ? this._shared.shLeavesAlien : this._shared.shLeavesStd) : (isAlien ? new THREE.DodecahedronGeometry(0.65) : new THREE.ConeGeometry(0.6, 1.3, 4));
 
         const trunkMat = new THREE.MeshLambertMaterial({ color: isAlien ? 0x220538 : 0x543d2b });
         const leavesMat = new THREE.MeshLambertMaterial({ color: new THREE.Color(isAlien ? 0x00f5d4 : cForest) });
@@ -27692,7 +27733,7 @@ requestAnimationFrame(frame);
         monumentsGroup = new THREE.Group();
         const up = new THREE.Vector3(0, 1, 0);
         const totalCandidates = landVertices.length + oceanVertices.length;
-        const numStructures = Math.min(8, Math.max(3, Math.floor(totalCandidates / 18)));
+        const numStructures = Math.min(isMobDev ? 4 : 8, Math.max(isMobDev ? 2 : 3, Math.floor(totalCandidates / 18)));
         
         // High-performance shared materials
         const domeMat = new THREE.MeshStandardMaterial({
@@ -27895,11 +27936,9 @@ requestAnimationFrame(frame);
 
       // Animals: Seabird flock & breaching whales
       const birdsGroup = new THREE.Group();
-      const birdCount = 12;
-      const birdGeom = new THREE.BufferGeometry();
-      const bVerts = new Float32Array([0,0,0.35, -0.5,0.08,0, 0,0,-0.25,  0,0,0.35, 0,0,-0.25, 0.5,0.08,0]);
-      birdGeom.setAttribute('position', new THREE.BufferAttribute(bVerts, 3));
-      const birdMat = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide });
+      const birdCount = isMobDev ? 6 : 12;
+      const birdGeom = (this._shared && this._shared.shBirdGeom) ? this._shared.shBirdGeom : new THREE.BufferGeometry();
+      const birdMat = (this._shared && this._shared.shBirdMat) ? this._shared.shBirdMat : new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide });
 
       for (let i = 0; i < birdCount; i++) {
         const bMesh = new THREE.Mesh(birdGeom, birdMat);
@@ -28003,7 +28042,7 @@ requestAnimationFrame(frame);
         }
         const cGeo = new THREE.BufferGeometry();
         const cPts = [];
-        const cityN = isMobDev ? 260 : 480;
+        const cityN = isMobDev ? 140 : 480;
         for (let ci = 0; ci < cityN; ci++) {
           const cu = mRng() * Math.PI * 2, cv = Math.acos(2 * mRng() - 1);
           cPts.push(Math.sin(cv) * Math.cos(cu) * (R + 2.05), Math.cos(cv) * (R + 2.05), Math.sin(cv) * Math.sin(cu) * (R + 2.05));
@@ -28030,7 +28069,7 @@ requestAnimationFrame(frame);
         }
         const shardGeo = new THREE.TetrahedronGeometry(0.62, 0);
         const shardMat = new THREE.MeshStandardMaterial({ color: 0x5c4738, emissive: 0x451204, emissiveIntensity: 0.4, roughness: 0.85, flatShading: true });
-        const shardN = isMobDev ? 110 : 180;
+        const shardN = isMobDev ? 64 : 180;
         const shards = new THREE.InstancedMesh(shardGeo, shardMat, shardN);
         const sDum = new THREE.Object3D();
         for (let si = 0; si < shardN; si++) {
@@ -28113,10 +28152,10 @@ requestAnimationFrame(frame);
       if (!model || !model.group) return;
       this.planetsContainer.remove(model.group);
       model.group.traverse(obj => {
-        if (obj.geometry) obj.geometry.dispose();
+        if (obj.geometry && !(obj.geometry.userData && obj.geometry.userData.shared)) obj.geometry.dispose();
         if (obj.material) {
-          if (Array.isArray(obj.material)) obj.material.forEach(m => m.dispose());
-          else obj.material.dispose();
+          if (Array.isArray(obj.material)) obj.material.forEach(mat => { if (!(mat.userData && mat.userData.shared)) mat.dispose(); });
+          else if (!(obj.material.userData && obj.material.userData.shared)) obj.material.dispose();
         }
       });
       if (model.canvas) {
@@ -28137,10 +28176,14 @@ requestAnimationFrame(frame);
 
       const isMob = !!this.isMob || (typeof window !== 'undefined' && window._isMobileDevice) || (typeof _isMobileDevice !== 'undefined' && _isMobileDevice);
       const pId = this.getPlanetId(m);
+      if (!this.planetCache.has(pId)) {
+        const maxBuilds = isMob ? 1 : 2;
+        if ((this._buildsThisFrame || 0) >= maxBuilds) return null;
+      }
       const model = this.getPlanetModel(m);
       if (!model) return null;
 
-      const sz = this.currentBufferSize || (isMob ? 384 : 512);
+      const sz = this.currentBufferSize || (isMob ? 256 : 512);
       if (!model.canvas) {
         model.canvas = document.createElement('canvas');
         model.canvas.width = sz;
@@ -28224,9 +28267,11 @@ requestAnimationFrame(frame);
       this.currentRenderedId = pId;
       model.renderAge = (model.renderAge || 0) + 1;
       const drawsNow = this._webglDrawsThisFrame || 0;
-      const drawBudget = isMob ? 2 : 4;
-      const refreshInterval = (rad < 35 ? 3 : (rad < 70 ? 2 : 1));
-      const shouldRenderWebGL = (!model.hasRendered && drawsNow < drawBudget + 1) || (drawsNow < drawBudget && model.renderAge >= refreshInterval);
+      const drawBudget = isMob ? 1 : 4;
+      const refreshInterval = isMob ? (rad < 48 ? 8 : (rad < 96 ? 4 : 2)) : (rad < 35 ? 3 : (rad < 70 ? 2 : 1));
+      const deferForNew = isMob && model.hasRendered && this._hadUnrenderedLastFrame;
+      const shouldRenderWebGL = (drawsNow < drawBudget) && (!model.hasRendered || (!deferForNew && model.renderAge >= refreshInterval));
+      if (!model.hasRendered && !shouldRenderWebGL) this._sawUnrenderedThisFrame = true;
 
       if (shouldRenderWebGL) {
         if (model.manifUpdaters && model.manifUpdaters.length) {

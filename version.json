@@ -1,14 +1,14 @@
 {
-  "version": "2.0.0.1",
-  "build": 201,
-  "updated_at": "2026-11-22T16:31:00+08:00",
+  "version": "2.0.0.2",
+  "build": 202,
+  "updated_at": "2026-11-23T10:25:00+08:00",
   "min_native_version": "1.0.0",
   "is_beta": false,
-  "title": "Starfield v2.0.0.1 (Build 201): 移动端 3D 星球渲染与无框洁净 HUD 紧急修复版",
-  "changelog": "1. 移动端 3D 星球渲染修复：内联嵌入 Three.js r128 + GLTFLoader，彻底消除离线/OTA 环境加载失败；修复 Android WebView `LivingPlanetEngine` 跳帧清屏与多星丢弃，改为持久化独立缓存并对齐 TBDR `desynchronized: false` 与原生 `LAYER_TYPE_NONE`；\n2. 巡航态 3D 星球高级质感实装：升级 GLSL Fresnel 大气散射辉光、高光海洋、3D 星环与幽能水晶/霓虹巨构/碎裂电弧/极光带/生化囊肿等奇观实体；修复背面光环投影本影裁剪，清除星球背后黑色椭圆阴影；\n3. 移动端零遮挡无框洁净 HUD：移除顶栏、远征卡片、货舱与右下触控岛的厚重黑盒与键位提示，单行精简遥测，全面释放中心航道与天体视野。",
+  "title": "Starfield v2.0.0.2 (Build 202): 移动端密集星球防卡顿架构优化版",
+  "changelog": "1. 消灭密集星球 3~4 FPS 掉帧雪崩：移动端 3D 星球缓存扩至 28 颗 + 离屏缓冲降至 256×256（像素量砍 56%），彻底根治 15+ 星团同屏时的 LRU 销毁/重建死循环；\n2. 消除同步着色器编译与 WebGL→2D 同步停顿：移除每星 synchronous renderer.compile()、建立共享几何/材质池，移动端每帧严格限流至 ≤1 颗新建模型、≤1 次 WebGL→2D 拷贝，并按屏幕半径错峰 2~8 帧刷新；\n3. 远星分级 LOD 与零 GC 地形生成：移动端 3D 晋升门槛提至 22px，远处小星及建星排队帧统一走极速 2D 球体占位，地形网格减负并消除顶点循环临时对象分配。",
   "entry": "starfield.html",
   "download_url": "https://jackeyloveseven.github.io/starfield/starfield.html",
   "apk_release_url": "https://github.com/jackeyloveseven/starfield/releases/tag/v1.19.1-focus-apk",
-  "description": "Build 201 (v2.0.0.1): Inline Three.js, fix mobile LivingPlanetEngine WebGL buffer wipe & multi-planet rendering with Fresnel atmosphere & 3D manifestations, restore borderless mobile HUD",
-  "timestamp": "2026-11-22T08:31:00Z"
+  "description": "Build 202 (v2.0.0.2): Mobile dense-planet anti-stutter architecture overhaul (shared pool, 1-build/1-blit per-frame budget, 28-slot 256px LRU, 22px mobile 3D LOD)",
+  "timestamp": "2026-11-23T02:25:00Z"
 }
