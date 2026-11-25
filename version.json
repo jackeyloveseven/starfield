@@ -1,14 +1,14 @@
 {
-  "version": "2.0.0.4",
-  "build": 204,
-  "updated_at": "2026-11-25T11:20:00+08:00",
+  "version": "2.0.0.5",
+  "build": 205,
+  "updated_at": "2026-11-25T23:16:00+08:00",
   "min_native_version": "1.0.0",
   "is_beta": false,
-  "title": "Starfield v2.0.0.4 (Build 204): 电影透视构图、光学速度张力、星环光门与动态空间音效版",
-  "changelog": "1. 星球三分法透视布局与真实球面曲率：重构主航道天体空间排布以适配竖屏与桌面三分构图，新增距离空气透视雾化并将 LivingPlanetEngine 升级为 28° PerspectiveCamera，拉开近景巨物与远景深空层次；\n2. 电影光学与速度张力：引入弹弓动态 FOV 广角、触发式轻微镜头震动、高速径向流光速度线、激波环与水平 Anamorphic 柔光眩光；\n3. 航道星环光门心流与动态空间音效：新增沿途 3D 共振星环光门（穿越连击加速+五声音阶清音+触觉反馈）与曲速低频共振、引力弹弓音爆、声呐回波程序化音频；\n4. 移动端合成减负：postPass 暗角改为 source-over，消除全屏 multiply 回读开销。",
+  "title": "Starfield v2.0.0.5 (Build 205): 清除正前方星球堆叠与 PBR 镜面清漆光泽重铸版",
+  "changelog": "1. 彻底清除正前方星球堆叠：主航道天体收束为每 6 Chunk 交替象限出场，前视剔除缩至 48K，并新增按深度由近到远排序的屏幕空间防重叠过滤（移动端同屏最多 4 颗不互相遮挡）与远距光晕收敛；\n2. 3D 星球 PBR 镜面光泽与通透感重铸：修复光照方向翻转背光与负缩放手性 Bug，植入 PMREM 天光环境贴图、MeshPhysicalMaterial 液态 clearcoat 海洋反光，移除半透明鬼影并收轻云层雾感。",
   "entry": "starfield.html",
   "download_url": "https://jackeyloveseven.github.io/starfield/starfield.html",
   "apk_release_url": "https://github.com/jackeyloveseven/starfield/releases/tag/v1.19.1-focus-apk",
-  "description": "Build 204 (v2.0.0.4): Rule-of-thirds planet framing, aerial perspective, 28deg PerspectiveCamera, StarfieldResonanceGates, StarfieldCinematicFX & StarfieldFlightAudio",
-  "timestamp": "2026-11-25T03:20:00Z"
+  "description": "Build 205 (v2.0.0.5): Screen-space planet de-stacking, PMREM studio reflections, clearcoat oceans & sun-side lighting fix",
+  "timestamp": "2026-11-25T15:16:00Z"
 }
