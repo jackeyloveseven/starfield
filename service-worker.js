@@ -1,7 +1,8 @@
 // Bump CACHE_VERSION together with version.json on every web release.
 const CACHE_PREFIX = 'starfield-focus-';
-const CACHE_VERSION = 'v2.0.0.6-b206';
+const CACHE_VERSION = 'v2.0.0.7-b207';
 const CACHE_NAME = CACHE_PREFIX + CACHE_VERSION;
+const AUDIO_CACHE = 'starfield-audio-v1';
 const SHELL = './starfield.html';
 const PRECACHE = [
   SHELL,
@@ -29,7 +30,7 @@ self.addEventListener('activate', (event) => {
     const keys = await caches.keys();
     await Promise.all(
       keys
-        .filter((key) => key.startsWith(CACHE_PREFIX) && key !== CACHE_NAME)
+        .filter((key) => key.startsWith(CACHE_PREFIX) && key !== CACHE_NAME && key !== AUDIO_CACHE)
         .map((key) => caches.delete(key))
     );
     await self.clients.claim();
@@ -69,6 +70,21 @@ async function staleWhileRevalidate(event, request) {
   return (await update.catch(() => null)) || Response.error();
 }
 
+async function cacheFirstAudio(request) {
+  const cache = await caches.open(AUDIO_CACHE);
+  const cached = await cache.match(request);
+  if (cached) return cached;
+  try {
+    const response = await fetch(request);
+    if (response.ok) {
+      cache.put(request, response.clone()).catch(() => {});
+    }
+    return response;
+  } catch (_) {
+    return Response.error();
+  }
+}
+
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   if (request.method !== 'GET') return;
@@ -79,7 +95,9 @@ self.addEventListener('fetch', (event) => {
   if (url.pathname.endsWith('/version.json')) return;
   if (request.headers.has('range')) return;
 
-  if (request.mode === 'navigate') {
+  if (url.pathname.includes('/assets/audio/')) {
+    event.respondWith(cacheFirstAudio(request));
+  } else if (request.mode === 'navigate') {
     event.respondWith(networkFirst(request));
   } else {
     event.respondWith(staleWhileRevalidate(event, request));

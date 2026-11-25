@@ -69,8 +69,8 @@ public class MainActivity extends AppCompatActivity {
         "https://jackeyloveseven.github.io/starfield/version.json"
     };
     private static final String OTA_HTML_URL = "https://raw.githubusercontent.com/jackeyloveseven/starfield/master/starfield.html";
-    /** The page is ~21-35 MB. Anything under 4 MB is a truncated download, not a build. */
-    private static final long MIN_HTML_BYTES = 4_000_000L;
+    /** Minimum valid OTA HTML size guard (1 MB allows externalized audio builds while rejecting truncated responses). */
+    private static final long MIN_HTML_BYTES = 1_000_000L;
     /** Assets the page resolves relatively; they must sit next to the OTA'd HTML. */
     private static final String[] MIRRORED_ASSETS = {
         "libs/three.min.js", "libs/tween.umd.js", "libs/OrbitControls.js", "libs/GLTFLoader.js",
