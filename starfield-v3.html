@@ -1,0 +1,1079 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
+  <title>STARFIELD v3 // 纯 GPU 深空引擎</title>
+  <style>
+    :root {
+      --bg: #05080f;
+      --surface: rgba(8, 13, 22, 0.78);
+      --sheet: rgba(7, 11, 19, 0.92);
+      --border: rgba(234, 240, 246, 0.16);
+      --border-hi: rgba(244, 208, 111, 0.65);
+      --ink: rgba(236, 242, 248, 0.94);
+      --dim: rgba(236, 242, 248, 0.56);
+      --gold: #f4d06f;
+      --cyan: #8fd8c0;
+      --radius: 8px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    html, body {
+      width: 100%; height: 100%; overflow: hidden;
+      background: var(--bg); color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Noto Sans SC", sans-serif;
+      user-select: none; -webkit-user-select: none;
+    }
+    #gl {
+      position: fixed; inset: 0; width: 100%; height: 100%; display: block;
+      touch-action: none;
+    }
+    .hud-top-left {
+      position: fixed;
+      top: calc(max(env(safe-area-inset-top, 0px), 14px) + 4px);
+      left: calc(max(env(safe-area-inset-left, 0px), 16px));
+      z-index: 10; pointer-events: none;
+      text-shadow: 0 2px 12px rgba(0, 0, 0, 0.9);
+      font-variant-numeric: tabular-nums;
+    }
+    .kicker {
+      font-family: ui-monospace, "SFMono-Regular", Consolas, monospace;
+      font-size: 10px; letter-spacing: 0.22em; color: var(--cyan); opacity: 0.9;
+    }
+    .world-title {
+      font-size: clamp(18px, 4.4vw, 26px); font-weight: 500;
+      letter-spacing: 0.08em; margin-top: 2px;
+    }
+    .telemetry {
+      font-family: ui-monospace, "SFMono-Regular", Consolas, monospace;
+      font-size: 11px; letter-spacing: 0.12em; color: var(--dim); margin-top: 4px;
+    }
+    .hud-top-right {
+      position: fixed;
+      top: calc(max(env(safe-area-inset-top, 0px), 14px) + 4px);
+      right: calc(max(env(safe-area-inset-right, 0px), 16px));
+      z-index: 20; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px;
+      max-width: 56vw;
+    }
+    .pill-btn {
+      appearance: none; cursor: pointer;
+      background: var(--surface); color: var(--ink);
+      border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 8px 12px; min-height: 36px;
+      font-size: 12px; letter-spacing: 0.08em;
+      backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+      transition: transform 0.12s ease, border-color 0.16s ease, background 0.16s ease;
+    }
+    .pill-btn:active { transform: scale(0.96); border-color: var(--border-hi); }
+    .pill-btn.active { border-color: var(--border-hi); color: var(--gold); }
+    .hud-bottom {
+      position: fixed; left: 50%; transform: translateX(-50%);
+      bottom: calc(max(env(safe-area-inset-bottom, 0px), 16px) + 8px);
+      z-index: 15; display: flex; align-items: center; gap: 10px;
+      max-width: calc(100vw - 28px);
+    }
+    .warp-btn {
+      appearance: none; cursor: pointer;
+      background: var(--surface); color: var(--gold);
+      border: 1px solid rgba(244, 208, 111, 0.45); border-radius: 999px;
+      padding: 10px 18px; min-height: 42px; font-size: 12px; letter-spacing: 0.14em;
+      backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+      white-space: nowrap;
+      transition: transform 0.12s ease, background 0.16s ease;
+    }
+    .warp-btn.engaged { background: rgba(244, 208, 111, 0.18); border-color: var(--gold); }
+    .toast {
+      position: fixed; left: 50%; transform: translateX(-50%);
+      top: calc(max(env(safe-area-inset-top, 0px), 16px) + 74px);
+      z-index: 25; pointer-events: none;
+      background: var(--surface); border: 1px solid rgba(244, 208, 111, 0.45);
+      border-radius: var(--radius); padding: 8px 16px;
+      font-size: 12px; letter-spacing: 0.1em; color: var(--gold);
+      backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+      opacity: 0; transition: opacity 0.28s ease; white-space: nowrap; max-width: 90vw;
+      overflow: hidden; text-overflow: ellipsis;
+    }
+    .toast.show { opacity: 1; }
+    .sheet {
+      position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
+      background: var(--sheet); border-top: 1px solid var(--border);
+      border-radius: 14px 14px 0 0;
+      padding: 16px 18px calc(max(env(safe-area-inset-bottom, 0px), 18px) + 6px);
+      backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
+      transform: translateY(105%); transition: transform 0.24s cubic-bezier(.22,1,.36,1);
+      max-height: 74vh; overflow-y: auto; -webkit-overflow-scrolling: touch;
+    }
+    .sheet.open { transform: translateY(0); }
+    .sheet-head {
+      display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;
+    }
+    .sheet-title { font-size: 15px; font-weight: 600; letter-spacing: 0.1em; }
+    .biome-grid {
+      display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px;
+      margin-bottom: 12px;
+    }
+    @media (max-width: 520px) {
+      .biome-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    .biome-btn {
+      appearance: none; cursor: pointer; text-align: left;
+      background: rgba(236, 242, 248, 0.045); color: var(--ink);
+      border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 10px 10px; font-size: 12px;
+    }
+    .biome-btn small { display: block; color: var(--dim); font-size: 10px; margin-top: 2px; }
+    .biome-btn.active { border-color: var(--border-hi); background: rgba(244, 208, 111, 0.10); }
+    .sheet-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+  </style>
+</head>
+<body>
+  <canvas id="gl"></canvas>
+
+  <div class="hud-top-left">
+    <div class="kicker" id="hud-kicker">STARFIELD V3 // GPU NATIVE</div>
+    <div class="world-title" id="hud-world">深海群岛 · 观测起始域</div>
+    <div class="telemetry" id="hud-stats">0.0 KLY · 60 FPS · ST 0</div>
+  </div>
+
+  <div class="hud-top-right">
+    <button class="pill-btn" id="btn-studio">星球工坊</button>
+    <button class="pill-btn" id="btn-cam">电影巡航</button>
+    <button class="pill-btn" id="btn-audio">声效: 关</button>
+    <button class="pill-btn" id="btn-back-v2">返回 v2</button>
+  </div>
+
+  <div class="toast" id="toast">✦ GPU 原生管线已就绪 ✦</div>
+
+  <div class="hud-bottom">
+    <button class="warp-btn" id="btn-warp">按住曲速推进</button>
+    <button class="pill-btn" id="btn-next-world">✦ 跃迁下颗星</button>
+  </div>
+
+  <section class="sheet" id="studio-sheet" aria-label="GPU 星球工坊">
+    <div class="sheet-head">
+      <div>
+        <div class="sheet-title">GPU 实时星球生成器</div>
+        <div class="kicker" style="margin-top:2px;">ZERO-LAG FRAGMENT SHADER PLANET LAB</div>
+      </div>
+      <button class="pill-btn" id="btn-close-studio">收起</button>
+    </div>
+    <div class="biome-grid" id="biome-grid"></div>
+    <div class="sheet-actions">
+      <button class="pill-btn active" id="btn-reroll">✦ 随机重塑地表</button>
+      <button class="pill-btn" id="btn-rings">切换 3D 行星环</button>
+      <button class="pill-btn" id="btn-bh">召唤卡冈图雅黑洞</button>
+    </div>
+  </section>
+
+  <script src="./libs/three.min.js" onerror="this.onerror=null;this.src='https://jackeyloveseven.github.io/starfield/libs/three.min.js';"></script>
+  <script>
+  (function () {
+    'use strict';
+    if (typeof THREE === 'undefined') {
+      document.getElementById('hud-world').textContent = 'Three.js 加载失败，请检查网络';
+      return;
+    }
+
+    const canvas = document.getElementById('gl');
+    const renderer = new THREE.WebGLRenderer({
+      canvas,
+      antialias: true,
+      alpha: false,
+      powerPreference: 'high-performance'
+    });
+    const dpr = Math.min(window.devicePixelRatio || 1, 2.0);
+    renderer.setPixelRatio(dpr);
+    renderer.setSize(window.innerWidth, window.innerHeight, false);
+    if (THREE.ACESFilmicToneMapping !== undefined) {
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = 1.12;
+    }
+    if (THREE.sRGBEncoding !== undefined) {
+      renderer.outputEncoding = THREE.sRGBEncoding;
+    }
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(54, window.innerWidth / window.innerHeight, 0.2, 2400);
+    camera.position.set(0, 6, 36);
+
+    // -------------------------------------------------------------------------
+    // 1. GLSL ES 1.00 SHADERS (3-tap finite-difference normals)
+    // -------------------------------------------------------------------------
+    const SIMPLEX_GLSL = `
+      vec4 permute(vec4 x){ return mod(((x*34.0)+1.0)*x, 289.0); }
+      vec4 taylorInvSqrt(vec4 r){ return 1.79284291400159 - 0.85373472095314 * r; }
+      float snoise(vec3 v){
+        const vec2 C = vec2(1.0/6.0, 1.0/3.0);
+        const vec4 D = vec4(0.0, 0.5, 1.0, 2.0);
+        vec3 i = floor(v + dot(v, C.yyy));
+        vec3 x0 = v - i + dot(i, C.xxx);
+        vec3 g = step(x0.yzx, x0.xyz);
+        vec3 l = 1.0 - g;
+        vec3 i1 = min(g.xyz, l.zxy);
+        vec3 i2 = max(g.xyz, l.zxy);
+        vec3 x1 = x0 - i1 + C.xxx;
+        vec3 x2 = x0 - i2 + C.yyy;
+        vec3 x3 = x0 - D.yyy;
+        i = mod(i, 289.0);
+        vec4 p = permute(permute(permute(
+          i.z + vec4(0.0, i1.z, i2.z, 1.0))
+          + i.y + vec4(0.0, i1.y, i2.y, 1.0))
+          + i.x + vec4(0.0, i1.x, i2.x, 1.0));
+        float n_ = 1.0 / 7.0;
+        vec3 ns = n_ * D.wyz - D.xzx;
+        vec4 j = p - 49.0 * floor(p * ns.z * ns.z);
+        vec4 x_ = floor(j * ns.z);
+        vec4 y_ = floor(j - 7.0 * x_);
+        vec4 x = x_ * ns.x + ns.yyyy;
+        vec4 y = y_ * ns.x + ns.yyyy;
+        vec4 h = 1.0 - abs(x) - abs(y);
+        vec4 b0 = vec4(x.xy, y.xy);
+        vec4 b1 = vec4(x.zw, y.zw);
+        vec4 s0 = floor(b0) * 2.0 + 1.0;
+        vec4 s1 = floor(b1) * 2.0 + 1.0;
+        vec4 sh = -step(h, vec4(0.0));
+        vec4 a0 = b0.xzyw + s0.xzyw * sh.xxyy;
+        vec4 a1 = b1.xzyw + s1.xzyw * sh.zzww;
+        vec3 p0 = vec3(a0.xy, h.x);
+        vec3 p1 = vec3(a0.zw, h.y);
+        vec3 p2 = vec3(a1.xy, h.z);
+        vec3 p3 = vec3(a1.zw, h.w);
+        vec4 norm = taylorInvSqrt(vec4(dot(p0,p0), dot(p1,p1), dot(p2,p2), dot(p3,p3)));
+        p0 *= norm.x; p1 *= norm.y; p2 *= norm.z; p3 *= norm.w;
+        vec4 m = max(0.6 - vec4(dot(x0,x0), dot(x1,x1), dot(x2,x2), dot(x3,x3)), 0.0);
+        m = m * m;
+        return 42.0 * dot(m*m, vec4(dot(p0,x0), dot(p1,x1), dot(p2,x2), dot(p3,x3)));
+      }
+      float fbm(vec3 p){
+        float s = 0.0;
+        float a = 0.5;
+        for(int i = 0; i < 4; i++){
+          s += a * snoise(p);
+          p = p * 2.07 + vec3(13.1, 7.7, 5.3);
+          a *= 0.5;
+        }
+        return s;
+      }
+    `;
+
+    const SKY_VERT = `
+      varying vec3 vDir;
+      void main(){
+        vDir = normalize(position);
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `;
+    const SKY_FRAG = `
+      varying vec3 vDir;
+      uniform float uTime;
+      ${SIMPLEX_GLSL}
+      void main(){
+        vec3 d = normalize(vDir);
+        vec3 zenith = vec3(0.012, 0.020, 0.042);
+        vec3 horizon = vec3(0.030, 0.048, 0.088);
+        vec3 col = mix(horizon, zenith, clamp(abs(d.y) * 1.15, 0.0, 1.0));
+        float band = exp(-pow((d.y * 0.8 + d.x * 0.45) * 3.8, 2.0));
+        float neb = fbm(d * 2.4 + vec3(0.0, 0.0, uTime * 0.004));
+        float neb2 = fbm(d * 5.2 - vec3(2.1, 4.3, 1.7));
+        vec3 mwCol = mix(vec3(0.07, 0.11, 0.20), vec3(0.18, 0.14, 0.24), smoothstep(-0.3, 0.5, neb2));
+        col += mwCol * band * smoothstep(-0.2, 0.55, neb) * 0.65;
+        gl_FragColor = vec4(col, 1.0);
+      }
+    `;
+
+    const STAR_VERT = `
+      attribute float aSize;
+      attribute vec3 aColor;
+      varying vec3 vColor;
+      uniform float uWarp;
+      uniform float uPixelRatio;
+      void main(){
+        vColor = aColor;
+        vec4 mv = modelViewMatrix * vec4(position, 1.0);
+        float dist = max(12.0, -mv.z);
+        gl_PointSize = clamp(aSize * uPixelRatio * (180.0 / dist) * (1.0 + uWarp * 0.45), 1.2, 18.0);
+        gl_Position = projectionMatrix * mv;
+      }
+    `;
+    const STAR_FRAG = `
+      varying vec3 vColor;
+      void main(){
+        vec2 uv = gl_PointCoord - 0.5;
+        float r = length(uv);
+        if(r > 0.5) discard;
+        float core = exp(-r * r * 36.0);
+        float flare = exp(-abs(uv.x) * 26.0) * exp(-abs(uv.y) * 5.0) + exp(-abs(uv.y) * 26.0) * exp(-abs(uv.x) * 5.0);
+        float alpha = clamp(core + flare * 0.22, 0.0, 1.0);
+        gl_FragColor = vec4(vColor * (0.85 + core * 0.6), alpha);
+      }
+    `;
+
+    const PLANET_VERT = `
+      varying vec3 vObjPos;
+      varying vec3 vWorldNormal;
+      varying vec3 vWorldPos;
+      void main(){
+        vObjPos = normalize(position);
+        vec4 wp = modelMatrix * vec4(position, 1.0);
+        vWorldPos = wp.xyz;
+        vWorldNormal = normalize(mat3(modelMatrix) * normal);
+        gl_Position = projectionMatrix * viewMatrix * wp;
+      }
+    `;
+    const PLANET_FRAG = `
+      varying vec3 vObjPos;
+      varying vec3 vWorldNormal;
+      varying vec3 vWorldPos;
+      uniform vec3 uSunDir;
+      uniform float uSeed;
+      uniform float uOceanLevel;
+      uniform float uBandStrength;
+      uniform float uSpecStrength;
+      uniform float uNightGlowStrength;
+      uniform vec3 uLandA;
+      uniform vec3 uLandB;
+      uniform vec3 uOceanCol;
+      uniform vec3 uAtmoCol;
+      uniform vec3 uNightGlowCol;
+      ${SIMPLEX_GLSL}
+
+      float planetHeight(vec3 p){
+        vec3 sp = p * 2.15 + vec3(uSeed * 3.17, uSeed * 1.91, uSeed * 2.53);
+        if(uBandStrength > 0.05){
+          float bandCoord = p.y * 7.5 + fbm(sp * 1.4) * 1.35;
+          float bands = sin(bandCoord * 3.14159) * 0.5 + 0.5;
+          return mix(fbm(sp), bands * 0.8 - 0.15, uBandStrength);
+        }
+        float base = fbm(sp);
+        float ridge = 1.0 - abs(snoise(sp * 2.4));
+        return base * 0.72 + (ridge - 0.5) * 0.28;
+      }
+
+      void main(){
+        vec3 p = normalize(vObjPos);
+        vec3 N = normalize(vWorldNormal);
+        vec3 V = normalize(cameraPosition - vWorldPos);
+        vec3 L = normalize(uSunDir);
+
+        float h = planetHeight(p);
+        float eps = 0.015;
+        float hx = planetHeight(normalize(p + vec3(eps, 0.0, 0.0)));
+        float hy = planetHeight(normalize(p + vec3(0.0, eps, 0.0)));
+        float hz = planetHeight(normalize(p + vec3(0.0, 0.0, eps)));
+        vec3 grad = vec3(hx - h, hy - h, hz - h) / eps;
+        vec3 gradTangent = grad - N * dot(grad, N);
+
+        bool isOcean = (h < uOceanLevel) && (uBandStrength < 0.35);
+        float bumpAmt = isOcean ? 0.04 : 0.34;
+        vec3 Nb = normalize(N - gradTangent * bumpAmt);
+
+        float coast = smoothstep(uOceanLevel - 0.08, uOceanLevel + 0.02, h);
+        vec3 oceanDeep = uOceanCol * 0.58;
+        vec3 oceanShallow = mix(uOceanCol, vec3(0.28, 0.68, 0.76), 0.42);
+        vec3 surfOcean = mix(oceanDeep, oceanShallow, smoothstep(uOceanLevel - 0.22, uOceanLevel, h));
+
+        float elev = clamp((h - uOceanLevel) / max(0.15, 0.75 - uOceanLevel), 0.0, 1.0);
+        vec3 surfLand = mix(uLandA, uLandB, smoothstep(0.12, 0.82, elev));
+        float polar = smoothstep(0.76, 0.94, abs(p.y) + h * 0.12);
+        surfLand = mix(surfLand, vec3(0.86, 0.90, 0.95), polar * 0.65);
+
+        vec3 albedo = isOcean ? surfOcean : mix(surfOcean, surfLand, coast);
+
+        float ndl = dot(Nb, L);
+        float diff = smoothstep(-0.08, 0.85, ndl);
+        vec3 terminator = vec3(0.95, 0.46, 0.22) * exp(-pow((ndl + 0.02) * 5.2, 2.0)) * 0.35;
+
+        vec3 H = normalize(L + V);
+        float specPow = isOcean ? 78.0 : 18.0;
+        float specInt = isOcean ? (0.85 * uSpecStrength) : (0.10 * uSpecStrength);
+        float spec = pow(max(dot(Nb, H), 0.0), specPow) * specInt * smoothstep(-0.05, 0.25, ndl);
+
+        float fres = pow(1.0 - max(dot(N, V), 0.0), 3.4);
+        vec3 rim = uAtmoCol * fres * (0.35 + 0.65 * smoothstep(-0.25, 0.6, dot(N, L)));
+
+        // Night-side city clusters or magma fissures
+        float nightMask = smoothstep(0.08, -0.24, dot(N, L));
+        float micro = snoise(p * 18.0 + vec3(uSeed * 7.1));
+        float glowPattern = isOcean ? 0.0 : smoothstep(0.46, 0.72, micro) * smoothstep(0.05, 0.45, elev);
+        vec3 nightLights = uNightGlowCol * glowPattern * nightMask * uNightGlowStrength;
+
+        vec3 lit = albedo * (0.045 + diff * 1.18) + terminator * albedo + vec3(1.0, 0.96, 0.88) * spec + rim + nightLights;
+        gl_FragColor = vec4(lit, 1.0);
+      }
+    `;
+
+    const CLOUD_VERT = `
+      varying vec3 vObjPos;
+      varying vec3 vWorldNormal;
+      void main(){
+        vObjPos = normalize(position);
+        vWorldNormal = normalize(mat3(modelMatrix) * normal);
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `;
+    const CLOUD_FRAG = `
+      varying vec3 vObjPos;
+      varying vec3 vWorldNormal;
+      uniform vec3 uSunDir;
+      uniform float uTime;
+      uniform float uSeed;
+      uniform float uCloudAlpha;
+      ${SIMPLEX_GLSL}
+      void main(){
+        vec3 p = normalize(vObjPos) * 2.6 + vec3(uTime * 0.022, 0.0, uSeed * 4.3);
+        float n = fbm(p);
+        float alpha = smoothstep(0.08, 0.56, n) * uCloudAlpha;
+        if(alpha < 0.01) discard;
+        float ndl = smoothstep(-0.12, 0.75, dot(normalize(vWorldNormal), normalize(uSunDir)));
+        vec3 col = mix(vec3(0.06, 0.09, 0.15), vec3(0.95, 0.97, 1.0), ndl);
+        gl_FragColor = vec4(col, alpha);
+      }
+    `;
+
+    const ATMO_VERT = `
+      varying vec3 vWorldNormal;
+      varying vec3 vWorldPos;
+      void main(){
+        vec4 wp = modelMatrix * vec4(position, 1.0);
+        vWorldPos = wp.xyz;
+        vWorldNormal = normalize(mat3(modelMatrix) * normal);
+        gl_Position = projectionMatrix * viewMatrix * wp;
+      }
+    `;
+    const ATMO_FRAG = `
+      varying vec3 vWorldNormal;
+      varying vec3 vWorldPos;
+      uniform vec3 uSunDir;
+      uniform vec3 uAtmoCol;
+      void main(){
+        vec3 N = normalize(vWorldNormal);
+        vec3 V = normalize(cameraPosition - vWorldPos);
+        float rim = pow(clamp(0.68 - dot(N, V), 0.0, 1.0), 2.8);
+        float sunBias = 0.35 + 0.65 * smoothstep(-0.35, 0.65, dot(-N, normalize(uSunDir)));
+        gl_FragColor = vec4(uAtmoCol * rim * sunBias * 1.15, rim * sunBias * 0.72);
+      }
+    `;
+
+    const RING_VERT = `
+      varying vec3 vLocalPos;
+      varying vec3 vWorldPos;
+      void main(){
+        vLocalPos = position;
+        vec4 wp = modelMatrix * vec4(position, 1.0);
+        vWorldPos = wp.xyz;
+        gl_Position = projectionMatrix * viewMatrix * wp;
+      }
+    `;
+    const RING_FRAG = `
+      varying vec3 vLocalPos;
+      varying vec3 vWorldPos;
+      uniform vec3 uPlanetCenter;
+      uniform float uPlanetRadius;
+      uniform vec3 uSunDir;
+      uniform vec3 uRingColA;
+      uniform vec3 uRingColB;
+      void main(){
+        float r = length(vLocalPos.xy);
+        if(r < 1.32 || r > 2.38) discard;
+        float t = (r - 1.32) / 1.06;
+        float cassini = 1.0 - smoothstep(0.0, 0.04, abs(t - 0.58));
+        float bands = 0.55 + 0.45 * sin(t * 78.0) * cos(t * 31.0);
+        float edgeFade = smoothstep(0.0, 0.09, t) * smoothstep(1.0, 0.88, t);
+        float alpha = clamp(edgeFade * bands * (1.0 - cassini * 0.85) * 0.78, 0.0, 0.85);
+        // Analytical planet shadow on rings
+        vec3 ro = vWorldPos - uPlanetCenter;
+        vec3 rd = normalize(uSunDir);
+        float b = dot(ro, rd);
+        float c = dot(ro, ro) - uPlanetRadius * uPlanetRadius;
+        float shadow = 1.0;
+        if(b < 0.0 && (b * b - c) > 0.0){
+          shadow = 0.12;
+        }
+        vec3 col = mix(uRingColA, uRingColB, sin(t * 24.0) * 0.5 + 0.5) * shadow;
+        gl_FragColor = vec4(col, alpha);
+      }
+    `;
+
+    const BH_DISK_VERT = `
+      varying vec3 vLocalPos;
+      void main(){
+        vLocalPos = position;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `;
+    const BH_DISK_FRAG = `
+      varying vec3 vLocalPos;
+      uniform float uTime;
+      ${SIMPLEX_GLSL}
+      void main(){
+        float r = length(vLocalPos.xy);
+        if(r < 1.16 || r > 4.2) discard;
+        float ang = atan(vLocalPos.y, vLocalPos.x);
+        float swirl = snoise(vec3(cos(ang + r * 2.1 - uTime * 1.4) * 2.2, sin(ang + r * 2.1 - uTime * 1.4) * 2.2, r * 1.8));
+        float t = (r - 1.16) / 3.04;
+        float photonRing = exp(-pow((r - 1.24) * 14.0, 2.0)) * 1.5;
+        float body = (1.0 - smoothstep(0.05, 1.0, t)) * (0.65 + 0.35 * swirl);
+        vec3 hot = vec3(1.0, 0.88, 0.62);
+        vec3 mid = vec3(0.95, 0.44, 0.14);
+        vec3 col = mix(hot, mid, smoothstep(0.0, 0.72, t)) * (body + photonRing);
+        float alpha = clamp((body + photonRing) * smoothstep(0.0, 0.04, t), 0.0, 0.95);
+        gl_FragColor = vec4(col, alpha);
+      }
+    `;
+
+    // -------------------------------------------------------------------------
+    // 2. BIOME CATALOG & ZERO-LAG GPU PLANET POOL
+    // -------------------------------------------------------------------------
+    const BIOMES = [
+      { id: 'ocean',   name: '深海群岛', en: 'PELAGIC ARCHIPELAGO', ocean: 0.06,  band: 0.0, spec: 1.1, glow: 0.5, landA: [0.22,0.44,0.34], landB: [0.46,0.52,0.44], oceanCol: [0.06,0.22,0.42], atmo: [0.36,0.68,0.98], nightGlow: [1.0,0.78,0.42] },
+      { id: 'earth',   name: '蔚蓝母星', en: 'TERRAN CRADLE',       ocean: 0.01,  band: 0.0, spec: 1.0, glow: 1.1, landA: [0.18,0.40,0.24], landB: [0.48,0.44,0.36], oceanCol: [0.05,0.20,0.46], atmo: [0.34,0.66,1.00], nightGlow: [1.0,0.82,0.46] },
+      { id: 'lava',    name: '熔岩黑曜', en: 'OBSIDIAN CALDERA',    ocean: -0.45, band: 0.0, spec: 0.3, glow: 1.6, landA: [0.10,0.09,0.10], landB: [0.24,0.14,0.12], oceanCol: [0.85,0.22,0.06], atmo: [0.96,0.42,0.18], nightGlow: [1.0,0.34,0.08] },
+      { id: 'forest',  name: '翡翠林海', en: 'VERDANT CANOPY',      ocean: -0.10, band: 0.0, spec: 0.6, glow: 0.4, landA: [0.12,0.32,0.22], landB: [0.28,0.48,0.30], oceanCol: [0.08,0.26,0.32], atmo: [0.40,0.82,0.68], nightGlow: [0.55,0.95,0.72] },
+      { id: 'ice',     name: '冰穹结晶', en: 'CRYOGENIC CITADEL',   ocean: -0.02, band: 0.0, spec: 1.2, glow: 0.7, landA: [0.64,0.76,0.86], landB: [0.86,0.92,0.98], oceanCol: [0.10,0.24,0.38], atmo: [0.55,0.84,1.00], nightGlow: [0.45,0.88,1.00] },
+      { id: 'gas',     name: '气态巨星', en: 'JOVIAN STORMFRONT',   ocean: -0.90, band: 0.88,spec: 0.2, glow: 0.0, landA: [0.76,0.62,0.46], landB: [0.42,0.52,0.68], oceanCol: [0.30,0.34,0.42], atmo: [0.86,0.74,0.56], nightGlow: [0.9,0.7,0.4] },
+      { id: 'desert',  name: '沙丘遗迹', en: 'ARID MONOLITHS',      ocean: -0.60, band: 0.0, spec: 0.25,glow: 0.6, landA: [0.58,0.44,0.30], landB: [0.78,0.64,0.46], oceanCol: [0.28,0.24,0.20], atmo: [0.94,0.72,0.46], nightGlow: [1.0,0.74,0.36] },
+      { id: 'crystal', name: '星晶异界', en: 'ASTRAL XENOCRYST',    ocean: -0.15, band: 0.0, spec: 1.3, glow: 1.4, landA: [0.16,0.18,0.34], landB: [0.38,0.28,0.58], oceanCol: [0.14,0.12,0.34], atmo: [0.72,0.52,0.98], nightGlow: [0.68,0.46,1.00] }
+    ];
+
+    const sharedSphereGeo = new THREE.SphereGeometry(1, 72, 54);
+    const sharedCloudGeo = new THREE.SphereGeometry(1.018, 48, 36);
+    const sharedAtmoGeo = new THREE.SphereGeometry(1.13, 48, 36);
+    const sharedRingGeo = new THREE.RingGeometry(1.30, 2.40, 96, 1);
+
+    // 360° Sky Dome
+    const skyMat = new THREE.ShaderMaterial({
+      vertexShader: SKY_VERT, fragmentShader: SKY_FRAG,
+      uniforms: { uTime: { value: 0 } },
+      side: THREE.BackSide, depthWrite: false
+    });
+    const skyDome = new THREE.Mesh(new THREE.SphereGeometry(1400, 32, 24), skyMat);
+    scene.add(skyDome);
+
+    // 6,000 GPU Starfield
+    const STAR_COUNT = 6000;
+    const starPos = new Float32Array(STAR_COUNT * 3);
+    const starCol = new Float32Array(STAR_COUNT * 3);
+    const starSize = new Float32Array(STAR_COUNT);
+    for (let i = 0; i < STAR_COUNT; i++) {
+      const ang = Math.random() * Math.PI * 2;
+      const rad = 45 + Math.pow(Math.random(), 0.7) * 520;
+      starPos[i * 3] = Math.cos(ang) * rad;
+      starPos[i * 3 + 1] = Math.sin(ang) * rad * 0.72;
+      starPos[i * 3 + 2] = -Math.random() * 1100 + 80;
+      const temp = Math.random();
+      const c = temp < 0.25 ? [0.74, 0.86, 1.0] : (temp < 0.72 ? [0.96, 0.96, 0.98] : [1.0, 0.85, 0.66]);
+      starCol[i * 3] = c[0]; starCol[i * 3 + 1] = c[1]; starCol[i * 3 + 2] = c[2];
+      starSize[i] = 1.0 + Math.pow(Math.random(), 3.0) * 3.2;
+    }
+    const starGeo = new THREE.BufferGeometry();
+    starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+    starGeo.setAttribute('aColor', new THREE.BufferAttribute(starCol, 3));
+    starGeo.setAttribute('aSize', new THREE.BufferAttribute(starSize, 1));
+    const starMat = new THREE.ShaderMaterial({
+      vertexShader: STAR_VERT, fragmentShader: STAR_FRAG,
+      uniforms: { uWarp: { value: 0 }, uPixelRatio: { value: dpr } },
+      transparent: true, depthWrite: false, blending: THREE.AdditiveBlending
+    });
+    const starField = new THREE.Points(starGeo, starMat);
+    scene.add(starField);
+
+    const SUN_DIR = new THREE.Vector3(0.68, 0.42, 0.60).normalize();
+
+    function createPlanetSlot() {
+      const group = new THREE.Group();
+      const pUniforms = {
+        uSunDir: { value: SUN_DIR },
+        uSeed: { value: 1.0 },
+        uOceanLevel: { value: 0.0 },
+        uBandStrength: { value: 0.0 },
+        uSpecStrength: { value: 1.0 },
+        uNightGlowStrength: { value: 0.8 },
+        uLandA: { value: new THREE.Vector3(0.2, 0.4, 0.3) },
+        uLandB: { value: new THREE.Vector3(0.5, 0.5, 0.4) },
+        uOceanCol: { value: new THREE.Vector3(0.05, 0.2, 0.4) },
+        uAtmoCol: { value: new THREE.Vector3(0.4, 0.7, 1.0) },
+        uNightGlowCol: { value: new THREE.Vector3(1.0, 0.8, 0.4) }
+      };
+      const surfMesh = new THREE.Mesh(sharedSphereGeo, new THREE.ShaderMaterial({
+        vertexShader: PLANET_VERT, fragmentShader: PLANET_FRAG, uniforms: pUniforms
+      }));
+      const cloudUniforms = {
+        uSunDir: { value: SUN_DIR }, uTime: { value: 0 }, uSeed: { value: 1.0 }, uCloudAlpha: { value: 0.34 }
+      };
+      const cloudMesh = new THREE.Mesh(sharedCloudGeo, new THREE.ShaderMaterial({
+        vertexShader: CLOUD_VERT, fragmentShader: CLOUD_FRAG, uniforms: cloudUniforms,
+        transparent: true, depthWrite: false
+      }));
+      const atmoUniforms = {
+        uSunDir: { value: SUN_DIR }, uAtmoCol: { value: new THREE.Vector3(0.4, 0.7, 1.0) }
+      };
+      const atmoMesh = new THREE.Mesh(sharedAtmoGeo, new THREE.ShaderMaterial({
+        vertexShader: ATMO_VERT, fragmentShader: ATMO_FRAG, uniforms: atmoUniforms,
+        side: THREE.BackSide, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending
+      }));
+      const ringUniforms = {
+        uPlanetCenter: { value: new THREE.Vector3() },
+        uPlanetRadius: { value: 36.0 },
+        uSunDir: { value: SUN_DIR },
+        uRingColA: { value: new THREE.Vector3(0.84, 0.78, 0.68) },
+        uRingColB: { value: new THREE.Vector3(0.55, 0.64, 0.76) }
+      };
+      const ringMesh = new THREE.Mesh(sharedRingGeo, new THREE.ShaderMaterial({
+        vertexShader: RING_VERT, fragmentShader: RING_FRAG, uniforms: ringUniforms,
+        side: THREE.DoubleSide, transparent: true, depthWrite: false
+      }));
+      ringMesh.rotation.x = Math.PI * 0.42;
+      ringMesh.rotation.y = 0.24;
+
+      group.add(surfMesh, cloudMesh, atmoMesh, ringMesh);
+      scene.add(group);
+      return {
+        group, surfMesh, cloudMesh, atmoMesh, ringMesh,
+        pUniforms, cloudUniforms, atmoUniforms, ringUniforms,
+        biomeIdx: 0, radius: 36, hasRings: false, slingshotUsed: false
+      };
+    }
+
+    function applyBiomeToSlot(slot, seed, biomeIdx, radius, hasRings) {
+      const b = BIOMES[biomeIdx % BIOMES.length];
+      slot.biomeIdx = biomeIdx % BIOMES.length;
+      slot.radius = radius;
+      slot.hasRings = !!hasRings;
+      slot.slingshotUsed = false;
+      slot.group.scale.setScalar(radius);
+      slot.pUniforms.uSeed.value = seed;
+      slot.pUniforms.uOceanLevel.value = b.ocean;
+      slot.pUniforms.uBandStrength.value = b.band;
+      slot.pUniforms.uSpecStrength.value = b.spec;
+      slot.pUniforms.uNightGlowStrength.value = b.glow;
+      slot.pUniforms.uLandA.value.set(b.landA[0], b.landA[1], b.landA[2]);
+      slot.pUniforms.uLandB.value.set(b.landB[0], b.landB[1], b.landB[2]);
+      slot.pUniforms.uOceanCol.value.set(b.oceanCol[0], b.oceanCol[1], b.oceanCol[2]);
+      slot.pUniforms.uAtmoCol.value.set(b.atmo[0], b.atmo[1], b.atmo[2]);
+      slot.pUniforms.uNightGlowCol.value.set(b.nightGlow[0], b.nightGlow[1], b.nightGlow[2]);
+      slot.cloudUniforms.uSeed.value = seed;
+      slot.cloudUniforms.uCloudAlpha.value = b.id === 'lava' ? 0.14 : (b.id === 'desert' ? 0.12 : 0.34);
+      slot.atmoUniforms.uAtmoCol.value.set(b.atmo[0], b.atmo[1], b.atmo[2]);
+      slot.ringUniforms.uPlanetRadius.value = radius;
+      slot.ringMesh.visible = !!hasRings;
+      slot.ringMesh.rotation.x = Math.PI * (0.36 + (seed % 5) * 0.04);
+      slot.ringMesh.rotation.y = ((seed % 7) - 3) * 0.14;
+    }
+
+    // Gargantua Black Hole Milestone
+    const bhGroup = new THREE.Group();
+    const bhCore = new THREE.Mesh(
+      new THREE.SphereGeometry(1, 48, 36),
+      new THREE.MeshBasicMaterial({ color: 0x000000 })
+    );
+    const bhDiskUniforms = { uTime: { value: 0 } };
+    const bhDisk = new THREE.Mesh(
+      new THREE.RingGeometry(1.16, 4.2, 96, 1),
+      new THREE.ShaderMaterial({
+        vertexShader: BH_DISK_VERT, fragmentShader: BH_DISK_FRAG, uniforms: bhDiskUniforms,
+        side: THREE.DoubleSide, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending
+      })
+    );
+    bhDisk.rotation.x = Math.PI * 0.44;
+    const bhHalo = new THREE.Mesh(
+      new THREE.RingGeometry(1.02, 1.55, 64, 1),
+      new THREE.MeshBasicMaterial({ color: 0xf4d06f, transparent: true, opacity: 0.48, side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false })
+    );
+    bhGroup.add(bhCore, bhDisk, bhHalo);
+    bhGroup.scale.setScalar(56);
+    bhGroup.visible = false;
+    scene.add(bhGroup);
+
+    // -------------------------------------------------------------------------
+    // 3. 3D ORIGAMI CRANE FLEET (14 Folded Cranes + Trails)
+    // -------------------------------------------------------------------------
+    function createOrigamiCraneGeo() {
+      const verts = new Float32Array([
+        // Left & Right wings + fuselage facets (pointing -Z)
+        0, 0.08, -0.75,   -0.14, 0.0, 0.05,   0, -0.10, 0.15,
+        0, 0.08, -0.75,    0, -0.10, 0.15,    0.14, 0.0, 0.05,
+        -0.14, 0.0, 0.05, -0.95, 0.18, 0.30,  0, 0.02, 0.35,
+        0.14, 0.0, 0.05,   0, 0.02, 0.35,     0.95, 0.18, 0.30,
+        0, -0.10, 0.15,    0, 0.02, 0.35,     0, 0.34, 0.68
+      ]);
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute('position', new THREE.BufferAttribute(verts, 3));
+      geo.computeVertexNormals();
+      return geo;
+    }
+
+    const craneGeo = createOrigamiCraneGeo();
+    const craneMatLead = new THREE.MeshStandardMaterial({
+      color: 0xf8f3e8, emissive: 0x3b2f1e, emissiveIntensity: 0.35,
+      roughness: 0.38, metalness: 0.15, flatShading: true, side: THREE.DoubleSide
+    });
+    const craneMatWing = new THREE.MeshStandardMaterial({
+      color: 0xdce4ee, emissive: 0x162438, emissiveIntensity: 0.25,
+      roughness: 0.45, metalness: 0.10, flatShading: true, side: THREE.DoubleSide
+    });
+    scene.add(new THREE.AmbientLight(0x4a648c, 0.85));
+    const dirLight = new THREE.DirectionalLight(0xfff4de, 2.2);
+    dirLight.position.copy(SUN_DIR).multiplyScalar(120);
+    scene.add(dirLight);
+
+    const fleetGroup = new THREE.Group();
+    scene.add(fleetGroup);
+    const cranes = [];
+    for (let i = 0; i < 14; i++) {
+      const isLead = (i === 0);
+      const mesh = new THREE.Mesh(craneGeo, isLead ? craneMatLead : craneMatWing);
+      const row = Math.ceil(i / 2);
+      const side = (i % 2 === 0) ? 1 : -1;
+      const bx = isLead ? 0 : side * (row * 1.35);
+      const by = isLead ? 0 : (Math.sin(i * 1.7) * 0.55 - row * 0.18);
+      const bz = isLead ? 0 : row * 1.45;
+      mesh.scale.setScalar(isLead ? 1.45 : (0.88 + (i % 3) * 0.08));
+      mesh.position.set(bx, by, bz);
+      fleetGroup.add(mesh);
+      cranes.push({ mesh, bx, by, bz, phase: i * 0.65 });
+    }
+
+    // -------------------------------------------------------------------------
+    // 4. CINEMATIC CORRIDOR LAYOUT, RESONANCE GATES & GAMEPLAY
+    // -------------------------------------------------------------------------
+    const HERO_SLOTS = [createPlanetSlot(), createPlanetSlot(), createPlanetSlot()];
+    const ARCHETYPES = [
+      { ox: -44, oy:  18, rad: 36 },
+      { ox:  46, oy: -14, rad: 38 },
+      { ox: -38, oy: -22, rad: 34 },
+      { ox:  42, oy:  22, rad: 40 },
+      { ox:  58, oy:   4, rad: 44 }
+    ];
+    let worldSeq = 0;
+    let totalDistKly = 0;
+    let stardust = 0;
+    let combo = 0;
+
+    // 3D Resonance Gates Pool
+    const gateGeo = new THREE.TorusGeometry(4.2, 0.14, 10, 48);
+    const gateMat = new THREE.MeshBasicMaterial({ color: 0x8fd8c0, transparent: true, opacity: 0.88 });
+    const gates = [];
+    for (let i = 0; i < 4; i++) {
+      const gm = new THREE.Mesh(gateGeo, gateMat);
+      scene.add(gm);
+      gates.push({ mesh: gm, active: true });
+    }
+
+    function placeHeroSlot(slot, zPos, forceBiomeIdx) {
+      const idx = worldSeq++;
+      const arch = ARCHETYPES[idx % ARCHETYPES.length];
+      const biomeIdx = (forceBiomeIdx !== undefined) ? forceBiomeIdx : ((idx * 3 + 1) % BIOMES.length);
+      const hasRings = (idx % 3 === 1) || (biomeIdx === 5);
+      const seed = (idx + 1) * 17.31;
+      applyBiomeToSlot(slot, seed, biomeIdx, arch.rad, hasRings);
+      slot.group.position.set(arch.ox, arch.oy, zPos);
+      slot.ringUniforms.uPlanetCenter.value.copy(slot.group.position);
+      return slot;
+    }
+
+    // Initialize 3 staggered hero planets with 320-unit spacing (zero overlap!)
+    HERO_SLOTS.forEach((slot, i) => placeHeroSlot(slot, -190 - i * 320, i === 0 ? 0 : undefined));
+
+    function resetGatesAhead() {
+      const zBase = fleetGroup.position.z - 95;
+      gates.forEach((g, i) => {
+        g.active = true;
+        g.mesh.visible = true;
+        g.mesh.position.set(Math.sin(i * 1.1) * 7.5, Math.cos(i * 0.9) * 3.2, zBase - i * 52);
+      });
+    }
+    resetGatesAhead();
+
+    // -------------------------------------------------------------------------
+    // 5. INPUT, CAMERA MODES, STUDIO SHEET & LIGHTWEIGHT WEBAUDIO
+    // -------------------------------------------------------------------------
+    let steerX = 0, steerY = 0, targetSteerX = 0, targetSteerY = 0;
+    let dragging = false, lastPx = 0, lastPy = 0;
+    let warpHeld = false, warpBoost = 0, slingshotTimer = 0;
+    let camMode = 0; // 0: 电影巡航, 1: 旗舰追随, 2: 自由环视
+    const CAM_NAMES = ['电影巡航', '旗舰追随', '自由环视'];
+    let orbitYaw = 0, orbitPitch = 0.16, camDist = 22;
+
+    canvas.addEventListener('pointerdown', (e) => {
+      dragging = true; lastPx = e.clientX; lastPy = e.clientY;
+    }, { passive: true });
+    window.addEventListener('pointermove', (e) => {
+      if (!dragging) return;
+      const dx = (e.clientX - lastPx) / Math.max(240, window.innerWidth);
+      const dy = (e.clientY - lastPy) / Math.max(240, window.innerHeight);
+      lastPx = e.clientX; lastPy = e.clientY;
+      if (camMode === 2) {
+        orbitYaw -= dx * 3.2;
+        orbitPitch = Math.max(-0.9, Math.min(0.9, orbitPitch + dy * 2.4));
+      } else {
+        targetSteerX = Math.max(-1, Math.min(1, targetSteerX + dx * 3.2));
+        targetSteerY = Math.max(-1, Math.min(1, targetSteerY - dy * 2.6));
+      }
+    }, { passive: true });
+    window.addEventListener('pointerup', () => { dragging = false; }, { passive: true });
+    window.addEventListener('wheel', (e) => {
+      camDist = Math.max(10, Math.min(48, camDist + e.deltaY * 0.02));
+    }, { passive: true });
+
+    let audioCtx = null, audioOn = false;
+    function chime(freq) {
+      if (!audioOn) return;
+      try {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+        o.type = 'sine'; o.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        o.frequency.exponentialRampToValueAtTime(freq * 1.48, audioCtx.currentTime + 0.22);
+        g.gain.setValueAtTime(0.08, audioCtx.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.25);
+        o.connect(g); g.connect(audioCtx.destination);
+        o.start(); o.stop(audioCtx.currentTime + 0.26);
+      } catch (_) {}
+    }
+
+    const toastEl = document.getElementById('toast');
+    let toastTimer = 0;
+    function showToast(msg) {
+      toastEl.textContent = msg;
+      toastEl.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toastEl.classList.remove('show'), 2600);
+    }
+
+    function getNearestAheadHero() {
+      let best = HERO_SLOTS[0], bestDz = 1e9;
+      for (const s of HERO_SLOTS) {
+        const dz = fleetGroup.position.z - s.group.position.z;
+        if (dz > -s.radius && dz < bestDz) { bestDz = dz; best = s; }
+      }
+      return best;
+    }
+
+    // Build Biome Studio Grid
+    const studioSheet = document.getElementById('studio-sheet');
+    const biomeGrid = document.getElementById('biome-grid');
+    BIOMES.forEach((b, idx) => {
+      const btn = document.createElement('button');
+      btn.className = 'biome-btn' + (idx === 0 ? ' active' : '');
+      btn.innerHTML = `${b.name}<small>${b.en}</small>`;
+      btn.addEventListener('click', () => {
+        const h = getNearestAheadHero();
+        applyBiomeToSlot(h, Math.random() * 99 + 1, idx, h.radius, h.hasRings);
+        biomeGrid.querySelectorAll('.biome-btn').forEach((el, j) => el.classList.toggle('active', j === idx));
+        chime(587.3);
+        showToast(`✦ 主星已实时重塑为【${b.name}】✦`);
+      });
+      biomeGrid.appendChild(btn);
+    });
+
+    document.getElementById('btn-studio').addEventListener('click', () => studioSheet.classList.toggle('open'));
+    document.getElementById('btn-close-studio').addEventListener('click', () => studioSheet.classList.remove('open'));
+    document.getElementById('btn-reroll').addEventListener('click', () => {
+      const h = getNearestAheadHero();
+      const nextB = Math.floor(Math.random() * BIOMES.length);
+      applyBiomeToSlot(h, Math.random() * 999 + 1, nextB, 34 + Math.random() * 10, Math.random() < 0.45);
+      biomeGrid.querySelectorAll('.biome-btn').forEach((el, j) => el.classList.toggle('active', j === nextB));
+      chime(659.2);
+      showToast(`✦ 随机生成【${BIOMES[nextB].name}】✦`);
+    });
+    document.getElementById('btn-rings').addEventListener('click', () => {
+      const h = getNearestAheadHero();
+      h.hasRings = !h.hasRings;
+      h.ringMesh.visible = h.hasRings;
+      chime(523.2);
+      showToast(h.hasRings ? '✦ 3D 卡西尼行星环已开启 ✦' : '✦ 行星环已收起 ✦');
+    });
+    document.getElementById('btn-bh').addEventListener('click', () => {
+      bhGroup.visible = !bhGroup.visible;
+      if (bhGroup.visible) {
+        bhGroup.position.set(42, 14, fleetGroup.position.z - 220);
+        showToast('✦ 卡冈图雅黑洞已在前方视界升起 ✦');
+        chime(220);
+      } else {
+        showToast('✦ 已隐藏黑洞里程碑 ✦');
+      }
+    });
+    document.getElementById('btn-cam').addEventListener('click', (e) => {
+      camMode = (camMode + 1) % 3;
+      e.target.textContent = CAM_NAMES[camMode];
+      showToast(`✦ 机位切换：${CAM_NAMES[camMode]} ✦`);
+    });
+    document.getElementById('btn-audio').addEventListener('click', (e) => {
+      audioOn = !audioOn;
+      e.target.textContent = audioOn ? '声效: 开' : '声效: 关';
+      e.target.classList.toggle('active', audioOn);
+      if (audioOn) chime(523.25);
+    });
+    document.getElementById('btn-back-v2').addEventListener('click', () => {
+      window.location.href = './starfield.html';
+    });
+    document.getElementById('btn-next-world').addEventListener('click', () => {
+      const h = getNearestAheadHero();
+      const jumpZ = h.group.position.z + h.radius * 3.1;
+      if (jumpZ < fleetGroup.position.z) {
+        fleetGroup.position.z = jumpZ;
+        warpBoost = 1.6;
+        resetGatesAhead();
+        chime(784);
+        showToast(`✦ 曲速跃迁至【${BIOMES[h.biomeIdx].name}】近地轨道 ✦`);
+      }
+    });
+
+    const warpBtn = document.getElementById('btn-warp');
+    warpBtn.addEventListener('pointerdown', () => { warpHeld = true; warpBtn.classList.add('engaged'); });
+    window.addEventListener('pointerup', () => { warpHeld = false; warpBtn.classList.remove('engaged'); });
+
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2.0));
+      renderer.setSize(window.innerWidth, window.innerHeight, false);
+    });
+
+    // -------------------------------------------------------------------------
+    // 6. MAIN GPU RENDER LOOP (60-120 FPS Target)
+    // -------------------------------------------------------------------------
+    const hudWorld = document.getElementById('hud-world');
+    const hudStats = document.getElementById('hud-stats');
+    let lastT = performance.now(), fpsFrames = 0, fpsLast = lastT, fpsNow = 60;
+
+    function animate(now) {
+      requestAnimationFrame(animate);
+      const dt = Math.min(0.05, Math.max(0.001, (now - lastT) * 0.001));
+      lastT = now;
+      const tSec = now * 0.001;
+
+      fpsFrames++;
+      if (now - fpsLast >= 500) {
+        fpsNow = Math.round((fpsFrames * 1000) / (now - fpsLast));
+        fpsFrames = 0; fpsLast = now;
+      }
+
+      // Smooth steering & decay
+      if (!dragging && camMode !== 2) {
+        targetSteerX *= Math.exp(-dt * 1.4);
+        targetSteerY *= Math.exp(-dt * 1.4);
+      }
+      steerX += (targetSteerX - steerX) * Math.min(1, dt * 6.0);
+      steerY += (targetSteerY - steerY) * Math.min(1, dt * 6.0);
+
+      warpBoost = Math.max(0, warpBoost - dt * 1.1);
+      if (slingshotTimer > 0) slingshotTimer = Math.max(0, slingshotTimer - dt);
+      const targetWarp = warpHeld ? 2.4 : (slingshotTimer > 0 ? 1.8 : 0.0);
+      const effWarp = Math.max(warpBoost, targetWarp);
+      const speed = 12.5 * (1 + effWarp * 2.1);
+
+      fleetGroup.position.z -= speed * dt;
+      fleetGroup.position.x = THREE.MathUtils.lerp(fleetGroup.position.x, steerX * 14, Math.min(1, dt * 4.5));
+      fleetGroup.position.y = THREE.MathUtils.lerp(fleetGroup.position.y, steerY * 8, Math.min(1, dt * 4.5));
+      fleetGroup.rotation.z = -steerX * 0.34;
+      fleetGroup.rotation.x = steerY * 0.22;
+      totalDistKly += speed * dt * 0.08;
+
+      // Subtle origami wing breathing
+      for (let i = 0; i < cranes.length; i++) {
+        const c = cranes[i];
+        c.mesh.position.y = c.by + Math.sin(tSec * 2.4 + c.phase) * 0.16;
+        c.mesh.rotation.z = Math.sin(tSec * 2.4 + c.phase) * 0.08;
+      }
+
+      // Update shaders & recycle passed planets cleanly
+      skyMat.uniforms.uTime.value = tSec;
+      skyDome.position.copy(camera.position);
+      starMat.uniforms.uWarp.value = effWarp;
+
+      const sArr = starGeo.attributes.position.array;
+      for (let i = 0; i < STAR_COUNT; i++) {
+        if (sArr[i * 3 + 2] > fleetGroup.position.z + 90) {
+          sArr[i * 3 + 2] -= 1150;
+        }
+      }
+      starGeo.attributes.position.needsUpdate = true;
+
+      let furthestZ = fleetGroup.position.z - 190;
+      for (const s of HERO_SLOTS) furthestZ = Math.min(furthestZ, s.group.position.z);
+
+      for (const s of HERO_SLOTS) {
+        s.surfMesh.rotation.y += dt * 0.035;
+        s.cloudUniforms.uTime.value = tSec;
+        s.ringUniforms.uPlanetCenter.value.copy(s.group.position);
+
+        // Slingshot grazing check
+        const distToHero = fleetGroup.position.distanceTo(s.group.position);
+        if (!s.slingshotUsed && distToHero < s.radius * 1.85) {
+          s.slingshotUsed = true;
+          slingshotTimer = 3.2;
+          stardust += 280;
+          chime(880);
+          showToast(`✦ 触发【${BIOMES[s.biomeIdx].name}】引力弹弓 · +280 星尘 ✦`);
+        }
+
+        if (s.group.position.z > fleetGroup.position.z + s.radius * 2.4 + 60) {
+          placeHeroSlot(s, furthestZ - 320);
+          furthestZ -= 320;
+        }
+      }
+
+      // Resonance Gates check
+      let allPassed = true;
+      for (const g of gates) {
+        g.mesh.rotation.z += dt * 1.2;
+        if (g.active) {
+          allPassed = false;
+          const dz = Math.abs(fleetGroup.position.z - g.mesh.position.z);
+          const dxy = Math.hypot(fleetGroup.position.x - g.mesh.position.x, fleetGroup.position.y - g.mesh.position.y);
+          if (dz < 3.6 && dxy < 6.2) {
+            g.active = false; g.mesh.visible = false;
+            combo++;
+            const gain = 80 + combo * 25;
+            stardust += gain;
+            warpBoost = Math.min(2.2, warpBoost + 0.65);
+            chime(523.25 + Math.min(600, combo * 55));
+            showToast(`✦ 光门共振 ×${combo} · +${gain} 星尘 ✦`);
+          } else if (g.mesh.position.z > fleetGroup.position.z + 18) {
+            g.active = false; g.mesh.visible = false; combo = 0;
+          }
+        }
+      }
+      if (allPassed) resetGatesAhead();
+
+      if (bhGroup.visible) {
+        bhDiskUniforms.uTime.value = tSec;
+        bhHalo.lookAt(camera.position);
+      }
+
+      // Dynamic FOV & Cinematic Camera
+      const targetFov = 54 + effWarp * 7.5;
+      camera.fov += (targetFov - camera.fov) * Math.min(1, dt * 5.0);
+      camera.updateProjectionMatrix();
+
+      const hero = getNearestAheadHero();
+      if (camMode === 0) {
+        const cx = fleetGroup.position.x + Math.sin(tSec * 0.14) * 5.5 - steerX * 3.5;
+        const cy = fleetGroup.position.y + 4.8 + Math.cos(tSec * 0.11) * 1.8;
+        const cz = fleetGroup.position.z + camDist;
+        camera.position.lerp(new THREE.Vector3(cx, cy, cz), Math.min(1, dt * 4.0));
+        const lookBiasX = THREE.MathUtils.lerp(fleetGroup.position.x, hero.group.position.x, 0.18);
+        const lookBiasY = THREE.MathUtils.lerp(fleetGroup.position.y, hero.group.position.y, 0.14);
+        camera.lookAt(lookBiasX, lookBiasY, fleetGroup.position.z - 42);
+      } else if (camMode === 1) {
+        camera.position.set(fleetGroup.position.x - steerX * 2.2, fleetGroup.position.y + 2.4, fleetGroup.position.z + 9.5);
+        camera.lookAt(fleetGroup.position.x + steerX * 4, fleetGroup.position.y + steerY * 2, fleetGroup.position.z - 55);
+      } else {
+        const ox = Math.sin(orbitYaw) * Math.cos(orbitPitch) * camDist;
+        const oy = Math.sin(orbitPitch) * camDist;
+        const oz = Math.cos(orbitYaw) * Math.cos(orbitPitch) * camDist;
+        camera.position.set(fleetGroup.position.x + ox, fleetGroup.position.y + oy, fleetGroup.position.z + oz);
+        camera.lookAt(fleetGroup.position.x, fleetGroup.position.y, fleetGroup.position.z - 6);
+      }
+
+      hudWorld.textContent = `${BIOMES[hero.biomeIdx].name} · ${BIOMES[hero.biomeIdx].en}`;
+      hudStats.textContent = `${totalDistKly.toFixed(1)} KLY · ${fpsNow} FPS · ST ${stardust}`;
+      renderer.render(scene, camera);
+    }
+
+    requestAnimationFrame(animate);
+  })();
+  </script>
+</body>
+</html>

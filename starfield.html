@@ -8608,6 +8608,7 @@ body:has(#photo-ui.active) .sf-touch-cluster{
 <button class="destination" role="radio" aria-checked="false" data-region="4" style="--dot:#6f8ba8">事件视界</button>
 </div>
 <button id="begin">起航 <b aria-hidden="true">→</b></button>
+<button type="button" onclick="window.location.href=(location.protocol==='file:'&&location.href.indexOf('starfield_active.html')!==-1)?'https://jackeyloveseven.github.io/starfield/starfield-v3.html':'./starfield-v3.html';" style="margin-top:8px;appearance:none;background:rgba(244,208,111,0.10);border:1px solid rgba(244,208,111,0.52);color:#f4d06f;padding:6px 14px;border-radius:6px;font-size:11px;letter-spacing:0.14em;cursor:pointer;">✦ 抢先体验 v3 纯 GPU 引擎 ↗</button>
 <div class="intro-note">移动光标，让星光带路。<br>建议开启声音 · 无终点，无需抵达</div>
 </div>
 <div class="intro-footer mono">14 CRAFT. &nbsp; ONE OPEN SKY.</div>
@@ -8923,11 +8924,15 @@ body:has(#photo-ui.active) .sf-touch-cluster{
     <div class="shortcut-list">
       <div class="shortcut-row">
         <span>客户端版本</span>
-        <span class="shortcut-key" id="sf-version-tag">v2.0.0.8 (Build 208)</span>
+        <span class="shortcut-key" id="sf-version-tag">v2.0.0.9 (Build 209)</span>
       </div>
       <div class="shortcut-row">
         <span>OTA 实时热更新</span>
         <button class="photo-btn active" id="btn-check-ota" style="padding: 2px 8px;">检查更新</button>
+      </div>
+      <div class="shortcut-row">
+        <span>次世代预览</span>
+        <button class="photo-btn" id="btn-launch-v3" onclick="window.location.href=(location.protocol==='file:'&&location.href.indexOf('starfield_active.html')!==-1)?'https://jackeyloveseven.github.io/starfield/starfield-v3.html':'./starfield-v3.html';" style="padding: 2px 8px; border-color: rgba(244,208,111,0.55); color: #f4d06f;">进入 v3 GPU 内核 ↗</button>
       </div>
     </div>
   </div>

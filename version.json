@@ -1,14 +1,14 @@
 {
-  "version": "2.0.0.8",
-  "build": 208,
-  "updated_at": "2026-11-26T00:35:00+08:00",
+  "version": "2.0.0.9",
+  "build": 209,
+  "updated_at": "2026-11-26T00:45:00+08:00",
   "min_native_version": "1.0.0",
   "is_beta": false,
-  "title": "Starfield v2.0.0.8 (Build 208): Phase 2A 玩法闭环融合、去噪与触控手感重铸版",
-  "changelog": "1. 深度打通【搜打撤 + 引力弹弓 + 番茄钟风险撤离】主循环：引力弹弓可为货舱战利品进行 15% 引力淬炼增值，停靠补给站与完成专注可按满舱倍率/心流加成安全交割星尘，中途破戒离开将清空燃料并损失未撤离货舱；\n2. 单焦点节拍去噪与触控手感提速：大幅降低冗余 2D 主力舰/混战/随机事件频次避免杂乱遮挡，并收紧滑屏死区与追踪响应以便主动切入光门与弹弓轨道；\n3. 将 159 条历史记录打捞的 7 大原点创意总纲正式沉淀至架构路线图。",
+  "title": "Starfield v2.0.0.9 (Build 209): 推出 starfield-v3 纯 GPU 原生 WebGL 引擎垂直切片",
+  "changelog": "1. 新增独立纯净的 starfield-v3.html 纯 GPU 渲染内核：全屏原生 DPR + 硬件 MSAA + ACESFilmic 调色，彻底消除 2D 离屏缩放像素糊感；\n2. 零卡顿 GLSL 程序化星球工坊：所有地貌、法线、液态海洋高光、夜面灯火、大气散射与带星球日食投影的 3D 星环全部在 Fragment Shader 内实时生成，支持 8 种生态零延迟秒切与随机重塑；\n3. 电影级三等分构图防堆叠 + 14 只真 3D 折纸纸鹤编队 + 光门共振与引力弹弓；可在 v2 起航页或设置抽屉一键进入体验。",
   "entry": "starfield.html",
   "download_url": "https://jackeyloveseven.github.io/starfield/starfield.html",
   "apk_release_url": "https://github.com/jackeyloveseven/starfield/releases/tag/v1.19.1-focus-apk",
-  "description": "Build 208 (v2.0.0.8): Phase 2A gameplay loop fusion (extraction x slingshot x focus risk-reward), pacing declutter, responsive steering & 7-pillar design bible",
-  "timestamp": "2026-11-25T16:35:00Z"
+  "description": "Build 209 (v2.0.0.9): Introduce starfield-v3.html pure GPU-native procedural planet engine & one-tap launcher from v2",
+  "timestamp": "2026-11-25T16:45:00Z"
 }
