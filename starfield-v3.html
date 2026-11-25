@@ -8,13 +8,15 @@
     :root {
       --bg: #05080f;
       --surface: rgba(8, 13, 22, 0.78);
-      --sheet: rgba(7, 11, 19, 0.92);
+      --sheet: rgba(7, 11, 19, 0.94);
+      --card: rgba(236, 242, 248, 0.045);
       --border: rgba(234, 240, 246, 0.16);
-      --border-hi: rgba(244, 208, 111, 0.65);
+      --border-hi: rgba(244, 208, 111, 0.68);
       --ink: rgba(236, 242, 248, 0.94);
       --dim: rgba(236, 242, 248, 0.56);
       --gold: #f4d06f;
       --cyan: #8fd8c0;
+      --rose: #fb7185;
       --radius: 8px;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
@@ -24,146 +26,305 @@
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Noto Sans SC", sans-serif;
       user-select: none; -webkit-user-select: none;
     }
-    #gl {
-      position: fixed; inset: 0; width: 100%; height: 100%; display: block;
-      touch-action: none;
+    #gl { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+    .crash-flash {
+      position: fixed; inset: 0; z-index: 45; pointer-events: none;
+      background: radial-gradient(circle at center, rgba(244, 63, 94, 0.08), rgba(244, 63, 94, 0.55));
+      opacity: 0; transition: opacity 0.35s ease;
     }
+    .crash-flash.show { opacity: 1; }
+
+    /* Top-Left Telemetry */
     .hud-top-left {
       position: fixed;
       top: calc(max(env(safe-area-inset-top, 0px), 14px) + 4px);
       left: calc(max(env(safe-area-inset-left, 0px), 16px));
       z-index: 10; pointer-events: none;
-      text-shadow: 0 2px 12px rgba(0, 0, 0, 0.9);
-      font-variant-numeric: tabular-nums;
+      text-shadow: 0 2px 12px rgba(0, 0, 0, 0.92);
+      font-variant-numeric: tabular-nums; max-width: 46vw;
     }
     .kicker {
       font-family: ui-monospace, "SFMono-Regular", Consolas, monospace;
-      font-size: 10px; letter-spacing: 0.22em; color: var(--cyan); opacity: 0.9;
+      font-size: 10px; letter-spacing: 0.20em; color: var(--cyan); opacity: 0.9;
     }
     .world-title {
-      font-size: clamp(18px, 4.4vw, 26px); font-weight: 500;
-      letter-spacing: 0.08em; margin-top: 2px;
+      font-size: clamp(16px, 4.1vw, 24px); font-weight: 500;
+      letter-spacing: 0.06em; margin-top: 2px;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
     .telemetry {
       font-family: ui-monospace, "SFMono-Regular", Consolas, monospace;
-      font-size: 11px; letter-spacing: 0.12em; color: var(--dim); margin-top: 4px;
+      font-size: 10.5px; letter-spacing: 0.10em; color: var(--dim); margin-top: 4px;
     }
+    .cargo-row {
+      display: flex; align-items: center; gap: 4px; margin-top: 6px;
+    }
+    .cargo-slot {
+      width: 14px; height: 14px; border-radius: 3px;
+      border: 1px solid rgba(236, 242, 248, 0.22);
+      background: rgba(8, 13, 22, 0.45);
+    }
+    .cargo-slot.filled { border-color: var(--gold); background: rgba(244, 208, 111, 0.38); }
+    .cargo-slot.epic { border-color: #c4b5fd; background: rgba(196, 181, 253, 0.42); }
+    .cargo-slot.mythic { border-color: var(--cyan); background: rgba(143, 216, 192, 0.45); }
+    .cargo-label {
+      font-family: ui-monospace, "SFMono-Regular", Consolas, monospace;
+      font-size: 10px; color: var(--gold); margin-left: 4px; letter-spacing: 0.08em;
+    }
+
+    /* Top-Right Compact Controls */
     .hud-top-right {
       position: fixed;
       top: calc(max(env(safe-area-inset-top, 0px), 14px) + 4px);
       right: calc(max(env(safe-area-inset-right, 0px), 16px));
-      z-index: 20; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px;
-      max-width: 56vw;
+      z-index: 20; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px;
+      max-width: 50vw;
     }
     .pill-btn {
       appearance: none; cursor: pointer;
       background: var(--surface); color: var(--ink);
       border: 1px solid var(--border); border-radius: var(--radius);
-      padding: 8px 12px; min-height: 36px;
-      font-size: 12px; letter-spacing: 0.08em;
+      padding: 7px 11px; min-height: 36px;
+      font-size: 11.5px; letter-spacing: 0.06em;
       backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
       transition: transform 0.12s ease, border-color 0.16s ease, background 0.16s ease;
     }
     .pill-btn:active { transform: scale(0.96); border-color: var(--border-hi); }
     .pill-btn.active { border-color: var(--border-hi); color: var(--gold); }
+    .pill-btn:disabled { opacity: 0.42; cursor: not-allowed; }
+
+    /* Focus Top-Center Ticker */
+    .focus-ticker {
+      position: fixed; left: 50%; transform: translateX(-50%);
+      top: calc(max(env(safe-area-inset-top, 0px), 12px) + 52px);
+      z-index: 22; display: none; align-items: center; gap: 8px;
+      background: var(--surface); border: 1px solid rgba(143, 216, 192, 0.48);
+      border-radius: 999px; padding: 5px 14px; cursor: pointer;
+      font-family: ui-monospace, "SFMono-Regular", Consolas, monospace;
+      font-size: 11.5px; letter-spacing: 0.12em; color: var(--cyan);
+      backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    }
+    .focus-ticker.show { display: inline-flex; }
+    .focus-ticker.warn { border-color: var(--rose); color: var(--rose); }
+
+    /* Toast */
+    .toast {
+      position: fixed; left: 50%; transform: translateX(-50%);
+      top: calc(max(env(safe-area-inset-top, 0px), 16px) + 86px);
+      z-index: 25; pointer-events: none;
+      background: var(--surface); border: 1px solid rgba(244, 208, 111, 0.45);
+      border-radius: var(--radius); padding: 8px 15px;
+      font-size: 11.5px; letter-spacing: 0.08em; color: var(--gold);
+      backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+      opacity: 0; transition: opacity 0.28s ease; white-space: nowrap; max-width: 92vw;
+      overflow: hidden; text-overflow: ellipsis;
+    }
+    .toast.show { opacity: 1; }
+
+    /* Bottom Action Dock */
     .hud-bottom {
       position: fixed; left: 50%; transform: translateX(-50%);
       bottom: calc(max(env(safe-area-inset-bottom, 0px), 16px) + 8px);
-      z-index: 15; display: flex; align-items: center; gap: 10px;
-      max-width: calc(100vw - 28px);
+      z-index: 15; display: flex; align-items: center; gap: 8px;
+      max-width: calc(100vw - 24px);
     }
     .warp-btn {
       appearance: none; cursor: pointer;
       background: var(--surface); color: var(--gold);
       border: 1px solid rgba(244, 208, 111, 0.45); border-radius: 999px;
-      padding: 10px 18px; min-height: 42px; font-size: 12px; letter-spacing: 0.14em;
+      padding: 10px 16px; min-height: 42px; font-size: 12px; letter-spacing: 0.12em;
       backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
-      white-space: nowrap;
-      transition: transform 0.12s ease, background 0.16s ease;
+      white-space: nowrap; transition: transform 0.12s ease, background 0.16s ease;
     }
-    .warp-btn.engaged { background: rgba(244, 208, 111, 0.18); border-color: var(--gold); }
-    .toast {
-      position: fixed; left: 50%; transform: translateX(-50%);
-      top: calc(max(env(safe-area-inset-top, 0px), 16px) + 74px);
-      z-index: 25; pointer-events: none;
-      background: var(--surface); border: 1px solid rgba(244, 208, 111, 0.45);
-      border-radius: var(--radius); padding: 8px 16px;
-      font-size: 12px; letter-spacing: 0.1em; color: var(--gold);
-      backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-      opacity: 0; transition: opacity 0.28s ease; white-space: nowrap; max-width: 90vw;
-      overflow: hidden; text-overflow: ellipsis;
+    .warp-btn.engaged { background: rgba(244, 208, 111, 0.20); border-color: var(--gold); }
+    .dock-extract-btn {
+      display: none; appearance: none; cursor: pointer;
+      background: rgba(14, 34, 38, 0.88); color: var(--cyan);
+      border: 1px solid rgba(143, 216, 192, 0.65); border-radius: 999px;
+      padding: 10px 14px; min-height: 42px; font-size: 12px; letter-spacing: 0.08em;
+      white-space: nowrap; backdrop-filter: blur(12px);
     }
-    .toast.show { opacity: 1; }
+    .dock-extract-btn.show { display: inline-flex; align-items: center; }
+
+    /* Unified Frosted Sheets */
     .sheet {
-      position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
+      position: fixed; left: 0; right: 0; bottom: 0; z-index: 32;
       background: var(--sheet); border-top: 1px solid var(--border);
       border-radius: 14px 14px 0 0;
       padding: 16px 18px calc(max(env(safe-area-inset-bottom, 0px), 18px) + 6px);
       backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
       transform: translateY(105%); transition: transform 0.24s cubic-bezier(.22,1,.36,1);
-      max-height: 74vh; overflow-y: auto; -webkit-overflow-scrolling: touch;
+      max-height: 76vh; overflow-y: auto; -webkit-overflow-scrolling: touch;
     }
     .sheet.open { transform: translateY(0); }
     .sheet-head {
-      display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;
+      display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; gap: 10px;
     }
-    .sheet-title { font-size: 15px; font-weight: 600; letter-spacing: 0.1em; }
-    .biome-grid {
-      display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px;
-      margin-bottom: 12px;
+    .sheet-title { font-size: 15px; font-weight: 600; letter-spacing: 0.08em; }
+    .grid-4 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-bottom: 12px; }
+    .grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-bottom: 12px; }
+    @media (max-width: 540px) {
+      .grid-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     }
-    @media (max-width: 520px) {
-      .biome-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    }
-    .biome-btn {
+    .tile-btn {
       appearance: none; cursor: pointer; text-align: left;
-      background: rgba(236, 242, 248, 0.045); color: var(--ink);
+      background: var(--card); color: var(--ink);
       border: 1px solid var(--border); border-radius: var(--radius);
       padding: 10px 10px; font-size: 12px;
     }
-    .biome-btn small { display: block; color: var(--dim); font-size: 10px; margin-top: 2px; }
-    .biome-btn.active { border-color: var(--border-hi); background: rgba(244, 208, 111, 0.10); }
+    .tile-btn small { display: block; color: var(--dim); font-size: 10px; margin-top: 2px; }
+    .tile-btn.active { border-color: var(--border-hi); background: rgba(244, 208, 111, 0.11); }
     .sheet-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+    .tabs-row { display: flex; gap: 8px; margin-bottom: 12px; }
+    .card-item {
+      background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 10px; cursor: pointer; text-align: left; color: var(--ink);
+    }
+    .card-item.rarity-rare { border-color: rgba(143, 216, 192, 0.55); }
+    .card-item.rarity-epic { border-color: rgba(196, 181, 253, 0.65); }
+    .card-item.rarity-mythic { border-color: rgba(244, 208, 111, 0.80); }
+    .card-tag { font-size: 10px; letter-spacing: 0.12em; color: var(--gold); margin-bottom: 4px; }
+    .card-name { font-size: 13px; font-weight: 600; margin-bottom: 3px; }
+    .card-meta { font-size: 11px; color: var(--dim); line-height: 1.45; }
+
+    /* Centered Ceremonial Card Reveal Overlay (Live 3D planet spins behind) */
+    .reveal-overlay {
+      position: fixed; inset: 0; z-index: 40; display: none;
+      align-items: flex-end; justify-content: center;
+      padding: 20px 16px calc(max(env(safe-area-inset-bottom, 0px), 24px) + 8px);
+      background: linear-gradient(to top, rgba(5, 8, 15, 0.88) 0%, rgba(5, 8, 15, 0.12) 55%, transparent 100%);
+      pointer-events: auto;
+    }
+    .reveal-overlay.show { display: flex; }
+    .reveal-card {
+      width: min(380px, 92vw);
+      background: rgba(8, 13, 22, 0.90);
+      border: 1px solid var(--border-hi); border-radius: 12px;
+      padding: 16px 18px; text-align: center;
+      backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.82);
+    }
+    .reveal-rarity {
+      font-family: ui-monospace, monospace; font-size: 11px; letter-spacing: 0.22em; color: var(--gold);
+    }
+    .reveal-title { font-size: 20px; font-weight: 600; margin: 6px 0 4px; letter-spacing: 0.08em; }
+    .reveal-desc { font-size: 12px; color: var(--dim); line-height: 1.5; margin-bottom: 12px; }
+    .reveal-trait {
+      display: inline-block; padding: 5px 12px; border-radius: 999px;
+      background: rgba(143, 216, 192, 0.12); border: 1px solid rgba(143, 216, 192, 0.45);
+      color: var(--cyan); font-size: 11.5px; margin-bottom: 14px;
+    }
   </style>
 </head>
 <body>
   <canvas id="gl"></canvas>
+  <div class="crash-flash" id="crash-flash"></div>
 
   <div class="hud-top-left">
-    <div class="kicker" id="hud-kicker">STARFIELD V3 // GPU NATIVE</div>
+    <div class="kicker" id="hud-kicker">STARFIELD V3.1 // GPU NATIVE</div>
     <div class="world-title" id="hud-world">深海群岛 · 观测起始域</div>
-    <div class="telemetry" id="hud-stats">0.0 KLY · 60 FPS · ST 0</div>
+    <div class="telemetry" id="hud-stats">0.0 KLY · FUEL 100% · ST 0 · 60 FPS</div>
+    <div class="cargo-row" id="cargo-row" title="未撤离货舱（停靠补给站或完成专注安全交割）"></div>
   </div>
 
   <div class="hud-top-right">
-    <button class="pill-btn" id="btn-studio">星球工坊</button>
-    <button class="pill-btn" id="btn-cam">电影巡航</button>
-    <button class="pill-btn" id="btn-audio">声效: 关</button>
-    <button class="pill-btn" id="btn-back-v2">返回 v2</button>
+    <button class="pill-btn" id="btn-cards">星核 (3)</button>
+    <button class="pill-btn" id="btn-focus">专注</button>
+    <button class="pill-btn" id="btn-studio">工坊</button>
+    <button class="pill-btn" id="btn-cam">巡航</button>
+    <button class="pill-btn" id="btn-music">音乐: 关</button>
+    <button class="pill-btn" id="btn-back-v2">v2</button>
+  </div>
+
+  <div class="focus-ticker" id="focus-ticker">
+    <span>✦ FOCUS</span>
+    <span id="focus-timer-text">25:00</span>
   </div>
 
   <div class="toast" id="toast">✦ GPU 原生管线已就绪 ✦</div>
 
   <div class="hud-bottom">
     <button class="warp-btn" id="btn-warp">按住曲速推进</button>
-    <button class="pill-btn" id="btn-next-world">✦ 跃迁下颗星</button>
+    <button class="dock-extract-btn" id="btn-dock-extract">✦ 停靠补给并撤离</button>
+    <button class="pill-btn" id="btn-next-world">✦ 下颗星</button>
   </div>
 
+  <!-- 1. GPU Planet Generator Studio Sheet -->
   <section class="sheet" id="studio-sheet" aria-label="GPU 星球工坊">
     <div class="sheet-head">
       <div>
-        <div class="sheet-title">GPU 实时星球生成器</div>
+        <div class="sheet-title">GPU 实时星球工坊</div>
         <div class="kicker" style="margin-top:2px;">ZERO-LAG FRAGMENT SHADER PLANET LAB</div>
       </div>
-      <button class="pill-btn" id="btn-close-studio">收起</button>
+      <button class="pill-btn" data-close-sheet="studio-sheet">收起</button>
     </div>
-    <div class="biome-grid" id="biome-grid"></div>
+    <div class="grid-4" id="biome-grid"></div>
     <div class="sheet-actions">
       <button class="pill-btn active" id="btn-reroll">✦ 随机重塑地表</button>
       <button class="pill-btn" id="btn-rings">切换 3D 行星环</button>
       <button class="pill-btn" id="btn-bh">召唤卡冈图雅黑洞</button>
     </div>
   </section>
+
+  <!-- 2. Focus Pomodoro Expedition Sheet -->
+  <section class="sheet" id="focus-sheet" aria-label="深空专注远征">
+    <div class="sheet-head">
+      <div>
+        <div class="sheet-title">深空专注远征 · 番茄钟</div>
+        <div class="kicker" style="margin-top:2px;">完成收获星核与1.5×撤离 · 切出超10秒坠毁清舱</div>
+      </div>
+      <button class="pill-btn" data-close-sheet="focus-sheet">收起</button>
+    </div>
+    <div class="grid-4" id="focus-presets">
+      <button class="tile-btn" data-min="1"><b>1 分钟</b><small>快速实测闭环</small></button>
+      <button class="tile-btn" data-min="15"><b>15 分钟</b><small>+1 星核 · 1800 ST</small></button>
+      <button class="tile-btn active" data-min="25"><b>25 分钟</b><small>+2 星核 · 3000 ST</small></button>
+      <button class="tile-btn" data-min="60"><b>60 分钟</b><small>+3 星核 · 7200 ST</small></button>
+    </div>
+    <div class="sheet-actions">
+      <button class="pill-btn active" id="btn-start-focus">✦ 启动深空专注（屏幕常亮）</button>
+      <button class="pill-btn" id="btn-abort-focus" style="display:none;border-color:var(--rose);color:var(--rose);">放弃远征（将坠毁清舱）</button>
+    </div>
+  </section>
+
+  <!-- 3. Planet Core Hatch & Card Archive Sheet -->
+  <section class="sheet" id="cards-sheet" aria-label="星核孵化与卡牌图鉴">
+    <div class="sheet-head">
+      <div>
+        <div class="sheet-title" id="cards-sheet-title">星核舱与星图卡牌</div>
+        <div class="kicker" id="cards-synergy-line" style="margin-top:2px;">词条加成：无（孵化星核解锁永久被动）</div>
+      </div>
+      <button class="pill-btn" data-close-sheet="cards-sheet">收起</button>
+    </div>
+    <div class="tabs-row">
+      <button class="pill-btn active" id="tab-hatch">星核孵化</button>
+      <button class="pill-btn" id="tab-archive">我的星图 (0)</button>
+    </div>
+    <div id="hatch-pane">
+      <p style="font-size:12px;color:var(--dim);line-height:1.6;margin-bottom:12px;">
+        每颗未开采星核都封存着一颗独立程序化 3D 星球。唤醒时将直接在全屏 GPU 视野中为你重塑并赋予永久飞行词条（牵引范围、星尘倍率、弹弓激波或燃料效率）。
+      </p>
+      <div class="sheet-actions">
+        <button class="pill-btn active" id="btn-hatch-core">✦ 唤醒 1 颗星核</button>
+      </div>
+    </div>
+    <div id="archive-pane" style="display:none;">
+      <div class="grid-2" id="cards-grid"></div>
+    </div>
+  </section>
+
+  <!-- 4. Centered Ceremonial Card Reveal -->
+  <div class="reveal-overlay" id="reveal-overlay">
+    <div class="reveal-card">
+      <div class="reveal-rarity" id="rev-rarity">MYTHIC // 星域奇观</div>
+      <div class="reveal-title" id="rev-name">苍穹汐境 · VII</div>
+      <div class="reveal-desc" id="rev-desc">深海群岛生态 · 含 3D 卡西尼行星环</div>
+      <div class="reveal-trait" id="rev-trait">被动词条：星尘收益 +12%</div>
+      <div>
+        <button class="pill-btn active" id="btn-close-reveal" style="min-width:140px;">✦ 收入星图并继续航行</button>
+      </div>
+    </div>
+  </div>
 
   <script src="./libs/three.min.js" onerror="this.onerror=null;this.src='https://jackeyloveseven.github.io/starfield/libs/three.min.js';"></script>
   <script>
@@ -174,30 +335,67 @@
       return;
     }
 
+    // -------------------------------------------------------------------------
+    // 0. PERSISTENT SAVE STATE (Cores, Stardust, Card Collection & Traits)
+    // -------------------------------------------------------------------------
+    const SAVE_KEY = 'sf_v3_save_v1';
+    let save = { stardust: 0, cores: 3, totalFocusMin: 0, cards: [] };
+    try {
+      const raw = localStorage.getItem(SAVE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === 'object') {
+          save.stardust = Math.max(0, Number(parsed.stardust) || 0);
+          save.cores = Math.max(0, parsed.cores === undefined ? 3 : Number(parsed.cores) || 0);
+          save.totalFocusMin = Math.max(0, Number(parsed.totalFocusMin) || 0);
+          save.cards = Array.isArray(parsed.cards) ? parsed.cards : [];
+        }
+      }
+    } catch (_) {}
+    function persistSave() {
+      try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); } catch (_) {}
+    }
+
+    function getTraitBonuses() {
+      let stardustMul = 1.0, tractorMul = 1.0, slingMul = 1.0, fuelSave = 1.0;
+      for (const c of save.cards) {
+        if (c.traitKey === 'stardust') stardustMul += c.traitVal;
+        else if (c.traitKey === 'tractor') tractorMul += c.traitVal;
+        else if (c.traitKey === 'slingshot') slingMul += c.traitVal;
+        else if (c.traitKey === 'fuel') fuelSave *= (1 - Math.min(0.45, c.traitVal));
+      }
+      return {
+        stardustMul: Math.min(2.5, stardustMul),
+        tractorMul: Math.min(2.2, tractorMul),
+        slingMul: Math.min(2.2, slingMul),
+        fuelSave: Math.max(0.45, fuelSave)
+      };
+    }
+
+    // -------------------------------------------------------------------------
+    // 1. RENDERER & CAMERA (Full Native DPR + Hardware MSAA + ACES)
+    // -------------------------------------------------------------------------
     const canvas = document.getElementById('gl');
     const renderer = new THREE.WebGLRenderer({
-      canvas,
-      antialias: true,
-      alpha: false,
-      powerPreference: 'high-performance'
+      canvas, antialias: true, alpha: false, powerPreference: 'high-performance'
     });
     const dpr = Math.min(window.devicePixelRatio || 1, 2.0);
     renderer.setPixelRatio(dpr);
     renderer.setSize(window.innerWidth, window.innerHeight, false);
     if (THREE.ACESFilmicToneMapping !== undefined) {
       renderer.toneMapping = THREE.ACESFilmicToneMapping;
-      renderer.toneMappingExposure = 1.12;
+      renderer.toneMappingExposure = 1.14;
     }
     if (THREE.sRGBEncoding !== undefined) {
       renderer.outputEncoding = THREE.sRGBEncoding;
     }
 
     const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(54, window.innerWidth / window.innerHeight, 0.2, 2400);
+    const camera = new THREE.PerspectiveCamera(54, window.innerWidth / window.innerHeight, 0.2, 2600);
     camera.position.set(0, 6, 36);
 
     // -------------------------------------------------------------------------
-    // 1. GLSL ES 1.00 SHADERS (3-tap finite-difference normals)
+    // 2. GLSL ES 1.00 SHADERS (3-tap finite-difference normals, 5-octave micro)
     // -------------------------------------------------------------------------
     const SIMPLEX_GLSL = `
       vec4 permute(vec4 x){ return mod(((x*34.0)+1.0)*x, 289.0); }
@@ -245,8 +443,7 @@
         return 42.0 * dot(m*m, vec4(dot(p0,x0), dot(p1,x1), dot(p2,x2), dot(p3,x3)));
       }
       float fbm(vec3 p){
-        float s = 0.0;
-        float a = 0.5;
+        float s = 0.0; float a = 0.5;
         for(int i = 0; i < 4; i++){
           s += a * snoise(p);
           p = p * 2.07 + vec3(13.1, 7.7, 5.3);
@@ -269,14 +466,14 @@
       ${SIMPLEX_GLSL}
       void main(){
         vec3 d = normalize(vDir);
-        vec3 zenith = vec3(0.012, 0.020, 0.042);
-        vec3 horizon = vec3(0.030, 0.048, 0.088);
+        vec3 zenith = vec3(0.010, 0.018, 0.038);
+        vec3 horizon = vec3(0.028, 0.046, 0.086);
         vec3 col = mix(horizon, zenith, clamp(abs(d.y) * 1.15, 0.0, 1.0));
         float band = exp(-pow((d.y * 0.8 + d.x * 0.45) * 3.8, 2.0));
         float neb = fbm(d * 2.4 + vec3(0.0, 0.0, uTime * 0.004));
         float neb2 = fbm(d * 5.2 - vec3(2.1, 4.3, 1.7));
-        vec3 mwCol = mix(vec3(0.07, 0.11, 0.20), vec3(0.18, 0.14, 0.24), smoothstep(-0.3, 0.5, neb2));
-        col += mwCol * band * smoothstep(-0.2, 0.55, neb) * 0.65;
+        vec3 mwCol = mix(vec3(0.07, 0.12, 0.22), vec3(0.20, 0.14, 0.26), smoothstep(-0.3, 0.5, neb2));
+        col += mwCol * band * smoothstep(-0.2, 0.55, neb) * 0.68;
         gl_FragColor = vec4(col, 1.0);
       }
     `;
@@ -303,8 +500,7 @@
         if(r > 0.5) discard;
         float core = exp(-r * r * 36.0);
         float flare = exp(-abs(uv.x) * 26.0) * exp(-abs(uv.y) * 5.0) + exp(-abs(uv.y) * 26.0) * exp(-abs(uv.x) * 5.0);
-        float alpha = clamp(core + flare * 0.22, 0.0, 1.0);
-        gl_FragColor = vec4(vColor * (0.85 + core * 0.6), alpha);
+        gl_FragColor = vec4(vColor * (0.85 + core * 0.6), clamp(core + flare * 0.22, 0.0, 1.0));
       }
     `;
 
@@ -326,10 +522,12 @@
       varying vec3 vWorldPos;
       uniform vec3 uSunDir;
       uniform float uSeed;
+      uniform float uTime;
       uniform float uOceanLevel;
       uniform float uBandStrength;
       uniform float uSpecStrength;
       uniform float uNightGlowStrength;
+      uniform float uIsLava;
       uniform vec3 uLandA;
       uniform vec3 uLandB;
       uniform vec3 uOceanCol;
@@ -346,7 +544,8 @@
         }
         float base = fbm(sp);
         float ridge = 1.0 - abs(snoise(sp * 2.4));
-        return base * 0.72 + (ridge - 0.5) * 0.28;
+        float micro = snoise(sp * 5.4) * 0.08;
+        return base * 0.68 + (ridge - 0.5) * 0.26 + micro;
       }
 
       void main(){
@@ -356,7 +555,7 @@
         vec3 L = normalize(uSunDir);
 
         float h = planetHeight(p);
-        float eps = 0.015;
+        float eps = 0.014;
         float hx = planetHeight(normalize(p + vec3(eps, 0.0, 0.0)));
         float hy = planetHeight(normalize(p + vec3(0.0, eps, 0.0)));
         float hz = planetHeight(normalize(p + vec3(0.0, 0.0, eps)));
@@ -364,19 +563,17 @@
         vec3 gradTangent = grad - N * dot(grad, N);
 
         bool isOcean = (h < uOceanLevel) && (uBandStrength < 0.35);
-        float bumpAmt = isOcean ? 0.04 : 0.34;
-        vec3 Nb = normalize(N - gradTangent * bumpAmt);
+        vec3 Nb = normalize(N - gradTangent * (isOcean ? 0.04 : 0.36));
 
         float coast = smoothstep(uOceanLevel - 0.08, uOceanLevel + 0.02, h);
-        vec3 oceanDeep = uOceanCol * 0.58;
-        vec3 oceanShallow = mix(uOceanCol, vec3(0.28, 0.68, 0.76), 0.42);
+        vec3 oceanDeep = uOceanCol * 0.56;
+        vec3 oceanShallow = mix(uOceanCol, vec3(0.28, 0.72, 0.80), 0.45);
         vec3 surfOcean = mix(oceanDeep, oceanShallow, smoothstep(uOceanLevel - 0.22, uOceanLevel, h));
 
         float elev = clamp((h - uOceanLevel) / max(0.15, 0.75 - uOceanLevel), 0.0, 1.0);
-        vec3 surfLand = mix(uLandA, uLandB, smoothstep(0.12, 0.82, elev));
-        float polar = smoothstep(0.76, 0.94, abs(p.y) + h * 0.12);
-        surfLand = mix(surfLand, vec3(0.86, 0.90, 0.95), polar * 0.65);
-
+        vec3 surfLand = mix(uLandA, uLandB, smoothstep(0.10, 0.84, elev));
+        float polar = smoothstep(0.75, 0.94, abs(p.y) + h * 0.12);
+        surfLand = mix(surfLand, vec3(0.88, 0.92, 0.96), polar * 0.68);
         vec3 albedo = isOcean ? surfOcean : mix(surfOcean, surfLand, coast);
 
         float ndl = dot(Nb, L);
@@ -384,18 +581,18 @@
         vec3 terminator = vec3(0.95, 0.46, 0.22) * exp(-pow((ndl + 0.02) * 5.2, 2.0)) * 0.35;
 
         vec3 H = normalize(L + V);
-        float specPow = isOcean ? 78.0 : 18.0;
-        float specInt = isOcean ? (0.85 * uSpecStrength) : (0.10 * uSpecStrength);
+        float specPow = isOcean ? 84.0 : 18.0;
+        float specInt = isOcean ? (0.90 * uSpecStrength) : (0.10 * uSpecStrength);
         float spec = pow(max(dot(Nb, H), 0.0), specPow) * specInt * smoothstep(-0.05, 0.25, ndl);
 
         float fres = pow(1.0 - max(dot(N, V), 0.0), 3.4);
         vec3 rim = uAtmoCol * fres * (0.35 + 0.65 * smoothstep(-0.25, 0.6, dot(N, L)));
 
-        // Night-side city clusters or magma fissures
         float nightMask = smoothstep(0.08, -0.24, dot(N, L));
-        float micro = snoise(p * 18.0 + vec3(uSeed * 7.1));
-        float glowPattern = isOcean ? 0.0 : smoothstep(0.46, 0.72, micro) * smoothstep(0.05, 0.45, elev);
-        vec3 nightLights = uNightGlowCol * glowPattern * nightMask * uNightGlowStrength;
+        float micro = snoise(p * 19.0 + vec3(uSeed * 7.1));
+        float glowPattern = isOcean ? 0.0 : smoothstep(0.45, 0.72, micro) * smoothstep(0.05, 0.45, elev);
+        float pulse = mix(1.0, 0.76 + 0.24 * sin(uTime * 2.2 + h * 12.0), uIsLava);
+        vec3 nightLights = uNightGlowCol * glowPattern * nightMask * uNightGlowStrength * pulse;
 
         vec3 lit = albedo * (0.045 + diff * 1.18) + terminator * albedo + vec3(1.0, 0.96, 0.88) * spec + rim + nightLights;
         gl_FragColor = vec4(lit, 1.0);
@@ -425,8 +622,7 @@
         float alpha = smoothstep(0.08, 0.56, n) * uCloudAlpha;
         if(alpha < 0.01) discard;
         float ndl = smoothstep(-0.12, 0.75, dot(normalize(vWorldNormal), normalize(uSunDir)));
-        vec3 col = mix(vec3(0.06, 0.09, 0.15), vec3(0.95, 0.97, 1.0), ndl);
-        gl_FragColor = vec4(col, alpha);
+        gl_FragColor = vec4(mix(vec3(0.06, 0.09, 0.15), vec3(0.95, 0.97, 1.0), ndl), alpha);
       }
     `;
 
@@ -480,15 +676,11 @@
         float bands = 0.55 + 0.45 * sin(t * 78.0) * cos(t * 31.0);
         float edgeFade = smoothstep(0.0, 0.09, t) * smoothstep(1.0, 0.88, t);
         float alpha = clamp(edgeFade * bands * (1.0 - cassini * 0.85) * 0.78, 0.0, 0.85);
-        // Analytical planet shadow on rings
         vec3 ro = vWorldPos - uPlanetCenter;
         vec3 rd = normalize(uSunDir);
         float b = dot(ro, rd);
         float c = dot(ro, ro) - uPlanetRadius * uPlanetRadius;
-        float shadow = 1.0;
-        if(b < 0.0 && (b * b - c) > 0.0){
-          shadow = 0.12;
-        }
+        float shadow = (b < 0.0 && (b * b - c) > 0.0) ? 0.12 : 1.0;
         vec3 col = mix(uRingColA, uRingColB, sin(t * 24.0) * 0.5 + 0.5) * shadow;
         gl_FragColor = vec4(col, alpha);
       }
@@ -513,50 +705,47 @@
         float t = (r - 1.16) / 3.04;
         float photonRing = exp(-pow((r - 1.24) * 14.0, 2.0)) * 1.5;
         float body = (1.0 - smoothstep(0.05, 1.0, t)) * (0.65 + 0.35 * swirl);
-        vec3 hot = vec3(1.0, 0.88, 0.62);
-        vec3 mid = vec3(0.95, 0.44, 0.14);
-        vec3 col = mix(hot, mid, smoothstep(0.0, 0.72, t)) * (body + photonRing);
+        vec3 col = mix(vec3(1.0, 0.88, 0.62), vec3(0.95, 0.44, 0.14), smoothstep(0.0, 0.72, t)) * (body + photonRing);
         float alpha = clamp((body + photonRing) * smoothstep(0.0, 0.04, t), 0.0, 0.95);
         gl_FragColor = vec4(col, alpha);
       }
     `;
 
     // -------------------------------------------------------------------------
-    // 2. BIOME CATALOG & ZERO-LAG GPU PLANET POOL
+    // 3. BIOMES & SHARED GPU PLANET POOL (Hero + Distant Peripheral + Moon)
     // -------------------------------------------------------------------------
     const BIOMES = [
-      { id: 'ocean',   name: '深海群岛', en: 'PELAGIC ARCHIPELAGO', ocean: 0.06,  band: 0.0, spec: 1.1, glow: 0.5, landA: [0.22,0.44,0.34], landB: [0.46,0.52,0.44], oceanCol: [0.06,0.22,0.42], atmo: [0.36,0.68,0.98], nightGlow: [1.0,0.78,0.42] },
-      { id: 'earth',   name: '蔚蓝母星', en: 'TERRAN CRADLE',       ocean: 0.01,  band: 0.0, spec: 1.0, glow: 1.1, landA: [0.18,0.40,0.24], landB: [0.48,0.44,0.36], oceanCol: [0.05,0.20,0.46], atmo: [0.34,0.66,1.00], nightGlow: [1.0,0.82,0.46] },
-      { id: 'lava',    name: '熔岩黑曜', en: 'OBSIDIAN CALDERA',    ocean: -0.45, band: 0.0, spec: 0.3, glow: 1.6, landA: [0.10,0.09,0.10], landB: [0.24,0.14,0.12], oceanCol: [0.85,0.22,0.06], atmo: [0.96,0.42,0.18], nightGlow: [1.0,0.34,0.08] },
-      { id: 'forest',  name: '翡翠林海', en: 'VERDANT CANOPY',      ocean: -0.10, band: 0.0, spec: 0.6, glow: 0.4, landA: [0.12,0.32,0.22], landB: [0.28,0.48,0.30], oceanCol: [0.08,0.26,0.32], atmo: [0.40,0.82,0.68], nightGlow: [0.55,0.95,0.72] },
-      { id: 'ice',     name: '冰穹结晶', en: 'CRYOGENIC CITADEL',   ocean: -0.02, band: 0.0, spec: 1.2, glow: 0.7, landA: [0.64,0.76,0.86], landB: [0.86,0.92,0.98], oceanCol: [0.10,0.24,0.38], atmo: [0.55,0.84,1.00], nightGlow: [0.45,0.88,1.00] },
-      { id: 'gas',     name: '气态巨星', en: 'JOVIAN STORMFRONT',   ocean: -0.90, band: 0.88,spec: 0.2, glow: 0.0, landA: [0.76,0.62,0.46], landB: [0.42,0.52,0.68], oceanCol: [0.30,0.34,0.42], atmo: [0.86,0.74,0.56], nightGlow: [0.9,0.7,0.4] },
-      { id: 'desert',  name: '沙丘遗迹', en: 'ARID MONOLITHS',      ocean: -0.60, band: 0.0, spec: 0.25,glow: 0.6, landA: [0.58,0.44,0.30], landB: [0.78,0.64,0.46], oceanCol: [0.28,0.24,0.20], atmo: [0.94,0.72,0.46], nightGlow: [1.0,0.74,0.36] },
-      { id: 'crystal', name: '星晶异界', en: 'ASTRAL XENOCRYST',    ocean: -0.15, band: 0.0, spec: 1.3, glow: 1.4, landA: [0.16,0.18,0.34], landB: [0.38,0.28,0.58], oceanCol: [0.14,0.12,0.34], atmo: [0.72,0.52,0.98], nightGlow: [0.68,0.46,1.00] }
+      { id: 'ocean',   name: '深海群岛', en: 'PELAGIC ARCHIPELAGO', ocean: 0.06,  band: 0.0, spec: 1.1, glow: 0.5, lava: 0.0, landA: [0.22,0.44,0.34], landB: [0.46,0.52,0.44], oceanCol: [0.06,0.22,0.42], atmo: [0.36,0.68,0.98], nightGlow: [1.0,0.78,0.42] },
+      { id: 'earth',   name: '蔚蓝母星', en: 'TERRAN CRADLE',       ocean: 0.01,  band: 0.0, spec: 1.0, glow: 1.1, lava: 0.0, landA: [0.18,0.40,0.24], landB: [0.48,0.44,0.36], oceanCol: [0.05,0.20,0.46], atmo: [0.34,0.66,1.00], nightGlow: [1.0,0.82,0.46] },
+      { id: 'lava',    name: '熔岩黑曜', en: 'OBSIDIAN CALDERA',    ocean: -0.45, band: 0.0, spec: 0.3, glow: 1.7, lava: 1.0, landA: [0.10,0.09,0.10], landB: [0.24,0.14,0.12], oceanCol: [0.85,0.22,0.06], atmo: [0.96,0.42,0.18], nightGlow: [1.0,0.34,0.08] },
+      { id: 'forest',  name: '翡翠林海', en: 'VERDANT CANOPY',      ocean: -0.10, band: 0.0, spec: 0.6, glow: 0.4, lava: 0.0, landA: [0.12,0.32,0.22], landB: [0.28,0.48,0.30], oceanCol: [0.08,0.26,0.32], atmo: [0.40,0.82,0.68], nightGlow: [0.55,0.95,0.72] },
+      { id: 'ice',     name: '冰穹结晶', en: 'CRYOGENIC CITADEL',   ocean: -0.02, band: 0.0, spec: 1.2, glow: 0.7, lava: 0.0, landA: [0.64,0.76,0.86], landB: [0.86,0.92,0.98], oceanCol: [0.10,0.24,0.38], atmo: [0.55,0.84,1.00], nightGlow: [0.45,0.88,1.00] },
+      { id: 'gas',     name: '气态巨星', en: 'JOVIAN STORMFRONT',   ocean: -0.90, band: 0.88,spec: 0.2, glow: 0.0, lava: 0.0, landA: [0.76,0.62,0.46], landB: [0.42,0.52,0.68], oceanCol: [0.30,0.34,0.42], atmo: [0.86,0.74,0.56], nightGlow: [0.9,0.7,0.4] },
+      { id: 'desert',  name: '沙丘遗迹', en: 'ARID MONOLITHS',      ocean: -0.60, band: 0.0, spec: 0.25,glow: 0.6, lava: 0.0, landA: [0.58,0.44,0.30], landB: [0.78,0.64,0.46], oceanCol: [0.28,0.24,0.20], atmo: [0.94,0.72,0.46], nightGlow: [1.0,0.74,0.36] },
+      { id: 'crystal', name: '星晶异界', en: 'ASTRAL XENOCRYST',    ocean: -0.15, band: 0.0, spec: 1.3, glow: 1.4, lava: 0.3, landA: [0.16,0.18,0.34], landB: [0.38,0.28,0.58], oceanCol: [0.14,0.12,0.34], atmo: [0.72,0.52,0.98], nightGlow: [0.68,0.46,1.00] }
     ];
 
     const sharedSphereGeo = new THREE.SphereGeometry(1, 72, 54);
     const sharedCloudGeo = new THREE.SphereGeometry(1.018, 48, 36);
     const sharedAtmoGeo = new THREE.SphereGeometry(1.13, 48, 36);
     const sharedRingGeo = new THREE.RingGeometry(1.30, 2.40, 96, 1);
+    const sharedMoonGeo = new THREE.SphereGeometry(0.11, 20, 16);
+    const sharedGrazingGeo = new THREE.RingGeometry(1.82, 1.85, 64, 1);
 
-    // 360° Sky Dome
     const skyMat = new THREE.ShaderMaterial({
       vertexShader: SKY_VERT, fragmentShader: SKY_FRAG,
-      uniforms: { uTime: { value: 0 } },
-      side: THREE.BackSide, depthWrite: false
+      uniforms: { uTime: { value: 0 } }, side: THREE.BackSide, depthWrite: false
     });
-    const skyDome = new THREE.Mesh(new THREE.SphereGeometry(1400, 32, 24), skyMat);
+    const skyDome = new THREE.Mesh(new THREE.SphereGeometry(1500, 32, 24), skyMat);
     scene.add(skyDome);
 
-    // 6,000 GPU Starfield
     const STAR_COUNT = 6000;
     const starPos = new Float32Array(STAR_COUNT * 3);
     const starCol = new Float32Array(STAR_COUNT * 3);
     const starSize = new Float32Array(STAR_COUNT);
     for (let i = 0; i < STAR_COUNT; i++) {
       const ang = Math.random() * Math.PI * 2;
-      const rad = 45 + Math.pow(Math.random(), 0.7) * 520;
+      const rad = 45 + Math.pow(Math.random(), 0.7) * 540;
       starPos[i * 3] = Math.cos(ang) * rad;
       starPos[i * 3 + 1] = Math.sin(ang) * rad * 0.72;
       starPos[i * 3 + 2] = -Math.random() * 1100 + 80;
@@ -574,63 +763,59 @@
       uniforms: { uWarp: { value: 0 }, uPixelRatio: { value: dpr } },
       transparent: true, depthWrite: false, blending: THREE.AdditiveBlending
     });
-    const starField = new THREE.Points(starGeo, starMat);
-    scene.add(starField);
+    scene.add(new THREE.Points(starGeo, starMat));
 
     const SUN_DIR = new THREE.Vector3(0.68, 0.42, 0.60).normalize();
 
-    function createPlanetSlot() {
+    function createPlanetSlot(isPeripheral) {
       const group = new THREE.Group();
       const pUniforms = {
-        uSunDir: { value: SUN_DIR },
-        uSeed: { value: 1.0 },
-        uOceanLevel: { value: 0.0 },
-        uBandStrength: { value: 0.0 },
-        uSpecStrength: { value: 1.0 },
-        uNightGlowStrength: { value: 0.8 },
-        uLandA: { value: new THREE.Vector3(0.2, 0.4, 0.3) },
-        uLandB: { value: new THREE.Vector3(0.5, 0.5, 0.4) },
-        uOceanCol: { value: new THREE.Vector3(0.05, 0.2, 0.4) },
-        uAtmoCol: { value: new THREE.Vector3(0.4, 0.7, 1.0) },
+        uSunDir: { value: SUN_DIR }, uSeed: { value: 1.0 }, uTime: { value: 0.0 },
+        uOceanLevel: { value: 0.0 }, uBandStrength: { value: 0.0 },
+        uSpecStrength: { value: 1.0 }, uNightGlowStrength: { value: 0.8 }, uIsLava: { value: 0.0 },
+        uLandA: { value: new THREE.Vector3(0.2, 0.4, 0.3) }, uLandB: { value: new THREE.Vector3(0.5, 0.5, 0.4) },
+        uOceanCol: { value: new THREE.Vector3(0.05, 0.2, 0.4) }, uAtmoCol: { value: new THREE.Vector3(0.4, 0.7, 1.0) },
         uNightGlowCol: { value: new THREE.Vector3(1.0, 0.8, 0.4) }
       };
       const surfMesh = new THREE.Mesh(sharedSphereGeo, new THREE.ShaderMaterial({
         vertexShader: PLANET_VERT, fragmentShader: PLANET_FRAG, uniforms: pUniforms
       }));
-      const cloudUniforms = {
-        uSunDir: { value: SUN_DIR }, uTime: { value: 0 }, uSeed: { value: 1.0 }, uCloudAlpha: { value: 0.34 }
-      };
+      const cloudUniforms = { uSunDir: { value: SUN_DIR }, uTime: { value: 0 }, uSeed: { value: 1.0 }, uCloudAlpha: { value: 0.34 } };
       const cloudMesh = new THREE.Mesh(sharedCloudGeo, new THREE.ShaderMaterial({
-        vertexShader: CLOUD_VERT, fragmentShader: CLOUD_FRAG, uniforms: cloudUniforms,
-        transparent: true, depthWrite: false
+        vertexShader: CLOUD_VERT, fragmentShader: CLOUD_FRAG, uniforms: cloudUniforms, transparent: true, depthWrite: false
       }));
-      const atmoUniforms = {
-        uSunDir: { value: SUN_DIR }, uAtmoCol: { value: new THREE.Vector3(0.4, 0.7, 1.0) }
-      };
+      const atmoUniforms = { uSunDir: { value: SUN_DIR }, uAtmoCol: { value: new THREE.Vector3(0.4, 0.7, 1.0) } };
       const atmoMesh = new THREE.Mesh(sharedAtmoGeo, new THREE.ShaderMaterial({
         vertexShader: ATMO_VERT, fragmentShader: ATMO_FRAG, uniforms: atmoUniforms,
         side: THREE.BackSide, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending
       }));
       const ringUniforms = {
-        uPlanetCenter: { value: new THREE.Vector3() },
-        uPlanetRadius: { value: 36.0 },
+        uPlanetCenter: { value: new THREE.Vector3() }, uPlanetRadius: { value: 36.0 },
         uSunDir: { value: SUN_DIR },
-        uRingColA: { value: new THREE.Vector3(0.84, 0.78, 0.68) },
-        uRingColB: { value: new THREE.Vector3(0.55, 0.64, 0.76) }
+        uRingColA: { value: new THREE.Vector3(0.84, 0.78, 0.68) }, uRingColB: { value: new THREE.Vector3(0.55, 0.64, 0.76) }
       };
       const ringMesh = new THREE.Mesh(sharedRingGeo, new THREE.ShaderMaterial({
         vertexShader: RING_VERT, fragmentShader: RING_FRAG, uniforms: ringUniforms,
         side: THREE.DoubleSide, transparent: true, depthWrite: false
       }));
-      ringMesh.rotation.x = Math.PI * 0.42;
-      ringMesh.rotation.y = 0.24;
+      ringMesh.rotation.x = Math.PI * 0.42; ringMesh.rotation.y = 0.24;
 
-      group.add(surfMesh, cloudMesh, atmoMesh, ringMesh);
+      // Orbiting 3D Moon + Subtle Slingshot Grazing Halo (hero only)
+      const moonPivot = new THREE.Group();
+      const moonMesh = new THREE.Mesh(sharedMoonGeo, new THREE.MeshStandardMaterial({ color: 0xcbd5e1, roughness: 0.78, flatShading: true }));
+      moonMesh.position.set(1.52, 0.14, 0);
+      moonPivot.add(moonMesh);
+      const grazeRing = new THREE.Mesh(sharedGrazingGeo, new THREE.MeshBasicMaterial({
+        color: 0xf4d06f, transparent: true, opacity: isPeripheral ? 0.0 : 0.14, side: THREE.DoubleSide, depthWrite: false
+      }));
+      grazeRing.rotation.x = Math.PI * 0.5;
+
+      group.add(surfMesh, cloudMesh, atmoMesh, ringMesh, moonPivot, grazeRing);
       scene.add(group);
       return {
-        group, surfMesh, cloudMesh, atmoMesh, ringMesh,
+        group, surfMesh, cloudMesh, atmoMesh, ringMesh, moonPivot, grazeRing,
         pUniforms, cloudUniforms, atmoUniforms, ringUniforms,
-        biomeIdx: 0, radius: 36, hasRings: false, slingshotUsed: false
+        biomeIdx: 0, radius: 36, hasRings: false, slingshotUsed: false, isPeripheral: !!isPeripheral
       };
     }
 
@@ -646,6 +831,7 @@
       slot.pUniforms.uBandStrength.value = b.band;
       slot.pUniforms.uSpecStrength.value = b.spec;
       slot.pUniforms.uNightGlowStrength.value = b.glow;
+      slot.pUniforms.uIsLava.value = b.lava;
       slot.pUniforms.uLandA.value.set(b.landA[0], b.landA[1], b.landA[2]);
       slot.pUniforms.uLandB.value.set(b.landB[0], b.landB[1], b.landB[2]);
       slot.pUniforms.uOceanCol.value.set(b.oceanCol[0], b.oceanCol[1], b.oceanCol[2]);
@@ -656,40 +842,33 @@
       slot.atmoUniforms.uAtmoCol.value.set(b.atmo[0], b.atmo[1], b.atmo[2]);
       slot.ringUniforms.uPlanetRadius.value = radius;
       slot.ringMesh.visible = !!hasRings;
-      slot.ringMesh.rotation.x = Math.PI * (0.36 + (seed % 5) * 0.04);
-      slot.ringMesh.rotation.y = ((seed % 7) - 3) * 0.14;
+      slot.ringMesh.rotation.x = Math.PI * (0.36 + (Math.floor(seed) % 5) * 0.04);
+      slot.ringMesh.rotation.y = ((Math.floor(seed) % 7) - 3) * 0.14;
+      slot.moonPivot.visible = !slot.isPeripheral && ((Math.floor(seed) % 2 === 0) || b.id === 'earth' || b.id === 'ocean');
+      slot.grazeRing.visible = !slot.isPeripheral;
     }
 
-    // Gargantua Black Hole Milestone
+    // Gargantua Black Hole with Equatorial Disk + Vertical Einstein Lensing Arc
     const bhGroup = new THREE.Group();
-    const bhCore = new THREE.Mesh(
-      new THREE.SphereGeometry(1, 48, 36),
-      new THREE.MeshBasicMaterial({ color: 0x000000 })
-    );
+    const bhCore = new THREE.Mesh(new THREE.SphereGeometry(1, 48, 36), new THREE.MeshBasicMaterial({ color: 0x000000 }));
     const bhDiskUniforms = { uTime: { value: 0 } };
-    const bhDisk = new THREE.Mesh(
-      new THREE.RingGeometry(1.16, 4.2, 96, 1),
-      new THREE.ShaderMaterial({
-        vertexShader: BH_DISK_VERT, fragmentShader: BH_DISK_FRAG, uniforms: bhDiskUniforms,
-        side: THREE.DoubleSide, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending
-      })
-    );
+    const bhShaderMat = new THREE.ShaderMaterial({
+      vertexShader: BH_DISK_VERT, fragmentShader: BH_DISK_FRAG, uniforms: bhDiskUniforms,
+      side: THREE.DoubleSide, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending
+    });
+    const bhDisk = new THREE.Mesh(new THREE.RingGeometry(1.16, 4.2, 96, 1), bhShaderMat);
     bhDisk.rotation.x = Math.PI * 0.44;
-    const bhHalo = new THREE.Mesh(
-      new THREE.RingGeometry(1.02, 1.55, 64, 1),
-      new THREE.MeshBasicMaterial({ color: 0xf4d06f, transparent: true, opacity: 0.48, side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false })
-    );
-    bhGroup.add(bhCore, bhDisk, bhHalo);
+    const bhLensRing = new THREE.Mesh(new THREE.RingGeometry(1.16, 2.35, 96, 1), bhShaderMat);
+    bhGroup.add(bhCore, bhDisk, bhLensRing);
     bhGroup.scale.setScalar(56);
     bhGroup.visible = false;
     scene.add(bhGroup);
 
     // -------------------------------------------------------------------------
-    // 3. 3D ORIGAMI CRANE FLEET (14 Folded Cranes + Trails)
+    // 4. 3D ORIGAMI CRANE FLEET + WINGTIP TRAILS + WARP STREAK TUNNEL
     // -------------------------------------------------------------------------
     function createOrigamiCraneGeo() {
       const verts = new Float32Array([
-        // Left & Right wings + fuselage facets (pointing -Z)
         0, 0.08, -0.75,   -0.14, 0.0, 0.05,   0, -0.10, 0.15,
         0, 0.08, -0.75,    0, -0.10, 0.15,    0.14, 0.0, 0.05,
         -0.14, 0.0, 0.05, -0.95, 0.18, 0.30,  0, 0.02, 0.35,
@@ -711,7 +890,7 @@
       color: 0xdce4ee, emissive: 0x162438, emissiveIntensity: 0.25,
       roughness: 0.45, metalness: 0.10, flatShading: true, side: THREE.DoubleSide
     });
-    scene.add(new THREE.AmbientLight(0x4a648c, 0.85));
+    scene.add(new THREE.AmbientLight(0x4a648c, 0.90));
     const dirLight = new THREE.DirectionalLight(0xfff4de, 2.2);
     dirLight.position.copy(SUN_DIR).multiplyScalar(120);
     scene.add(dirLight);
@@ -722,8 +901,7 @@
     for (let i = 0; i < 14; i++) {
       const isLead = (i === 0);
       const mesh = new THREE.Mesh(craneGeo, isLead ? craneMatLead : craneMatWing);
-      const row = Math.ceil(i / 2);
-      const side = (i % 2 === 0) ? 1 : -1;
+      const row = Math.ceil(i / 2), side = (i % 2 === 0) ? 1 : -1;
       const bx = isLead ? 0 : side * (row * 1.35);
       const by = isLead ? 0 : (Math.sin(i * 1.7) * 0.55 - row * 0.18);
       const bz = isLead ? 0 : row * 1.45;
@@ -733,10 +911,43 @@
       cranes.push({ mesh, bx, by, bz, phase: i * 0.65 });
     }
 
+    // 420-particle zero-GC Wingtip Trail Buffer
+    const TRAIL_MAX = 420;
+    const trailPos = new Float32Array(TRAIL_MAX * 3);
+    const trailCol = new Float32Array(TRAIL_MAX * 3);
+    const trailAge = new Float32Array(TRAIL_MAX);
+    for (let i = 0; i < TRAIL_MAX; i++) trailAge[i] = 1.0;
+    const trailGeo = new THREE.BufferGeometry();
+    trailGeo.setAttribute('position', new THREE.BufferAttribute(trailPos, 3));
+    trailGeo.setAttribute('color', new THREE.BufferAttribute(trailCol, 3));
+    const trailMat = new THREE.PointsMaterial({
+      size: 0.48, vertexColors: true, transparent: true, opacity: 0.82,
+      blending: THREE.AdditiveBlending, depthWrite: false
+    });
+    scene.add(new THREE.Points(trailGeo, trailMat));
+    let trailHead = 0;
+
+    // 180-line GPU Warp Streak Tunnel
+    const STREAK_N = 180;
+    const streakPos = new Float32Array(STREAK_N * 6);
+    for (let i = 0; i < STREAK_N; i++) {
+      const ang = Math.random() * Math.PI * 2;
+      const r = 10 + Math.random() * 44;
+      const x = Math.cos(ang) * r, y = Math.sin(ang) * r * 0.75, z = -Math.random() * 140;
+      streakPos[i * 6] = x; streakPos[i * 6 + 1] = y; streakPos[i * 6 + 2] = z;
+      streakPos[i * 6 + 3] = x; streakPos[i * 6 + 4] = y; streakPos[i * 6 + 5] = z - 4;
+    }
+    const streakGeo = new THREE.BufferGeometry();
+    streakGeo.setAttribute('position', new THREE.BufferAttribute(streakPos, 3));
+    const streakMat = new THREE.LineBasicMaterial({ color: 0xdbeafe, transparent: true, opacity: 0.0, blending: THREE.AdditiveBlending, depthWrite: false });
+    const streakLines = new THREE.LineSegments(streakGeo, streakMat);
+    scene.add(streakLines);
+
     // -------------------------------------------------------------------------
-    // 4. CINEMATIC CORRIDOR LAYOUT, RESONANCE GATES & GAMEPLAY
+    // 5. CORRIDOR LAYOUT, 3D RELICS + TRACTOR BEAM + SUPPLY EXTRACTION DEPOT
     // -------------------------------------------------------------------------
-    const HERO_SLOTS = [createPlanetSlot(), createPlanetSlot(), createPlanetSlot()];
+    const HERO_SLOTS = [createPlanetSlot(false), createPlanetSlot(false), createPlanetSlot(false)];
+    const PERIPH_SLOTS = [createPlanetSlot(true), createPlanetSlot(true)];
     const ARCHETYPES = [
       { ox: -44, oy:  18, rad: 36 },
       { ox:  46, oy: -14, rad: 38 },
@@ -744,59 +955,406 @@
       { ox:  42, oy:  22, rad: 40 },
       { ox:  58, oy:   4, rad: 44 }
     ];
-    let worldSeq = 0;
-    let totalDistKly = 0;
-    let stardust = 0;
-    let combo = 0;
+    let worldSeq = 0, totalDistKly = 0, fuel = 100, combo = 0;
+    let cargo = []; // max 6 unsecured relics
 
-    // 3D Resonance Gates Pool
+    function placeHeroSlot(slot, zPos, forceBiomeIdx, forceRings, forceSeed) {
+      const idx = worldSeq++;
+      const arch = ARCHETYPES[idx % ARCHETYPES.length];
+      const biomeIdx = (forceBiomeIdx !== undefined) ? forceBiomeIdx : ((idx * 3 + 1) % BIOMES.length);
+      const hasRings = (forceRings !== undefined) ? forceRings : ((idx % 3 === 1) || (biomeIdx === 5));
+      const seed = (forceSeed !== undefined) ? forceSeed : ((idx + 1) * 17.31);
+      applyBiomeToSlot(slot, seed, biomeIdx, arch.rad, hasRings);
+      slot.group.position.set(arch.ox, arch.oy, zPos);
+      slot.ringUniforms.uPlanetCenter.value.copy(slot.group.position);
+      if (idx > 0 && idx % 6 === 0) {
+        bhGroup.visible = true;
+        bhGroup.position.set(-arch.ox * 1.15, 16, zPos - 150);
+      }
+      return slot;
+    }
+    HERO_SLOTS.forEach((slot, i) => placeHeroSlot(slot, -190 - i * 320, i === 0 ? 0 : undefined));
+    PERIPH_SLOTS.forEach((slot, i) => {
+      applyBiomeToSlot(slot, 41 + i * 29, (i * 4 + 2) % BIOMES.length, 24, i === 0);
+      slot.group.position.set(i === 0 ? -175 : 185, i === 0 ? 78 : -64, -360 - i * 280);
+      slot.ringUniforms.uPlanetCenter.value.copy(slot.group.position);
+    });
+
+    // Resonance Gates
     const gateGeo = new THREE.TorusGeometry(4.2, 0.14, 10, 48);
     const gateMat = new THREE.MeshBasicMaterial({ color: 0x8fd8c0, transparent: true, opacity: 0.88 });
     const gates = [];
     for (let i = 0; i < 4; i++) {
-      const gm = new THREE.Mesh(gateGeo, gateMat);
-      scene.add(gm);
+      const gm = new THREE.Mesh(gateGeo, gateMat); scene.add(gm);
       gates.push({ mesh: gm, active: true });
     }
-
-    function placeHeroSlot(slot, zPos, forceBiomeIdx) {
-      const idx = worldSeq++;
-      const arch = ARCHETYPES[idx % ARCHETYPES.length];
-      const biomeIdx = (forceBiomeIdx !== undefined) ? forceBiomeIdx : ((idx * 3 + 1) % BIOMES.length);
-      const hasRings = (idx % 3 === 1) || (biomeIdx === 5);
-      const seed = (idx + 1) * 17.31;
-      applyBiomeToSlot(slot, seed, biomeIdx, arch.rad, hasRings);
-      slot.group.position.set(arch.ox, arch.oy, zPos);
-      slot.ringUniforms.uPlanetCenter.value.copy(slot.group.position);
-      return slot;
-    }
-
-    // Initialize 3 staggered hero planets with 320-unit spacing (zero overlap!)
-    HERO_SLOTS.forEach((slot, i) => placeHeroSlot(slot, -190 - i * 320, i === 0 ? 0 : undefined));
-
     function resetGatesAhead() {
       const zBase = fleetGroup.position.z - 95;
       gates.forEach((g, i) => {
-        g.active = true;
-        g.mesh.visible = true;
+        g.active = true; g.mesh.visible = true;
         g.mesh.position.set(Math.sin(i * 1.1) * 7.5, Math.cos(i * 0.9) * 3.2, zBase - i * 52);
       });
     }
     resetGatesAhead();
 
+    // 3D Relic Beacons + Visible 3D Tractor Beam
+    const relicGeo = new THREE.OctahedronGeometry(1.35, 0);
+    const relicMat = new THREE.MeshStandardMaterial({
+      color: 0xf4d06f, emissive: 0xd97706, emissiveIntensity: 0.75,
+      roughness: 0.25, metalness: 0.65, flatShading: true
+    });
+    const relics = [];
+    for (let i = 0; i < 3; i++) {
+      const rm = new THREE.Mesh(relicGeo, relicMat);
+      rm.position.set((i - 1) * 8, Math.sin(i) * 3, -120 - i * 85);
+      scene.add(rm);
+      relics.push({ mesh: rm, active: true, pulling: false, tier: i === 2 ? 'epic' : (i === 1 ? 'rare' : 'common') });
+    }
+    const beamPos = new Float32Array(6);
+    const beamGeo = new THREE.BufferGeometry();
+    beamGeo.setAttribute('position', new THREE.BufferAttribute(beamPos, 3));
+    const beamLine = new THREE.Line(beamGeo, new THREE.LineBasicMaterial({ color: 0x8fd8c0, transparent: true, opacity: 0.92 }));
+    beamLine.visible = false;
+    scene.add(beamLine);
+
+    // 3D Supply & Extraction Depot
+    const depotGroup = new THREE.Group();
+    const depotRingA = new THREE.Mesh(new THREE.TorusGeometry(6.5, 0.22, 10, 48), new THREE.MeshBasicMaterial({ color: 0x38bdf8 }));
+    const depotRingB = new THREE.Mesh(new THREE.TorusGeometry(4.5, 0.16, 10, 40), new THREE.MeshBasicMaterial({ color: 0x8fd8c0 }));
+    depotRingB.rotation.x = Math.PI * 0.5;
+    depotGroup.add(depotRingA, depotRingB);
+    depotGroup.position.set(-14, 2, -310);
+    scene.add(depotGroup);
+    let depotUsed = false;
+
     // -------------------------------------------------------------------------
-    // 5. INPUT, CAMERA MODES, STUDIO SHEET & LIGHTWEIGHT WEBAUDIO
+    // 6. GAMEPLAY ACTIONS: CARGO, EXTRACTION, FOCUS POMODORO, CARDS & AUDIO
+    // -------------------------------------------------------------------------
+    const toastEl = document.getElementById('toast');
+    let toastTimer = 0;
+    function showToast(msg) {
+      toastEl.textContent = msg; toastEl.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toastEl.classList.remove('show'), 2800);
+    }
+
+    function renderCargoHUD() {
+      const row = document.getElementById('cargo-row');
+      let html = '';
+      for (let i = 0; i < 6; i++) {
+        const it = cargo[i];
+        const cls = it ? ('filled' + (it.tier === 'epic' ? ' epic' : (it.tier === 'mythic' ? ' mythic' : ''))) : '';
+        html += `<span class="cargo-slot ${cls}"></span>`;
+      }
+      if (cargo.length > 0) {
+        const sum = cargo.reduce((a, b) => a + b.val, 0);
+        html += `<span class="cargo-label">${cargo.length}/6 (${sum} ST)</span>`;
+      }
+      row.innerHTML = html;
+    }
+    renderCargoHUD();
+
+    function pushRelicToCargo(tier) {
+      if (cargo.length >= 6) {
+        showToast('✦ 货舱已满 (6/6)，请靠近补给站或完成专注安全撤离 ✦');
+        return false;
+      }
+      const val = tier === 'mythic' ? 320 : (tier === 'epic' ? 210 : (tier === 'rare' ? 140 : 90));
+      cargo.push({ tier, val });
+      renderCargoHUD();
+      return true;
+    }
+
+    function extractCargo(sourceName, extraMult) {
+      const tb = getTraitBonuses();
+      fuel = 100;
+      if (!cargo.length) {
+        showToast(`✦ 【${sourceName}】能源已充满 100% ✦`);
+        return 0;
+      }
+      const raw = cargo.reduce((a, b) => a + b.val, 0);
+      const holdMult = 1 + Math.min(1.5, cargo.length * 0.18);
+      const gain = Math.round(raw * holdMult * (extraMult || 1.0) * tb.stardustMul);
+      const bonusCore = cargo.length >= 4 ? 1 : 0;
+      const cnt = cargo.length;
+      cargo = [];
+      renderCargoHUD();
+      save.stardust += gain;
+      save.cores += bonusCore;
+      persistSave();
+      updateCardsButton();
+      chime(880);
+      showToast(`✦ 【${sourceName}撤离】交割 ${cnt} 件战利品 · +${gain} 星尘${bonusCore ? ' · +1 星核' : ''} ✦`);
+      return gain;
+    }
+
+    // Audio: Classical Track 8 + WebAudio Chimes
+    let audioCtx = null, chimeOn = true, musicEl = null, musicOn = false;
+    function chime(freq) {
+      if (!chimeOn && !musicOn) return;
+      try {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+        o.type = 'sine'; o.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        o.frequency.exponentialRampToValueAtTime(freq * 1.48, audioCtx.currentTime + 0.22);
+        g.gain.setValueAtTime(0.07, audioCtx.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.25);
+        o.connect(g); g.connect(audioCtx.destination);
+        o.start(); o.stop(audioCtx.currentTime + 0.26);
+      } catch (_) {}
+    }
+
+    document.getElementById('btn-music').addEventListener('click', (e) => {
+      musicOn = !musicOn;
+      if (!musicEl) {
+        musicEl = new Audio();
+        musicEl.crossOrigin = 'anonymous';
+        musicEl.loop = true;
+        musicEl.src = './assets/audio/scores/track_08.mp3';
+        musicEl.addEventListener('error', () => {
+          if (!musicEl._fb) {
+            musicEl._fb = true;
+            musicEl.src = 'https://jackeyloveseven.github.io/starfield/assets/audio/scores/track_08.mp3';
+            if (musicOn) musicEl.play().catch(() => {});
+          }
+        });
+      }
+      if (musicOn) {
+        musicEl.play().catch(() => {});
+        e.target.textContent = '音乐: 开';
+        e.target.classList.add('active');
+        showToast('✦ 正在播放《圣·桑：引子与回旋随想曲 Op.28》✦');
+      } else {
+        musicEl.pause();
+        e.target.textContent = '音乐: 关';
+        e.target.classList.remove('active');
+      }
+    });
+
+    // Mutually-exclusive Sheet Manager
+    const SHEET_IDS = ['studio-sheet', 'focus-sheet', 'cards-sheet'];
+    function openSheet(id) {
+      const target = document.getElementById(id);
+      const wasOpen = target.classList.contains('open');
+      SHEET_IDS.forEach(s => document.getElementById(s).classList.remove('open'));
+      if (!wasOpen) target.classList.add('open');
+    }
+    document.querySelectorAll('[data-close-sheet]').forEach(btn => {
+      btn.addEventListener('click', () => document.getElementById(btn.getAttribute('data-close-sheet')).classList.remove('open'));
+    });
+
+    // Focus Pomodoro Engine
+    let focusState = 'IDLE'; // IDLE | RUNNING | WARNING
+    let focusTargetSec = 25 * 60, focusElapsed = 0, focusTimerId = null, warnTimerId = null, wakeLock = null, harvestAcc = 0;
+    const focusTicker = document.getElementById('focus-ticker');
+    const focusTimerText = document.getElementById('focus-timer-text');
+
+    function updateFocusUI() {
+      const rem = Math.max(0, focusTargetSec - focusElapsed);
+      const m = Math.floor(rem / 60), s = Math.floor(rem % 60);
+      focusTimerText.textContent = `${m < 10 ? '0' : ''}${m}:${s < 10 ? '0' : ''}${s}`;
+      focusTicker.classList.toggle('show', focusState !== 'IDLE');
+      focusTicker.classList.toggle('warn', focusState === 'WARNING');
+      document.getElementById('btn-start-focus').style.display = focusState === 'IDLE' ? 'inline-flex' : 'none';
+      document.getElementById('btn-abort-focus').style.display = focusState !== 'IDLE' ? 'inline-flex' : 'none';
+    }
+
+    function startFocus(minutes) {
+      focusTargetSec = Math.max(60, minutes * 60);
+      focusElapsed = 0; harvestAcc = 0; focusState = 'RUNNING';
+      openSheet('focus-sheet'); // closes it
+      SHEET_IDS.forEach(s => document.getElementById(s).classList.remove('open'));
+      if ('wakeLock' in navigator) { navigator.wakeLock.request('screen').then(w => { wakeLock = w; }).catch(() => {}); }
+      clearInterval(focusTimerId);
+      focusTimerId = setInterval(() => {
+        if (focusState !== 'RUNNING') return;
+        focusElapsed++;
+        harvestAcc++;
+        if (harvestAcc >= 25) {
+          harvestAcc = 0;
+          pushRelicToCargo(Math.random() < 0.35 ? 'rare' : 'common');
+        }
+        updateFocusUI();
+        if (focusElapsed >= focusTargetSec) completeFocus();
+      }, 1000);
+      updateFocusUI();
+      showToast(`✦ 深空专注 ${minutes} 分钟启动 · 切出应用将导致坠机清舱 ✦`);
+      chime(523.25);
+    }
+
+    function completeFocus() {
+      clearInterval(focusTimerId); clearTimeout(warnTimerId);
+      focusState = 'IDLE';
+      if (wakeLock) { try { wakeLock.release(); } catch (_) {} wakeLock = null; }
+      updateFocusUI();
+      const mins = Math.round(focusTargetSec / 60);
+      const earnedCores = Math.max(1, Math.min(3, Math.floor(mins / 15) || 1));
+      const baseSt = mins * 120;
+      save.totalFocusMin += mins;
+      save.cores += earnedCores;
+      save.stardust += baseSt;
+      persistSave();
+      updateCardsButton();
+      extractCargo('专注圆满', 1.5);
+      showToast(`✦ 专注达成 ${mins}m！+${earnedCores} 星核 · +${baseSt} 星尘 ✦`);
+      chime(1046.5);
+    }
+
+    function failFocus() {
+      clearInterval(focusTimerId); clearTimeout(warnTimerId);
+      focusState = 'IDLE';
+      if (wakeLock) { try { wakeLock.release(); } catch (_) {} wakeLock = null; }
+      updateFocusUI();
+      fuel = 0;
+      const lostCnt = cargo.length;
+      cargo = [];
+      renderCargoHUD();
+      const cf = document.getElementById('crash-flash');
+      cf.classList.add('show');
+      setTimeout(() => cf.classList.remove('show'), 1400);
+      showToast(`✦ 离开星舰导致坠入奇点 · 燃料归零${lostCnt ? ` · 损失 ${lostCnt} 件未撤离货舱` : ''} ✦`);
+    }
+
+    document.addEventListener('visibilitychange', () => {
+      if (focusState === 'RUNNING' && document.hidden) {
+        focusState = 'WARNING';
+        updateFocusUI();
+        warnTimerId = setTimeout(() => { if (focusState === 'WARNING') failFocus(); }, 10000);
+      } else if (focusState === 'WARNING' && !document.hidden) {
+        clearTimeout(warnTimerId);
+        focusState = 'RUNNING';
+        updateFocusUI();
+        showToast('✦ 引力约束已重新稳定 · 继续专注航行 ✦');
+      }
+    });
+
+    let selectedFocusMin = 25;
+    document.querySelectorAll('#focus-presets .tile-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('#focus-presets .tile-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        selectedFocusMin = Number(btn.getAttribute('data-min')) || 25;
+      });
+    });
+    document.getElementById('btn-focus').addEventListener('click', () => openSheet('focus-sheet'));
+    focusTicker.addEventListener('click', () => openSheet('focus-sheet'));
+    document.getElementById('btn-start-focus').addEventListener('click', () => startFocus(selectedFocusMin));
+    document.getElementById('btn-abort-focus').addEventListener('click', failFocus);
+
+    // Planet Core Hatch & Ceremonial Card Collection
+    const PREFIXES = ['苍穹', '汐境', '炽渊', '翠微', '玄冰', '星澜', '流沙', '紫晶'];
+    const SUFFIXES = ['I', 'II', 'III', 'IV', 'V', 'VII', 'IX', 'PRIME'];
+    const TRAITS = [
+      { key: 'stardust', label: '星尘收益 +12%', val: 0.12 },
+      { key: 'tractor',  label: '牵引光束 +15%', val: 0.15 },
+      { key: 'slingshot',label: '弹弓倍率 +12%', val: 0.12 },
+      { key: 'fuel',     label: '曲速节能 +10%', val: 0.10 }
+    ];
+
+    function updateCardsButton() {
+      document.getElementById('btn-cards').textContent = `星核 (${save.cores})`;
+      document.getElementById('tab-archive').textContent = `我的星图 (${save.cards.length})`;
+      const hatchBtn = document.getElementById('btn-hatch-core');
+      hatchBtn.disabled = save.cores <= 0;
+      hatchBtn.textContent = save.cores > 0 ? `✦ 唤醒 1 颗星核（余 ${save.cores}）` : '暂无星核（专注或满舱撤离获取）';
+      const tb = getTraitBonuses();
+      document.getElementById('cards-synergy-line').textContent = save.cards.length
+        ? `词条总加成：星尘×${tb.stardustMul.toFixed(2)} · 牵引×${tb.tractorMul.toFixed(2)} · 弹弓×${tb.slingMul.toFixed(2)}`
+        : '词条加成：无（孵化星核解锁永久被动）';
+      renderCardsArchive();
+    }
+
+    function renderCardsArchive() {
+      const grid = document.getElementById('cards-grid');
+      if (!save.cards.length) {
+        grid.innerHTML = '<div style="grid-column:1/-1;font-size:12px;color:var(--dim);padding:12px 0;">尚未唤醒任何星球卡牌，点击上方「星核孵化」开启你的第一颗 3D 星球。</div>';
+        return;
+      }
+      grid.innerHTML = save.cards.map((c, idx) => `
+        <button class="card-item rarity-${c.rarity}" data-card-idx="${idx}">
+          <div class="card-tag">${c.rarityLabel}${c.hasRings ? ' · 星环' : ''}</div>
+          <div class="card-name">${c.name}</div>
+          <div class="card-meta">${BIOMES[c.biomeIdx].name}<br>${c.traitLabel}</div>
+        </button>
+      `).join('');
+      grid.querySelectorAll('[data-card-idx]').forEach(el => {
+        el.addEventListener('click', () => {
+          const c = save.cards[Number(el.getAttribute('data-card-idx'))];
+          if (!c) return;
+          const h = getNearestAheadHero();
+          applyBiomeToSlot(h, c.seed, c.biomeIdx, h.radius, c.hasRings);
+          SHEET_IDS.forEach(s => document.getElementById(s).classList.remove('open'));
+          showToast(`✦ 已将【${c.name}】召唤至前方航道 ✦`);
+          chime(659.25);
+        });
+      });
+    }
+
+    function hatchCore() {
+      if (save.cores <= 0) return;
+      save.cores--;
+      const rRoll = Math.random();
+      const rarity = rRoll < 0.08 ? 'mythic' : (rRoll < 0.28 ? 'epic' : (rRoll < 0.62 ? 'rare' : 'common'));
+      const rarityLabel = rarity === 'mythic' ? 'MYTHIC // 神话奇观' : (rarity === 'epic' ? 'EPIC // 史诗星域' : (rarity === 'rare' ? 'RARE // 稀有行星' : 'COMMON // 行星档案'));
+      const biomeIdx = Math.floor(Math.random() * BIOMES.length);
+      const seed = Math.round((Math.random() * 899 + 100) * 100) / 100;
+      const hasRings = (rarity === 'mythic' || rarity === 'epic') ? (Math.random() < 0.72) : (Math.random() < 0.30);
+      const tr = TRAITS[Math.floor(Math.random() * TRAITS.length)];
+      const card = {
+        name: `${PREFIXES[biomeIdx]}·${SUFFIXES[Math.floor(Math.random() * SUFFIXES.length)]}`,
+        rarity, rarityLabel, biomeIdx, seed, hasRings,
+        traitKey: tr.key, traitVal: tr.val, traitLabel: tr.label
+      };
+      save.cards.unshift(card);
+      persistSave();
+      updateCardsButton();
+
+      // Summon this exact 3D planet into the live GPU hero slot right ahead & frame it!
+      const h = getNearestAheadHero();
+      applyBiomeToSlot(h, card.seed, card.biomeIdx, 38, card.hasRings);
+      h.group.position.set(10, 4, fleetGroup.position.z - 125);
+      h.ringUniforms.uPlanetCenter.value.copy(h.group.position);
+
+      SHEET_IDS.forEach(s => document.getElementById(s).classList.remove('open'));
+      document.getElementById('rev-rarity').textContent = card.rarityLabel;
+      document.getElementById('rev-name').textContent = card.name;
+      document.getElementById('rev-desc').textContent = `${BIOMES[card.biomeIdx].name}（${BIOMES[card.biomeIdx].en}）${card.hasRings ? ' · 含 3D 卡西尼行星环' : ''}`;
+      document.getElementById('rev-trait').textContent = `永久被动词条：${card.traitLabel}`;
+      document.getElementById('reveal-overlay').classList.add('show');
+      chime(784);
+    }
+
+    document.getElementById('btn-cards').addEventListener('click', () => openSheet('cards-sheet'));
+    document.getElementById('tab-hatch').addEventListener('click', () => {
+      document.getElementById('tab-hatch').classList.add('active');
+      document.getElementById('tab-archive').classList.remove('active');
+      document.getElementById('hatch-pane').style.display = 'block';
+      document.getElementById('archive-pane').style.display = 'none';
+    });
+    document.getElementById('tab-archive').addEventListener('click', () => {
+      document.getElementById('tab-archive').classList.add('active');
+      document.getElementById('tab-hatch').classList.remove('active');
+      document.getElementById('hatch-pane').style.display = 'none';
+      document.getElementById('archive-pane').style.display = 'block';
+    });
+    document.getElementById('btn-hatch-core').addEventListener('click', hatchCore);
+    document.getElementById('btn-close-reveal').addEventListener('click', () => {
+      document.getElementById('reveal-overlay').classList.remove('show');
+    });
+    updateCardsButton();
+
+    // -------------------------------------------------------------------------
+    // 7. INPUT, STUDIO & NAVIGATION
     // -------------------------------------------------------------------------
     let steerX = 0, steerY = 0, targetSteerX = 0, targetSteerY = 0;
     let dragging = false, lastPx = 0, lastPy = 0;
     let warpHeld = false, warpBoost = 0, slingshotTimer = 0;
-    let camMode = 0; // 0: 电影巡航, 1: 旗舰追随, 2: 自由环视
-    const CAM_NAMES = ['电影巡航', '旗舰追随', '自由环视'];
+    let camMode = 0;
+    const CAM_NAMES = ['巡航', '追随', '环视'];
     let orbitYaw = 0, orbitPitch = 0.16, camDist = 22;
 
-    canvas.addEventListener('pointerdown', (e) => {
-      dragging = true; lastPx = e.clientX; lastPy = e.clientY;
-    }, { passive: true });
+    canvas.addEventListener('pointerdown', (e) => { dragging = true; lastPx = e.clientX; lastPy = e.clientY; }, { passive: true });
     window.addEventListener('pointermove', (e) => {
       if (!dragging) return;
       const dx = (e.clientX - lastPx) / Math.max(240, window.innerWidth);
@@ -806,39 +1364,12 @@
         orbitYaw -= dx * 3.2;
         orbitPitch = Math.max(-0.9, Math.min(0.9, orbitPitch + dy * 2.4));
       } else {
-        targetSteerX = Math.max(-1, Math.min(1, targetSteerX + dx * 3.2));
-        targetSteerY = Math.max(-1, Math.min(1, targetSteerY - dy * 2.6));
+        targetSteerX = Math.max(-1, Math.min(1, targetSteerX + dx * 3.4));
+        targetSteerY = Math.max(-1, Math.min(1, targetSteerY - dy * 2.8));
       }
     }, { passive: true });
     window.addEventListener('pointerup', () => { dragging = false; }, { passive: true });
-    window.addEventListener('wheel', (e) => {
-      camDist = Math.max(10, Math.min(48, camDist + e.deltaY * 0.02));
-    }, { passive: true });
-
-    let audioCtx = null, audioOn = false;
-    function chime(freq) {
-      if (!audioOn) return;
-      try {
-        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        if (audioCtx.state === 'suspended') audioCtx.resume();
-        const o = audioCtx.createOscillator(), g = audioCtx.createGain();
-        o.type = 'sine'; o.frequency.setValueAtTime(freq, audioCtx.currentTime);
-        o.frequency.exponentialRampToValueAtTime(freq * 1.48, audioCtx.currentTime + 0.22);
-        g.gain.setValueAtTime(0.08, audioCtx.currentTime);
-        g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.25);
-        o.connect(g); g.connect(audioCtx.destination);
-        o.start(); o.stop(audioCtx.currentTime + 0.26);
-      } catch (_) {}
-    }
-
-    const toastEl = document.getElementById('toast');
-    let toastTimer = 0;
-    function showToast(msg) {
-      toastEl.textContent = msg;
-      toastEl.classList.add('show');
-      clearTimeout(toastTimer);
-      toastTimer = setTimeout(() => toastEl.classList.remove('show'), 2600);
-    }
+    window.addEventListener('wheel', (e) => { camDist = Math.max(10, Math.min(48, camDist + e.deltaY * 0.02)); }, { passive: true });
 
     function getNearestAheadHero() {
       let best = HERO_SLOTS[0], bestDz = 1e9;
@@ -849,46 +1380,38 @@
       return best;
     }
 
-    // Build Biome Studio Grid
-    const studioSheet = document.getElementById('studio-sheet');
     const biomeGrid = document.getElementById('biome-grid');
     BIOMES.forEach((b, idx) => {
       const btn = document.createElement('button');
-      btn.className = 'biome-btn' + (idx === 0 ? ' active' : '');
-      btn.innerHTML = `${b.name}<small>${b.en}</small>`;
+      btn.className = 'tile-btn' + (idx === 0 ? ' active' : '');
+      btn.innerHTML = `<b>${b.name}</b><small>${b.en}</small>`;
       btn.addEventListener('click', () => {
         const h = getNearestAheadHero();
         applyBiomeToSlot(h, Math.random() * 99 + 1, idx, h.radius, h.hasRings);
-        biomeGrid.querySelectorAll('.biome-btn').forEach((el, j) => el.classList.toggle('active', j === idx));
-        chime(587.3);
-        showToast(`✦ 主星已实时重塑为【${b.name}】✦`);
+        biomeGrid.querySelectorAll('.tile-btn').forEach((el, j) => el.classList.toggle('active', j === idx));
+        chime(587.3); showToast(`✦ 主星已实时重塑为【${b.name}】✦`);
       });
       biomeGrid.appendChild(btn);
     });
 
-    document.getElementById('btn-studio').addEventListener('click', () => studioSheet.classList.toggle('open'));
-    document.getElementById('btn-close-studio').addEventListener('click', () => studioSheet.classList.remove('open'));
+    document.getElementById('btn-studio').addEventListener('click', () => openSheet('studio-sheet'));
     document.getElementById('btn-reroll').addEventListener('click', () => {
       const h = getNearestAheadHero();
       const nextB = Math.floor(Math.random() * BIOMES.length);
       applyBiomeToSlot(h, Math.random() * 999 + 1, nextB, 34 + Math.random() * 10, Math.random() < 0.45);
-      biomeGrid.querySelectorAll('.biome-btn').forEach((el, j) => el.classList.toggle('active', j === nextB));
-      chime(659.2);
-      showToast(`✦ 随机生成【${BIOMES[nextB].name}】✦`);
+      biomeGrid.querySelectorAll('.tile-btn').forEach((el, j) => el.classList.toggle('active', j === nextB));
+      chime(659.2); showToast(`✦ 随机生成【${BIOMES[nextB].name}】✦`);
     });
     document.getElementById('btn-rings').addEventListener('click', () => {
       const h = getNearestAheadHero();
-      h.hasRings = !h.hasRings;
-      h.ringMesh.visible = h.hasRings;
-      chime(523.2);
-      showToast(h.hasRings ? '✦ 3D 卡西尼行星环已开启 ✦' : '✦ 行星环已收起 ✦');
+      h.hasRings = !h.hasRings; h.ringMesh.visible = h.hasRings;
+      chime(523.2); showToast(h.hasRings ? '✦ 3D 卡西尼行星环已开启 ✦' : '✦ 行星环已收起 ✦');
     });
     document.getElementById('btn-bh').addEventListener('click', () => {
       bhGroup.visible = !bhGroup.visible;
       if (bhGroup.visible) {
         bhGroup.position.set(42, 14, fleetGroup.position.z - 220);
-        showToast('✦ 卡冈图雅黑洞已在前方视界升起 ✦');
-        chime(220);
+        showToast('✦ 卡冈图雅黑洞已在前方视界升起 ✦'); chime(220);
       } else {
         showToast('✦ 已隐藏黑洞里程碑 ✦');
       }
@@ -898,15 +1421,7 @@
       e.target.textContent = CAM_NAMES[camMode];
       showToast(`✦ 机位切换：${CAM_NAMES[camMode]} ✦`);
     });
-    document.getElementById('btn-audio').addEventListener('click', (e) => {
-      audioOn = !audioOn;
-      e.target.textContent = audioOn ? '声效: 开' : '声效: 关';
-      e.target.classList.toggle('active', audioOn);
-      if (audioOn) chime(523.25);
-    });
-    document.getElementById('btn-back-v2').addEventListener('click', () => {
-      window.location.href = './starfield.html';
-    });
+    document.getElementById('btn-back-v2').addEventListener('click', () => { window.location.href = './starfield.html'; });
     document.getElementById('btn-next-world').addEventListener('click', () => {
       const h = getNearestAheadHero();
       const jumpZ = h.group.position.z + h.radius * 3.1;
@@ -916,6 +1431,12 @@
         resetGatesAhead();
         chime(784);
         showToast(`✦ 曲速跃迁至【${BIOMES[h.biomeIdx].name}】近地轨道 ✦`);
+      }
+    });
+    document.getElementById('btn-dock-extract').addEventListener('click', () => {
+      if (!depotUsed && fleetGroup.position.distanceTo(depotGroup.position) < 85) {
+        depotUsed = true;
+        extractCargo('补给站', 1.15);
       }
     });
 
@@ -931,10 +1452,11 @@
     });
 
     // -------------------------------------------------------------------------
-    // 6. MAIN GPU RENDER LOOP (60-120 FPS Target)
+    // 8. MAIN GPU RENDER LOOP (60-120 FPS Target)
     // -------------------------------------------------------------------------
     const hudWorld = document.getElementById('hud-world');
     const hudStats = document.getElementById('hud-stats');
+    const dockExtractBtn = document.getElementById('btn-dock-extract');
     let lastT = performance.now(), fpsFrames = 0, fpsLast = lastT, fpsNow = 60;
 
     function animate(now) {
@@ -942,6 +1464,7 @@
       const dt = Math.min(0.05, Math.max(0.001, (now - lastT) * 0.001));
       lastT = now;
       const tSec = now * 0.001;
+      const tb = getTraitBonuses();
 
       fpsFrames++;
       if (now - fpsLast >= 500) {
@@ -949,7 +1472,6 @@
         fpsFrames = 0; fpsLast = now;
       }
 
-      // Smooth steering & decay
       if (!dragging && camMode !== 2) {
         targetSteerX *= Math.exp(-dt * 1.4);
         targetSteerY *= Math.exp(-dt * 1.4);
@@ -959,10 +1481,13 @@
 
       warpBoost = Math.max(0, warpBoost - dt * 1.1);
       if (slingshotTimer > 0) slingshotTimer = Math.max(0, slingshotTimer - dt);
-      const targetWarp = warpHeld ? 2.4 : (slingshotTimer > 0 ? 1.8 : 0.0);
+      const canWarp = fuel > 1.0;
+      const targetWarp = (warpHeld && canWarp) ? 2.4 : (slingshotTimer > 0 ? 1.8 * tb.slingMul : 0.0);
       const effWarp = Math.max(warpBoost, targetWarp);
-      const speed = 12.5 * (1 + effWarp * 2.1);
+      if (warpHeld && canWarp) fuel = Math.max(0, fuel - dt * 3.8 * tb.fuelSave);
+      else fuel = Math.min(100, fuel + dt * 0.8);
 
+      const speed = (fuel <= 0.5 ? 4.5 : 12.5) * (1 + effWarp * 2.1);
       fleetGroup.position.z -= speed * dt;
       fleetGroup.position.x = THREE.MathUtils.lerp(fleetGroup.position.x, steerX * 14, Math.min(1, dt * 4.5));
       fleetGroup.position.y = THREE.MathUtils.lerp(fleetGroup.position.y, steerY * 8, Math.min(1, dt * 4.5));
@@ -970,23 +1495,54 @@
       fleetGroup.rotation.x = steerY * 0.22;
       totalDistKly += speed * dt * 0.08;
 
-      // Subtle origami wing breathing
       for (let i = 0; i < cranes.length; i++) {
         const c = cranes[i];
         c.mesh.position.y = c.by + Math.sin(tSec * 2.4 + c.phase) * 0.16;
         c.mesh.rotation.z = Math.sin(tSec * 2.4 + c.phase) * 0.08;
       }
 
-      // Update shaders & recycle passed planets cleanly
+      // Emit Wingtip Trails behind lead & wingmen
+      const emitCranes = [0, 1, 2, 5, 6];
+      for (let ei = 0; ei < emitCranes.length; ei++) {
+        const cm = cranes[emitCranes[ei]].mesh;
+        const idx3 = trailHead * 3;
+        trailPos[idx3] = fleetGroup.position.x + cm.position.x;
+        trailPos[idx3 + 1] = fleetGroup.position.y + cm.position.y;
+        trailPos[idx3 + 2] = fleetGroup.position.z + cm.position.z + 0.65;
+        trailAge[trailHead] = 0.0;
+        trailHead = (trailHead + 1) % TRAIL_MAX;
+      }
+      for (let i = 0; i < TRAIL_MAX; i++) {
+        trailAge[i] = Math.min(1.0, trailAge[i] + dt * 0.95);
+        const fade = (1.0 - trailAge[i]) * (effWarp > 0.3 ? 1.0 : 0.65);
+        trailCol[i * 3] = 0.56 * fade + (effWarp > 0.5 ? 0.38 * fade : 0);
+        trailCol[i * 3 + 1] = 0.85 * fade;
+        trailCol[i * 3 + 2] = 0.78 * fade;
+      }
+      trailGeo.attributes.position.needsUpdate = true;
+      trailGeo.attributes.color.needsUpdate = true;
+
+      // Warp Streak Tunnel
+      streakMat.opacity = Math.min(0.65, effWarp * 0.28);
+      if (streakMat.opacity > 0.02) {
+        const sa = streakGeo.attributes.position.array;
+        const sLen = 3.0 + effWarp * 11.0;
+        for (let i = 0; i < STREAK_N; i++) {
+          let z0 = sa[i * 6 + 2];
+          if (z0 > fleetGroup.position.z + 20) z0 = fleetGroup.position.z - 120 - Math.random() * 40;
+          sa[i * 6 + 2] = z0;
+          sa[i * 6 + 5] = z0 - sLen;
+        }
+        streakGeo.attributes.position.needsUpdate = true;
+      }
+
       skyMat.uniforms.uTime.value = tSec;
       skyDome.position.copy(camera.position);
       starMat.uniforms.uWarp.value = effWarp;
 
       const sArr = starGeo.attributes.position.array;
       for (let i = 0; i < STAR_COUNT; i++) {
-        if (sArr[i * 3 + 2] > fleetGroup.position.z + 90) {
-          sArr[i * 3 + 2] -= 1150;
-        }
+        if (sArr[i * 3 + 2] > fleetGroup.position.z + 90) sArr[i * 3 + 2] -= 1150;
       }
       starGeo.attributes.position.needsUpdate = true;
 
@@ -995,26 +1551,92 @@
 
       for (const s of HERO_SLOTS) {
         s.surfMesh.rotation.y += dt * 0.035;
+        s.moonPivot.rotation.y += dt * 0.42;
+        s.pUniforms.uTime.value = tSec;
         s.cloudUniforms.uTime.value = tSec;
         s.ringUniforms.uPlanetCenter.value.copy(s.group.position);
 
-        // Slingshot grazing check
         const distToHero = fleetGroup.position.distanceTo(s.group.position);
-        if (!s.slingshotUsed && distToHero < s.radius * 1.85) {
+        if (!s.slingshotUsed && distToHero < s.radius * 1.88) {
           s.slingshotUsed = true;
           slingshotTimer = 3.2;
-          stardust += 280;
+          fuel = Math.min(100, fuel + 25);
+          const gainSt = Math.round(280 * tb.stardustMul);
+          save.stardust += gainSt;
+          let cargoGain = 0;
+          for (const it of cargo) {
+            const add = Math.max(15, Math.round(it.val * 0.15));
+            it.val += add; cargoGain += add;
+          }
+          if (cargoGain) renderCargoHUD();
+          persistSave();
           chime(880);
-          showToast(`✦ 触发【${BIOMES[s.biomeIdx].name}】引力弹弓 · +280 星尘 ✦`);
+          showToast(`✦ 触发【${BIOMES[s.biomeIdx].name}】引力弹弓 · +${gainSt} ST · 燃料+25%${cargoGain ? ` · 货舱淬炼+${cargoGain}` : ''} ✦`);
         }
-
         if (s.group.position.z > fleetGroup.position.z + s.radius * 2.4 + 60) {
           placeHeroSlot(s, furthestZ - 320);
           furthestZ -= 320;
         }
       }
 
-      // Resonance Gates check
+      // Recycle Peripheral Vista Planets
+      for (let i = 0; i < PERIPH_SLOTS.length; i++) {
+        const ps = PERIPH_SLOTS[i];
+        ps.surfMesh.rotation.y += dt * 0.02;
+        ps.pUniforms.uTime.value = tSec;
+        ps.cloudUniforms.uTime.value = tSec;
+        if (ps.group.position.z > fleetGroup.position.z + 120) {
+          applyBiomeToSlot(ps, Math.random() * 200 + 10, Math.floor(Math.random() * BIOMES.length), 22 + Math.random() * 8, Math.random() < 0.4);
+          ps.group.position.set(i === 0 ? -175 : 185, i === 0 ? 78 : -64, fleetGroup.position.z - 560 - i * 180);
+          ps.ringUniforms.uPlanetCenter.value.copy(ps.group.position);
+        }
+      }
+
+      // 3D Relic Tractor Beam + Collection
+      let beamActive = false;
+      const tractorRange = 24 * tb.tractorMul;
+      for (let i = 0; i < relics.length; i++) {
+        const rl = relics[i];
+        rl.mesh.rotation.y += dt * 1.8;
+        rl.mesh.rotation.x += dt * 0.9;
+        if (rl.active) {
+          const d = fleetGroup.position.distanceTo(rl.mesh.position);
+          if (d < tractorRange) {
+            rl.pulling = true;
+            rl.mesh.position.lerp(fleetGroup.position, Math.min(1, dt * 6.5));
+            beamActive = true;
+            beamPos[0] = fleetGroup.position.x; beamPos[1] = fleetGroup.position.y; beamPos[2] = fleetGroup.position.z;
+            beamPos[3] = rl.mesh.position.x; beamPos[4] = rl.mesh.position.y; beamPos[5] = rl.mesh.position.z;
+            beamGeo.attributes.position.needsUpdate = true;
+            if (d < 3.2) {
+              rl.active = false; rl.pulling = false;
+              pushRelicToCargo(rl.tier);
+              chime(740);
+              rl.mesh.position.set((Math.random() - 0.5) * 18, (Math.random() - 0.5) * 8, fleetGroup.position.z - 190 - i * 90);
+              rl.active = true;
+            }
+          } else if (rl.mesh.position.z > fleetGroup.position.z + 25) {
+            rl.mesh.position.set((Math.random() - 0.5) * 18, (Math.random() - 0.5) * 8, fleetGroup.position.z - 190 - i * 90);
+          }
+        }
+      }
+      beamLine.visible = beamActive;
+
+      // 3D Supply & Extraction Depot
+      depotRingA.rotation.y += dt * 0.9; depotRingB.rotation.z -= dt * 1.1;
+      const dDepot = fleetGroup.position.distanceTo(depotGroup.position);
+      const nearDepot = !depotUsed && dDepot < 85;
+      dockExtractBtn.classList.toggle('show', nearDepot);
+      if (!depotUsed && dDepot < 14) {
+        depotUsed = true;
+        extractCargo('补给站', 1.15);
+      }
+      if (depotGroup.position.z > fleetGroup.position.z + 45) {
+        depotUsed = false;
+        depotGroup.position.set((Math.random() < 0.5 ? -1 : 1) * 14, (Math.random() - 0.5) * 6, fleetGroup.position.z - 380);
+      }
+
+      // Resonance Gates
       let allPassed = true;
       for (const g of gates) {
         g.mesh.rotation.z += dt * 1.2;
@@ -1022,11 +1644,10 @@
           allPassed = false;
           const dz = Math.abs(fleetGroup.position.z - g.mesh.position.z);
           const dxy = Math.hypot(fleetGroup.position.x - g.mesh.position.x, fleetGroup.position.y - g.mesh.position.y);
-          if (dz < 3.6 && dxy < 6.2) {
-            g.active = false; g.mesh.visible = false;
-            combo++;
-            const gain = 80 + combo * 25;
-            stardust += gain;
+          if (dz < 3.6 && dxy < 6.4) {
+            g.active = false; g.mesh.visible = false; combo++;
+            const gain = Math.round((80 + combo * 25) * tb.stardustMul);
+            save.stardust += gain; persistSave();
             warpBoost = Math.min(2.2, warpBoost + 0.65);
             chime(523.25 + Math.min(600, combo * 55));
             showToast(`✦ 光门共振 ×${combo} · +${gain} 星尘 ✦`);
@@ -1039,10 +1660,10 @@
 
       if (bhGroup.visible) {
         bhDiskUniforms.uTime.value = tSec;
-        bhHalo.lookAt(camera.position);
+        bhLensRing.lookAt(camera.position);
+        if (bhGroup.position.z > fleetGroup.position.z + 180) bhGroup.visible = false;
       }
 
-      // Dynamic FOV & Cinematic Camera
       const targetFov = 54 + effWarp * 7.5;
       camera.fov += (targetFov - camera.fov) * Math.min(1, dt * 5.0);
       camera.updateProjectionMatrix();
@@ -1068,7 +1689,7 @@
       }
 
       hudWorld.textContent = `${BIOMES[hero.biomeIdx].name} · ${BIOMES[hero.biomeIdx].en}`;
-      hudStats.textContent = `${totalDistKly.toFixed(1)} KLY · ${fpsNow} FPS · ST ${stardust}`;
+      hudStats.textContent = `${totalDistKly.toFixed(1)} KLY · FUEL ${Math.round(fuel)}% · ST ${save.stardust} · ${fpsNow} FPS`;
       renderer.render(scene, camera);
     }
 

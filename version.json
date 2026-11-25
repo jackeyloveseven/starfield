@@ -1,14 +1,14 @@
 {
-  "version": "2.0.0.9",
-  "build": 209,
-  "updated_at": "2026-11-26T00:45:00+08:00",
+  "version": "2.0.1.0",
+  "build": 210,
+  "updated_at": "2026-11-26T00:55:00+08:00",
   "min_native_version": "1.0.0",
   "is_beta": false,
-  "title": "Starfield v2.0.0.9 (Build 209): 推出 starfield-v3 纯 GPU 原生 WebGL 引擎垂直切片",
-  "changelog": "1. 新增独立纯净的 starfield-v3.html 纯 GPU 渲染内核：全屏原生 DPR + 硬件 MSAA + ACESFilmic 调色，彻底消除 2D 离屏缩放像素糊感；\n2. 零卡顿 GLSL 程序化星球工坊：所有地貌、法线、液态海洋高光、夜面灯火、大气散射与带星球日食投影的 3D 星环全部在 Fragment Shader 内实时生成，支持 8 种生态零延迟秒切与随机重塑；\n3. 电影级三等分构图防堆叠 + 14 只真 3D 折纸纸鹤编队 + 光门共振与引力弹弓；可在 v2 起航页或设置抽屉一键进入体验。",
+  "title": "Starfield v2.0.1.0 (Build 210): starfield-v3 完整版上线（3D 牵引撤离 + 番茄钟 + 卡牌 + 古典乐）",
+  "changelog": "1. starfield-v3.html 跃升为完整垂直切片（~37 KB）：新增 3D 遗迹信标与可见 3D 牵引光束、6 格风险货舱、引力弹弓货舱淬炼、3D 补给撤离站、远景环绕卫星与卡冈图雅爱因斯坦透镜弧；\n2. 接入完整番茄钟专注远征（切出 10 秒坠毁清舱 / 圆满收获星核与 1.5x 安全撤离）与单 WebGL 上下文居中开卡仪式（永久词条反哺飞行）；\n3. 接入外置《圣·桑 Op.28》古典原声播放器与 420 粒子折纸鹤光尾。",
   "entry": "starfield.html",
   "download_url": "https://jackeyloveseven.github.io/starfield/starfield.html",
   "apk_release_url": "https://github.com/jackeyloveseven/starfield/releases/tag/v1.19.1-focus-apk",
-  "description": "Build 209 (v2.0.0.9): Introduce starfield-v3.html pure GPU-native procedural planet engine & one-tap launcher from v2",
-  "timestamp": "2026-11-25T16:45:00Z"
+  "description": "Build 210 (v2.0.1.0): Starfield v3.1 full GPU vertical slice with 3D tractor extraction, focus pomodoro, unified-GPU ceremonial cards & classical score",
+  "timestamp": "2026-11-25T16:55:00Z"
 }
