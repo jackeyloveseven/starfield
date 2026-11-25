@@ -8923,7 +8923,7 @@ body:has(#photo-ui.active) .sf-touch-cluster{
     <div class="shortcut-list">
       <div class="shortcut-row">
         <span>客户端版本</span>
-        <span class="shortcut-key" id="sf-version-tag">v2.0.0.5 (Build 205)</span>
+        <span class="shortcut-key" id="sf-version-tag">v2.0.0.6 (Build 206)</span>
       </div>
       <div class="shortcut-row">
         <span>OTA 实时热更新</span>
@@ -14529,21 +14529,10 @@ function drawWorld(m, q, p, t, rad, tint) {
       }
 
       // Three.js 3D Procedural Living Planet Engine (GLSL Fresnel Atmosphere, 3D Rings, Manif Wonders)
-      // Build 202: On mobile, require rad >= 22px for 3D; smaller or build-queued planets use ultra-fast 2D sphere (<0.03ms)
+      // Build 206: Smooth 2D->3D cross-fade band [minLivingRad, minLivingRad + fadeSpan]
       const minLivingRad = (_isMobileDevice ? 22.0 : 8.5) * (1 + Math.min(0.55, Math.max(warp, WarpDrive.currentWarp) * 0.025));
-      if (typeof LivingPlanetEngine !== 'undefined' && LivingPlanetEngine.enabled && rad >= minLivingRad && typeof THREE !== 'undefined') {
-        const offCanvas = LivingPlanetEngine.renderPlanet(m, rad, [lx, ly, lz], camera);
-        if (offCanvas) {
-          const drawD = LivingPlanetEngine.getDrawSize(rad);
-          ctx.imageSmoothingEnabled = true;
-          ctx.drawImage(offCanvas, cx - drawD * 0.5, cy - drawD * 0.5, drawD, drawD);
-          if (rad >= (_isMobileDevice ? 32 : 12) && (m.hasSatellites || (m.w && m.w.manif && ['cyber_metropolis','dyson_swarm','monolith_artifact','earth_egg','protoss_crystal'].includes(m.w.manif.id)) || ((m.seed || 1) % 3 === 0))) {
-            drawOrbitalSatellites(ctx, cx, cy, rad, m, t, tint, massVis);
-          }
-          return;
-        }
-      }
-      if (_isMobileDevice && typeof LivingPlanetEngine !== 'undefined' && LivingPlanetEngine.enabled) {
+      const fadeSpan = _isMobileDevice ? 14.0 : 6.0;
+      const drawMobile2DFallback = () => {
         const coronaR = rad * 1.32;
         const cGrad = ctx.createRadialGradient(cx, cy, rad * 0.85, cx, cy, coronaR);
         cGrad.addColorStop(0.0, css(atmoRay, Math.min(0.65, 0.45 * ak)));
@@ -14566,6 +14555,31 @@ function drawWorld(m, q, p, t, rad, tint) {
         ctx.strokeStyle = css(atmoRay, Math.min(0.70, 0.42 * ak));
         ctx.lineWidth = Math.max(0.9, rad * 0.05);
         ctx.beginPath(); ctx.arc(cx, cy, rad, 0, TAU); ctx.stroke();
+      };
+      if (typeof LivingPlanetEngine !== 'undefined' && LivingPlanetEngine.enabled && rad >= minLivingRad && typeof THREE !== 'undefined') {
+        const offCanvas = LivingPlanetEngine.renderPlanet(m, rad, [lx, ly, lz], camera);
+        if (offCanvas) {
+          const drawD = LivingPlanetEngine.getDrawSize(rad);
+          const blendT = clamp((rad - minLivingRad) / fadeSpan, 0, 1);
+          if (blendT < 0.99 && _isMobileDevice) {
+            drawMobile2DFallback();
+            const prevAlpha = ctx.globalAlpha;
+            ctx.globalAlpha = prevAlpha * blendT;
+            ctx.imageSmoothingEnabled = true;
+            ctx.drawImage(offCanvas, cx - drawD * 0.5, cy - drawD * 0.5, drawD, drawD);
+            ctx.globalAlpha = prevAlpha;
+          } else {
+            ctx.imageSmoothingEnabled = true;
+            ctx.drawImage(offCanvas, cx - drawD * 0.5, cy - drawD * 0.5, drawD, drawD);
+          }
+          if (rad >= (_isMobileDevice ? 32 : 12) && (m.hasSatellites || (m.w && m.w.manif && ['cyber_metropolis','dyson_swarm','monolith_artifact','earth_egg','protoss_crystal'].includes(m.w.manif.id)) || ((m.seed || 1) % 3 === 0))) {
+            drawOrbitalSatellites(ctx, cx, cy, rad, m, t, tint, massVis);
+          }
+          return;
+        }
+      }
+      if (_isMobileDevice && typeof LivingPlanetEngine !== 'undefined' && LivingPlanetEngine.enabled) {
+        drawMobile2DFallback();
         return;
       }
 
@@ -16165,6 +16179,8 @@ function bodies(){
   if(ch) active.push(ch);
  }
  for(const [k] of chunks)if(k < k0 - 42 || k > k0 + fwdRadius + 16)chunks.delete(k);
+ const planetCands = bodies._planetCands || (bodies._planetCands = []);
+ planetCands.length = 0;
  for(const c of active){
   // Frustum-culled distance fade for galaxies & clusters
   for(const g of c.galaxies){
@@ -16207,9 +16223,7 @@ function bodies(){
    massVis=clamp((52000-pj[2])/18000);if(massVis<=0)continue;
    drawShip(s,pj,time);massVis=1;
   }
-  // Frustum-culled celestial masses & stars (with Build 205 nearest-first screen de-overlap)
-  const planetCands = bodies._planetCands || (bodies._planetCands = []);
-  planetCands.length = 0;
+  // Frustum-culled celestial masses & stars (collected across all active chunks for Build 206 global screen de-overlap)
   for(const m of c.masses){
    const pj=project(m);
    if(!pj){
@@ -16239,26 +16253,26 @@ function bodies(){
     planetCands.push({m, sx:pj[0], sy:pj[1], z:pj[2], rad});
    }
   }
-  if(planetCands.length>0){
-   if(planetCands.length>1) planetCands.sort((a,b)=>a.z-b.z);
-   const placed = bodies._placedScreen || (bodies._placedScreen = []);
-   placed.length = 0;
-   const maxPlanetsOnScreen = _isMobileDevice ? 4 : 6;
-   for(let pi=0; pi<planetCands.length; pi++){
-    const pc = planetCands[pi];
-    if(placed.length >= maxPlanetsOnScreen) break;
-    let overlaps = false;
-    for(let qi=0; qi<placed.length; qi++){
-     const q0 = placed[qi];
-     const minGap = (pc.rad + q0.rad) * 1.25 + 24;
-     if(Math.hypot(pc.sx - q0.sx, pc.sy - q0.sy) < minGap){ overlaps = true; break; }
-    }
-    if(overlaps) continue;
-    placed.push(pc);
-    massVis = pc.m.fade;
-    if(pc.rad>H*.42)massVis*=clamp(H*.42/pc.rad,.30,1);
-    drawMass(pc.m,region(pc.m.x,pc.m.z),time);massVis=1;
+ }
+ if(planetCands.length>0){
+  if(planetCands.length>1) planetCands.sort((a,b)=>a.z-b.z);
+  const placed = bodies._placedScreen || (bodies._placedScreen = []);
+  placed.length = 0;
+  const maxPlanetsOnScreen = _isMobileDevice ? 4 : 6;
+  for(let pi=0; pi<planetCands.length; pi++){
+   const pc = planetCands[pi];
+   if(placed.length >= maxPlanetsOnScreen) break;
+   let overlaps = false;
+   for(let qi=0; qi<placed.length; qi++){
+    const q0 = placed[qi];
+    const minGap = (pc.rad + q0.rad) * 1.25 + 24;
+    if(Math.hypot(pc.sx - q0.sx, pc.sy - q0.sy) < minGap){ overlaps = true; break; }
    }
+   if(overlaps) continue;
+   placed.push(pc);
+   massVis = pc.m.fade;
+   if(pc.rad>H*.42)massVis*=clamp(H*.42/pc.rad,.30,1);
+   drawMass(pc.m,region(pc.m.x,pc.m.z),time);massVis=1;
   }
  }
 }
@@ -27338,13 +27352,13 @@ requestAnimationFrame(frame);
       const isMob = (typeof window !== 'undefined' && window._isMobileDevice) || (typeof _isMobileDevice !== 'undefined' && _isMobileDevice);
       this.isMob = !!isMob;
       this.MAX_CACHE_SIZE = isMob ? 28 : 32;
-      this.currentBufferSize = isMob ? 256 : 512;
+      this.currentBufferSize = isMob ? 384 : 512;
       this._buildsThisFrame = 0;
       const shAtmo = new THREE.SphereGeometry(this.PLANET_R * 1.18, isMob ? 20 : 28, isMob ? 14 : 22);
       shAtmo.userData.shared = true;
       const shLimb = new THREE.SphereGeometry(this.PLANET_R * 1.035, isMob ? 20 : 28, isMob ? 14 : 22);
       shLimb.userData.shared = true;
-      const shOcean = new THREE.IcosahedronGeometry(this.PLANET_R + 0.14, isMob ? 5 : 10);
+      const shOcean = new THREE.IcosahedronGeometry(this.PLANET_R + 0.14, isMob ? 8 : 10);
       shOcean.userData.shared = true;
       const shTrunk = new THREE.CylinderGeometry(0.1, 0.18, 0.9, 4);
       shTrunk.translate(0, 0.45, 0);
@@ -28256,12 +28270,22 @@ requestAnimationFrame(frame);
       const model = this.getPlanetModel(m);
       if (!model) return null;
 
-      const sz = this.currentBufferSize || (isMob ? 256 : 512);
+      const sz = isMob ? (rad >= 72 ? 384 : 256) : (this.currentBufferSize || 512);
       if (!model.canvas) {
         model.canvas = document.createElement('canvas');
         model.canvas.width = sz;
         model.canvas.height = sz;
         model.ctx = model.canvas.getContext('2d', { alpha: true });
+      } else if (isMob) {
+        if (rad >= 72 && model.canvas.width < 384) {
+          model.canvas.width = 384;
+          model.canvas.height = 384;
+          model.hasRendered = false;
+        } else if (rad < 52 && model.canvas.width > 256) {
+          model.canvas.width = 256;
+          model.canvas.height = 256;
+          model.hasRendered = false;
+        }
       }
 
       const now = performance.now() * 0.001;
@@ -28286,10 +28310,10 @@ requestAnimationFrame(frame);
         if (!this._qView) this._qView = new THREE.Quaternion();
 
         this._rotMat.set(
-          r[0], r[1], r[2], 0,
-          u[0], u[1], u[2], 0,
-          f[0], f[1], f[2], 0,
-          0, 0, 0, 1
+          r[0],  r[1], -r[2], 0,
+          u[0],  u[1], -u[2], 0,
+         -f[0], -f[1],  f[2], 0,
+          0,     0,     0,    1
         );
         this._qView.setFromRotationMatrix(this._rotMat);
 
@@ -28300,18 +28324,23 @@ requestAnimationFrame(frame);
         }
         model.group.scale.set(1, 1, 1);
 
-        // Build 205: Ensure crisp 3/4 front-side key lighting so planet faces shine with crescent terminators & specular ocean glints
+        // Build 206: Continuous smooth 3/4 front-side key lighting (eliminates abrupt sunX flip jump)
         if (lightDir) {
-          let sunX = lightDir[0] * r[0] + lightDir[1] * r[1] + lightDir[2] * r[2];
-          const sunY = lightDir[0] * u[0] + lightDir[1] * u[1] + lightDir[2] * u[2];
+          const rawSunX = lightDir[0] * r[0] + lightDir[1] * r[1] + lightDir[2] * r[2];
+          const rawSunY = lightDir[0] * u[0] + lightDir[1] * u[1] + lightDir[2] * u[2];
           const rawSunZ = lightDir[0] * f[0] + lightDir[1] * f[1] + lightDir[2] * f[2];
-          const sunZ = Math.max(0.54, Math.abs(rawSunZ));
-          if (Math.abs(sunX) < 0.35) sunX = sunX >= 0 ? 0.45 : -0.45;
+          const sunX = Math.max(-0.95, Math.min(0.95, rawSunX * 0.72 + 0.38));
+          const sunY = Math.max(-0.70, Math.min(0.85, rawSunY * 0.65 + 0.24));
+          const sunZ = 0.56 + 0.32 * Math.abs(rawSunZ);
           this.sunLight.position.set(sunX * 85, sunY * 85, sunZ * 85);
           this.rimLight.position.set(-sunX * 65, -sunY * 45, -sunZ * 55);
         }
       } else if (lightDir) {
-        this.sunLight.position.set((Math.abs(lightDir[0]) < 0.35 ? 0.48 : lightDir[0]) * 85, -lightDir[1] * 85, Math.max(0.54, Math.abs(lightDir[2])) * 85);
+        const fbSunX = Math.max(-0.95, Math.min(0.95, lightDir[0] * 0.72 + 0.38));
+        const fbSunY = Math.max(-0.70, Math.min(0.85, -lightDir[1] * 0.65 + 0.24));
+        const fbSunZ = 0.56 + 0.32 * Math.abs(lightDir[2]);
+        this.sunLight.position.set(fbSunX * 85, fbSunY * 85, fbSunZ * 85);
+        this.rimLight.position.set(-fbSunX * 65, -fbSunY * 45, -fbSunZ * 55);
       }
 
       // Smooth axial rotation around planet's own independent world axis
@@ -34670,7 +34699,8 @@ function sfBuildManif(THREE, planet, manifId, hue, rng) {
     hazard_evade: 50,
     contract_complete: 110,
     core_hatch: 70,
-    ship_upgrade: 65
+    ship_upgrade: 65,
+    gate_resonance: 55
   };
 
   var Expedition = {
@@ -34715,6 +34745,13 @@ function sfBuildManif(THREE, planet, manifId, hue, rng) {
       else if (type === 'contract_complete') prog.totalContracts++;
       else if (type === 'ship_upgrade') prog.totalUpgrades++;
       else if (type === 'core_hatch') prog.totalHatched++;
+      else if (type === 'gate_resonance') prog.totalGates = (prog.totalGates || 0) + 1;
+
+      if (meta && typeof meta.stardust === 'number' && meta.stardust > 0) {
+        if (window.StarfieldInFlightExtraction && typeof window.StarfieldInFlightExtraction.addSecuredCredits === 'function') {
+          window.StarfieldInFlightExtraction.addSecuredCredits(Math.round(meta.stardust));
+        }
+      }
 
       var newRank = computeRank(prog.xp);
       prog.rankIdx = newRank.idx;

@@ -1,14 +1,14 @@
 {
-  "version": "2.0.0.5",
-  "build": 205,
-  "updated_at": "2026-11-25T23:16:00+08:00",
+  "version": "2.0.0.6",
+  "build": 206,
+  "updated_at": "2026-11-25T23:55:00+08:00",
   "min_native_version": "1.0.0",
   "is_beta": false,
-  "title": "Starfield v2.0.0.5 (Build 205): 清除正前方星球堆叠与 PBR 镜面清漆光泽重铸版",
-  "changelog": "1. 彻底清除正前方星球堆叠：主航道天体收束为每 6 Chunk 交替象限出场，前视剔除缩至 48K，并新增按深度由近到远排序的屏幕空间防重叠过滤（移动端同屏最多 4 颗不互相遮挡）与远距光晕收敛；\n2. 3D 星球 PBR 镜面光泽与通透感重铸：修复光照方向翻转背光与负缩放手性 Bug，植入 PMREM 天光环境贴图、MeshPhysicalMaterial 液态 clearcoat 海洋反光，移除半透明鬼影并收轻云层雾感。",
+  "title": "Starfield v2.0.0.6 (Build 206): 跨区防堆叠真修复、移动端 384px 升清与光门奖励闭环",
+  "changelog": "1. 修复跨 Chunk 星球屏幕防堆叠过滤错放循环内部 Bug，真正落实全局深度排序与同屏最多 4 颗不遮挡；\n2. 移动端 LivingPlanetEngine 升级至固定 384x384 离屏 WebGL + 迟滞自适应缓存与 2D->3D 平滑淡入，消除近景发糊与跳变；\n3. 修复 SO(3) 相机旋转手性矩阵与连续 3/4 主光照，消除转向明暗面闪切；\n4. 补全共振光门 gate_resonance 经验与星尘入账闭环，并沉淀全量重构路线图文档。",
   "entry": "starfield.html",
   "download_url": "https://jackeyloveseven.github.io/starfield/starfield.html",
   "apk_release_url": "https://github.com/jackeyloveseven/starfield/releases/tag/v1.19.1-focus-apk",
-  "description": "Build 205 (v2.0.0.5): Screen-space planet de-stacking, PMREM studio reflections, clearcoat oceans & sun-side lighting fix",
-  "timestamp": "2026-11-25T15:16:00Z"
+  "description": "Build 206 (v2.0.0.6): Global cross-chunk planet de-stacking, mobile 384px hero crispness, SO(3) camera/light continuity, resonance stardust reward & redesign roadmap",
+  "timestamp": "2026-11-25T15:55:00Z"
 }
