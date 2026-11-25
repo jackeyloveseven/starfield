@@ -8923,7 +8923,7 @@ body:has(#photo-ui.active) .sf-touch-cluster{
     <div class="shortcut-list">
       <div class="shortcut-row">
         <span>客户端版本</span>
-        <span class="shortcut-key" id="sf-version-tag">v2.0.0.3 (Build 203)</span>
+        <span class="shortcut-key" id="sf-version-tag">v2.0.0.4 (Build 204)</span>
       </div>
       <div class="shortcut-row">
         <span>OTA 实时热更新</span>
@@ -11960,16 +11960,18 @@ function updateDirector(dt){
 
  const effWarpF = Math.max(warp, WarpDrive.currentWarp);
  const warpFactor = clamp(effWarpF / 28, 0, 1.2);
- const fovWarp = 1 / (1 + warpFactor * 0.35 - WarpDrive.reverseR * 0.22);
+ const slingFov = (typeof sling === 'number' ? sling : 0) * 0.06;
+ const fovWarp = 1 / (1 + warpFactor * 0.35 + slingFov - WarpDrive.reverseR * 0.22);
  let baseFocal = isPortrait ? Math.min(W, H) * 1.25 : H * 1.12;
  if (!isPortrait && aspect > 1.85) {
    const minFocalUltrawide = (W * 0.5) / Math.tan(46 * Math.PI / 180);
    baseFocal = Math.max(baseFocal, minFocalUltrawide);
  }
  camera.focal = baseFocal * fovWarp * (captureCamPose ? mix(1, captureCamPose.focal, captureCamPose.blend) : 1);
- if(WarpDrive.shake > 0.05){
-  camera.cx += (Math.random() - 0.5) * WarpDrive.shake * 3.5;
-  camera.cy += (Math.random() - 0.5) * WarpDrive.shake * 2.5;
+ const totalShake = (WarpDrive.shake || 0) + (window.StarfieldCinematicFX ? window.StarfieldCinematicFX.shake * 1.4 : 0);
+ if(totalShake > 0.05){
+  camera.cx += (Math.random() - 0.5) * totalShake * 3.5;
+  camera.cy += (Math.random() - 0.5) * totalShake * 2.5;
  }
  if(cockpitBlend > 0.001){
   const cp = getChasePose(dt);
@@ -13794,29 +13796,27 @@ function chunk(k){
    const archIndex = (encIndex % 4);
    let x = baseRouteX(z), y = courseY(z), poseType = 'skim', reach = pRad * 1.35;
 
+   // Build 204 Rule-of-Thirds Cinematic Framing (avoid center HUD collision & portrait edge clipping)
    if(archIndex === 0){
-    poseType = 'nadir';
-    const alt = pRad * (0.24 + 0.08 * r());
-    x = baseRouteX(z);
-    y = courseY(z) - (pRad + alt);
-    reach = pRad + alt;
-   } else if(archIndex === 1){
     poseType = 'zenith';
-    const alt = pRad * (0.26 + 0.08 * r());
-    x = baseRouteX(z);
-    y = courseY(z) + (pRad + alt);
-    reach = pRad + alt;
+    reach = pRad * 1.15 + 780;
+    x = baseRouteX(z) + side * (pRad * 0.95 + 720);
+    y = courseY(z) + (pRad * 0.42 + 260);
+   } else if(archIndex === 1){
+    poseType = 'nadir';
+    reach = pRad * 1.15 + 740;
+    x = baseRouteX(z) + side * (pRad * 0.92 + 680);
+    y = courseY(z) - (pRad * 0.44 + 260);
    } else if(archIndex === 2){
     poseType = 'skim';
-    const alt = pRad * (0.18 + 0.08 * r());
-    reach = pRad + alt;
-    x = baseRouteX(z) + side * reach;
-    y = courseY(z);
+    reach = pRad * 1.22 + 480;
+    x = baseRouteX(z) + side * (pRad * 1.12 + 460);
+    y = courseY(z) + (r() - 0.5) * 320;
    } else {
     poseType = 'flank';
-    reach = pRad * 1.55 + 5200;
-    x = baseRouteX(z) + side * reach;
-    y = courseY(z) + (r() - 0.5) * 800;
+    reach = pRad * 1.48 + 2700;
+    x = baseRouteX(z) + side * (pRad * 1.38 + 2600);
+    y = courseY(z) + (r() < 0.5 ? 1 : -1) * (pRad * 0.35 + 420);
    }
 
    // Poisson Disk clearance check for encounter planet
@@ -14535,8 +14535,12 @@ function drawWorld(m, q, p, t, rad, tint) {
         const offCanvas = LivingPlanetEngine.renderPlanet(m, rad, [lx, ly, lz], camera);
         if (offCanvas) {
           const drawD = LivingPlanetEngine.getDrawSize(rad);
+          const depthFade = clamp(1 - Math.max(0, q[2] - 7500) / 88000, 0.34, 1.0);
+          ctx.save();
+          ctx.globalAlpha *= depthFade;
           ctx.imageSmoothingEnabled = true;
           ctx.drawImage(offCanvas, cx - drawD * 0.5, cy - drawD * 0.5, drawD, drawD);
+          ctx.restore();
           if (rad >= (_isMobileDevice ? 32 : 12) && (m.hasSatellites || (m.w && m.w.manif && ['cyber_metropolis','dyson_swarm','monolith_artifact','earth_egg','protoss_crystal'].includes(m.w.manif.id)) || ((m.seed || 1) % 3 === 0))) {
             drawOrbitalSatellites(ctx, cx, cy, rad, m, t, tint, massVis);
           }
@@ -16310,7 +16314,7 @@ function updateSling(dt){
  warp*=Math.exp(-dt*1.16);
  const c=flockCentre();let near=1e9;
  for(const m of activeMasses){const d=Math.hypot(c[0]-m.x,c[1]-m.y,c[2]-m.z);if(d<near)near=d;}
- if(near>slingPrev&&slingPrev<1900&&slingHold<=0&&capturePhase===0)slingHold=2.4;
+ if(near>slingPrev&&slingPrev<1900&&slingHold<=0&&capturePhase===0){slingHold=2.4;if(window.StarfieldCinematicFX)window.StarfieldCinematicFX.triggerBurst(0.95,'143,216,192');if(window.StarfieldFlightAudio)window.StarfieldFlightAudio.playSlingshotBoom();if(window.StarfieldAppShell)window.StarfieldAppShell.haptic('heavy');}
  slingPrev=near;
  if(slingHold>0){slingHold-=dt;sling=Math.sin(Math.PI*clamp(1-slingHold/2.4,0,1))*(1-clamp(slingPrev/1900,0,1));}
  else sling=0;
@@ -21117,13 +21121,13 @@ function postPass(){
    const rDiag = Math.hypot(W, H) * 0.68;
    const vg = ctx.createRadialGradient(W * 0.5, H * 0.5, rDiag * 0.42, W * 0.5, H * 0.5, rDiag);
    vg.addColorStop(0, 'rgba(0,0,0,0)');
-   vg.addColorStop(1, 'rgba(0,0,0,0.36)');
+   vg.addColorStop(1, 'rgba(0,0,0,0.42)');
    window._sfCachedVigGrad = vg;
    window._sfCachedVigW = W;
    window._sfCachedVigH = H;
   }
   ctx.save();
-  ctx.globalCompositeOperation = 'multiply';
+  ctx.globalCompositeOperation = 'source-over';
   ctx.fillStyle = window._sfCachedVigGrad;
   ctx.fillRect(0, 0, W, H);
   ctx.restore();
@@ -23257,7 +23261,7 @@ window.addEventListener('resize', () => {
       })
       .then(data => {
         if (data && data.build) {
-          const localBuild = 203;
+          const localBuild = 204;
           if (data.build > localBuild) {
             showOtaNotification(data);
           } else if (manual && window.toast) {
@@ -23344,7 +23348,7 @@ function frame(now){
    flightTime += dt;}else{previewTime+=dt;travel+=SPEED*.15*dt;}}
  updateDirector(realDt);
  currentPalette=region(routeX(travel),travel);
- if(dt){updateWind(dt);updateGravity();updateBirds(dt);updateGate(dt);updateCapture(dt);updateSling(dt);updateParticles(dt);updatePoem(dt);Narrator.update(dt);if(typeof StarfieldSonar!=='undefined')StarfieldSonar.update(dt);if(typeof StarfieldInFlightExtraction!=='undefined')StarfieldInFlightExtraction.update(dt);
+ if(dt){updateWind(dt);updateGravity();updateBirds(dt);updateGate(dt);updateCapture(dt);updateSling(dt);updateParticles(dt);updatePoem(dt);Narrator.update(dt);if(typeof StarfieldSonar!=='undefined')StarfieldSonar.update(dt);if(typeof StarfieldInFlightExtraction!=='undefined')StarfieldInFlightExtraction.update(dt);if(window.StarfieldCinematicFX)window.StarfieldCinematicFX.update(realDt);if(window.StarfieldResonanceGates&&fleet&&fleet[LEAD]){window.__sfOnGateResonance=window.__sfOnGateResonance||function(combo,gold){warp=Math.min(4.0,(warp||0)+Math.min(0.65,0.30+combo*0.06));if(window.StarfieldCinematicFX)window.StarfieldCinematicFX.triggerBurst(gold?1.0:0.65,gold?'244,208,111':'143,216,192');if(window.StarfieldFlightAudio)window.StarfieldFlightAudio.playGateChime(combo);if(window.StarfieldAppShell)window.StarfieldAppShell.haptic('medium');if(window.StarfieldExpedition)window.StarfieldExpedition.recordAction('gate_resonance',{stardust:80+combo*25});};window.StarfieldResonanceGates.update(dt,craftWorld(fleet[LEAD]),travel,routeX,courseY);}if(window.StarfieldFlightAudio)window.StarfieldFlightAudio.update(Math.max(warp,WarpDrive.currentWarp),sling);
     const isEngineWarp = (typeof WarpDrive !== 'undefined') && (WarpDrive.currentWarp > 0.1 || WarpDrive.gearIndex > 0 || WarpDrive.isHolding);
     if(window.StarfieldFuelEngine) window.StarfieldFuelEngine.update(dt, isEngineWarp, false);
     {
@@ -23374,7 +23378,7 @@ function frame(now){
     }if(typeof StarfieldOrbitalMechanics!=='undefined')StarfieldOrbitalMechanics.update(dt);if(typeof pollGamepad==='function')pollGamepad(now);else if(typeof window.pollGamepad==='function')window.pollGamepad(now);if(window.AnomalyScanner&&window.AnomalyScanner.isInitialized&&window.AnomalyScanner.isInitialized()){if(typeof window.AnomalyScanner.step==='function')window.AnomalyScanner.step(now);}}
  ctx.setTransform(DPR,0,0,DPR,0,0);drawCalls=0;queue.length=0;holeDraws=0;
  updateSkyEvents(realDt);
- drawSky();deepfield();if(window.SFPassersby) window.SFPassersby.draw({ctx:ctx, project:project, routeX:routeX, courseY:courseY, W:W, H:H, travel:travel, CHUNK:CHUNK, hash:hash, started:started});drawCraftShadows();bodies();drawFleet();if(typeof drawEscortOrbits==='function')drawEscortOrbits();drawParticles();if(typeof StarfieldInFlightExtraction!=='undefined'&&StarfieldInFlightExtraction.queue3D)StarfieldInFlightExtraction.queue3D();if(typeof StarfieldOrbitalMechanics!=='undefined'&&StarfieldOrbitalMechanics.queue3D)StarfieldOrbitalMechanics.queue3D();flush();if(typeof StarfieldSonar!=='undefined')StarfieldSonar.draw(ctx);if(typeof StarfieldOrbitalMechanics!=='undefined')StarfieldOrbitalMechanics.draw(ctx);if(typeof StarfieldInFlightExtraction!=='undefined')StarfieldInFlightExtraction.draw(ctx);if(window.SFHazard&&window.SFHazard.draw)window.SFHazard.draw(ctx);if(window.SFLensing) window.SFLensing.draw({ctx:ctx, project:project, time:time, W:W, H:H}); drawSkyEvents();
+ drawSky();deepfield();if(window.SFPassersby) window.SFPassersby.draw({ctx:ctx, project:project, routeX:routeX, courseY:courseY, W:W, H:H, travel:travel, CHUNK:CHUNK, hash:hash, started:started});drawCraftShadows();bodies();drawFleet();if(typeof drawEscortOrbits==='function')drawEscortOrbits();drawParticles();if(typeof StarfieldInFlightExtraction!=='undefined'&&StarfieldInFlightExtraction.queue3D)StarfieldInFlightExtraction.queue3D();if(typeof StarfieldOrbitalMechanics!=='undefined'&&StarfieldOrbitalMechanics.queue3D)StarfieldOrbitalMechanics.queue3D();flush();if(typeof StarfieldSonar!=='undefined')StarfieldSonar.draw(ctx);if(typeof StarfieldOrbitalMechanics!=='undefined')StarfieldOrbitalMechanics.draw(ctx);if(typeof StarfieldInFlightExtraction!=='undefined')StarfieldInFlightExtraction.draw(ctx);if(window.SFHazard&&window.SFHazard.draw)window.SFHazard.draw(ctx);if(window.StarfieldResonanceGates)window.StarfieldResonanceGates.draw(ctx,project,time);if(window.SFLensing) window.SFLensing.draw({ctx:ctx, project:project, time:time, W:W, H:H});if(window.StarfieldCinematicFX)window.StarfieldCinematicFX.draw(ctx,W,H,Math.max(warp,WarpDrive.currentWarp),sling);drawSkyEvents();
  // The throat: a bell around the two seconds either side of the step.
  if(gateT>0){const b=gateT<3.0?clamp((gateT-.7)/2.3,0,1):clamp((6.2-gateT)/2.6,0,1);
   drawTunnel(b);}
@@ -27368,13 +27372,12 @@ requestAnimationFrame(frame);
 
       this.scene = new THREE.Scene();
 
-      // Orthographic camera guarantees zero perspective edge distortion and pixel-exact sizing
-      this.camera = new THREE.OrthographicCamera(
-        -this.CAM_EXTENT, this.CAM_EXTENT,
-        this.CAM_EXTENT, -this.CAM_EXTENT,
-        1, 220
-      );
-      this.camera.position.set(0, 0, 90);
+      // Build 204 PerspectiveCamera (28deg FOV) at exact focal plane so getDrawSize(rad) stays pixel-accurate
+      // while front hemispheres, mountains & rings gain genuine 3D spherical curvature
+      const fovDeg = 28;
+      const camDist = this.CAM_EXTENT / Math.tan((fovDeg * 0.5) * Math.PI / 180);
+      this.camera = new THREE.PerspectiveCamera(fovDeg, 1.0, 1, 420);
+      this.camera.position.set(0, 0, camDist);
       this.camera.lookAt(0, 0, 0);
 
       // Build 203 Cinematic Deep-Space Lighting: deep indigo nightside + crisp warm key terminator
@@ -34889,6 +34892,382 @@ function sfBuildManif(THREE, planet, manifId, hue, rng) {
 })();
 </script>
 <!-- === BUILD 200 GAMEPLAY & APP SHELL OVERHAUL END === -->
+
+<!-- === BUILD 204 CINEMATIC FX, RESONANCE GATES & DYNAMIC FLIGHT AUDIO === -->
+<script id="sf-build204-presentation-js">
+(function () {
+  'use strict';
+
+  /* 1. Procedural Dynamic Spatial Flight Audio */
+  var FlightAudio = {
+    ctx: null,
+    master: null,
+    droneOsc: null,
+    droneFilter: null,
+    droneGain: null,
+    muted: false,
+    paused: false,
+    _lastSlingAt: 0,
+
+    isSoundEnabled: function () {
+      if (this.muted || this.paused || document.hidden) return false;
+      var btn = document.getElementById('sound-toggle');
+      if (btn && btn.getAttribute('aria-pressed') === 'false') return false;
+      if (window.StarfieldAppShell && window.StarfieldAppShell.lifecycleState === 'paused') return false;
+      return true;
+    },
+
+    ensureCtx: function () {
+      if (this.ctx) {
+        if (this.ctx.state === 'suspended' && this.isSoundEnabled()) {
+          this.ctx.resume().catch(function () {});
+        }
+        return this.ctx;
+      }
+      var AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return null;
+      try {
+        var c = new AC();
+        var m = c.createGain();
+        m.gain.value = 0.0;
+        m.connect(c.destination);
+
+        var osc = c.createOscillator();
+        osc.type = 'sine';
+        osc.frequency.value = 48;
+
+        var flt = c.createBiquadFilter();
+        flt.type = 'lowpass';
+        flt.frequency.value = 140;
+
+        var dg = c.createGain();
+        dg.gain.value = 0.0;
+
+        osc.connect(flt);
+        flt.connect(dg);
+        dg.connect(m);
+        osc.start();
+
+        this.ctx = c;
+        this.master = m;
+        this.droneOsc = osc;
+        this.droneFilter = flt;
+        this.droneGain = dg;
+        return c;
+      } catch (e) {
+        return null;
+      }
+    },
+
+    setLifecyclePaused: function (isPaused) {
+      this.paused = !!isPaused;
+      if (!this.ctx) return;
+      try {
+        if (this.paused && this.ctx.state === 'running') this.ctx.suspend().catch(function () {});
+        else if (!this.paused && this.isSoundEnabled() && this.ctx.state === 'suspended') this.ctx.resume().catch(function () {});
+      } catch (e) {}
+    },
+
+    update: function (effWarp, sling) {
+      if (!this.ctx || !this.master || !this.droneGain) return;
+      var enabled = this.isSoundEnabled();
+      var now = this.ctx.currentTime;
+      var targetMaster = enabled ? 1.0 : 0.0;
+      this.master.gain.setTargetAtTime(targetMaster, now, 0.12);
+      if (!enabled) return;
+
+      var spd = Math.min(1.5, Math.max(0, (effWarp || 0) * 0.06 + (sling || 0) * 0.7));
+      var targetFreq = 46 + spd * 34;
+      var targetCutoff = 110 + spd * 180;
+      var targetDrone = 0.014 + Math.min(0.032, spd * 0.022);
+      this.droneOsc.frequency.setTargetAtTime(targetFreq, now, 0.15);
+      this.droneFilter.frequency.setTargetAtTime(targetCutoff, now, 0.15);
+      this.droneGain.gain.setTargetAtTime(targetDrone, now, 0.15);
+    },
+
+    playGateChime: function (combo) {
+      if (!this.isSoundEnabled()) return;
+      var c = this.ensureCtx();
+      if (!c) return;
+      try {
+        var scale = [523.25, 587.33, 659.25, 783.99, 880.0, 1046.5];
+        var f = scale[(Math.max(1, combo || 1) - 1) % scale.length];
+        var now = c.currentTime;
+        var o1 = c.createOscillator();
+        var o2 = c.createOscillator();
+        var g = c.createGain();
+        o1.type = 'sine';
+        o2.type = 'triangle';
+        o1.frequency.setValueAtTime(f, now);
+        o2.frequency.setValueAtTime(f * 2.0, now);
+        g.gain.setValueAtTime(0.0001, now);
+        g.gain.exponentialRampToValueAtTime(0.055, now + 0.025);
+        g.gain.exponentialRampToValueAtTime(0.0001, now + 0.72);
+        o1.connect(g);
+        o2.connect(g);
+        g.connect(this.master);
+        o1.start(now); o2.start(now);
+        o1.stop(now + 0.75); o2.stop(now + 0.75);
+      } catch (e) {}
+    },
+
+    playSlingshotBoom: function () {
+      if (!this.isSoundEnabled()) return;
+      var tNow = performance.now();
+      if (tNow - this._lastSlingAt < 900) return;
+      this._lastSlingAt = tNow;
+      var c = this.ensureCtx();
+      if (!c) return;
+      try {
+        var now = c.currentTime;
+        var o = c.createOscillator();
+        var g = c.createGain();
+        o.type = 'sine';
+        o.frequency.setValueAtTime(118, now);
+        o.frequency.exponentialRampToValueAtTime(38, now + 0.62);
+        g.gain.setValueAtTime(0.0001, now);
+        g.gain.exponentialRampToValueAtTime(0.11, now + 0.04);
+        g.gain.exponentialRampToValueAtTime(0.0001, now + 0.65);
+        o.connect(g);
+        g.connect(this.master);
+        o.start(now);
+        o.stop(now + 0.68);
+      } catch (e) {}
+    },
+
+    playSonarPing: function () {
+      if (!this.isSoundEnabled()) return;
+      var c = this.ensureCtx();
+      if (!c) return;
+      try {
+        var now = c.currentTime;
+        [880, 1318.5].forEach(function (freq, idx) {
+          var o = c.createOscillator();
+          var g = c.createGain();
+          var t0 = now + idx * 0.09;
+          o.type = 'sine';
+          o.frequency.setValueAtTime(freq, t0);
+          g.gain.setValueAtTime(0.0001, t0);
+          g.gain.exponentialRampToValueAtTime(0.038 / (idx + 1), t0 + 0.018);
+          g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.45);
+          o.connect(g);
+          g.connect(FlightAudio.master);
+          o.start(t0);
+          o.stop(t0 + 0.48);
+        });
+      } catch (e) {}
+    }
+  };
+
+  function unlockAudioOnce() {
+    FlightAudio.ensureCtx();
+  }
+  window.addEventListener('pointerdown', unlockAudioOnce, { passive: true, once: true });
+  window.addEventListener('keydown', unlockAudioOnce, { passive: true, once: true });
+  document.addEventListener('visibilitychange', function () {
+    FlightAudio.setLifecyclePaused(document.hidden);
+  });
+  window.StarfieldFlightAudio = FlightAudio;
+
+  /* 2. Cinematic Tension & Optical Feedback */
+  var CinematicFX = {
+    shake: 0,
+    flare: 0,
+    shockwaves: [],
+
+    triggerBurst: function (power, colorCss) {
+      var p = Math.min(1.5, Math.max(0.2, power || 0.7));
+      this.shake = Math.min(1.6, this.shake + p * 0.75);
+      this.flare = Math.min(1.0, this.flare + p * 0.65);
+      this.shockwaves.push({ r: 0.08, alpha: 0.55 * Math.min(1, p), color: colorCss || '244,208,111' });
+      if (this.shockwaves.length > 4) this.shockwaves.shift();
+    },
+
+    update: function (dt) {
+      if (this.shake > 0.001) this.shake *= Math.exp(-dt * 5.8);
+      else this.shake = 0;
+      if (this.flare > 0.001) this.flare *= Math.exp(-dt * 3.4);
+      else this.flare = 0;
+      for (var i = this.shockwaves.length - 1; i >= 0; i--) {
+        var sw = this.shockwaves[i];
+        sw.r += dt * 1.45;
+        sw.alpha -= dt * 0.95;
+        if (sw.alpha <= 0.01) this.shockwaves.splice(i, 1);
+      }
+    },
+
+    draw: function (ctx, W, H, effWarp, sling) {
+      var speedEnergy = Math.max(0, (effWarp || 0) * 0.14 + (sling || 0) * 1.15 - 0.35);
+      if (speedEnergy > 0.02) {
+        var lines = Math.min(18, Math.floor(6 + speedEnergy * 10));
+        var cx = W * 0.5, cy = H * 0.48;
+        var baseR = Math.min(W, H) * 0.38;
+        var maxR = Math.hypot(W, H) * 0.62;
+        var tNow = performance.now() * 0.004;
+        ctx.save();
+        ctx.strokeStyle = 'rgba(220, 236, 250, ' + Math.min(0.26, speedEnergy * 0.16).toFixed(3) + ')';
+        ctx.lineWidth = 1.0;
+        ctx.beginPath();
+        for (var i = 0; i < lines; i++) {
+          var ang = (i / lines) * Math.PI * 2 + Math.sin(tNow * 0.25 + i) * 0.06;
+          var phase = (tNow + i * 0.37) % 1;
+          var r0 = baseR + phase * (maxR - baseR) * 0.65;
+          var r1 = r0 + 26 + speedEnergy * 42;
+          ctx.moveTo(cx + Math.cos(ang) * r0, cy + Math.sin(ang) * r0);
+          ctx.lineTo(cx + Math.cos(ang) * r1, cy + Math.sin(ang) * r1);
+        }
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      if (this.shockwaves.length > 0) {
+        var scx = W * 0.5, scy = H * 0.48;
+        var diag = Math.min(W, H) * 0.55;
+        ctx.save();
+        for (var j = 0; j < this.shockwaves.length; j++) {
+          var sw = this.shockwaves[j];
+          ctx.strokeStyle = 'rgba(' + sw.color + ',' + Math.max(0, sw.alpha).toFixed(3) + ')';
+          ctx.lineWidth = 1.4;
+          ctx.beginPath();
+          ctx.arc(scx, scy, sw.r * diag, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+
+      if (this.flare > 0.02) {
+        var fy = H * 0.48;
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        var fg = ctx.createLinearGradient(0, fy, W, fy);
+        fg.addColorStop(0.0, 'rgba(143, 216, 192, 0)');
+        fg.addColorStop(0.5, 'rgba(244, 208, 111, ' + (this.flare * 0.16).toFixed(3) + ')');
+        fg.addColorStop(1.0, 'rgba(143, 216, 192, 0)');
+        ctx.fillStyle = fg;
+        ctx.fillRect(0, fy - 2, W, 4);
+        ctx.restore();
+      }
+    }
+  };
+  window.StarfieldCinematicFX = CinematicFX;
+
+  /* 3. Corridor Resonance Gates (Flow-State Orbital Rings) */
+  var ResonanceGates = {
+    STEP: 3400,
+    gates: [],
+    lastSlot: -1,
+    combo: 0,
+    comboTimer: 0,
+    totalCleared: 0,
+
+    _hash: function (n) {
+      var x = Math.sin(n * 12.9898 + 78.233) * 43758.5453;
+      return x - Math.floor(x);
+    },
+
+    update: function (dt, leadPos, travel, routeXFn, courseYFn) {
+      if (this.comboTimer > 0) {
+        this.comboTimer -= dt;
+        if (this.comboTimer <= 0) this.combo = 0;
+      }
+      var tz = typeof travel === 'number' ? travel : 0;
+      var curSlot = Math.floor(tz / this.STEP);
+      for (var s = curSlot + 1; s <= curSlot + 4; s++) {
+        if (s <= this.lastSlot) continue;
+        this.lastSlot = s;
+        var gz = s * this.STEP + 900;
+        var ox = (this._hash(s * 3 + 1) - 0.5) * 340;
+        var oy = (this._hash(s * 5 + 2) - 0.5) * 180;
+        var rx = typeof routeXFn === 'function' ? routeXFn(gz) : 0;
+        var cy = typeof courseYFn === 'function' ? courseYFn(gz) : 196;
+        this.gates.push({
+          slot: s,
+          x: rx + ox,
+          y: cy + oy,
+          z: gz,
+          r: 175,
+          passed: false,
+          gold: (s % 4 === 0)
+        });
+      }
+
+      for (var i = this.gates.length - 1; i >= 0; i--) {
+        var g = this.gates[i];
+        if (g.z < tz - 1600) {
+          this.gates.splice(i, 1);
+          continue;
+        }
+        if (!g.passed && leadPos && Math.abs(leadPos[2] - g.z) < 220) {
+          var dx = leadPos[0] - g.x;
+          var dy = leadPos[1] - g.y;
+          if (Math.hypot(dx, dy) < g.r + 125) {
+            g.passed = true;
+            this.combo = Math.min(12, this.combo + 1);
+            this.comboTimer = 9.0;
+            this.totalCleared++;
+            if (typeof window.__sfOnGateResonance === 'function') {
+              window.__sfOnGateResonance(this.combo, g.gold);
+            }
+          }
+        }
+      }
+    },
+
+    draw: function (ctx, projectFn, time) {
+      if (!this.gates.length || typeof projectFn !== 'function') return;
+      ctx.save();
+      for (var i = 0; i < this.gates.length; i++) {
+        var g = this.gates[i];
+        var q = projectFn([g.x, g.y, g.z]);
+        if (!q || q[2] < 40 || q[2] > 22000) continue;
+        var sr = g.r * q[3];
+        if (sr < 4 || sr > 480) continue;
+        var alpha = g.passed ? 0.14 : Math.min(0.85, Math.max(0.12, 1.0 - q[2] / 22000));
+        var col = g.gold ? '244,208,111' : '143,216,192';
+        ctx.strokeStyle = 'rgba(' + col + ',' + (alpha * 0.72).toFixed(3) + ')';
+        ctx.lineWidth = Math.max(1.0, Math.min(2.4, sr * 0.032));
+        ctx.beginPath();
+        ctx.arc(q[0], q[1], sr, 0, Math.PI * 2);
+        ctx.stroke();
+
+        if (!g.passed && sr >= 14) {
+          ctx.strokeStyle = 'rgba(230,237,242,' + (alpha * 0.35).toFixed(3) + ')';
+          ctx.lineWidth = 0.8;
+          ctx.beginPath();
+          ctx.arc(q[0], q[1], sr * 0.78, (time || 0) * 0.8, (time || 0) * 0.8 + Math.PI * 1.15);
+          ctx.stroke();
+        }
+      }
+      ctx.restore();
+    }
+  };
+  window.StarfieldResonanceGates = ResonanceGates;
+
+  function hookPresentationBridges() {
+    if (window.StarfieldSonar && !window.StarfieldSonar._b204AudioHooked) {
+      window.StarfieldSonar._b204AudioHooked = true;
+      var origScan = window.StarfieldSonar.triggerScan;
+      if (typeof origScan === 'function') {
+        window.StarfieldSonar.triggerScan = function () {
+          FlightAudio.playSonarPing();
+          return origScan.apply(this, arguments);
+        };
+      }
+    }
+    if (typeof window.onStarfieldAppLifecycle === 'function' && !window._b204LifeWrapped) {
+      window._b204LifeWrapped = true;
+      var origLife = window.onStarfieldAppLifecycle;
+      window.onStarfieldAppLifecycle = function (state) {
+        FlightAudio.setLifecyclePaused(state === 'pause' || state === 'background');
+        return origLife.apply(this, arguments);
+      };
+    }
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', hookPresentationBridges);
+  else hookPresentationBridges();
+})();
+</script>
+
 </body>
 
 </html>
