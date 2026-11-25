@@ -8923,7 +8923,7 @@ body:has(#photo-ui.active) .sf-touch-cluster{
     <div class="shortcut-list">
       <div class="shortcut-row">
         <span>客户端版本</span>
-        <span class="shortcut-key" id="sf-version-tag">v2.0.0.7 (Build 207)</span>
+        <span class="shortcut-key" id="sf-version-tag">v2.0.0.8 (Build 208)</span>
       </div>
       <div class="shortcut-row">
         <span>OTA 实时热更新</span>
@@ -13948,7 +13948,8 @@ function chunk(k){
   }
  // A capital ship every fifth chunk: the scale ladder had a gap between a
  // 40-unit crane and a 400-unit world.
- if(k>0&&k%5===2){
+ // Build 208: Single-focus pacing — thin out 2D capital ship, skirmish & random event clutter
+ if(k>0&&k%12===5){
   const z=z0+CHUNK*(.30+.40*r()),side=r()<.5?-1:1;
   ships.push({x:laneX(z)+side*(2800+r()*3200),y:courseY(z)+(r()-.5)*2600,z,
    len:900+r()*1100,roll:(r()-.5)*.18,ph:r()*TAU,drift:.55+r()*.9,
@@ -13968,7 +13969,7 @@ function chunk(k){
  // the lane. The wrecks at the gates are the aftermath; this is the thing.
  // Its own rng, so the rest of the chunk's stream - worlds, events - is
  // exactly what it was before this existed.
- if(k > 1 && ((k % 37) + 37) % 37 === 23){
+ if(k > 1 && ((k % 67) + 67) % 67 === 23){
   const rb = rng((hash(k, 911) * 4294967295) >>> 0);
   const bz = z0 + CHUNK * (.32 + rb() * .34), bx = laneX(bz), by = courseY(bz);
   const craft = [], fire = [];
@@ -13991,8 +13992,8 @@ function chunk(k){
     z:bz+(rb()-.5)*2600,period:1.8+rb()*3.2,phase:rb()*TAU,size:70+rb()*90});
   battles.push({x: bx, y: by, z: bz, fire, bursts});
  }
- // Deal random space events along the flight lane
- if(!horizon && !hasEncounter && k > 1 && (k % 4 === 2 || k % 4 === 0)){
+ // Deal random space events along the flight lane (Build 208: 4x cleaner cadence, avoids k%6===3 hero planets)
+ if(!horizon && !hasEncounter && k > 1 && (k % 8 === 6)){
   events.push(SpaceEventEngine.createEvent(k, z0, r, laneX(zc), courseY(zc)));
  }
  // Procedural Deep Space Distant Galaxies & Stellar Clusters (True omnidirectional deep space vistas)
@@ -16290,12 +16291,12 @@ function updateWind(dt){
  const cutoff=.19+2.2/(1+wind.speed*3.2),alpha=1-Math.exp(-TAU*cutoff*dt);
  wind.filteredX=mix(wind.filteredX,wind.rawX,alpha);wind.filteredY=mix(wind.filteredY,wind.rawY,alpha);
  wind.speed*=Math.exp(-dt*2.8);
- const input=(v)=>{const a=Math.abs(v);if(a<.075)return 0;return Math.sign(v)*Math.pow(clamp((a-.075)/.925),1.62);};
+ const input=(v)=>{const a=Math.abs(v);if(a<.045)return 0;return Math.sign(v)*Math.pow(clamp((a-.045)/.955),1.28);};
  const age=time-wind.last,energy=wind.active?Math.exp(-Math.max(0,age-1.35)*.75):Math.exp(-Math.max(0,age)*1.35);
  if(capturePhase>1){wind.x=expStep(wind.x,0,3,dt);wind.y=expStep(wind.y,0,3,dt);return;}
  const targetX=input((wind.filteredX-.42)/.55)*energy,targetY=input((wind.filteredY-.5)/.5)*energy;
  const allowSteer = autoCamera || cockpitMode;
- wind.x=expStep(wind.x,allowSteer?targetX:0,1.4,dt);wind.y=expStep(wind.y,allowSteer?targetY:0,1.4,dt);
+ wind.x=expStep(wind.x,allowSteer?targetX:0,3.4,dt);wind.y=expStep(wind.y,allowSteer?targetY:0,3.4,dt);
 }
 function craftWorld(b){return [routeX(travel)+b.x,courseY(travel)+b.y,travel+b.z];}
 window.craftWorld = craftWorld; window.fleet = fleet; window.LEAD = LEAD;
@@ -17109,6 +17110,51 @@ const StarfieldInFlightExtraction = {
       return true;
     }
     return false;
+  },
+  extractAllCargo(sourceLabel, bonusMult = 1.0) {
+    if (!this.cargo.length) return { count: 0, totalValue: 0, coreAwarded: 0, holdMult: 1.0 };
+    let rawVal = 0;
+    for (let i = 0; i < this.cargo.length; i++) rawVal += (this.cargo[i].value || 0);
+    const holdMult = 1 + Math.min(1.5, this.cargo.length * 0.18);
+    const finalVal = Math.max(0, Math.round(rawVal * holdMult * (bonusMult || 1.0)));
+    this.addSecuredCredits(finalVal, false);
+    const count = this.cargo.length;
+    const coreAwarded = count >= 4 ? 1 : 0;
+    if (coreAwarded && window.StarfieldHatch && typeof window.StarfieldHatch.addCores === 'function') {
+      window.StarfieldHatch.addCores(1);
+    }
+    this.cargo.length = 0;
+    this._lastCargoKey = '';
+    this.updateStardustHUD();
+    const lp = (typeof craftWorld === 'function' && typeof fleet !== 'undefined' && fleet[LEAD]) ? craftWorld(fleet[LEAD]) : [0, 0, 0];
+    this.updateHUD(lp);
+    if (window.StarfieldCinematicFX) window.StarfieldCinematicFX.triggerBurst(0.9, '244,208,111');
+    this.playChirp('loot');
+    if (window.StarfieldAppShell) window.StarfieldAppShell.haptic('success');
+    return { count, totalValue: finalVal, coreAwarded, holdMult };
+  },
+  jettisonCargoOnCrash() {
+    let lostValue = 0;
+    const lostCount = this.cargo.length;
+    for (let i = 0; i < lostCount; i++) lostValue += (this.cargo[i].value || 0);
+    this.cargo.length = 0;
+    this._lastCargoKey = '';
+    const lp = (typeof craftWorld === 'function' && typeof fleet !== 'undefined' && fleet[LEAD]) ? craftWorld(fleet[LEAD]) : [0, 0, 0];
+    this.updateHUD(lp);
+    return { lostCount, lostValue };
+  },
+  enrichCargoBySlingshot(pct = 0.15) {
+    if (!this.cargo.length) return 0;
+    let gainVal = 0;
+    for (let i = 0; i < this.cargo.length; i++) {
+      const add = Math.max(15, Math.round((this.cargo[i].value || 0) * pct));
+      this.cargo[i].value = (this.cargo[i].value || 0) + add;
+      gainVal += add;
+    }
+    this._lastCargoKey = '';
+    const lp = (typeof craftWorld === 'function' && typeof fleet !== 'undefined' && fleet[LEAD]) ? craftWorld(fleet[LEAD]) : [0, 0, 0];
+    this.updateHUD(lp);
+    return gainVal;
   },
   updateStardustHUD() {
     let el = document.getElementById('sf-hud-stardust');
@@ -18431,16 +18477,26 @@ function dockAtStation(st) {
       osc.stop(ctx.currentTime + 0.5);
     }
   } catch(e) {}
+  let extInfo = null;
+  if (window.StarfieldInFlightExtraction) {
+    window.StarfieldInFlightExtraction.addSecuredCredits(80, true);
+    if (typeof window.StarfieldInFlightExtraction.extractAllCargo === 'function') {
+      extInfo = window.StarfieldInFlightExtraction.extractAllCargo('深空补给站', 1.15);
+    }
+  }
+  const stationMsg = (extInfo && extInfo.count > 0)
+    ? `【补给站安全撤离】成功交割 ${extInfo.count} 件深空战利品（满舱倍率 ×${extInfo.holdMult.toFixed(2)}）· 入账 +${extInfo.totalValue} 星尘${extInfo.coreAwarded ? ' · 额外奖励星核 ×1' : ''} · 燃料已加满！`
+    : '【空间补给站停靠完成】反物质能源已加满 · 动力引擎已校准！';
   if (typeof showToast === 'function') {
-    showToast('【空间补给站停靠完成】反物质能源已加满 · 动力引擎已校准！', 3.5);
+    showToast(stationMsg, 4.0);
   } else if (typeof window.toast === 'function') {
-    window.toast('【空间补给站停靠完成】反物质能源已加满 · 动力引擎已校准！', 3.5);
+    window.toast(stationMsg, 4.0);
   }
   if (typeof Narrator !== 'undefined' && Narrator.speak) {
     Narrator.speak('已完成深空补给站停靠对接，反物质聚变能源与护盾核心已满载。', { id: 'station_refueled', priority: 1 });
   }
-  if (window.StarfieldInFlightExtraction) {
-    window.StarfieldInFlightExtraction.addSecuredCredits(80, true);
+  if (window.StarfieldExpedition && typeof window.StarfieldExpedition.refreshHUD === 'function') {
+    window.StarfieldExpedition.refreshHUD(true);
   }
   const dockPrompt = document.getElementById('sf-docking-prompt');
   if (dockPrompt) dockPrompt.style.display = 'none';
@@ -18830,14 +18886,22 @@ const StarfieldOrbitalMechanics = {
       window.StarfieldFuelEngine.isDrifting = false;
       if (typeof window.StarfieldFuelEngine.updateHUD === 'function') window.StarfieldFuelEngine.updateHUD();
     }
-    if (window.StarfieldInFlightExtraction && typeof window.StarfieldInFlightExtraction.addSecuredCredits === 'function') {
-      window.StarfieldInFlightExtraction.addSecuredCredits(280);
+    let gainVal = 0;
+    if (window.StarfieldInFlightExtraction) {
+      if (typeof window.StarfieldInFlightExtraction.addSecuredCredits === 'function') {
+        window.StarfieldInFlightExtraction.addSecuredCredits(280);
+      }
+      if (typeof window.StarfieldInFlightExtraction.enrichCargoBySlingshot === 'function') {
+        gainVal = window.StarfieldInFlightExtraction.enrichCargoBySlingshot(0.15);
+      }
     }
+    if (window.StarfieldCinematicFX) window.StarfieldCinematicFX.triggerBurst(0.85, '143,216,192');
+    if (window.StarfieldFlightAudio) window.StarfieldFlightAudio.playGateChime(2);
     const pName = pm.name || (pm.w && pm.w.name) || '天体引力井';
     if (window.StarfieldExpedition && typeof window.StarfieldExpedition.recordAction === 'function') {
       window.StarfieldExpedition.recordAction('slingshot_assist', { target: pName, stardust: 280 });
     }
-    const msg = `✦ 触发【${pName}】行星引力弹弓 · 航速激增 +280% · 星尘 +280 · 燃料 +25% ✦`;
+    const msg = `✦ 触发【${pName}】行星引力弹弓 · 航速激增 +280% · 星尘 +280 · 燃料 +25%${gainVal > 0 ? ` · 货舱引力淬炼增值 +${gainVal} ST` : ''} ✦`;
     if (typeof showToast === 'function') showToast(msg, 3.5);
     else if (typeof window.toast === 'function') window.toast(msg, 3.5);
   },
@@ -23431,7 +23495,7 @@ function frame(now){
    flightTime += dt;}else{previewTime+=dt;travel+=SPEED*.15*dt;}}
  updateDirector(realDt);
  currentPalette=region(routeX(travel),travel);
- if(dt){updateWind(dt);updateGravity();updateBirds(dt);updateGate(dt);updateCapture(dt);updateSling(dt);updateParticles(dt);updatePoem(dt);Narrator.update(dt);if(typeof StarfieldSonar!=='undefined')StarfieldSonar.update(dt);if(typeof StarfieldInFlightExtraction!=='undefined')StarfieldInFlightExtraction.update(dt);if(window.StarfieldCinematicFX)window.StarfieldCinematicFX.update(realDt);if(window.StarfieldResonanceGates&&fleet&&fleet[LEAD]){window.__sfOnGateResonance=window.__sfOnGateResonance||function(combo,gold){warp=Math.min(4.0,(warp||0)+Math.min(0.65,0.30+combo*0.06));if(window.StarfieldCinematicFX)window.StarfieldCinematicFX.triggerBurst(gold?1.0:0.65,gold?'244,208,111':'143,216,192');if(window.StarfieldFlightAudio)window.StarfieldFlightAudio.playGateChime(combo);if(window.StarfieldAppShell)window.StarfieldAppShell.haptic('medium');if(window.StarfieldExpedition)window.StarfieldExpedition.recordAction('gate_resonance',{stardust:80+combo*25});};window.StarfieldResonanceGates.update(dt,craftWorld(fleet[LEAD]),travel,routeX,courseY);}if(window.StarfieldFlightAudio)window.StarfieldFlightAudio.update(Math.max(warp,WarpDrive.currentWarp),sling);
+ if(dt){updateWind(dt);updateGravity();updateBirds(dt);updateGate(dt);updateCapture(dt);updateSling(dt);updateParticles(dt);updatePoem(dt);Narrator.update(dt);if(typeof StarfieldSonar!=='undefined')StarfieldSonar.update(dt);if(typeof StarfieldInFlightExtraction!=='undefined')StarfieldInFlightExtraction.update(dt);if(window.StarfieldCinematicFX)window.StarfieldCinematicFX.update(realDt);if(window.StarfieldResonanceGates&&fleet&&fleet[LEAD]){window.__sfOnGateResonance=window.__sfOnGateResonance||function(combo,gold){warp=Math.min(4.0,(warp||0)+Math.min(0.65,0.30+combo*0.06));if(window.StarfieldCinematicFX)window.StarfieldCinematicFX.triggerBurst(gold?1.0:0.65,gold?'244,208,111':'143,216,192');if(window.StarfieldFlightAudio)window.StarfieldFlightAudio.playGateChime(combo);if(window.StarfieldAppShell)window.StarfieldAppShell.haptic('medium');if(window.StarfieldExpedition)window.StarfieldExpedition.recordAction('gate_resonance',{stardust:80+combo*25,creditNow:true});};window.StarfieldResonanceGates.update(dt,craftWorld(fleet[LEAD]),travel,routeX,courseY);}if(window.StarfieldFlightAudio)window.StarfieldFlightAudio.update(Math.max(warp,WarpDrive.currentWarp),sling);
     const isEngineWarp = (typeof WarpDrive !== 'undefined') && (WarpDrive.currentWarp > 0.1 || WarpDrive.gearIndex > 0 || WarpDrive.isHolding);
     if(window.StarfieldFuelEngine) window.StarfieldFuelEngine.update(dt, isEngineWarp, false);
     {
@@ -28829,13 +28893,23 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       const rewardsEarned = [];
-      // Organic Pomodoro Focus Rewards: Award Unopened Planetary Cores & Stardust
+      // Organic Pomodoro Focus Rewards: Award Unopened Planetary Cores, Stardust & Safe Cargo Extraction
       const earnedCores = Math.max(1, Math.min(3, Math.floor(focusedMinutes / 20) || 1));
       if (window.StarfieldHatch && typeof window.StarfieldHatch.addCores === 'function') {
         window.StarfieldHatch.addCores(earnedCores);
       }
+      const focusStardust = focusedMinutes * 120;
+      if (window.StarfieldInFlightExtraction && typeof window.StarfieldInFlightExtraction.addSecuredCredits === 'function') {
+        window.StarfieldInFlightExtraction.addSecuredCredits(focusStardust, true);
+      }
       rewardsEarned.push(`✦ 捕获未开采深空星核 × ${earnedCores}`);
-      rewardsEarned.push(`✦ 凝聚深空星尘 +${focusedMinutes * 120}`);
+      rewardsEarned.push(`✦ 凝聚深空星尘 +${focusStardust}`);
+      if (window.StarfieldInFlightExtraction && typeof window.StarfieldInFlightExtraction.extractAllCargo === 'function') {
+        const ext = window.StarfieldInFlightExtraction.extractAllCargo('专注圆满撤离', 1.5);
+        if (ext && ext.count > 0) {
+          rewardsEarned.push(`✦ 货舱安全撤离交割 (${ext.count}件 · 1.5×心流加成) +${ext.totalValue} 星尘${ext.coreAwarded ? ' +1 星核' : ''}`);
+        }
+      }
 
       if (focusedMinutes >= 30 && !this.stats.unlockedRewards.hull_titan) {
         this.stats.unlockedRewards.hull_titan = true;
@@ -28885,6 +28959,21 @@ document.addEventListener('DOMContentLoaded', () => {
       if (this.stats.history.length > 50) this.stats.history.pop();
       this.saveStats();
 
+      if (window.StarfieldFuelEngine) {
+        window.StarfieldFuelEngine.fuel = 0;
+        window.StarfieldFuelEngine.isDrifting = true;
+        if (typeof window.StarfieldFuelEngine.updateHUD === 'function') window.StarfieldFuelEngine.updateHUD();
+      }
+      let lostSummary = '';
+      if (window.StarfieldInFlightExtraction && typeof window.StarfieldInFlightExtraction.jettisonCargoOnCrash === 'function') {
+        const lost = window.StarfieldInFlightExtraction.jettisonCargoOnCrash();
+        if (lost && lost.lostCount > 0) {
+          lostSummary = ` · 未撤离货舱 ${lost.lostCount} 件 (${lost.lostValue} ST) 已坠入虚空`;
+        }
+      }
+      if (window.StarfieldCinematicFX) window.StarfieldCinematicFX.triggerBurst(1.0, '244,63,94');
+      if (window.StarfieldAppShell) window.StarfieldAppShell.haptic('heavy');
+
       // Trigger black hole / emergency crash sequence in engine
       const SF = window.Starfield;
       if (SF && SF.triggerCrash) {
@@ -28897,7 +28986,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       }
 
-      showToast('[SINGULARITY PLUNGE] 离开星舰导致燃料耗尽 · 星舰已坠入黑洞奇点', 8);
+      showToast(`[SINGULARITY PLUNGE] 离开星舰导致燃料耗尽 · 星舰已坠入黑洞奇点${lostSummary}`, 8);
 
       this.showSummaryModal(false, elapsedMin, []);
     }
@@ -34906,7 +34995,7 @@ function sfBuildManif(THREE, planet, manifId, hue, rng) {
       else if (type === 'core_hatch') prog.totalHatched++;
       else if (type === 'gate_resonance') prog.totalGates = (prog.totalGates || 0) + 1;
 
-      if (meta && typeof meta.stardust === 'number' && meta.stardust > 0) {
+      if (meta && meta.creditNow === true && typeof meta.stardust === 'number' && meta.stardust > 0) {
         if (window.StarfieldInFlightExtraction && typeof window.StarfieldInFlightExtraction.addSecuredCredits === 'function') {
           window.StarfieldInFlightExtraction.addSecuredCredits(Math.round(meta.stardust));
         }

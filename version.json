@@ -1,14 +1,14 @@
 {
-  "version": "2.0.0.7",
-  "build": 207,
-  "updated_at": "2026-11-26T00:05:00+08:00",
+  "version": "2.0.0.8",
+  "build": 208,
+  "updated_at": "2026-11-26T00:35:00+08:00",
   "min_native_version": "1.0.0",
   "is_beta": false,
-  "title": "Starfield v2.0.0.7 (Build 207): Phase 1 极速瘦身 76.5% (8.4MB) 与安卓 UI 统一规范版",
-  "changelog": "1. 音频外置大瘦身：将 247 条旁白语音与第 8 首 11.98MB 乐曲抽离为独立 MP3 按需加载 + SW 持久化缓存，starfield.html 从 35.96MB 直降至 ~8.4MB（完全兼容现有安卓 APK 4MB OTA 校验，后续新包已降至 1MB 门限）；\n2. 安卓端 UI 视觉与触控大统一：新增 sf-ui-v207-android-unified 设计 Token 层，拉齐设置抽屉、图鉴、机库、升级面板、孵化仓与浮层胶囊的底色、1px 边框、6px 圆角、Safe Area 留白与按压反馈。",
+  "title": "Starfield v2.0.0.8 (Build 208): Phase 2A 玩法闭环融合、去噪与触控手感重铸版",
+  "changelog": "1. 深度打通【搜打撤 + 引力弹弓 + 番茄钟风险撤离】主循环：引力弹弓可为货舱战利品进行 15% 引力淬炼增值，停靠补给站与完成专注可按满舱倍率/心流加成安全交割星尘，中途破戒离开将清空燃料并损失未撤离货舱；\n2. 单焦点节拍去噪与触控手感提速：大幅降低冗余 2D 主力舰/混战/随机事件频次避免杂乱遮挡，并收紧滑屏死区与追踪响应以便主动切入光门与弹弓轨道；\n3. 将 159 条历史记录打捞的 7 大原点创意总纲正式沉淀至架构路线图。",
   "entry": "starfield.html",
   "download_url": "https://jackeyloveseven.github.io/starfield/starfield.html",
   "apk_release_url": "https://github.com/jackeyloveseven/starfield/releases/tag/v1.19.1-focus-apk",
-  "description": "Build 207 (v2.0.0.7): Phase 1 audio externalization (35.96MB -> ~8.4MB, 76.5% OTA reduction) & unified Android UI design tokens/sheets",
-  "timestamp": "2026-11-25T16:05:00Z"
+  "description": "Build 208 (v2.0.0.8): Phase 2A gameplay loop fusion (extraction x slingshot x focus risk-reward), pacing declutter, responsive steering & 7-pillar design bible",
+  "timestamp": "2026-11-25T16:35:00Z"
 }
