@@ -1,14 +1,14 @@
 {
-  "version": "2.0.1.0",
-  "build": 210,
-  "updated_at": "2026-11-26T00:55:00+08:00",
+  "version": "2.1.0.0",
+  "build": 211,
+  "updated_at": "2026-11-27T19:40:00+08:00",
   "min_native_version": "1.0.0",
   "is_beta": false,
-  "title": "Starfield v2.0.1.0 (Build 210): starfield-v3 完整版上线（3D 牵引撤离 + 番茄钟 + 卡牌 + 古典乐）",
-  "changelog": "1. starfield-v3.html 跃升为完整垂直切片（~37 KB）：新增 3D 遗迹信标与可见 3D 牵引光束、6 格风险货舱、引力弹弓货舱淬炼、3D 补给撤离站、远景环绕卫星与卡冈图雅爱因斯坦透镜弧；\n2. 接入完整番茄钟专注远征（切出 10 秒坠毁清舱 / 圆满收获星核与 1.5x 安全撤离）与单 WebGL 上下文居中开卡仪式（永久词条反哺飞行）；\n3. 接入外置《圣·桑 Op.28》古典原声播放器与 420 粒子折纸鹤光尾。",
+  "title": "Starfield v2.1.0.0 (Build 211): 主入口原生全屏 2K GPU HDR 光追级引擎 + 3D 全息收藏卡牌重构",
+  "changelog": "1. 主入口 starfield.html 直接搭载全屏原生 2K GPU HDR 光追级管线（StarfieldGPURendererV3）：单 WebGL 上下文 + 多通道 HalfFloat HDR Bloom 泛光 + ACES 电影色调映射，彻底淘汰旧版 384px 离屏贴图与 CPU Simplex 网格卡顿；\n2. 6 阶域扭曲（Domain-Warped）GLSL 活体行星着色器：世界空间三向有限差分凹凸法线、云层投射阴影、海洋清漆镜面高光、暗面金色城市路网、熔岩裂谷、3D 日食星环与卡冈图雅黑洞；\n3. 重构开局星球空间节奏（k=1 即刻邂逅地球环星 + 竖屏黄金比例防裁切构图）并修复 GitHub Pages / APK 外置旁白与圣·桑古典乐 404；\n4. 彻底修复卡牌按钮右移出屏（left:50%+transform:none）、翻面失效与文字遮挡 Bug，升级为真 3D 视差全息收藏卡与 2K GLSL 球体检视。",
   "entry": "starfield.html",
   "download_url": "https://jackeyloveseven.github.io/starfield/starfield.html",
   "apk_release_url": "https://github.com/jackeyloveseven/starfield/releases/tag/v1.19.1-focus-apk",
-  "description": "Build 210 (v2.0.1.0): Starfield v3.1 full GPU vertical slice with 3D tractor extraction, focus pomodoro, unified-GPU ceremonial cards & classical score",
-  "timestamp": "2026-11-25T16:55:00Z"
+  "description": "Build 211 (v2.1.0.0): Native full-screen 2K GPU HDR Bloom engine embedded directly into starfield.html, 3D holographic card overhaul, portrait framing & audio CDN fix",
+  "timestamp": "2026-11-27T11:40:00Z"
 }

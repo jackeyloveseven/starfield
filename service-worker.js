@@ -1,12 +1,11 @@
 // Bump CACHE_VERSION together with version.json on every web release.
 const CACHE_PREFIX = 'starfield-focus-';
-const CACHE_VERSION = 'v2.0.1.0-b210';
+const CACHE_VERSION = 'v2.1.0.0-b211';
 const CACHE_NAME = CACHE_PREFIX + CACHE_VERSION;
 const AUDIO_CACHE = 'starfield-audio-v1';
 const SHELL = './starfield.html';
 const PRECACHE = [
   SHELL,
-  './starfield-v3.html',
   './manifest.json',
   './icon-192.png',
   './icon-512.png',
